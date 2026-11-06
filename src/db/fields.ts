@@ -1,7 +1,7 @@
 // The one typed door to the database (PLAN.md section 7). Every secret text field is written and read
 // here, so no UI code ever touches a stored string:
 //   messages.text, items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
-//   settings.spotify.tokens.
+//   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -71,6 +71,14 @@ const settingsSpec: Spec<Settings> = {
     secret ? { ...clear, spotify: { ...clear.spotify, tokens: secret as NonNullable<Settings['spotify']>['tokens'] } } : clear,
 };
 
+const pageSpec: Spec<Tables['pages']> = {
+  take: row => {
+    const { title, ...clear } = row;
+    return { clear: clear as Tables['pages'], secret: title ?? null };
+  },
+  give: (clear, secret) => (typeof secret === 'string' ? { ...clear, title: secret } : clear),
+};
+
 const leanSpec: Spec<Tables['leans']> = {
   take: row => ({ clear: { ...row, note: '' }, secret: row.note }),
   give: (clear, secret) => ({ ...clear, note: String(secret ?? '') }),
@@ -79,6 +87,7 @@ const leanSpec: Spec<Tables['leans']> = {
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
+  pages: pageSpec,
   messages: textSpec<Tables['messages']>(),
   items: textSpec<Tables['items']>(),
   leans: leanSpec,

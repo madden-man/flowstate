@@ -90,6 +90,42 @@ describe('setKey', () => {
   });
 });
 
+describe('page titles', () => {
+  const question = { id: 'q1', kind: 'question' as const, createdAt: 1, updatedAt: 1, state: 'open' as const, tags: ['flow'], paradoxIds: [], linkedPageIds: [], title: 'How can I gauge my pleasure/pain barometer?' };
+
+  it('a stored question title is sealed once a key is set, and reads back after unlock', async () => {
+    await ensureSeeded();
+    await store.put('pages', question);
+    expect((await db.pages.get('q1'))!.title).toBe(question.title);
+    const salt = randomSalt();
+    const key = await deriveKey('8', salt, FAST);
+    await setKey(key, { salt, iterations: FAST });
+    const raw = (await db.pages.get('q1'))! as typeof question & { sealed?: unknown };
+    expect(raw.title).toBeUndefined();
+    expect(raw.sealed).toBeDefined();
+    expect(JSON.stringify(raw)).not.toContain('barometer');
+    expect(raw.tags).toEqual(['flow']); // tags, kind and dates stay clear
+    lock();
+    const locked = (await store.get('pages', 'q1'))!;
+    expect(locked.locked).toBe(true);
+    expect(locked.title).toBeUndefined();
+    expect(await unlock(key)).toBe(true);
+    expect((await store.get('pages', 'q1'))!.title).toBe(question.title);
+    const listed = await store.query('pages', t => t.where('kind').equals('question'));
+    expect(listed.map(p => p.title)).toEqual([question.title]);
+  });
+
+  it('a page without a title stays without one', async () => {
+    await ensureSeeded();
+    const salt = randomSalt();
+    await setKey(await deriveKey('8', salt, FAST), { salt, iterations: FAST });
+    expect((await store.get('pages', 'pg-manifesto'))!.title).toBeUndefined();
+    await removeKey();
+    expect((await db.pages.get('q1'))).toBeUndefined();
+    expect('title' in (await db.pages.get('pg-manifesto'))!).toBe(false);
+  });
+});
+
 describe('locked', () => {
   it('reads come back marked locked with the text withheld, and writes refuse', async () => {
     await ensureSeeded();
