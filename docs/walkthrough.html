@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowState Walkthrough</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* paper page, notebook-blue rules, near-black ink; phone mock sits on a quiet desk grey */
+  --paper:#f7f4ec; --rule:#c9d7ea; --ink:#1e1d1a; --ink-2:#5c5a53; --desk:#e6e2d8; --card:#fffdf8;
+  --accent:#2f5fb3; --line:#d8d3c6; --ok:#2e7d4f; --warn:#b26a00;
+  --font-ui:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-hand:"Caveat","Bradley Hand",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1b1a17; --rule:#2c3647; --ink:#ece7da; --ink-2:#a39e91; --desk:#111110; --card:#23221e;
+    --accent:#7ea4ea; --line:#3a3731; --ok:#6fcf97; --warn:#e5a84b; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1b1a17; --rule:#2c3647; --ink:#ece7da; --ink-2:#a39e91; --desk:#111110; --card:#23221e;
+  --accent:#7ea4ea; --line:#3a3731; --ok:#6fcf97; --warn:#e5a84b; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--font-ui);font-size:16px;line-height:1.4}
+a{color:var(--accent)}
+.wrap{max-width:1040px;margin:0 auto;padding:24px 16px 48px;display:grid;grid-template-columns:200px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+/* rail */
+.rail{position:sticky;top:16px;align-self:start}
+.rail h1{font-size:18px;margin:0 0 4px;font-weight:700}
+.rail .count{color:var(--ink-2);font-size:13px;margin-bottom:12px}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.rail li a{display:flex;gap:8px;align-items:baseline;padding:5px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+.rail li a .n{color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:18px}
+.rail li a[aria-current="step"]{background:var(--card);box-shadow:inset 3px 0 0 var(--accent)}
+.rail li a:focus-visible{outline:2px solid var(--accent)}
+@media (max-width:760px){.rail{position:static}.rail ol{display:none}}
+/* step */
+.step{display:none}
+.step.on{display:block}
+.step h2{font-size:24px;margin:0 0 4px;text-wrap:balance}
+.step .lead{margin:0 0 16px;color:var(--ink-2);max-width:60ch}
+.nav{display:flex;gap:8px;align-items:center;margin-top:16px}
+.nav button{font:inherit;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.nav button:disabled{opacity:.4;cursor:default}
+.nav button:focus-visible{outline:2px solid var(--accent)}
+.nav .pos{color:var(--ink-2);font-size:14px;margin-left:auto;font-variant-numeric:tabular-nums}
+details{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;color:var(--ink-2);font-size:14px}
+details table{border-collapse:collapse;font-size:14px;margin-top:8px}
+details td{padding:4px 12px 4px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+details td:first-child{color:var(--ink-2);white-space:nowrap}
+details code{font-size:13px}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:6px;background:var(--accent);color:#fff;vertical-align:middle;margin-left:8px}
+/* phone */
+.phone{width:340px;max-width:100%;margin:0 auto;background:#111;border-radius:40px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.screen{background:var(--paper);border-radius:30px;min-height:620px;display:flex;flex-direction:column;overflow:hidden;position:relative;color:var(--ink)}
+.status{display:flex;justify-content:space-between;padding:10px 22px 0;font-size:12px;font-weight:600;color:var(--ink-2)}
+.top{display:flex;justify-content:space-between;align-items:baseline;padding:12px 18px 6px}
+.top .t{font-weight:700;font-size:20px}
+.top .d{font-family:var(--font-hand);color:var(--ink-2);font-size:16px}
+.body{flex:1;padding:4px 16px 12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.lined{background-image:repeating-linear-gradient(to bottom,transparent 0 27px,var(--rule) 27px 28px);background-position:0 6px}
+.tabs{display:flex;justify-content:space-around;padding:10px 8px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-2)}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs i{width:22px;height:22px;border-radius:6px;border:2px solid currentColor;display:block;opacity:.8}
+.tabs span.on{color:var(--accent);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.card .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card .h b{font-size:15px}
+.card .h small{color:var(--ink-2);font-size:12px;white-space:nowrap}
+.card p{margin:4px 0 0;font-size:14px;color:var(--ink)}
+.state{font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;border:1px solid var(--line);color:var(--ink-2)}
+.state.raw{color:var(--warn);border-color:var(--warn)}
+.state.integrated{color:var(--ok);border-color:var(--ok)}
+.tagrow{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0;scrollbar-width:none}
+.chip{font:inherit;font-size:13px;padding:5px 10px;border-radius:999px;border:1.5px solid var(--c,var(--line));background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--ink-2))}
+.chip.on{background:var(--c,var(--ink));color:#fff;border-color:var(--c,var(--ink))}
+.chip.on .dot{background:#fff}
+.chip.add{border-style:dashed;color:var(--ink-2)}
+.compose{display:flex;gap:8px;align-items:flex-end}
+.compose textarea,.compose input{flex:1;font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);resize:none}
+.btn{font:inherit;font-size:14px;font-weight:600;padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.fab{position:absolute;right:18px;bottom:74px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;line-height:52px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+.seg button{flex:1;font:inherit;padding:6px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.seg button.on{background:var(--card);color:var(--ink);font-weight:700}
+.msg{max-width:88%;padding:8px 11px;border-radius:14px;background:var(--card);border-left:4px solid var(--c,var(--line));font-size:14px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.msg .who{font-size:11px;font-weight:700;color:var(--c,var(--ink-2));margin-bottom:2px}
+.msg.plain{border-left-color:var(--ink)}
+.msg.plain .who{color:var(--ink-2)}
+.mood{display:flex;gap:6px}
+.mood button{font:inherit;font-size:13px;flex:1;padding:6px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.mood button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+/* keypad */
+.lock{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
+.lock .title{font-family:var(--font-hand);font-size:34px;font-weight:700;margin:0}
+.lock .mani{margin:0;text-align:center;color:var(--ink-2);font-size:15px;line-height:1.5}
+.dots{display:flex;gap:12px;margin:6px 0}
+.dots i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);display:block}
+.dots i.f{background:var(--ink)}
+.pad{display:grid;grid-template-columns:repeat(3,66px);gap:10px}
+.pad button{font:inherit;height:60px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.pad button b{font-size:22px}
+.pad button small{font-size:9px;letter-spacing:.18em;color:var(--ink-2);margin-top:2px}
+.pad button:focus-visible{outline:2px solid var(--accent)}
+.unlocked{position:absolute;inset:0;background:var(--paper);display:none;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-family:var(--font-hand);font-size:30px}
+.unlocked.on{display:flex}
+/* spread */
+.spread{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;height:300px;overflow:hidden}
+.spread .lines{position:absolute;inset:0;background-image:repeating-linear-gradient(to bottom,transparent 0 27px,var(--rule) 27px 28px);background-position:0 10px}
+.spread .seam{position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed var(--line)}
+.corner{position:absolute;font-family:var(--font-hand);font-size:22px;font-weight:700;color:var(--ink);padding:2px 10px;border-bottom:2px solid var(--ink)}
+.corner.a{left:4px;top:30px;transform:rotate(-30deg);transform-origin:center}
+.corner.b{right:4px;bottom:30px;transform:rotate(-30deg);transform-origin:center}
+.spread svg{position:absolute;inset:0;width:100%;height:100%}
+.item{position:absolute;transform:translate(-50%,-50%);font-size:12px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:4px 8px;max-width:150px;text-align:center}
+.item.pa{border-color:var(--accent)}
+.bead{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid var(--card);transform:translate(-50%,-50%);cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.3);touch-action:none}
+.middle{position:absolute;left:28%;top:74%;transform:translate(-50%,-50%) rotate(-30deg);font-family:var(--font-hand);font-size:17px;color:var(--ink-2);white-space:nowrap;background:var(--card);padding:0 6px}
+.leanline{font-size:13px;color:var(--ink-2);text-align:center}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.two label{font-size:12px;color:var(--ink-2);display:block}
+.two input,.two textarea{width:100%;font:inherit;font-size:14px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);resize:none}
+.two .pole{font-family:var(--font-hand);font-size:22px;font-weight:700}
+.due{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.due input{width:20px;height:20px;accent-color:var(--accent)}
+.due small{color:var(--ink-2);margin-left:auto;white-space:nowrap;font-size:12px}
+.due.done span{text-decoration:line-through;color:var(--ink-2)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+.chart svg{width:100%;height:auto;display:block}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv small{color:var(--ink-2)}
+.toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.vrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.vrow .sw{width:18px;height:18px;border-radius:5px;background:var(--c)}
+.vrow .twin{color:var(--ink-2);font-size:12px;margin-left:auto}
+.vrow .star{color:var(--warn)}
+.hue{appearance:none;height:14px;border-radius:7px;background:linear-gradient(to right,#e33,#e8842a,#d9b400,#3a8f4f,#2f6fd6,#8a4fc7,#e4679c,#e33);width:100%}
+.hue::-webkit-slider-thumb{appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #333}
+.q{padding:8px 0;border-bottom:1px solid var(--line)}
+.q b{font-size:14px;display:block;cursor:pointer}
+.q .ans{font-size:13px;color:var(--ink-2);margin-top:2px;font-style:italic}
+.q textarea{display:none;width:100%;margin-top:6px;font:inherit;font-size:14px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.q.open textarea{display:block}
+.q.open .ans{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="rail" aria-label="Steps">
+    <h1>FlowState</h1>
+    <div class="count" id="count">Step 1 of 12</div>
+    <ol id="rail"></ol>
+  </nav>
+  <main id="steps">
+
+    <!-- 1 lock -->
+    <section class="step" id="lock" data-title="Unlock with four taps">
+      <h2>Unlock with four taps</h2>
+      <p class="lead">The keypad carries letters, so the PIN is a word.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="lock">
+          <p class="title">Who to Be, How to Flow</p>
+          <p class="mani">I determine my core.<br>I choose how to flow.</p>
+          <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+          <div class="pad" id="pad"></div>
+        </div>
+        <div class="unlocked" id="unlocked"><span>Open</span><small style="font-family:var(--font-ui);font-size:13px;color:var(--ink-2)">locks again after 5 min in the background</small></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Key</td><td>PBKDF2-SHA256 from the PIN + stored salt; verifier hash only, PIN never stored</td></tr>
+        <tr><td>Encrypted fields</td><td><code>text</code>, <code>aspect</code>, <code>scenario</code>, <code>note</code> with AES-GCM per record</td></tr>
+        <tr><td>Relock</td><td><code>visibilitychange</code> timer drops the key from memory</td></tr>
+        <tr><td>Limit</td><td>a short PIN is a curtain, not a vault; Face ID via WebAuthn is a later step</td></tr>
+      </table></details>
+    </section>
+
+
+    <!-- offline -->
+    <section class="step" id="offline" data-title="Works with the radio off">
+      <h2>Works with the radio off</h2>
+      <p class="lead">Installed once, it opens in airplane mode with every page present.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41 ✈︎</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Journal</span><span class="d">Sat 8 Nov 2026</span></div>
+        <div class="body">
+          <div class="seg"><button class="on">Entries</button><button>Questions · 3 open</button></div>
+          <div class="card"><div class="h"><b>Thursday evening</b><small>6 Nov</small></div><p>Logistics all day. Held it together outside and boiled underneath.</p><div class="tagrow"><span class="state raw">RAW</span><span>#work</span></div></div>
+          <div class="card"><div class="h"><b>After the walk</b><small>5 Nov</small></div><p>Marriage is hard. Simple things make the difference.</p><div class="tagrow"><span class="state">REVISITED</span></div></div>
+          <div class="card" style="background:transparent;border-style:dashed"><div class="h"><b>Not installed yet?</b><small>Safari</small></div><p>Share, then Add to Home Screen. Installed apps keep their storage; a Safari tab can lose it after a week unused.</p></div>
+        </div>
+        <div class="fab">+</div>
+        <div class="tabs"><span class="on"><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Shell</td><td>Workbox precaches every built file, fonts included (self-hosted, no Google Fonts at runtime)</td></tr>
+        <tr><td>Network</td><td>no CDN, no fetch, no analytics; the app never makes a request after install</td></tr>
+        <tr><td>Data</td><td>IndexedDB on the phone; <code>navigator.storage.persist()</code> requested on first run</td></tr>
+        <tr><td>Updates</td><td>new worker waits; a toast offers reload, never mid-sentence</td></tr>
+        <tr><td>Check</td><td>Playwright smoke: install, go offline, reload, write, reload again</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 2 journal -->
+    <section class="step" id="journal" data-title="Open to today's page">
+      <h2>Open to today's page</h2>
+      <p class="lead">Journal is the first tab and a blank dated entry is one tap away.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Journal</span><span class="d">Fri 7 Nov 2026</span></div>
+        <div class="body">
+          <div class="seg"><button class="on">Entries</button><button>Questions · 3 open</button></div>
+          <div class="card"><div class="h"><b>Thursday evening</b><small>6 Nov</small></div>
+            <p>Logistics all day. Held it together outside and boiled underneath. Writing it down before it sets.</p>
+            <div class="tagrow"><span class="state raw">RAW</span><span>#work</span><span>#family</span></div></div>
+          <div class="card"><div class="h"><b>After the walk</b><small>5 Nov</small></div>
+            <p>Marriage is hard. Yes and no and give me that back, a million times. Simple things make the difference.</p>
+            <div class="tagrow"><span class="state">REVISITED</span><span>#alison</span></div></div>
+          <div class="card"><div class="h"><b>Vegetable chopping</b><small>2 Nov</small></div>
+            <p>Two hours at the Evergreen kitchen. Nothing to prove. Felt like myself.</p>
+            <div class="tagrow"><span class="state integrated">INTEGRATED</span><span>#selfless</span></div></div>
+        </div>
+        <div class="fab">+</div>
+        <div class="tabs"><span class="on"><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Table</td><td><code>pages</code> kind <code>entry</code>, state raw / revisited / integrated, <code>*tags</code> index</td></tr>
+        <tr><td>List</td><td>Dexie <code>liveQuery</code> by <code>createdAt</code> desc</td></tr>
+        <tr><td>Route</td><td><code>#/journal</code>, <code>#/journal/:id</code></td></tr>
+      </table></details>
+    </section>
+
+    <!-- 3 write -->
+    <section class="step" id="write" data-title="Write it down while it is raw">
+      <h2>Write it down while it is raw</h2>
+      <p class="lead">A mood word, tags and a speaker chip sit under the page; every keystroke saves.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">New entry</span><span class="d">7 Nov 2026</span></div>
+        <div class="body">
+          <div style="font-size:12px;color:var(--ink-2)">Mood right now</div>
+          <div class="mood" id="mood"><button>heavy</button><button>flat</button><button class="on">okay</button><button>steady</button><button>alive</button></div>
+          <textarea class="lined" rows="9" style="font:inherit;font-size:15px;line-height:28px;padding:0 6px;border:0;background-color:transparent;color:var(--ink);resize:none;outline:none">Slept badly. The job wants more than I said I would give, and I said yes again before I checked with myself.</textarea>
+          <div class="chips"><button class="chip on plain"><span class="dot"></span>Plain ink</button><button class="chip" style="--c:#2f6fd6"><span class="dot"></span>Mystic</button><button class="chip" style="--c:#1f1f1f"><span class="dot"></span>Skeptic</button></div>
+          <div class="tagrow"><span>#work</span><span>#boundaries</span><span style="color:var(--accent)">+ tag</span></div>
+          <div style="display:flex;gap:8px"><button class="btn ghost">Link to a paradox</button><button class="btn" style="margin-left:auto">Saved</button></div>
+        </div>
+        <div class="tabs"><span class="on"><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Messages</td><td>each block of text is a <code>messages</code> row with optional <code>voiceId</code></td></tr>
+        <tr><td>Autosave</td><td>debounced 400 ms put, so a killed tab loses nothing</td></tr>
+        <tr><td>Keyboard</td><td><code>visualViewport</code> keeps the composer above the iOS keyboard</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 4 revisit -->
+    <section class="step" id="revisit" data-title="Come back with distance">
+      <h2>Come back with distance</h2>
+      <p class="lead">A later reading sits under the original and moves the entry along.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Thursday evening</span><span class="d">6 Nov</span></div>
+        <div class="body">
+          <div class="msg plain"><div class="who">Plain ink · 6 Nov, 9:12 pm</div>Logistics all day. Held it together outside and boiled underneath. Writing it down before it sets.</div>
+          <div class="msg" style="--c:#2f6fd6"><div class="who">Mystic · 7 Nov, 7:40 am</div>You logic through all of it and the heat has nowhere to go. Name the heat before the next call, not after.</div>
+          <div class="msg" style="--c:#3a8f4f"><div class="who">Architect · 7 Nov, 7:44 am</div>Two calls today, both scheduled. Put the breathing room first, then the calls.</div>
+          <div class="tagrow"><span class="state">REVISITED</span><span>#work</span><span>#family</span></div>
+          <div class="compose"><textarea rows="2" placeholder="Read it again later..."></textarea><button class="btn" id="revisitBtn">Revisit</button></div>
+          <button class="btn ghost" id="integrate">Mark integrated</button>
+        </div>
+        <div class="tabs"><span class="on"><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Lifecycle</td><td><code>raw → revisited → integrated</code> in <code>model/pages.ts</code>; a revisit appends a message with a later <code>at</code></td></tr>
+        <tr><td>Look back</td><td>entries still <code>raw</code> after 7 days surface on the Flow tab</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 5 questions -->
+    <section class="step" id="questions" data-title="Leave space to answer">
+      <h2>Leave space to answer</h2>
+      <p class="lead">Questions is a section inside Journal; open ones wait at the top.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Journal</span><span class="d">7 Nov 2026</span></div>
+        <div class="body">
+          <div class="seg"><button>Entries</button><button class="on">Questions · 3 open</button></div>
+          <div id="qlist">
+            <div class="q"><b>How do I make room for the experience of wonder without clear beliefs?</b><div class="ans">space to answer left · tap to answer</div><textarea rows="3" placeholder="Answer, in any voice..."></textarea></div>
+            <div class="q"><b>Is there a higher-order way to abide in my feelings?</b><div class="ans">space to answer left · tap to answer</div><textarea rows="3" placeholder="Answer, in any voice..."></textarea></div>
+            <div class="q"><b>How much am I willing to do for the current job?</b><div class="ans">space to answer left · linked: Should I commit to hard things?</div><textarea rows="3" placeholder="Answer, in any voice..."></textarea></div>
+            <div class="q"><b>Should I commit to hard things that require sacrifice?</b><div class="ans">answered 5 Nov · Warrior · "Try things, see where they end up."</div><textarea rows="3"></textarea></div>
+            <div class="q"><b>Who do I want to be like, and why?</b><div class="ans">answered 4 Nov · four names</div><textarea rows="3"></textarea></div>
+          </div>
+          <button class="btn ghost">Ask a question</button>
+        </div>
+        <div class="tabs"><span class="on"><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Table</td><td><code>pages</code> kind <code>question</code>; <code>title</code> is the question, state <code>open</code> until a message exists</td></tr>
+        <tr><td>Links</td><td><code>linkedPageIds</code> for "related" and "smaller version"</td></tr>
+        <tr><td>Route</td><td><code>#/journal/questions</code></td></tr>
+      </table></details>
+    </section>
+
+    <!-- 6 council -->
+    <section class="step" id="council" data-title="Let the voices talk it out">
+      <h2>Let the voices talk it out</h2>
+      <p class="lead">Tap a chip to choose who speaks next; each message takes that colour.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">The job question</span><span class="d">7 Nov</span></div>
+        <div class="body" id="chat">
+          <div class="msg" style="--c:#1f1f1f"><div class="who">Skeptic</div>Nobody is measuring the extra hours. You are giving them to a machine that will not notice.</div>
+          <div class="msg" style="--c:#d23b3b"><div class="who">Warrior</div>To hunt is human. Chase it, but never for a fantasy future.</div>
+          <div class="msg" style="--c:#2f6fd6"><div class="who">Mystic</div>What does the body say at 6 am? That is the answer you keep skipping.</div>
+          <div class="msg" style="--c:#3a8f4f"><div class="who">Architect</div>Set the hours on Sunday. Then the week is a plan, not a negotiation.</div>
+        </div>
+        <div style="padding:0 16px 10px;display:flex;flex-direction:column;gap:8px">
+          <div class="chips" id="chips"></div>
+          <div class="compose"><input id="say" placeholder="Speak as Architect..."><button class="btn" id="send">Send</button></div>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span class="on"><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Table</td><td><code>messages</code> indexed <code>[pageId+at]</code>, <code>voiceId</code>, optional <code>replyTo</code></td></tr>
+        <tr><td>Chip order</td><td>starred voices first, archived hidden, "+ voice" last</td></tr>
+        <tr><td>Rule</td><td>no model ever writes a message; the composer is the only writer</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 7 voices -->
+    <section class="step" id="voices" data-title="Add a voice when a new one shows up">
+      <h2>Add a voice when a new one shows up</h2>
+      <p class="lead">Name it, pick a hue, pair a shadow twin, and it speaks at once.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Voices</span><span class="d">running list</span></div>
+        <div class="body">
+          <div id="vlist"></div>
+          <div class="card">
+            <b style="font-size:14px">New voice</b>
+            <div style="display:grid;gap:8px;margin-top:6px">
+              <input id="vname" placeholder="Name, e.g. Gardener" style="font:inherit;font-size:14px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink)">
+              <input class="hue" id="vhue" type="range" min="0" max="360" value="150">
+              <div style="display:flex;gap:8px;align-items:center;font-size:13px"><span class="sw" id="vsw" style="width:18px;height:18px;border-radius:5px;background:hsl(150 55% 45%)"></span><label><input type="checkbox" id="vdeep"> deep shade (shadow twin)</label><button class="btn" id="vadd" style="margin-left:auto">Add</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span class="on"><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Table</td><td><code>voices</code>: name, aka, colour, shade light / deep, <code>twinId</code>, starred, archived, <code>revisions</code></td></tr>
+        <tr><td>Seed</td><td>the notebook's nine colours and five deep twins in <code>db/seed.ts</code>; Jung's figures offered, not active</td></tr>
+        <tr><td>Rename</td><td>old name and colour pushed to <code>revisions</code>, so old pages still read</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 8 spread -->
+    <section class="step" id="be" data-title="Hold both sides of who to be">
+      <h2>Hold both sides of who to be</h2>
+      <p class="lead">Each value faces its opposite across the spread; drag the bead to mark this week's lean.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Be</span><span class="d">3 active</span></div>
+        <div class="body">
+          <div class="spread" id="spread">
+            <div class="lines"></div><div class="seam"></div>
+            <svg viewBox="0 0 300 300" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="0" y1="0" x2="300" y2="300" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="4 4"/>
+              <path d="M78 96 Q 120 60 150 128" fill="none" stroke="var(--ink-2)" stroke-width="1.2" marker-end="url(#ar)"/>
+              <defs><marker id="ar" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--ink-2)"/></marker></defs>
+            </svg>
+            <div class="corner a">selfless</div>
+            <div class="corner b">selfish</div>
+            <div class="middle">compassionate self-awareness</div>
+            <div class="item pa" style="left:26%;top:32%">Volunteer kitchen, weekly</div>
+            <div class="item" style="left:50%;top:43%;transform:translate(-50%,-50%) translateY(26px)">Share what I make</div>
+            <div class="item pa" style="left:72%;top:74%">Something that gives breathing room</div>
+            <div class="bead" id="bead" style="left:42%;top:42%"></div>
+          </div>
+          <div class="leanline" id="leanline">This week: leaning selfless, 16%</div>
+          <div class="card"><div class="h"><b>disciplined · spontaneous</b><small>lean 4 days ago</small></div></div>
+          <div class="card"><div class="h"><b>open · guarded</b><small>no lean this month</small></div></div>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span><i></i>Council</span><span class="on"><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Tables</td><td><code>paradoxes</code> (poleA, poleB, middle, revisions), <code>items</code> (lean −1..1, cadence), <code>leans</code> (<code>[paradoxId+at]</code>)</td></tr>
+        <tr><td>Geometry</td><td>item position = lean mapped onto the diagonal; arrows follow <code>order</code></td></tr>
+        <tr><td>Component</td><td><code>ui/parts/Spread</code>, <code>CornerTag</code>, pointer events for the bead</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 9 new paradox -->
+    <section class="step" id="new-paradox" data-title="Save only when both sides are written">
+      <h2>Save only when both sides are written</h2>
+      <p class="lead">Save stays grey until both poles have a value and an aspect.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">New paradox</span><span class="d">7 Nov</span></div>
+        <div class="body">
+          <div class="two" id="pform">
+            <div><label>Pole A</label><input class="pole pa-v" value="patient"></div>
+            <div><label>Pole B</label><input class="pole pb-v" value="urgent"></div>
+            <div><label>What living this side looks like</label><textarea rows="5" class="pa-a">Let Alison get there in her own time. Ask once, then wait.</textarea></div>
+            <div><label>What living this side looks like</label><textarea rows="5" class="pb-a" placeholder="Write the other half..."></textarea></div>
+          </div>
+          <div><label style="font-size:12px;color:var(--ink-2)">Middle (optional): a word or a specific scene</label><input style="width:100%;font:inherit;font-size:14px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)" placeholder="e.g. the Sunday planning talk"></div>
+          <div class="tagrow">Suggested opposites: <span>calm · restless</span><span>steady · quick</span></div>
+          <button class="btn" id="psave" disabled>Save paradox</button>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span><i></i>Council</span><span class="on"><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Gate</td><td><code>model/paradox.ts</code> validates four non-empty fields before <code>put</code></td></tr>
+        <tr><td>Opposites</td><td>small local list in <code>db/seed.ts</code>, offered never filled</td></tr>
+        <tr><td>Edits</td><td>each save pushes the previous poles onto <code>revisions</code></td></tr>
+      </table></details>
+    </section>
+
+    <!-- 10 flow today -->
+    <section class="step" id="flow" data-title="Fill both sides today">
+      <h2>Fill both sides today</h2>
+      <p class="lead">Flow lists what is due under each pole and takes one lean per paradox.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Flow</span><span class="d">Fri 7 Nov</span></div>
+        <div class="body" id="due">
+          <div style="font-size:12px;color:var(--ink-2);font-weight:700;letter-spacing:.06em">DUE · SELFLESS · SELFISH</div>
+          <label class="due"><input type="checkbox"><span>Volunteer kitchen shift</span><small>weekly · selfless</small></label>
+          <label class="due"><input type="checkbox"><span>Something that gives breathing room</span><small>daily · selfish</small></label>
+          <label class="due"><input type="checkbox" checked><span>Write for its own sake, 20 min</span><small>daily · selfish</small></label>
+          <div style="font-size:12px;color:var(--ink-2);font-weight:700;letter-spacing:.06em;margin-top:6px">DUE · PATIENT · URGENT</div>
+          <label class="due"><input type="checkbox"><span>Ask once, then wait</span><small>daily · patient</small></label>
+          <label class="due"><input type="checkbox"><span>Say the deadline out loud</span><small>weekly · urgent</small></label>
+          <div class="card" style="margin-top:6px"><div class="h"><b>Lean this week</b><small>open · guarded</small></div>
+            <input type="range" min="-100" max="100" value="-20" id="lean2"><div class="leanline" id="lean2line">leaning open, 20%</div></div>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span class="on"><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Due</td><td><code>model/flow.ts</code> computes <code>nextTo</code> from cadence and the last <code>doneLog</code> entry</td></tr>
+        <tr><td>Streaks</td><td>none, by design; a done log is a record, not a score</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 11 look back -->
+    <section class="step" id="look-back" data-title="See the motion, not a score">
+      <h2>See the motion, not a score</h2>
+      <p class="lead">Look back draws each lean over time and lists what has gone quiet.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Look back</span><span class="d">8 weeks</span></div>
+        <div class="body">
+          <div class="chart">
+            <svg viewBox="0 0 300 150" role="img" aria-label="Lean over eight weeks for two paradoxes">
+              <g stroke="var(--line)" stroke-width="1"><line x1="30" y1="20" x2="290" y2="20"/><line x1="30" y1="75" x2="290" y2="75" stroke-dasharray="3 3"/><line x1="30" y1="130" x2="290" y2="130"/></g>
+              <g font-size="9" fill="var(--ink-2)" font-family="Source Sans 3, sans-serif"><text x="2" y="23">selfless</text><text x="4" y="78">even</text><text x="4" y="133">selfish</text>
+                <text x="30" y="145">Sep 15</text><text x="150" y="145" text-anchor="middle">Oct 13</text><text x="290" y="145" text-anchor="end">Nov 7</text></g>
+              <polyline fill="none" stroke="#2f5fb3" stroke-width="2.2" stroke-linejoin="round" points="30,40 67,52 104,70 141,98 178,110 215,92 252,70 289,62"/>
+              <circle cx="289" cy="62" r="4" fill="#2f5fb3"/>
+              <polyline fill="none" stroke="#e8842a" stroke-width="2.2" stroke-linejoin="round" stroke-dasharray="5 3" points="104,100 141,88 178,80 215,84 252,66 289,58"/>
+              <circle cx="289" cy="58" r="4" fill="#e8842a"/>
+            </svg>
+            <div class="tagrow" style="justify-content:center;margin-top:4px"><span style="color:#2f5fb3">■ selfless · selfish</span><span style="color:#e8842a">■ patient · urgent</span></div>
+          </div>
+          <div class="kv"><span>Still raw</span><small>2 entries older than a week</small></div>
+          <div class="kv"><span>Open questions</span><small>3</small></div>
+          <div class="kv"><span>No lean this month</span><small>open · guarded</small></div>
+          <div class="kv"><span>Quiet voices</span><small>Joker, Engineer, 30+ days</small></div>
+          <div class="kv"><span>Deep twins heard</span><small>Phantom twice this month</small></div>
+        </div>
+        <div class="tabs"><span><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span class="on"><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Queries</td><td><code>model/flow.ts</code>: raw older than 7 days, open questions, paradoxes without a lean in 30 days, voices by last <code>at</code></td></tr>
+        <tr><td>Chart</td><td>inline SVG from <code>leans</code>, one line per active paradox, endpoint emphasised</td></tr>
+      </table></details>
+    </section>
+
+    <!-- 12 settings -->
+    <section class="step" id="backup" data-title="Keep it yours">
+      <h2>Keep it yours</h2>
+      <p class="lead">Everything lives on the phone, and one tap sends an encrypted copy to Files.</p>
+      <div class="phone" data-mock><div class="screen">
+        <div class="status"><span>9:41</span><span>FlowState</span></div>
+        <div class="top"><span class="t">Settings</span><span class="d"></span></div>
+        <div class="body">
+          <div class="kv"><span>Storage</span><small style="color:var(--ok)">persistent · installed</small></div>
+          <div class="kv"><span>On this phone</span><small>214 pages · 1.8 MB</small></div>
+          <div class="kv"><span>Last backup</span><small style="color:var(--warn)">16 days ago</small></div>
+          <div style="display:flex;gap:8px"><button class="btn" id="export">Export to Files</button><button class="btn ghost">Import</button></div>
+          <div class="kv"><span>Lock</span><small>PIN · relock after 5 min</small></div>
+          <div class="kv"><span>Voices</span><small>9 active · 5 twins · 2 archived</small></div>
+          <div class="kv"><span>Theme</span><small>paper · follows system</small></div>
+          <div class="kv"><span>Network</span><small>none, ever</small></div>
+          <div class="kv"><span>Version</span><small>0.1.0 · new version prompts, never auto-reloads</small></div>
+        </div>
+        <div class="toast" id="toast">Encrypted backup shared to Files (example)</div>
+        <div class="tabs"><span><i></i>Journal</span><span><i></i>Council</span><span><i></i>Be</span><span><i></i>Flow</span></div>
+      </div></div>
+      <details><summary>How this is built</summary><table>
+        <tr><td>Persist</td><td><code>navigator.storage.persist()</code> on first run; installed home-screen apps escape Safari's 7-day eviction</td></tr>
+        <tr><td>Export</td><td>one JSON of all tables, AES-GCM with the PIN key, handed to the share sheet</td></tr>
+        <tr><td>Import</td><td>schema check, migrate, replace or merge (newest <code>updatedAt</code> wins)</td></tr>
+        <tr><td>Stack</td><td>Vite, Preact + signals, Dexie 4, vite-plugin-pwa, Netlify static</td></tr>
+      </table></details>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  // ---- rail + routing (plain #name hashes) ----
+  const steps=[...document.querySelectorAll('.step')];
+  const rail=document.getElementById('rail'), count=document.getElementById('count');
+  steps.forEach((s,i)=>{
+    const li=document.createElement('li');const a=document.createElement('a');
+    a.href='#'+s.id;a.innerHTML='<span class="n">'+(i+1)+'</span><span>'+s.dataset.title+'</span>';li.appendChild(a);rail.appendChild(li);
+    const nav=document.createElement('div');nav.className='nav';
+    nav.innerHTML='<button data-go="-1">Previous</button><button data-go="1">Next</button><span class="pos">Step '+(i+1)+' of '+steps.length+'</span>';
+    s.appendChild(nav);
+  });
+  let cur=0;
+  function show(i){
+    cur=Math.max(0,Math.min(steps.length-1,i));
+    steps.forEach((s,k)=>s.classList.toggle('on',k===cur));
+    rail.querySelectorAll('a').forEach((a,k)=>k===cur?a.setAttribute('aria-current','step'):a.removeAttribute('aria-current'));
+    count.textContent='Step '+(cur+1)+' of '+steps.length;
+    const nav=steps[cur].querySelector('.nav');
+    nav.querySelector('[data-go="-1"]').disabled=cur===0;nav.querySelector('[data-go="1"]').disabled=cur===steps.length-1;
+    if(location.hash!=='#'+steps[cur].id) history.replaceState(null,'','#'+steps[cur].id);
+    window.scrollTo({top:0});
+  }
+  function fromHash(){const id=location.hash.slice(1);const i=steps.findIndex(s=>s.id===id);show(i<0?0:i);}
+  window.addEventListener('hashchange',fromHash);
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)show(cur+Number(b.dataset.go));});
+  document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if(e.key==='ArrowRight')show(cur+1);if(e.key==='ArrowLeft')show(cur-1);});
+  fromHash();
+
+  // ---- 1 lock keypad ----
+  const pad=document.getElementById('pad'),dots=[...document.querySelectorAll('#dots i')];
+  const keys=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['',''],['0',''],['⌫','']];
+  let pin='';
+  keys.forEach(([d,l])=>{const b=document.createElement('button');if(!d){b.style.visibility='hidden';pad.appendChild(b);return;}
+    b.innerHTML='<b>'+d+'</b><small>'+l+'</small>';b.addEventListener('click',()=>{
+      if(d==='⌫'){pin=pin.slice(0,-1);}else if(pin.length<4){pin+=d;}
+      dots.forEach((x,i)=>x.classList.toggle('f',i<pin.length));
+      if(pin.length===4){setTimeout(()=>{document.getElementById('unlocked').classList.add('on');setTimeout(()=>{document.getElementById('unlocked').classList.remove('on');pin='';dots.forEach(x=>x.classList.remove('f'));},1800);},150);}
+    });pad.appendChild(b);});
+
+  // ---- 3 mood ----
+  document.getElementById('mood').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));});
+
+  // ---- 4 revisit ----
+  document.getElementById('revisitBtn').addEventListener('click',e=>{
+    const ta=e.target.previousElementSibling;const t=ta.value.trim();if(!t)return;
+    const m=document.createElement('div');m.className='msg plain';m.innerHTML='<div class="who">Plain ink · just now</div>';m.append(t);
+    ta.closest('.body').insertBefore(m,ta.closest('.body').querySelector('.tagrow'));ta.value='';
+  });
+  document.getElementById('integrate').addEventListener('click',e=>{const s=e.target.closest('.body').querySelector('.state');s.textContent='INTEGRATED';s.className='state integrated';});
+
+  // ---- 5 questions ----
+  document.getElementById('qlist').addEventListener('click',e=>{const q=e.target.closest('.q');if(!q||e.target.tagName==='TEXTAREA')return;q.classList.toggle('open');if(q.classList.contains('open'))q.querySelector('textarea').focus();});
+
+  // ---- shared voices (6 + 7) ----
+  const voices=[
+    {n:'Skeptic',c:'#1f1f1f',star:true},{n:'Mystic',c:'#2f6fd6',star:true,twin:'Phantom'},{n:'Architect',c:'#3a8f4f',star:true,twin:'Workaholic'},{n:'Warrior',c:'#d23b3b',star:true},
+    {n:'Meaning Maker',c:'#8a4fc7',twin:'Victim'},{n:'Engineer',c:'#8b5e34'},{n:'Explorer',c:'#e8842a',twin:'Sojourner'},{n:'Sensualist',c:'#e4679c',twin:'Addict'},{n:'Joker',c:'#d9b400'},
+    {n:'Phantom',c:'#1b3a7a',deep:true},{n:'Workaholic',c:'#1f5230',deep:true},{n:'Victim',c:'#4c2a73',deep:true},{n:'Sojourner',c:'#9a4f12',deep:true},{n:'Addict',c:'#a52e5d',deep:true}
+  ];
+  let speaker='Architect';
+  const chips=document.getElementById('chips'),say=document.getElementById('say');
+  function renderChips(){
+    chips.innerHTML='';
+    const order=[...voices].sort((a,b)=>(b.star?1:0)-(a.star?1:0));
+    order.forEach(v=>{const b=document.createElement('button');b.className='chip'+(v.n===speaker?' on':'');b.style.setProperty('--c',v.c);b.innerHTML='<span class="dot"></span>'+v.n;
+      b.addEventListener('click',()=>{speaker=v.n;say.placeholder='Speak as '+v.n+'...';renderChips();});chips.appendChild(b);});
+    const add=document.createElement('button');add.className='chip add';add.textContent='+ voice';add.addEventListener('click',()=>{location.hash='#voices';});chips.appendChild(add);
+  }
+  renderChips();
+  function send(){const t=say.value.trim();if(!t)return;const v=voices.find(x=>x.n===speaker);const m=document.createElement('div');m.className='msg';m.style.setProperty('--c',v.c);m.innerHTML='<div class="who">'+v.n+'</div>';m.append(t);const chat=document.getElementById('chat');chat.appendChild(m);chat.scrollTop=chat.scrollHeight;say.value='';}
+  document.getElementById('send').addEventListener('click',send);say.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+
+  const vlist=document.getElementById('vlist');
+  function renderVoices(){
+    vlist.innerHTML='';
+    voices.filter(v=>!v.deep).forEach(v=>{
+      const r=document.createElement('div');r.className='vrow';r.style.setProperty('--c',v.c);
+      const twin=v.twin?voices.find(x=>x.n===v.twin):null;
+      r.innerHTML='<span class="sw"></span><span>'+v.n+(v.star?' <span class="star">★</span>':'')+'</span>'+(twin?'<span class="twin"><span class="sw" style="display:inline-block;vertical-align:middle;background:'+twin.c+';width:12px;height:12px"></span> '+twin.n+'</span>':'<span class="twin">no twin</span>');
+      vlist.appendChild(r);
+    });
+  }
+  renderVoices();
+  const vhue=document.getElementById('vhue'),vsw=document.getElementById('vsw'),vdeep=document.getElementById('vdeep');
+  function hueColor(){return 'hsl('+vhue.value+' 55% '+(vdeep.checked?28:45)+'%)';}
+  vhue.addEventListener('input',()=>vsw.style.background=hueColor());vdeep.addEventListener('change',()=>vsw.style.background=hueColor());
+  document.getElementById('vadd').addEventListener('click',()=>{
+    const n=document.getElementById('vname').value.trim();if(!n)return;
+    voices.push({n,c:hueColor(),deep:vdeep.checked});document.getElementById('vname').value='';renderVoices();renderChips();
+  });
+
+  // ---- 8 spread bead ----
+  const spread=document.getElementById('spread'),bead=document.getElementById('bead'),leanline=document.getElementById('leanline');
+  let drag=false;
+  function setLean(t){t=Math.max(.04,Math.min(.96,t));bead.style.left=(t*100)+'%';bead.style.top=(t*100)+'%';const l=Math.round((t-.5)*200);leanline.textContent='This week: '+(l===0?'even':'leaning '+(l<0?'selfless':'selfish')+', '+Math.abs(l)+'%');}
+  bead.addEventListener('pointerdown',e=>{drag=true;bead.setPointerCapture(e.pointerId);});
+  bead.addEventListener('pointerup',()=>drag=false);
+  bead.addEventListener('pointermove',e=>{if(!drag)return;const r=spread.getBoundingClientRect();const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;setLean((x+y)/2);});
+
+  // ---- 9 paradox gate ----
+  const pform=document.getElementById('pform'),psave=document.getElementById('psave');
+  function gate(){const ok=['.pa-v','.pb-v','.pa-a','.pb-a'].every(s=>pform.querySelector(s).value.trim());psave.disabled=!ok;psave.textContent=ok?'Save paradox':'Save paradox (write both sides)';}
+  pform.addEventListener('input',gate);gate();
+  psave.addEventListener('click',()=>{psave.textContent='Saved · revision 1';});
+
+  // ---- 10 due + lean ----
+  document.getElementById('due').addEventListener('change',e=>{const l=e.target.closest('.due');if(l)l.classList.toggle('done',e.target.checked);});
+  document.querySelectorAll('.due input:checked').forEach(i=>i.closest('.due').classList.add('done'));
+  const lean2=document.getElementById('lean2');lean2.addEventListener('input',()=>{const v=Number(lean2.value);document.getElementById('lean2line').textContent=v===0?'even':'leaning '+(v<0?'open':'guarded')+', '+Math.abs(v)+'%';});
+
+  // ---- 12 export toast ----
+  document.getElementById('export').addEventListener('click',()=>{const t=document.getElementById('toast');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800);});
+})();
+</script>
+</body>
+</html>
