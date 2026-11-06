@@ -42,7 +42,7 @@ Date: 2026-11-07. Status: building (repo github.com/madden-man/flowstate, public
 | PWA | `vite-plugin-pwa` (Workbox) | Manifest, precache, update prompt |
 | Crypto | WebCrypto (PBKDF2 + AES-GCM) | Built in, works in Safari standalone |
 | Tests | Vitest + `fake-indexeddb`; one Playwright smoke | Data layer tested without a browser |
-| Hosting | Netlify site `flowstate-journal` (flowstate.netlify.app was taken), https://flowstate-journal.netlify.app/ (Tommy still needs to add this redirect URI in the Spotify dashboard; he registered flowstate.netlify.app before the name turned out to be taken); `netlify deploy --build --prod` | Static files only, same recipe as japan-trip |
+| Hosting | Netlify site `flowstate-journal` (flowstate.netlify.app was taken), https://flowstate-journal.netlify.app/ (registered as the Spotify redirect URI by Tommy, 2026-11-07); `netlify deploy --build --prod` | Static files only, same recipe as japan-trip |
 
 ## 4. Data model (Dexie tables)
 
