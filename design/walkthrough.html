@@ -30,7 +30,7 @@ nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:
 main{min-width:0}
 .step{display:none}
 .step.on{display:grid;justify-items:center;gap:14px}
-.step h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
+.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
 .step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
 .ctl{display:flex;gap:10px;justify-content:center}
 .ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
@@ -174,6 +174,12 @@ details code{font-size:12px}
 .dragging .pushable,.dragging .blind{transition:none}
 @media (prefers-reduced-motion:reduce){.ring,.thr .man,.caret,.music.playing i{animation:none}}
 </style>
+<!-- The app's own page parts (src/ui/parts/parts.css, copied here by npm run tokens:check's fix line). Steps 2 and 14 are built from them. -->
+<link rel="stylesheet" href="parts.css">
+<style>
+/* a real .fs-app inside a mock phone: the status bar above stands in for the safe area */
+.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -219,17 +225,37 @@ details code{font-size:12px}
 <section class="step" id="page" data-name="A blank dated page">
   <h2>The page is already open</h2>
   <p class="line">Type on the rules; tap the moon to dim the room.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-step="page"><div class="island"></div>
     <div class="status"><span>09:40</span><span>Journal</span></div>
-    <div class="hdr"><div class="sw"><div class="moon"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>14</b></span><span>Date <b>11 / 7 / 26</b></span></div></div>
-    <div class="pg" contenteditable="true" spellcheck="false"><p><span class="caret"></span><br></p></div>
-    <div class="chips"><span class="chip on">Ink</span><span class="chip" data-voice="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</span><span class="chip" data-voice="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</span><span class="chip" data-voice="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</span><span class="chip" data-voice="Architect" style="--vc:var(--v-green)"><i></i>Architect</span><span class="chip add">+ voice</span></div>
-    <div class="tabs"><span class="on">Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main">
+      <section class="fs-page">
+        <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word" data-act="settings">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header>
+        <nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a>Questions</a></nav>
+        <textarea class="fs-write fs-rules" aria-label="Today's page" spellcheck="false"></textarea>
+        <div class="fs-chips"><button type="button" class="fs-chip" aria-pressed="true">Ink</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip add">+ voice</button></div>
+      </section>
+    </main>
+    <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+    <template class="fs-sheet-tpl"><div class="fs-scrim" data-act="dismiss"></div>
+      <section class="fs-sheet" aria-label="Settings">
+        <div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Settings</h2><button type="button" class="fs-word" data-act="dismiss">Done</button></div></div>
+        <div class="fs-sheet-body"><div class="fs-rows">
+          <div class="fs-row stack"><span>Add to Home Screen</span><span class="fs-note">Share, then Add to Home Screen</span></div>
+          <div class="fs-row stack"><span>Light</span><div class="fs-opts" role="group" aria-label="Light"><button type="button" class="fs-opt" data-pin="sky" aria-pressed="true">Follow the sky</button><button type="button" class="fs-opt" data-pin="day" aria-pressed="false">Day</button><button type="button" class="fs-opt" data-pin="night" aria-pressed="false">Night</button></div></div>
+          <label class="fs-row stack"><span>Place for sunrise</span><input class="fs-input" value="Evergreen, Colorado" aria-label="Place for sunrise"><span class="fs-note">Sunrise 06:36 · Sunset 16:53</span></label>
+          <button type="button" class="fs-row" data-toggle="sounds"><span>Sounds</span><small>On</small></button>
+          <button type="button" class="fs-row" data-toggle="haptics"><span>Haptics</span><small>On</small></button>
+          <button type="button" class="fs-row"><span>Export</span><small>Last 11 / 2</small></button>
+          <button type="button" class="fs-row"><span>Import</span><small>A FlowState file</small></button>
+          <button type="button" class="fs-row"><span>Storage</span><small>Kept · 1.2 MB</small></button>
+        </div></div>
+      </section></template>
   </div></div>
   <details><summary>How this is built</summary><table>
+    <tr><td>Parts</td><td><code>parts/Page</code> (the header: moon and Settings left, "No." and "DATE:" right, hidden "No." in Still), <code>parts/Moon</code>, <code>parts/Chip</code>; this phone uses <code>src/ui/parts/parts.css</code> itself.</td></tr>
     <tr><td>Type</td><td>Ink is <code>ui-serif</code> (New York on iPhone); stationery labels are <code>ui-sans-serif</code>. Nothing downloaded, so airplane mode costs nothing.</td></tr>
-    <tr><td>Rules</td><td>Line height equals rule spacing (<code>--lh-ink</code>); the rules are a repeating gradient the text sits on.</td></tr>
-    <tr><td>Header</td><td>"No." is the page count in the sequence; the moon is the Still switch (step 9).</td></tr>
+    <tr><td>Rules</td><td>Line height equals rule spacing (<code>--lh-ink</code>); the rules are a repeating gradient the text sits on, scrolling with it.</td></tr>
+    <tr><td>Saving</td><td>No save button: the first keystroke makes today's entry, every pause writes it (<code>model/pages.ts</code> through <code>db/fields.ts</code>).</td></tr>
   </table></details>
 </section>
 
@@ -586,31 +612,53 @@ details code{font-size:12px}
 </section>
 
 <!-- 14 -->
-<section class="step" id="settings" data-name="The lights">
-  <h2>Settings holds the sky and what you keep</h2>
-  <p class="line">Tap Light to relight every screen.</p>
+<section class="step" id="settings" data-name="Settings">
+  <h2>Settings holds the sky</h2>
+  <p class="line">Pick a light; add it to the Home Screen.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="settings"><div class="island"></div>
-    <div class="status"><span>12:02</span><span>Settings</span></div>
-    <div class="hdr"><div class="sw"><div class="moon"></div><div class="ring"></div></div><div class="r"><span>Settings</span></div></div>
-    <div class="pg">
-      <p class="row" data-set="light"><span>Light</span><small>Follow the sky</small></p>
-      <p class="row"><span>Location for sunrise</span><small>Evergreen</small></p>
-      <p class="row" data-set="midnight"><span>Still after midnight</span><small>Offer</small></p>
-      <p class="row"><span>Kept lines</span><small>5</small></p>
-      <p class="row" data-set="sounds"><span>Sounds</span><small>On · bells only</small></p>
-      <p class="row" data-set="haptics"><span>Haptics</span><small>On</small></p>
-      <p class="row"><span>Music</span><small>Spotify connected</small></p>
-      <p class="row"><span>Voices</span><small>9 · 5 deep</small></p>
-      <p class="row"><span>PIN</span><small>Relock after 5 min</small></p>
-      <p class="row"><span>Export</span><small>Last 11 / 2</small></p>
-      <p class="row"><span>Import</span><small>&nbsp;</small></p>
-      <p class="row"><span>Storage</span><small>Persisted · installed</small></p>
-    </div>
-    <div class="tabs"><span>Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
+    <div class="status"><span>12:02</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main">
+      <section class="fs-page">
+        <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word" data-act="settings">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header>
+        <div class="fs-sheetof fs-rules"><p>All this, and I'm reduced to simple journaling.</p></div>
+      </section>
+      <div class="fs-scrim" data-act="dismiss"></div>
+      <section class="fs-sheet" aria-label="Settings">
+        <div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Settings</h2><button type="button" class="fs-word" data-act="dismiss">Done</button></div></div>
+        <div class="fs-sheet-body"><div class="fs-rows">
+          <div class="fs-row stack"><span>Add to Home Screen</span><span class="fs-note">Share, then Add to Home Screen</span></div>
+          <div class="fs-row stack"><span>Light</span><div class="fs-opts" role="group" aria-label="Light"><button type="button" class="fs-opt" data-pin="sky" aria-pressed="true">Follow the sky</button><button type="button" class="fs-opt" data-pin="day" aria-pressed="false">Day</button><button type="button" class="fs-opt" data-pin="night" aria-pressed="false">Night</button></div></div>
+          <label class="fs-row stack"><span>Place for sunrise</span><input class="fs-input" value="Evergreen, Colorado" aria-label="Place for sunrise"><span class="fs-note">Sunrise 06:36 · Sunset 16:53</span></label>
+          <button type="button" class="fs-row" data-toggle="sounds"><span>Sounds</span><small>On</small></button>
+          <button type="button" class="fs-row" data-toggle="haptics"><span>Haptics</span><small>On</small></button>
+          <button type="button" class="fs-row"><span>Export</span><small>Last 11 / 2</small></button>
+          <button type="button" class="fs-row"><span>Import</span><small>A FlowState file</small></button>
+          <button type="button" class="fs-row"><span>Storage</span><small>Kept · 1.2 MB</small></button>
+        </div></div>
+      </section>
+    </main>
+    <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+    <template class="fs-sheet-tpl"><div class="fs-scrim" data-act="dismiss"></div>
+      <section class="fs-sheet" aria-label="Settings">
+        <div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Settings</h2><button type="button" class="fs-word" data-act="dismiss">Done</button></div></div>
+        <div class="fs-sheet-body"><div class="fs-rows">
+          <div class="fs-row stack"><span>Add to Home Screen</span><span class="fs-note">Share, then Add to Home Screen</span></div>
+          <div class="fs-row stack"><span>Light</span><div class="fs-opts" role="group" aria-label="Light"><button type="button" class="fs-opt" data-pin="sky" aria-pressed="true">Follow the sky</button><button type="button" class="fs-opt" data-pin="day" aria-pressed="false">Day</button><button type="button" class="fs-opt" data-pin="night" aria-pressed="false">Night</button></div></div>
+          <label class="fs-row stack"><span>Place for sunrise</span><input class="fs-input" value="Evergreen, Colorado" aria-label="Place for sunrise"><span class="fs-note">Sunrise 06:36 · Sunset 16:53</span></label>
+          <button type="button" class="fs-row" data-toggle="sounds"><span>Sounds</span><small>On</small></button>
+          <button type="button" class="fs-row" data-toggle="haptics"><span>Haptics</span><small>On</small></button>
+          <button type="button" class="fs-row"><span>Export</span><small>Last 11 / 2</small></button>
+          <button type="button" class="fs-row"><span>Import</span><small>A FlowState file</small></button>
+          <button type="button" class="fs-row"><span>Storage</span><small>Kept · 1.2 MB</small></button>
+        </div></div>
+      </section></template>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Settings row</td><td><code>light: 'sky'|'day'|'night'</code>, <code>place: {lat, lon, name}</code>, <code>stillAfterMidnight: 'offer'|'never'</code>, <code>sounds</code>, <code>haptics</code>, <code>spotify?: {tokens}</code>.</td></tr>
-    <tr><td>Sounds</td><td>Synthesised bells with Web Audio, no files: unlock, settle, keep close, the lean's ends. The app never chimes uninvited.</td></tr>
+    <tr><td>Sheet</td><td><code>parts/Sheet</code>: rises over a scrim between the page and the tab bar, so the four tabs stay in reach; Done, the scrim, Escape or a swipe down on the handle puts it away. Never a modal dialog.</td></tr>
+    <tr><td>Light</td><td><code>ui/light.ts</code>: sunrise and sunset from the stored place, offline (the sunrise equation, no library); 07:00 to 19:00 without one; a 40-minute dusk stretches <code>--t-light</code>. Day or Night pins it; Still sits over both.</td></tr>
+    <tr><td>Place</td><td>A town from a small offline table (Evergreen, Colorado is first) or a typed <code>lat, lon</code>. No location permission.</td></tr>
+    <tr><td>Data</td><td>Export: one JSON file to the share sheet. Import: merge (newest <code>updatedAt</code> wins) or replace. Storage: <code>navigator.storage.persist()</code> and its estimate.</td></tr>
+    <tr><td>Install</td><td>The Home Screen row shows until standalone mode is detected; an installed app is exempt from Safari's seven-day eviction.</td></tr>
   </table></details>
 </section>
 
@@ -637,12 +685,12 @@ details code{font-size:12px}
   function low(){if(!SOUND)return;var a=ctx();if(!a)return;var t=a.currentTime;var o=a.createOscillator(),v=a.createGain();o.type='sine';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(82,t+3);o.connect(v);v.connect(a.destination);v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.16,t+.4);v.gain.exponentialRampToValueAtTime(.0008,t+3.2);o.start(t);o.stop(t+3.3);}
   function tick(){try{navigator.vibrate&&navigator.vibrate(8);}catch(e){}} /* design-lint: allow: this is the walkthrough's stand-in for parts/Sound and parts/Haptic */
   var snd=document.getElementById('snd');
-  function setSound(on){SOUND=on;snd.setAttribute('aria-pressed',String(on));snd.textContent=on?'Sound on':'Sound off';document.querySelectorAll('[data-set="sounds"] small').forEach(function(s){s.textContent=on?'On · bells only':'Off';});}
+  function setSound(on){SOUND=on;snd.setAttribute('aria-pressed',String(on));snd.textContent=on?'Sound on':'Sound off';document.querySelectorAll('[data-set="sounds"] small,[data-toggle="sounds"] small').forEach(function(s){s.textContent=on?'On · bells only':'Off';});}
   snd.addEventListener('click',function(){setSound(!SOUND);});
 
   /* ---- lights ---- */
   function setLight(screen,l){screen.dataset.light=l;}
-  function relight(mode){GLOBAL=mode;document.querySelectorAll('.lights [data-light]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.light===mode));});document.querySelectorAll('.screen').forEach(function(s){setLight(s,mode==='design'?s.dataset.lightDefault:mode);});}
+  function relight(mode){GLOBAL=mode;var pinOf={design:'sky',day:'day',night:'night'};document.querySelectorAll('.fs-opt[data-pin]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.pin===pinOf[mode]));});document.querySelectorAll('.lights [data-light]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.light===mode));});document.querySelectorAll('.screen').forEach(function(s){setLight(s,mode==='design'?s.dataset.lightDefault:mode);});}
   document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){relight(b.dataset.light);});});
   function initScreens(root){root.querySelectorAll('.screen').forEach(function(s){if(!s.dataset.lightDefault)s.dataset.lightDefault=s.dataset.light;if(GLOBAL!=='design')setLight(s,GLOBAL);});root.querySelectorAll('.spread').forEach(function(sp){layoutSpread(sp);if(window.ResizeObserver)new ResizeObserver(function(){layoutSpread(sp);}).observe(sp);});}
   function toggleStill(screen){var still=screen.dataset.light==='still';if(still){setLight(screen,GLOBAL==='design'||GLOBAL==='still'?(screen.dataset.lightDefault==='still'?'night':screen.dataset.lightDefault):GLOBAL);bell(660,1.2,.1);}else{setLight(screen,'still');low();tick();}}
@@ -662,7 +710,9 @@ details code{font-size:12px}
     var t=e.target, screen=t.closest('.screen'); if(!screen) return;
     var chip=t.closest('.chip');
     if(chip&&!chip.classList.contains('add')){chip.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});chip.classList.add('on');var inp=screen.querySelector('input.compose');if(inp)inp.placeholder=(chip.dataset.voice||'Ink')+' speaks…';tick();return;}
-    if(t.closest('.sw')){toggleStill(screen);return;}
+    if(t.closest('.sw')||t.closest('.fs-moon')){toggleStill(screen);return;}
+    var pinb=t.closest('.fs-opt[data-pin]'); if(pinb){relight({sky:'design',day:'day',night:'night'}[pinb.dataset.pin]);tick();return;}
+    var tg=t.closest('[data-toggle]'); if(tg){if(tg.dataset.toggle==='sounds')setSound(!SOUND);else{var ts=tg.querySelector('small');ts.textContent=ts.textContent==='On'?'Off':'On';}tick();return;}
     var key=t.closest('.key');
     if(key){var dots=screen.querySelectorAll('.dots i'),n=screen.querySelectorAll('.dots i.on').length;if(n<4){dots[n].classList.add('on');tick();bell(523+n*60,.35,.05);}if(n===3){setTimeout(function(){bell(880,1.8,.16);tick();screen.querySelector('.thr').classList.add('out');screen.querySelector('.after').classList.add('in');},250);}return;}
     if(t.closest('.after .status')){screen.querySelector('.after').classList.remove('in');screen.querySelector('.thr').classList.remove('out');screen.querySelectorAll('.dots i').forEach(function(d){d.classList.remove('on');});return;}
@@ -671,6 +721,7 @@ details code{font-size:12px}
     var act=t.closest('[data-act]'); if(act){var a=act.dataset.act;
       if(a==='turn'){var pg3=screen.querySelector('.pg'),q=pg3.querySelector('[data-question]');if(q){q.classList.add('q');screen.querySelectorAll('.seg span').forEach(function(s){s.classList.toggle('on');});var ans=document.createElement('p');ans.className='wise';ans.innerHTML='<br>';pg3.appendChild(ans);act.remove();screen.querySelector('.composer input').placeholder='Add a later reading…';var r=document.createRange();r.setStart(ans,0);r.collapse(true);var sel=getSelection();sel.removeAllRanges();sel.addRange(r);pg3.focus();tick();bell(660,.8,.08);}return;}
       if(a==='dismiss'){closeSheet(screen);return;}
+      if(a==='settings'){closeSheet(screen);var tp=screen.querySelector('template.fs-sheet-tpl');if(tp){screen.querySelector('.fs-main').appendChild(tp.content.cloneNode(true));tick();}return;}
       if(a==='close-page'){var pg4=screen.querySelector('.pg');pg4.style.opacity='0';setTimeout(function(){pg4.innerHTML='<p><br></p>';pg4.style.opacity='1';},600);closeSheet(screen);low();tick();return;}
       if(a==='keep'){var line=screen.querySelector('[data-pressed]');if(line){line.classList.add('kept');line.removeAttribute('data-pressed');}closeSheet(screen);bell(988,.9,.07);tick();return;}
       if(a==='album'){var m=screen.querySelector('.music');act.parentNode.querySelectorAll('.al').forEach(function(x){x.classList.remove('on');});act.classList.add('on');var cov=m.querySelector('.cov')||document.createElement('span');cov.className='cov';cov.style.backgroundImage=act.style.backgroundImage;cov.style.backgroundColor=act.style.backgroundColor;m.insertBefore(cov,m.querySelector('span'));m.classList.add('playing');m.querySelector('span').textContent='playing on iPhone · from the first song';tick();bell(660,.6,.06);setTimeout(function(){closeSheet(screen);},500);return;}
@@ -685,7 +736,7 @@ details code{font-size:12px}
       if(k==='haptics'){sm.textContent=sm.textContent==='On'?'Off':'On';}
       tick();return;}
   });
-  function closeSheet(screen){screen.querySelectorAll('.scrim,.sheet').forEach(function(x){x.remove();});}
+  function closeSheet(screen){screen.querySelectorAll('.scrim,.sheet,.fs-scrim,.fs-sheet').forEach(function(x){x.remove();});}
   function openSheet(screen){closeSheet(screen);var tpl=screen.querySelector('template.sheet-tpl');if(tpl){screen.appendChild(tpl.content.cloneNode(true));tick();}}
 
   /* ---- pointer: spread, lean, blind, echo swipe, long press ---- */
