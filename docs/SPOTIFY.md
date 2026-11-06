@@ -18,7 +18,7 @@ FlowState signs in once on the phone with Authorization Code + PKCE and keeps it
 
 The FlowState app at https://developer.spotify.com/dashboard needs:
 
-1. **Redirect URIs.** Done 2026-11-07: `https://flowstate.netlify.app/` is registered, so the Netlify site must be created with the name `flowstate` and the app must call `redirectUri()` from that origin with the trailing slash. For local dev add `http://127.0.0.1:5173/` as well; Spotify no longer accepts `http://localhost`, only the loopback IP.
+1. **Redirect URIs.** Tommy registered `https://flowstate.netlify.app/` on 2026-11-07, but that Netlify name was already taken by someone else, so the site is `flowstate-journal`. **Still to do: add `https://flowstate-journal.netlify.app/` as a redirect URI in the dashboard.** The app calls `redirectUri()` from that origin with the trailing slash. For local dev add `http://127.0.0.1:5173/` as well; Spotify no longer accepts `http://localhost`, only the loopback IP.
 2. **User Management.** The app is in development mode, so only its owner's account and listed accounts can sign in. The owner is allowed automatically; nothing to add unless a second account should play.
 3. **Web API** ticked under the app's APIs (set when the app was created). No client secret is ever copied anywhere.
 

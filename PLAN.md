@@ -2,7 +2,7 @@
 
 "Who to Be, How to Flow." A personal journal that installs on an iPhone, keeps every byte on the phone, and is modelled on the pocket notebook started 2026-11-04. The notebook is the spec: its pages are the screens.
 
-Date: 2026-11-07. Status: plan only, nothing built. Decided: iPhone, PIN lock, name FlowState, no model ever voices an archetype, sounds are okay, Spotify tie-in wanted. The design standard is `DESIGN.md` (enforced by `script/design-lint.mjs`); the live design walkthrough is `design/walkthrough.html` on `design/tokens.css`.
+Date: 2026-11-07. Status: building (repo github.com/madden-man/flowstate, public; site flowstate-journal.netlify.app). Section 11's six assumptions all stand (Tommy, 2026-11-07). Decided: iPhone, PIN lock, name FlowState, no model ever voices an archetype, sounds are okay, Spotify tie-in wanted. The design standard is `DESIGN.md` (enforced by `script/design-lint.mjs`); the live design walkthrough is `design/walkthrough.html` on `design/tokens.css`.
 
 ---
 
@@ -42,7 +42,7 @@ Date: 2026-11-07. Status: plan only, nothing built. Decided: iPhone, PIN lock, n
 | PWA | `vite-plugin-pwa` (Workbox) | Manifest, precache, update prompt |
 | Crypto | WebCrypto (PBKDF2 + AES-GCM) | Built in, works in Safari standalone |
 | Tests | Vitest + `fake-indexeddb`; one Playwright smoke | Data layer tested without a browser |
-| Hosting | Netlify site `flowstate`, https://flowstate.netlify.app/ (Tommy registered this as the Spotify redirect URI 2026-11-07); `netlify deploy --build --prod` | Static files only, same recipe as japan-trip |
+| Hosting | Netlify site `flowstate-journal` (flowstate.netlify.app was taken), https://flowstate-journal.netlify.app/ (Tommy still needs to add this redirect URI in the Spotify dashboard; he registered flowstate.netlify.app before the name turned out to be taken); `netlify deploy --build --prod` | Static files only, same recipe as japan-trip |
 
 ## 4. Data model (Dexie tables)
 
@@ -236,13 +236,13 @@ One PR per package. Every package: `node script/design-lint.mjs src design` and 
 
 | # | Package | Done when |
 |---|---|---|
-| 0 | Scaffold | Vite + Preact + Dexie schema + manifest + worker; installs on the phone, opens and writes in airplane mode, survives a reload offline; `tokens.css` and the three lights wired (`data-light` on html, `light.ts` sky, Settings pin); design lint in `npm test` and a pre-commit hook; export/import round-trips an empty DB |
+| 0 | Scaffold | Vite + Preact + Dexie schema + manifest + worker; `db/crypto.ts` and the encrypt-on-write path for every text field from day one (stored plain until a PIN is set, encrypted on the spot after; Tommy, 2026-11-07), so no later migration touches real entries; installs on the phone, opens and writes in airplane mode, survives a reload offline; `tokens.css` and the three lights wired (`data-light` on html, `light.ts` sky, Settings pin); design lint in `npm test` and a pre-commit hook; export/import round-trips an empty DB |
 | 1 | Journal | Dated entries with mood, tags, autosave, raw/revisited/integrated; speaker chips on messages; Questions section (list, answer, open/answered); Turn to answer; long-press sheet with Keep close; page links; search; honours all three lights |
 | 2 | Council | Seeded voices with light/deep pairs; Voices screen and "+ voice" chip (add, recolour, twin, archive, revisions); council pages; tinted chat with the lamp; reply; open a council from a question |
 | 3 | Be | Two-pole form with the save gate (plus the optional pole shadow); the spread as two facing pages with corner tags, drawn arrows, pair links and goals draggable by height; "+ Goal" sheet with paired fields, cadence and open balance slots; middle word/scenario; revisions struck through; both seed paradoxes |
 | 4 | Flow | Cadence items with done logs and the drawn check; lean slider with detents; look back (open pages, quiet paradoxes, quiet voices, lean lines) |
 | 5 | Still | The blind gesture and the moon; the ring; counts, states, look-back and deep twins hidden; the echo and kept lines; "Enough for now?"; lifts at sunrise; Sound and Haptic parts with the listed ticks and bells |
-| 6 | Lock | Keypad PIN with letters, key derivation, field encryption, relock timer, encrypted export, manifesto threshold with the breath |
+| 6 | Lock | Keypad PIN with letters, PIN set and change (the crypto layer is already in from package 0), relock timer, encrypted export, manifesto threshold with the breath |
 | 7 | Music | Spotify PKCE connect, playlist read, album grid with cached covers, play from the first track, now-playing on the page, "Pages with this album", Settings rows |
 | 8 | Polish | Install hints, backup nag, storage health, reduced-motion pass, a three-lights review of every screen |
 
@@ -257,4 +257,4 @@ Packages 1 to 3 are independent after 0 and can run in parallel worktrees. 5 nee
 5. The sky needs a place. Assumed: you type a town once in Settings (Evergreen) and the app keeps a latitude and longitude for it; no location permission is asked for.
 6. Still's "Enough for now?" after twelve minutes of typing: keep, change the minutes, or drop it? Kept at twelve, once per session.
 7. Deep twins leave the chip row in Still (you can still reach them from the Voices screen). Assumed yes.
-8. Resolved 2026-11-07: FlowState has its own Spotify app (client id `a4ee189148b042dc8bfda38b9aed4cd2`, redirect `https://flowstate.netlify.app/`) and signs in with PKCE; tommysthoughts.com's secret and refresh token stay in Netlify and never enter the PWA. Module written at `src/music/spotify.ts` with tests; setup and the two dashboard steps you still own (redirect URI, Premium) are in `docs/SPOTIFY.md`.
+8. Resolved 2026-11-07: FlowState has its own Spotify app (client id `a4ee189148b042dc8bfda38b9aed4cd2`, redirect `https://flowstate-journal.netlify.app/`) and signs in with PKCE; tommysthoughts.com's secret and refresh token stay in Netlify and never enter the PWA. Module written at `src/music/spotify.ts` with tests; setup and the two dashboard steps you still own (redirect URI, Premium) are in `docs/SPOTIFY.md`.
