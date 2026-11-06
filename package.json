@@ -1,0 +1,43 @@
+{
+  "name": "flowstate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Who to Be, How to Flow. A local-only iPhone journal.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "icons": "node script/make-icons.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint:design": "node script/design-lint.mjs src design",
+    "lint:artifact": "node $HOME/.claude/hooks/artifact-lint.mjs design/walkthrough.html",
+    "tokens:check": "node script/tokens-check.mjs",
+    "test:unit": "vitest run",
+    "test": "npm run lint:design && npm run tokens:check && npm run test:unit && npm run typecheck",
+    "e2e": "playwright test && node script/check-dist.mjs",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "check:dist": "node script/check-dist.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.4",
+    "dexie": "^4.4.7",
+    "preact": "^10.29.8",
+    "preact-iso": "^2.12.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^22.20.5",
+    "fake-indexeddb": "^6.2.7",
+    "jsdom": "^31.0.0",
+    "typescript": "~5.9",
+    "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
+    "workbox-window": "^7.4.1"
+  }
+}

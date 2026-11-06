@@ -1,0 +1,12 @@
+#!/bin/sh
+# FlowState pre-commit: the design lint (DESIGN.md) and the artifact lint on the walkthrough.
+# Installed by `npm install` (the prepare script sets core.hooksPath to .githooks).
+set -e
+node script/design-lint.mjs src design
+node script/tokens-check.mjs
+ARTIFACT_LINT="$HOME/.claude/hooks/artifact-lint.mjs"
+if [ -f "$ARTIFACT_LINT" ]; then
+  node "$ARTIFACT_LINT" design/walkthrough.html
+else
+  echo "artifact-lint not found at $ARTIFACT_LINT; skipped (it lives outside this repo)"
+fi

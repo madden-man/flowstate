@@ -12,6 +12,9 @@
   --fs-ink: 17px;  --lh-ink: 28px;         /* line height IS the rule spacing */
   --fs-title: 22px; --fs-manifesto: 24px; --fs-print: 11px; --fs-chip: 13px;
   --track-print: .08em;
+  --fs-fill: 15px;   /* the written fill-in after "No." and "DATE:" in the page header (package 0, every page) */
+  --fs-tab: 12px;    /* the four tab words (package 0, the tab bar) */
+  --hit: 44px;       /* the smallest tap target: tab words, the moon, Settings rows (package 0) */
 
   /* space */
   --gutter: 20px; --s1: 8px; --s2: 16px; --s3: 24px; --s4: 40px;
