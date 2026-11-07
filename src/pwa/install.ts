@@ -16,9 +16,7 @@ export function startUpdates(): void {
 
 export const applyUpdate = () => update?.(true);
 
-export const isStandalone = (): boolean =>
-  (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches) ||
-  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+export { isStandalone, installHintWanted, dismissInstallHint, countLaunch, backupDue, backupDueLine, takeNagDay } from './hints';
 
 export type StorageHealth = { persisted: boolean | null; usage?: number; quota?: number };
 

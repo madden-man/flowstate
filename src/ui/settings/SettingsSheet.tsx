@@ -12,7 +12,8 @@ import { backupNow, parseBackup, importData, BackupError, type BackupFile, type 
 import { PinRows } from '../lock/PinRows';
 import { PinSheet } from '../lock/PinSheet';
 import { FilePin, fileNeedsPin } from '../lock/FilePin';
-import { isStandalone, storageHealth, askPersist, bytes, type StorageHealth } from '../../pwa/install';
+import { isStandalone, storageHealth, bytes, backupDue, backupDueLine, type StorageHealth } from '../../pwa/install';
+import { persistNow } from '../../pwa/persist';
 import type { LightPin } from '../../db/schema';
 import { MusicRows } from '../music/MusicRows';
 
@@ -78,7 +79,8 @@ function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boole
 }
 
 function ExportRow() {
-  const last = settings.value.lastBackupAt;
+  const s = settings.value;
+  const last = s.lastBackupAt;
   const [busy, setBusy] = useState(false);
   const run = async () => {
     setBusy(true);
@@ -87,9 +89,12 @@ function ExportRow() {
       if (outcome !== 'cancelled') await loadSettings();
     } finally { setBusy(false); }
   };
+  // the gentle nag (PLAN.md section 7): one print-grey line under the row, nothing counted
+  const due = backupDue(s);
   return (
-    <button type="button" class="fs-row" onClick={() => void run()} disabled={busy}>
-      <span>Export</span><small>{last ? `Last ${notebookDate(new Date(last))}` : 'Never'}</small>
+    <button type="button" class="fs-row stack" onClick={() => void run()} disabled={busy} data-export>
+      <span><span>Export</span><small>{last ? `Last ${notebookDate(new Date(last))}` : 'Never'}</small></span>
+      {due && <span class="fs-note" data-backup-due>{backupDueLine(s)}</span>}
     </button>
   );
 }
@@ -143,10 +148,15 @@ function ImportRow() {
 function StorageRow() {
   const [h, setH] = useState<StorageHealth | null>(null);
   useEffect(() => { storageHealth().then(setH); }, []);
-  const label = !h ? '' : h.persisted === null ? 'Unknown' : `${h.persisted ? 'Kept' : 'Not kept yet'}${h.usage !== undefined ? ` · ${bytes(h.usage)}` : ''}`;
+  // what persist() last answered is in the settings row, so this reads right before the estimate comes back
+  const kept = h?.persisted ?? settings.value.persisted ?? null;
+  const label = kept === null ? (h ? 'Unknown' : '') : `${kept ? 'Kept' : 'Not kept yet'}${h?.usage !== undefined ? ` · ${bytes(h.usage)}` : ''}`;
+  // not kept yet: a tap asks Safari again
+  const ask = async () => { if (kept) return; await persistNow(); setH(await storageHealth()); };
   return (
-    <button type="button" class="fs-row" onClick={async () => { await askPersist(); setH(await storageHealth()); }}>
-      <span>Storage</span><small>{label}</small>
+    <button type="button" class="fs-row stack" onClick={() => void ask()} data-storage>
+      <span><span>Storage</span><small>{label}</small></span>
+      {kept === false && <span class="fs-note">Add to Home Screen keeps the journal safe from Safari's clean-up</span>}
     </button>
   );
 }

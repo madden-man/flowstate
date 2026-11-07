@@ -182,18 +182,24 @@ button.fs-row, label.fs-row { cursor: pointer; }
 .fs-input:focus { border-bottom-color: var(--ink); }
 .fs-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
-/* ---- the update toast: a line above the tab bar, never a modal ---- */
-.fs-toast {
-  position: absolute; left: var(--s1); right: var(--s1); bottom: var(--s1); z-index: 6;
-  display: flex; align-items: center; gap: var(--s1); padding: var(--s1) var(--s1) var(--s1) var(--s2);
-  background: var(--page); border: 1px solid var(--seam); border-radius: var(--s2); box-shadow: var(--shadow-tile);
-  font-family: var(--sans); font-size: var(--fs-chip); line-height: 1.3; color: var(--ink);
-  animation: fs-rise var(--t-page) var(--ease);
+/* ---- the quiet line above the tab bar (package 8): the update, the export that is due, the install hint.
+   One line of print in the page's own flow, so it never covers the composer; never a modal, nothing counted. ---- */
+.fs-quietline {
+  display: flex; align-items: center; gap: var(--s1); min-height: var(--hit); padding: 0 calc(var(--gutter) - var(--s1)) 0 var(--gutter);
+  border-top: 1px solid var(--seam); background: var(--page);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1.3; color: var(--print);
+  transition: background-color var(--t-light) var(--ease);
 }
-.fs-toast span { flex: 1; }
+.fs-quietline > span { flex: 1; min-width: 0; }
+.fs-quietline-tap {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; flex: 1; min-width: 0; min-height: var(--hit); cursor: pointer;
+  display: flex; align-items: center; gap: var(--s1); text-align: left; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit;
+}
+.fs-quietline-tap b { font-weight: 400; color: var(--ink); }
+.fs-quietline-tap:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
 
 @media (prefers-reduced-motion: reduce) {
-  .fs-sheet, .fs-scrim, .fs-toast { animation: none; }
+  .fs-sheet, .fs-scrim { animation: none; }
 }
 
 /* ==== package 2: council and voices ==== */
@@ -648,3 +654,17 @@ button.fs-back-link { display: flex; align-items: flex-start; }
   .fs-ring-mark, .fs-threshold .fs-ring-mark { animation: none; }
   .fs-page, .fs-blind .fs-ring-mark, .fs-threshold { transition: none; }
 }
+
+/* ==== package 8: polish ==== */
+/* 44px targets for the small pills (chips, options) without changing how they look: the hit reaches past the pill */
+.fs-chip, .fs-opt { position: relative; }
+.fs-chip::after, .fs-opt::after {
+  content: ""; position: absolute;
+  top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2);
+  left: calc(50% - max(50%, var(--hit) / 2)); right: calc(50% - max(50%, var(--hit) / 2));
+}
+.fs-musicword { min-width: var(--hit); justify-content: center; }
+/* "+ Goal" stays under the thumb while its spread scrolls past (DESIGN.md rule 6) */
+.fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
+/* the lean before the first drag: the mark waits at the middle in print grey */
+.fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
