@@ -462,3 +462,66 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-picker { border-top: 0; }
 .fs-found { margin-top: var(--s1); }
 a.fs-row { color: var(--ink); text-decoration: none; }
+
+/* ==== Flow (package 4): today's checks, the lean slider, the look back, the lean line ==== */
+.fs-flow-group { padding-bottom: var(--lh-ink); }
+.fs-flow-head, .fs-back-list h3, .fs-back-title { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+
+/* the drawn check: a row on the rules, a box in print grey, the check stroked in ink over --t-ui */
+.fs-check {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; cursor: pointer; text-align: left;
+  display: flex; align-items: flex-start; gap: var(--s1); min-height: calc(var(--lh-ink) * 2); /* two rule lines a row: a 44px target that keeps the rules */
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); -webkit-tap-highlight-color: transparent;
+}
+.fs-check:disabled { cursor: default; }
+.fs-check-mark { flex: none; width: 20px; height: var(--lh-ink); overflow: visible; }
+.fs-check-mark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.fs-check-box { stroke: var(--print); stroke-width: 1.2; transform: translateY(calc((var(--lh-ink) - 20px) / 2)); }
+.fs-check-ink {
+  stroke: var(--ink); stroke-width: 2; stroke-dasharray: 1; stroke-dashoffset: 1;
+  transform: translateY(calc((var(--lh-ink) - 20px) / 2));
+  transition: stroke-dashoffset var(--t-ui) var(--ease);
+}
+.fs-check.done .fs-check-ink { stroke-dashoffset: 0; }
+.fs-check-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fs-check small { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+.fs-check:focus-visible, .fs-lean-rule:focus-visible, .fs-back-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+
+/* the lean slider: pole A at the left, pole B at the right, a rule, three detents, the drawn mark */
+.fs-lean-poles, .fs-back-poles {
+  display: flex; justify-content: space-between; gap: var(--s2);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink);
+}
+.fs-lean-rule { position: relative; height: calc(var(--lh-ink) * 2); touch-action: pan-y; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent; }
+.fs-lean-rule[aria-disabled="true"] { cursor: default; }
+.fs-lean-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fs-lean-ink line { stroke: var(--print); stroke-width: 1; }
+.fs-lean-ink .fs-lean-detent { stroke-width: 1.5; }
+.fs-lean-mark {
+  position: absolute; top: 50%; transform: translate(-50%, -50%); overflow: visible; pointer-events: none;
+  transition: left var(--t-ui) var(--ease);
+}
+.fs-lean-rule.drag .fs-lean-mark { transition: none; }
+.fs-lean-mark path { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+.fs-lean-noteword { position: relative; display: block; margin-left: calc(var(--s1) * -1); min-height: var(--lh-ink); line-height: var(--lh-ink); max-width: 100%; text-align: left; }
+.fs-lean-noteword::before { content: ""; position: absolute; inset: calc((var(--lh-ink) - var(--hit)) / 2) 0; } /* a 44px target on one rule line */
+.fs-lean-notetext { display: block; font-family: var(--serif); font-size: var(--fs-fill); font-style: italic; letter-spacing: 0; text-transform: none; color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-lean-note { display: block; font-size: var(--fs-fill); font-style: italic; height: var(--lh-ink); }
+
+/* the look back: short lists in print grey with ink links (gone in Still, with .fs-notstill) */
+.fs-back { padding-top: var(--lh-ink); }
+.fs-back-list { padding-bottom: var(--lh-ink); }
+.fs-back-link {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; text-align: left; cursor: pointer;
+  display: block; min-height: calc(var(--lh-ink) * 2); font: inherit; line-height: var(--lh-ink); color: var(--ink); text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+button.fs-back-link { display: flex; align-items: flex-start; }
+.fs-back-names { white-space: normal; }
+.fs-back-slot { display: block; font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: var(--lh-ink); }
+.fs-back-line { padding-bottom: var(--s1); }
+
+/* the lean line: one ink path on the rule, no axes, no numbers */
+.fs-leanline { display: block; width: 100%; height: calc(var(--lh-ink) * 2); overflow: visible; }
+.fs-leanline-mid { stroke: var(--rule); stroke-width: 1; }
+.fs-leanline-ink { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
