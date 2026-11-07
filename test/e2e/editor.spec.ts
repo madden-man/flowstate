@@ -9,6 +9,8 @@ const today$ = (p: Page) => p.getByRole('textbox', { name: "Today's page" });
 const lines = (p: Page) => p.locator('.fs-col .fs-msg p');
 
 async function cross(page: Page) {
+  // the threshold, when a cold load breathes, is drawn with the page: wait for the page, then tap through
+  await expect(page.locator('.fs-col')).toBeAttached();
   const t = page.locator('[data-threshold]');
   if (await t.count()) await t.click();
   await expect(t).toHaveCount(0);
