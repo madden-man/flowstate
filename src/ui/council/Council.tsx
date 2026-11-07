@@ -233,7 +233,8 @@ function CouncilPage({ id }: { id: string }) {
   };
 
   return (
-    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined}>
+    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined}
+      music={data ? { id: data.page.id, music: data.page.music, onMusic: music => setData(d => (d && d !== 'missing' ? { ...d, page: { ...d.page, music } } : d)) } : undefined}>
       <CouncilSeg />
       <div ref={root} class="fs-council" data-council={id}>
         <div ref={chat} class="fs-chat fs-rules">

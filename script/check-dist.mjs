@@ -12,6 +12,12 @@ const INERT = [
   [/^https:\/\/tinyurl\.com\/y2uuvskb$/, 'dexie: text of an error message'],
   [/^http:\/\/bit\.ly\/2kdckMn$/, 'dexie: text of an error message'],
   [/^https:\/\/github\.com\/preactjs\/preact-iso#locationprovider$/, 'preact-iso: text of an error message'],
+  // The Spotify tie-in (PLAN.md section 8.1): src/music is the one place allowed to reach out, opt-in and
+  // only after Tommy connects. accounts and api are its fetches; open.spotify.com is the playlist link
+  // with no account, a navigation. The Playwright music spec proves nothing else leaves the origin.
+  [/^https:\/\/accounts\.spotify\.com$/, 'src/music: the PKCE sign-in, opt-in'],
+  [/^https:\/\/api\.spotify\.com\/v1$/, 'src/music: the Web API, opt-in'],
+  [/^https:\/\/open\.spotify\.com\/playlist\/(\$\{\w+\}|0T6Gzc2hN81u3vGC5IJZ9a)$/, 'src/music: the playlist link, a navigation'],
 ];
 const dir = process.argv[2] || 'dist';
 if (!fs.existsSync(dir)) { console.error(`${dir} not found: run npm run build first`); process.exit(2); }
