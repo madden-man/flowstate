@@ -9,6 +9,7 @@ import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
+import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { tick } from './ui/parts/Haptic';
@@ -56,6 +57,8 @@ function Frame() {
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
         <SettingsSheet />
+        <MusicSheet />
+        <AlbumPagesSheet />
         <UpdateToast />
       </main>
       <Tabs />

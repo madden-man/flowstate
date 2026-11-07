@@ -6,14 +6,15 @@ export default defineConfig({
   timeout: 60_000,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:4173',
+    // 127.0.0.1, not localhost: Spotify takes only the loopback IP as a redirect (package 7's music spec signs in here)
+    baseURL: 'http://127.0.0.1:4173',
     ...devices['iPhone 15'],
     browserName: 'chromium',
     serviceWorkers: 'allow',
   },
   webServer: {
-    command: 'npm run build && npx vite preview --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    command: 'npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort',
+    url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120_000,
   },

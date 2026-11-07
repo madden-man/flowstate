@@ -13,7 +13,8 @@ export type Sealed = { v: 1; iv: string; ct: string };
 
 export type LightPin = 'sky' | 'day' | 'night';
 export type Place = { lat: number; lon: number; name: string };
-export type SpotifyTokens = { accessToken: string; refreshToken: string; expiresAt: number };
+/** name (package 7) is the account's display name for "Connected as"; it rides in the sealed tokens. */
+export type SpotifyTokens = { accessToken: string; refreshToken: string; expiresAt: number; name?: string };
 
 export type Settings = {
   id: 'app';
@@ -119,7 +120,10 @@ export type Item = {
 
 export type Lean = { id: string; paradoxId: string; at: Millis; lean: number; note: string; sealed?: Sealed };
 export type Backup = { id: string; at: Millis; bytes: number; encrypted: boolean };
+/** order is the album's place in the playlist; -1 (package 7) keeps an album that is no longer on the playlist,
+ *  or was never on it, so a page that heard it still shows its cover offline. Nothing is deleted. */
 export type Album = { albumUri: string; album: string; artist: string; order: number; firstTrackUri: string; cover?: Blob };
+export type PageMusic = NonNullable<Page['music']>;
 
 export type Tables = {
   settings: Settings;
