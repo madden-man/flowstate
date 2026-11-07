@@ -1,28 +1,30 @@
-// The spread (DESIGN.md rule 11): a paradox drawn like the notebook. Two facing pages, pole A's goals on
-// the left and pole B's on the right, each at the height of its lean; the seam down the middle carries
-// only the vertical rule and the dotted pair links; the diagonal runs between the corner tags. Under the
-// spread sits the notebook's three-word line (pole A · middle · pole B) with its struck versions. A goal is linked
-// to its balance by a dotted path; a missing balance is a dashed slot at the same height. Drawn arrows
-// join goals that follow one another. Long press lifts a goal; it slides up and down its page.
+// The spread, upright (DESIGN.md rule 11, PLAN-V2.md section 2): a paradox drawn for the phone. Pole A's
+// word sits centred on the top rule and pole B's on the bottom rule, the seam runs down between them, and
+// each goal sits on its pole's side of the seam (A left, B right) at the height of its lean: -1 at the top
+// rule, +1 at the bottom. A goal and its balance share a row, tied across the seam by the dotted line; a
+// goal without one shares its row with the dashed slot. The paradox's middle word sits on the seam at
+// mid-height and the rows keep clear of it. Drawn arrows join goals that follow one another. Long press
+// lifts a goal and its row; it slides up and down between the poles. Earlier versions of the three words
+// stay struck through in the sheet Edit opens (the poles and the middle now say the current version here).
 //
 // Nothing is laid out while hidden: the width comes from a ResizeObserver (zero while not displayed, so
-// nothing is placed), every goal's height is measured after it is displayed, and resize or a turn of the
-// phone lays it out again.
+// nothing is placed), every goal's height (and the poles' and the middle's) is measured after it is
+// displayed, and resize or a turn of the phone lays it out again.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { Item, Paradox } from '../../db/schema';
+import type { Item, Paradox, Pole } from '../../db/schema';
 import type { Read } from '../../db/fields';
-import { CornerTag, tagSize } from './CornerTag';
 import { Arrow, linkPath, type Rect } from './Arrow';
-import { Strike } from './Strike';
 import { tick } from './Haptic';
-import { arrows, layoutColumn, openSlots, pairOf, riders, slotLine, threeWordLines, yToLean, type Box } from '../../model/paradox';
+import { arrows, layoutColumn, riders, rowOf, rowsOf, slotLine, yToLean, type Pin } from '../../model/paradox';
 
 const LIFT_MS = 350;      // how long a press must rest before the goal lifts
 const SLOP_PX = 8;        // movement that turns a press into a scroll
-const MIN_BAND = 300;     // the usable height between the corner tags, at the least
-const GAP = 8;            // between stacked goals
-const SPINE = 18;         // the gap between the facing pages
-const GUESS_H = 40;       // a goal's height before it has been measured
+const MIN_BAND = 300;     // the usable height between the two pole rules, at the least
+const PAD = 8;            // between a pole rule and the nearest row
+const GAP = 16;           // between stacked rows (room for an arrow from one row to the next)
+const GUESS_H = 44;       // a goal's height before it has been measured
+const GUESS_POLE = 29;    // a pole's line before it has been measured
+const GUESS_MID = 18;     // the middle word's line before it has been measured
 
 export type SpreadProps = {
   paradox: Read<Paradox>;
@@ -36,7 +38,9 @@ export type SpreadProps = {
   onDrop: (id: string, lean: number) => Promise<void>;
 };
 
-type Drag = { id: string; pointer: number; x0: number; y0: number; grab: number; lifted: boolean; top: number; lean: number; timer?: ReturnType<typeof setTimeout> };
+type Drag = { id: string; row: string; pointer: number; x0: number; y0: number; grab: number; lifted: boolean; top: number; lean: number; timer?: ReturnType<typeof setTimeout> };
+
+const PoleWord = ({ pole }: { pole: Pole }) => <>{pole.value}{pole.shadow && <i> ({pole.shadow})</i>}</>;
 
 export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: SpreadProps) {
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -69,41 +73,39 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
     return () => el.removeEventListener('touchmove', hold);
   }, []);
 
-  const words = threeWordLines(paradox);
-  const S = Math.max(tagSize(paradox.poleA.value, paradox.poleA.shadow), tagSize(paradox.poleB.value, paradox.poleB.shadow));
-  // a goal leaves a little of its page free by the seam, so the dotted link to its balance has room to show
-  const pageW = width ? Math.max(80, (width - SPINE) / 2 - 12) : 0;
+  const middle = paradox.middle?.word ?? paradox.middle?.scenario;
 
-  // the drag's lean is what the layout sees for the goal and any pair riding with it
+  // the drag's lean is what the layout sees for the goal and its balance riding with it
   const live = useMemo(() => {
     if (!drag?.lifted) return items;
     const ride = new Set(riders(items, drag.id));
     return items.map(i => (ride.has(i.id) ? { ...i, lean: drag.lean } : i));
   }, [items, drag]);
-  const slots = openSlots(live);
+  const rows = useMemo(() => rowsOf(live), [live]);
 
   const layout = useMemo(() => {
     if (!width) return null;
-    const h = (id: string) => sizes[id]?.h ?? GUESS_H;
-    const w = (id: string) => Math.min(pageW, sizes[id]?.w ?? pageW);
-    const page = (pole: Item['pole']): Box[] => [
-      ...live.filter(i => i.pole === pole).map(i => ({ id: i.id, lean: i.lean, h: h(i.id) })),
-      ...slots.filter(s => s.pole === pole).map(s => ({ id: `slot:${s.forId}`, lean: s.lean, h: h(`slot:${s.forId}`) })),
-    ];
-    const pin = (pole: Item['pole']) => (drag?.lifted && live.find(i => i.id === drag.id)?.pole === pole ? { id: drag.id, top: drag.top } : undefined);
+    const h = (id: string, guess = GUESS_H) => sizes[id]?.h ?? guess;
+    const w = (id: string) => sizes[id]?.w ?? width * 0.44;
+    const rowH = (r: (typeof rows)[number]) => Math.max(r.a ? h(r.a) : 0, r.b ? h(r.b) : 0, r.slot ? h(`slot:${r.slot.forId}`) : 0);
+    const poleA = h('pole:a', GUESS_POLE), poleB = h('pole:b', GUESS_POLE), mid = middle ? h('mid', GUESS_MID) : 0;
+    const top = poleA + PAD;
+    const run = (band: number) => {
+      const pins: Pin[] = [];
+      if (middle) pins.push({ id: 'mid', top: top + band / 2 - mid / 2, h: mid });
+      if (drag?.lifted) pins.push({ id: drag.row, top: drag.top });
+      return layoutColumn(rows.map(r => ({ id: r.id, lean: r.lean, h: rowH(r) })), top, top + band, GAP, pins);
+    };
     let band = MIN_BAND;
-    let a = layoutColumn(page('a'), S, S + band, GAP, pin('a'));
-    let b = layoutColumn(page('b'), S, S + band, GAP, pin('b'));
-    const grow = Math.max(a.overflow, b.overflow);
-    if (grow && !drag?.lifted) {
-      band += grow;
-      a = layoutColumn(page('a'), S, S + band, GAP);
-      b = layoutColumn(page('b'), S, S + band, GAP);
-    }
-    const tops = { ...a.tops, ...b.tops };
-    const rect = (id: string, pole: Item['pole']): Rect => ({ x: pole === 'a' ? 0 : width - w(id), y: tops[id] ?? S, w: w(id), h: h(id) });
-    return { band, H: S * 2 + band, tops, rect };
-  }, [width, sizes, live, drag, S, pageW]);
+    let col = run(band);
+    // grow until nothing overlaps (a pin at mid-height moves down with the growth, so this takes a few rounds)
+    for (let k = 0; k < 8 && col.overflow && !drag?.lifted; k++) { band += Math.ceil(col.overflow); col = run(band); }
+    const tops = col.tops;
+    const rowTop = (id: string) => { const r = rowOf(rows, id) ?? rows.find(x => x.slot && `slot:${x.slot.forId}` === id); return (r && tops[r.id]) ?? top; };
+    const rect = (id: string, pole: Item['pole']): Rect => ({ x: pole === 'a' ? 0 : width - w(id), y: rowTop(id), w: w(id), h: h(id) });
+    const H = top + band + PAD + poleB;
+    return { top, band, H, tops, rect, rowTop, poleA, poleB, rowH };
+  }, [width, sizes, rows, drag, middle]);
 
   // after every layout, read the real heights; a change lays it out again (once, then it is stable)
   useLayoutEffect(() => {
@@ -122,13 +124,14 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
 
   const ref = (id: string) => (el: HTMLElement | null) => { if (el) boxes.current.set(id, el); else boxes.current.delete(id); };
 
-  // ---- touch: long press lifts, the goal slides on its page, release writes the lean ----
+  // ---- touch: long press lifts, the goal's row slides between the poles, release writes the lean ----
   const down = (id: string) => (e: PointerEvent) => {
     if (e.button !== 0 || !layout) return;
     const el = e.currentTarget as HTMLElement;
-    const top = layout.tops[id] ?? 0;
+    const row = rowOf(rows, id)?.id ?? id;
+    const top = layout.tops[row] ?? layout.top;
     const box = pagesRef.current!.getBoundingClientRect();
-    const d: Drag = { id, pointer: e.pointerId, x0: e.clientX, y0: e.clientY, grab: e.clientY - box.top - top, lifted: false, top, lean: items.find(i => i.id === id)?.lean ?? 0 };
+    const d: Drag = { id, row, pointer: e.pointerId, x0: e.clientX, y0: e.clientY, grab: e.clientY - box.top - top, lifted: false, top, lean: items.find(i => i.id === id)?.lean ?? 0 };
     d.timer = setTimeout(() => {
       d.lifted = true;
       try { el.setPointerCapture(d.pointer); } catch { /* the pointer has gone */ }
@@ -144,11 +147,12 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
       return;
     }
     e.preventDefault();
-    const h = sizes[d.id]?.h ?? GUESS_H;
+    const r = rows.find(x => x.id === d.row);
+    const h = r ? layout.rowH(r) : GUESS_H;
     const box = pagesRef.current!.getBoundingClientRect();
-    const lo = S, hi = S + layout.band - h;
+    const lo = layout.top, hi = layout.top + layout.band - h;
     d.top = Math.max(lo, Math.min(hi, e.clientY - box.top - d.grab));
-    d.lean = yToLean(d.top + h / 2, S, S + layout.band);
+    d.lean = yToLean(d.top + h / 2, layout.top, layout.top + layout.band);
     setDrag({ ...d });
   };
   const up = (e: PointerEvent) => {
@@ -175,8 +179,7 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
 
   const valueOf = (pole: Item['pole']) => (pole === 'a' ? paradox.poleA.value : paradox.poleB.value);
   const H = layout?.H ?? 0;
-  // B's goals hang from the right edge, so a goal's own width (measured) never limits how it wraps
-  const side = (pole: Item['pole']) => (pole === 'a' ? { left: '0px' } : { right: '0px' });
+  const lifted = drag?.lifted ? new Set(riders(items, drag.id)) : null;
   const label = `${paradox.poleA.value} and ${paradox.poleB.value}`;
 
   return (
@@ -184,23 +187,13 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
       <div ref={pagesRef} class="fs-spread-pages" style={{ height: H ? `${H}px` : undefined }} data-laid={layout ? 'true' : 'false'}>
         {layout && (
           <svg class="fs-spread-ink" width={width} height={H} viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
-            <line class="fs-diag" x1={0} y1={0} x2={width} y2={H} />
-            <line class="fs-seam" x1={width / 2} y1={S * 0.5} x2={width / 2} y2={H - S * 0.5} />
-          </svg>
-        )}
-        <CornerTag corner="tl" value={paradox.poleA.value} shadow={paradox.poleA.shadow} size={S} />
-        <CornerTag corner="br" value={paradox.poleB.value} shadow={paradox.poleB.shadow} size={S} />
-
-        {layout && (
-          <svg class="fs-spread-ink" width={width} height={H} viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
-            {live.filter(i => i.pole === 'a').map(i => {
-              const p = pairOf(i, live);
-              return p ? <path key={`l${i.id}`} class="fs-pair" data-pair={`${i.id} ${p.id}`} d={linkPath(layout.rect(i.id, 'a'), layout.rect(p.id, 'b'))} /> : null;
-            })}
-            {slots.map(s => {
-              const g = layout.rect(s.forId, s.pole === 'a' ? 'b' : 'a');
-              const r = layout.rect(`slot:${s.forId}`, s.pole);
-              return <path key={`s${s.forId}`} class="fs-pair open" d={s.pole === 'b' ? linkPath(g, r) : linkPath(r, g)} />;
+            <line class="fs-seam" x1={width / 2} y1={layout.poleA} x2={width / 2} y2={H - layout.poleB} />
+            {rows.map(r => {
+              if (r.a && r.b) return <path key={`l${r.id}`} class="fs-pair" data-pair={`${r.a} ${r.b}`} d={linkPath(layout.rect(r.a, 'a'), layout.rect(r.b, 'b'))} />;
+              if (!r.slot) return null;
+              const g = layout.rect(r.slot.forId, r.slot.pole === 'a' ? 'b' : 'a');
+              const s = layout.rect(`slot:${r.slot.forId}`, r.slot.pole);
+              return <path key={`s${r.id}`} class="fs-pair open" d={r.slot.pole === 'b' ? linkPath(g, s) : linkPath(s, g)} />;
             })}
             {arrows(live).map(({ from, to }) => {
               const f = live.find(i => i.id === from)!, t = live.find(i => i.id === to)!;
@@ -209,36 +202,35 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </svg>
         )}
 
+        {layout && <p ref={ref('pole:a')} class="fs-pole a"><PoleWord pole={paradox.poleA} /></p>}
+        {layout && middle && <span ref={ref('mid')} class="fs-mid" style={{ top: `${layout.tops.mid ?? 0}px` }}>{middle}</span>}
+
         {layout && live.map(i => (
           <button key={i.id} ref={ref(i.id)} type="button"
-            class={`fs-goal ${i.pole}${drag?.lifted && drag.id === i.id ? ' lift' : ''}${drag?.lifted && riders(items, drag.id).includes(i.id) ? ' riding' : ''}`}
-            style={{ ...side(i.pole), top: `${layout.tops[i.id] ?? S}px`, maxWidth: `${pageW}px` }}
-            data-goal={i.id} data-lean={i.lean}
+            class={`fs-goal ${i.pole}${lifted?.has(i.id) ? (i.id === drag!.id ? ' lift' : ' riding') : ''}`}
+            style={{ top: `${layout.rowTop(i.id)}px` }}
+            data-goal={i.id} data-lean={i.lean} data-row={rowOf(rows, i.id)?.id}
             onPointerDown={down(i.id)} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
             onClick={click(i.id, i.pole)} onContextMenu={(e: Event) => e.preventDefault()}>
             <span class="fs-goal-text">{i.locked ? '' : i.text}</span>
             {i.cadence && <small class="fs-state fs-cadence">{i.cadence}</small>}
           </button>
         ))}
-        {layout && slots.map(s => (
-          <button key={`slot:${s.forId}`} ref={ref(`slot:${s.forId}`)} type="button" class={`fs-slot ${s.pole}`}
-            style={{ ...side(s.pole), top: `${layout.tops[`slot:${s.forId}`] ?? S}px`, maxWidth: `${pageW}px` }}
-            data-slot-for={s.forId} onClick={() => onGoal(s.forId, s.pole)}>
-            {slotLine(valueOf(s.pole))}
+        {layout && rows.filter(r => r.slot).map(({ slot: s, id }) => (
+          <button key={`slot:${s!.forId}`} ref={ref(`slot:${s!.forId}`)} type="button" class={`fs-slot ${s!.pole}`}
+            style={{ top: `${layout.tops[id] ?? layout.top}px` }}
+            data-slot-for={s!.forId} data-row={id} onClick={() => onGoal(s!.forId, s!.pole)}>
+            {slotLine(valueOf(s!.pole))}
           </button>
         ))}
+
+        {layout && <p ref={ref('pole:b')} class="fs-pole b" style={{ top: `${H - layout.poleB}px` }}><PoleWord pole={paradox.poleB} /></p>}
 
         <div class="fs-spread-words">
           {paradox.status !== 'active' && <span class="fs-state fs-print">{paradox.status}</span>}
           <button type="button" class="fs-word" onClick={onEdit}>Edit</button>
         </div>
       </div>
-      {words && (
-        <div class="fs-threewords" aria-label="Three words">
-          <p class="fs-threeword">{words.current}</p>
-          {words.struck.map((w, k) => <p key={k} class="fs-threeword fs-state"><Strike>{w}</Strike></p>)}
-        </div>
-      )}
       <button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button>
     </article>
   );

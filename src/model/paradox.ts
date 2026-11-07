@@ -1,6 +1,6 @@
 // The Be tab's model (PLAN.md sections 4 and 6, DESIGN.md rule 11): two-pole validation, revisions,
-// goals and their balances (pairs and open slots), the lean maths that turns a goal's weight into its
-// height on its page, and the antonym lookup. Every read and write goes through the fields layer.
+// goals and their balances (pairs, open slots and the rows they share on the upright spread), the lean
+// maths that turns a goal's weight into its height between the poles, and the antonym lookup. Every read and write goes through the fields layer.
 // Lean detents and the lean line over time are package 4's.
 import type { Cadence, Item, Middle, Paradox, Pole } from '../db/schema';
 import { store, type Read } from '../db/fields';
@@ -155,13 +155,46 @@ export function openSlots(items: Item[]): Slot[] {
 /** "and on the selfish side?": the slot names the pole it sits on. */
 export const slotLine = (poleValue: string) => `and on the ${poleValue} side?`;
 
+/**
+ * One row of the upright spread (DESIGN.md rule 11): a goal and its balance share a row, tied across the
+ * seam; a goal without one shares its row with the dashed slot on the other side. The row's id is its
+ * pole A goal (or its only goal). A pair's row sits at pole A's lean: the seed's pairs were set at different
+ * heights for the old diagonal, and the first drag levels them (moveGoal).
+ */
+export type Row = { id: string; lean: number; a?: string; b?: string; slot?: Slot };
+
+export function rowsOf(items: Item[]): Row[] {
+  const live = items.filter(i => !i.archived);
+  const seen = new Set<string>();
+  const rows: Row[] = [];
+  for (const i of live) {
+    if (seen.has(i.id)) continue;
+    seen.add(i.id);
+    const p = pairOf(i, live);
+    if (p && !seen.has(p.id)) {
+      seen.add(p.id);
+      const [a, b] = i.pole === 'a' ? [i, p] : [p, i];
+      rows.push({ id: a.id, lean: a.lean, a: a.id, b: b.id });
+    } else {
+      // a balance already on another row (data that disagrees with itself) still keeps the goal on the spread
+      const row: Row = { id: i.id, lean: i.lean, [i.pole]: i.id };
+      if (!p) row.slot = { forId: i.id, pole: otherPole(i.pole), lean: i.lean };
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+/** The row a goal sits on. */
+export const rowOf = (rows: Row[], id: string) => rows.find(r => r.a === id || r.b === id);
+
 // ---- lean maths ----
 
 export const clampLean = (l: number) => Math.max(-1, Math.min(1, Number.isFinite(l) ? l : 0));
 const round = (l: number) => Math.round(l * 1000) / 1000;
 const EPS = 1e-6;
 
-/** The centre of a goal on its page: lean -1 at the top of the usable band, +1 at the bottom. */
+/** The centre of a row between the poles: lean -1 at the top of the band (pole A's rule), +1 at the bottom (pole B's). */
 export function leanToY(lean: number, top: number, bottom: number): number {
   return top + ((clampLean(lean) + 1) / 2) * (bottom - top);
 }
@@ -172,48 +205,50 @@ export function yToLean(y: number, top: number, bottom: number): number {
 }
 
 export type Box = { id: string; lean: number; h: number };
+/** A box that keeps its place: the row under the finger, the middle word on the seam. h defaults to the box's own. */
+export type Pin = { id: string; top: number; h?: number };
 
 /**
- * Lays one page's goals out by height. Each box is centred on its lean within [top, bottom]; boxes that
- * would overlap (the same lean, or near it) stack downward with a small gap, and if the stack runs past
- * the bottom it is pushed back up. overflow is how much taller the band must be for nothing to overlap.
- * A pinned box (the one under the finger) keeps its place and the rest flow around it.
+ * Lays the rows out by height. Each box is centred on its lean within [top, bottom]; boxes that would
+ * overlap (the same lean, or near it) stack downward with a small gap, and if the stack runs past the
+ * bottom it is pushed back up. overflow is how much taller the band must be for nothing to overlap.
+ * Pinned boxes (the row under the finger, the middle word) keep their places and the rest flow around them.
  */
-export function layoutColumn(boxes: Box[], top: number, bottom: number, gap = 6, pinned?: { id: string; top: number }): { tops: Record<string, number>; overflow: number } {
+export function layoutColumn(boxes: Box[], top: number, bottom: number, gap = 6, pinned?: Pin | Pin[]): { tops: Record<string, number>; overflow: number } {
   const tops: Record<string, number> = {};
-  const free = boxes.filter(b => b.id !== pinned?.id);
+  const pins = (Array.isArray(pinned) ? pinned : pinned ? [pinned] : [])
+    .map(p => ({ id: p.id, top: p.top, bottom: p.top + (p.h ?? boxes.find(b => b.id === p.id)?.h ?? 0) }))
+    .sort((a, b) => a.top - b.top);
+  const held = new Set(pins.map(p => p.id));
+  const free = boxes.filter(b => !held.has(b.id));
   const want = (b: Box) => Math.max(top, Math.min(bottom - b.h, leanToY(b.lean, top, bottom) - b.h / 2));
   const order = [...free].sort((a, b) => want(a) - want(b) || a.lean - b.lean);
-  const fixed = pinned ? boxes.find(b => b.id === pinned.id) : undefined;
-  const pin = fixed && pinned ? { top: pinned.top, bottom: pinned.top + fixed.h } : undefined;
+  const hit = (t: number, h: number) => pins.find(p => t < p.bottom + gap && t + h > p.top - gap);
   let cursor = top;
   const placed: { b: Box; t: number }[] = [];
   for (const b of order) {
     let t = Math.max(want(b), cursor);
-    // flow around the pinned box: if it would overlap, go below it (or above it when the box wants to be above)
-    if (pin && t < pin.bottom + gap && t + b.h > pin.top - gap) {
-      const above = pin.top - gap - b.h;
-      t = want(b) + b.h / 2 < (pin.top + pin.bottom) / 2 && above >= cursor ? above : pin.bottom + gap;
+    // flow around the pins: below one, or above it when the box wants to be above and there is room
+    for (let k = 0, p = hit(t, b.h); p && k <= pins.length; k++, p = hit(t, b.h)) {
+      const above = p.top - gap - b.h;
+      t = want(b) + b.h / 2 < (p.top + p.bottom) / 2 && above >= cursor && !hit(above, b.h) ? above : p.bottom + gap;
     }
     placed.push({ b, t });
     cursor = t + b.h + gap;
   }
-  // past the bottom: walk back up so the last box ends at the bottom
+  // past the bottom: walk back up so the last box ends at the bottom, stepping over any pin on the way
   let limit = bottom;
   for (let k = placed.length - 1; k >= 0; k--) {
     const p = placed[k];
     if (p.t + p.b.h > limit) p.t = limit - p.b.h;
+    for (let j = 0, q = hit(p.t, p.b.h); q && j <= pins.length; j++, q = hit(p.t, p.b.h)) p.t = Math.min(p.t, q.top - gap - p.b.h);
     limit = p.t - gap;
-    if (pin && p.t < pin.bottom + gap && p.t + p.b.h > pin.top - gap && p.t + p.b.h > pin.top) {
-      p.t = Math.min(p.t, pin.top - gap - p.b.h);
-      limit = p.t - gap;
-    }
   }
   const first = placed.reduce((m, p) => Math.min(m, p.t), Infinity);
   const overflow = placed.length && first < top ? top - first : 0;
   if (overflow) for (const p of placed) p.t += overflow; // keep inside the band; the caller grows it
   for (const p of placed) tops[p.b.id] = p.t;
-  if (pinned) tops[pinned.id] = pinned.top;
+  for (const p of pins) tops[p.id] = p.top;
   return { tops, overflow };
 }
 
@@ -225,26 +260,27 @@ export function nextFreeLean(items: Item[]): number {
 }
 
 /**
- * A goal dropped at a new lean. A pair follows when it shared the goal's lean before the move; a pair
- * that was set to a different height stays where it was. Returns the rows that changed.
+ * A goal dropped at a new lean. Its balance shares its row on the upright spread, so the pair always moves
+ * together and lands level (a pair the old diagonal had set at two heights is levelled here). Returns the
+ * rows that changed.
  */
 export function moveGoal<T extends Item>(items: T[], id: string, lean: number): T[] {
   const g = items.find(i => i.id === id);
   if (!g) return [];
   const to = round(clampLean(lean));
-  if (Math.abs(g.lean - to) < EPS) return [];
-  const out: T[] = [{ ...g, lean: to }];
   const p = pairOf(g, items);
-  if (p && Math.abs(p.lean - g.lean) < EPS) out.push({ ...p, lean: to });
+  const out: T[] = [];
+  if (Math.abs(g.lean - to) >= EPS) out.push({ ...g, lean: to });
+  if (p && Math.abs(p.lean - to) >= EPS) out.push({ ...p, lean: to });
   return out;
 }
 
-/** Which goals ride with this one while it is dragged (itself and a pair at the same height). */
+/** Which goals ride with this one while it is dragged: itself and its balance, the whole row. */
 export function riders(items: Item[], id: string): string[] {
   const g = items.find(i => i.id === id);
   if (!g) return [];
   const p = pairOf(g, items);
-  return p && Math.abs(p.lean - g.lean) < EPS ? [g.id, p.id] : [g.id];
+  return p ? [g.id, p.id] : [g.id];
 }
 
 export async function dropGoal(items: Item[], id: string, lean: number): Promise<Item[]> {

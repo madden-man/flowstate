@@ -6,7 +6,7 @@ import type { Item, Paradox } from '../../src/db/schema';
 import {
   canSaveParadox, cleanPole, cleanMiddle, revise, sameVersion, createParadox, saveParadox, OnePoleError,
   antonymSuggestions, threeWords, threeWordLines, spreads, goalsOf, pairOf, openSlots, slotLine, leanToY, yToLean, clampLean,
-  layoutColumn, nextFreeLean, moveGoal, riders, dropGoal, addGoals, saveGoal, archiveGoal, followable, arrows,
+  layoutColumn, rowsOf, rowOf, nextFreeLean, moveGoal, riders, dropGoal, addGoals, saveGoal, archiveGoal, followable, arrows,
 } from '../../src/model/paradox';
 
 beforeEach(async () => { await freshDB(); });
@@ -85,7 +85,7 @@ describe('the three-word line', () => {
 });
 
 describe('the seed spreads', () => {
-  it('both seed paradoxes read back with their goals in the notebook diagonal order', async () => {
+  it('both seed paradoxes read back with their goals in the notebook order, top to bottom', async () => {
     await ensureSeeded();
     const all = await spreads();
     expect(all.map(s => s.paradox.poleA.value)).toEqual(['selfless', 'thoughtful']);
@@ -115,6 +115,43 @@ describe('pairs and slots', () => {
   it('a pair on the same page is not a balance', () => {
     const items = [goal('x', 'a', 0, { pairId: 'y' }), goal('y', 'a', 0, { pairId: 'x' })];
     expect(pairOf(items[0], items)).toBeUndefined();
+  });
+});
+
+describe('rows on the upright spread', () => {
+  it('two paired goals land on one row; an unpaired goal shares its row with a slot on the other side', () => {
+    const items = [goal('y', 'b', 0.3, { pairId: 'x' }), goal('x', 'a', -0.3, { pairId: 'y' }), goal('z', 'b', 0.4)];
+    const rows = rowsOf(items);
+    expect(rows).toEqual([
+      { id: 'x', lean: -0.3, a: 'x', b: 'y' }, // a pair's row sits at pole A's lean
+      { id: 'z', lean: 0.4, b: 'z', slot: { forId: 'z', pole: 'a', lean: 0.4 } },
+    ]);
+    expect(rowOf(rows, 'y')?.id).toBe('x');
+    // laid out, the pair's two goals share one top and the slot shares its goal's
+    const { tops } = layoutColumn(rows.map(r => ({ id: r.id, lean: r.lean, h: 40 })), 0, 300, 8);
+    expect(tops[rowOf(rows, 'x')!.id]).toBe(tops[rowOf(rows, 'y')!.id]);
+    expect(Object.keys(tops)).toEqual(['x', 'z']);
+  });
+
+  it('the slots on the rows are the open slots; archived goals leave no row', () => {
+    const items = [goal('x', 'a', 0, { pairId: 'y' }), goal('y', 'b', 0, { pairId: 'x', archived: true }), goal('w', 'a', 0.5, { archived: true })];
+    const rows = rowsOf(items);
+    expect(rows).toEqual([{ id: 'x', lean: 0, a: 'x', slot: { forId: 'x', pole: 'b', lean: 0 } }]);
+    expect(rows.map(r => r.slot)).toEqual(openSlots(items));
+  });
+
+  it('never drops a goal whose balance already sits on another row', () => {
+    const items = [goal('x', 'a', 0, { pairId: 'y' }), goal('y', 'b', 0, { pairId: 'x' }), goal('z', 'a', 0.5, { pairId: 'y' })];
+    const rows = rowsOf(items);
+    expect(rows.map(r => r.id)).toEqual(['x', 'z']);
+    expect(rows[1].slot).toBeUndefined();
+  });
+
+  it('the seed spread reads as two rows, its pairs level with each other, in the notebook order', async () => {
+    await ensureSeeded();
+    const [p1, p2] = await spreads();
+    expect(rowsOf(p1.items).map(r => [r.a, r.b])).toEqual([['it-volunteer', 'it-breathing-room'], ['it-share', 'it-own-sake']]);
+    expect(rowsOf(p2.items).map(r => r.slot?.pole)).toEqual(['b', 'b', 'a', 'a']);
   });
 });
 
@@ -154,6 +191,19 @@ describe('lean maths', () => {
     expect(tops.a + 20 <= 92 - 6 || tops.a >= 92 + 20 + 6).toBe(true);
   });
 
+  it('keeps every pin (the row under the finger, the middle word) and flows the rest around them', () => {
+    const boxes = [{ id: 'a', lean: -0.1, h: 20 }, { id: 'b', lean: 0.1, h: 20 }, { id: 'c', lean: 0.5, h: 20 }, { id: 'd', lean: -0.8, h: 20 }];
+    const { tops, overflow } = layoutColumn(boxes, 0, 300, 6, [{ id: 'mid', top: 140, h: 20 }, { id: 'd', top: 200 }]);
+    expect(tops.mid).toBe(140);
+    expect(tops.d).toBe(200);
+    expect(overflow).toBe(0);
+    const spans = Object.entries(tops).map(([id, t]) => [t, t + 20, id] as const).sort((x, y) => x[0] - y[0]);
+    for (let k = 1; k < spans.length; k++) expect(spans[k][0]).toBeGreaterThanOrEqual(spans[k - 1][1]);
+    // a wants to sit above the middle word and does; b below it
+    expect(tops.a + 20).toBeLessThanOrEqual(140);
+    expect(tops.b).toBeGreaterThanOrEqual(160);
+  });
+
   it('lands a new goal below the lowest one', () => {
     expect(nextFreeLean([])).toBe(-0.5);
     expect(nextFreeLean([goal('x', 'a', 0.2)])).toBe(0.5);
@@ -163,13 +213,15 @@ describe('lean maths', () => {
 });
 
 describe('moving goals', () => {
-  it('a pair at the same lean follows; a pair set to another lean stays', () => {
+  it('a pair moves as one row: its balance follows, and a pair set at two heights lands level', () => {
     const level = [goal('x', 'a', 0, { pairId: 'y' }), goal('y', 'b', 0, { pairId: 'x' })];
     expect(moveGoal(level, 'x', 0.5).map(i => [i.id, i.lean])).toEqual([['x', 0.5], ['y', 0.5]]);
     expect(riders(level, 'x')).toEqual(['x', 'y']);
     const apart = [goal('x', 'a', 0, { pairId: 'y' }), goal('y', 'b', 0.4, { pairId: 'x' })];
-    expect(moveGoal(apart, 'x', -0.5).map(i => i.id)).toEqual(['x']);
-    expect(riders(apart, 'x')).toEqual(['x']);
+    expect(moveGoal(apart, 'x', -0.5).map(i => [i.id, i.lean])).toEqual([['x', -0.5], ['y', -0.5]]);
+    expect(moveGoal(apart, 'y', 0).map(i => [i.id, i.lean])).toEqual([['y', 0]]); // x is already there
+    expect(riders(apart, 'y')).toEqual(['y', 'x']);
+    expect(riders([goal('z', 'a', 0)], 'z')).toEqual(['z']);
     expect(moveGoal(level, 'x', 0)).toEqual([]);
     expect(moveGoal(level, 'nope', 0)).toEqual([]);
     expect(moveGoal(level, 'x', 7)[0].lean).toBe(1);

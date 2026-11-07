@@ -1,15 +1,18 @@
 // New paradox, and editing one (PLAN.md section 6). The save word stays print-grey and inert until both
 // values and both aspects are written; nothing pops up to say so. Each pole may carry its shadow word,
-// drawn in brackets on its corner tag. The middle is optional, offered with the notebook's own doubt.
+// drawn in brackets after it on its rule. The middle is optional, offered with the notebook's own doubt.
 // Antonyms from the seed list sit as chips under pole B once pole A is written, never filled in.
-// An edit pushes the old version onto the paradox's revisions; status is a row here.
+// An edit pushes the old version onto the paradox's revisions; the earlier versions of the three words
+// stay here, struck through (the spread itself now says the current one: the poles and the middle).
+// Status is a row here.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { signal } from '@preact/signals';
 import { Sheet } from '../parts/Sheet';
+import { Strike } from '../parts/Strike';
 import { openSheet } from '../sheets';
 import type { Paradox, Pole } from '../../db/schema';
-import { STATUSES, antonymSuggestions, canSaveParadox, createParadox, saveParadox, sameVersion, type ParadoxDraft, type Status } from '../../model/paradox';
+import { STATUSES, antonymSuggestions, canSaveParadox, createParadox, saveParadox, sameVersion, threeWordLines, type ParadoxDraft, type Status } from '../../model/paradox';
 import { beData, changed, closeBeSheet, paradoxTarget } from './state';
 
 type Draft = ParadoxDraft & { middle: { word?: string; scenario?: string } };
@@ -69,6 +72,7 @@ function ParadoxForm({ open }: { open: boolean }) {
     const v = e.currentTarget.value;
     setD(prev => ({ ...prev, middle: { ...prev.middle, [k]: v } }));
   };
+  const struck = existing ? threeWordLines(existing)?.struck ?? [] : [];
   const chips = d.poleA.value.trim() ? antonymSuggestions(d.poleA.value, d.poleB.value) : [];
 
   const pole = (side: 'poleA' | 'poleB', head: string, valueHint: string) => (
@@ -93,14 +97,20 @@ function ParadoxForm({ open }: { open: boolean }) {
     <Sheet open={open} onClose={closeBeSheet} title={existing ? 'The paradox' : 'New paradox'}
       action={{ label: 'Save', inert: !ok, onPress: async () => { if (await save()) closeBeSheet(); } }}>
     <div class="fs-rows">
-      {pole('poleA', 'Top-left corner', 'selfless')}
-      {pole('poleB', 'Bottom-right corner', 'its opposite')}
+      {pole('poleA', 'Top', 'selfless')}
+      {pole('poleB', 'Bottom', 'its opposite')}
       <div class="fs-row stack">
         <span class="fs-print">The middle</span>
         <input class="fs-input" value={d.middle.word} placeholder="A third word" aria-label="Middle word" autocomplete="off" onInput={setMiddle('word')} />
         <textarea class="fs-input fs-area" rows={2} value={d.middle.scenario} placeholder="Or a specific scene" aria-label="Middle scene" onInput={setMiddle('scenario')} />
         <span class="fs-note">that third word is hard to come by; a specific scene works too</span>
       </div>
+      {struck.length > 0 && (
+        <div class="fs-row stack fs-state" aria-label="Earlier versions">
+          <span class="fs-print">Earlier</span>
+          {struck.map((w, k) => <p key={k} class="fs-was"><Strike>{w}</Strike></p>)}
+        </div>
+      )}
       {existing && (
         <div class="fs-row stack">
           <span class="fs-print">Status</span>
