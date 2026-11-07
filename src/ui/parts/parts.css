@@ -27,6 +27,9 @@
 }
 .fs-hdr-l { display: flex; align-items: center; margin-left: calc(var(--s1) * -1.25); }
 .fs-hdr-r { display: grid; gap: 2px; text-align: right; padding-bottom: var(--s1); }
+/* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
+.fs-hdr-r > span { white-space: nowrap; }
+.fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
 .fs-hdr-r b {
   font-family: var(--serif); font-weight: 400; font-size: var(--fs-fill);
   text-transform: none; letter-spacing: 0; color: var(--ink);
@@ -379,8 +382,8 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-oneline .fs-opt { flex: none; white-space: nowrap; }
 .fs-sheet-words { display: flex; align-items: center; }
 
-/* ==== Journal (package 1): a page of messages, the composer, the echo, the lists ==== */
-.fs-col { padding-bottom: var(--s2); overscroll-behavior: contain; }
+/* ==== Journal (package 1; v2 V1): the page column is the editor, the echo, the lists ==== */
+.fs-col { position: relative; padding-bottom: var(--s2); overscroll-behavior: contain; }
 .fs-col .fs-msg { position: relative; -webkit-touch-callout: none; transition: transform var(--t-ui) var(--ease); }
 .fs-col .fs-msg p { margin: 0; min-height: var(--lh-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .fs-col .fs-msg.holding { -webkit-user-select: none; user-select: none; }
@@ -391,7 +394,7 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 }
 .fs-kept { float: right; margin-left: var(--s1); }
 .fs-dated { display: block; }
-.fs-col .fs-quote, .fs-page > .fs-composer .fs-quote {
+.fs-col .fs-quote {
   display: block; font-style: italic; color: var(--print); font-size: var(--fs-chip); line-height: var(--lh-ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--seam); padding-left: var(--s1);
 }
@@ -402,41 +405,40 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 }
 .fs-edit.fs-q { font-size: var(--fs-title); }
 
-/* the meta line under the header: mood, #tags, the state (states leave in Still) */
-.fs-meta {
-  display: flex; align-items: center; gap: var(--s1); padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; white-space: nowrap;
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1;
+/* the margin dot: the block you are on. Tap it and the chips step out for that block (none on a voice's
+   block, whose rule already marks it; the dot's tap area stays over the rule) */
+.fs-dot {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer;
+  position: absolute; left: calc(var(--gutter) * -1); top: 0; width: var(--gutter); height: var(--lh-ink);
 }
-.fs-meta::-webkit-scrollbar { display: none; }
-.fs-meta > .fs-word:first-child { margin-left: calc(var(--s1) * -1); }
-.fs-meta .fs-state { display: inline-flex; margin-left: auto; }
-[data-light="still"] .fs-meta .fs-state { display: none; }
-.fs-meta .fs-word[aria-pressed="true"] { color: var(--ink); }
-.fs-moods { padding: 0 var(--gutter) var(--s1); }
+.fs-dot::before {
+  content: ""; position: absolute; left: 7px; top: calc(var(--lh-ink) / 2 - 3px);
+  width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--print); box-sizing: border-box;
+}
+.fs-dot[aria-expanded="true"]::before { background: var(--print); }
+.fs-dot::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-dot:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
+.fs-v > .fs-dot { left: calc(var(--gutter) * -1 + 10px); width: calc(var(--gutter) - 10px); height: 100%; }
+.fs-v > .fs-dot::before { display: none; }
+/* the chips for one block: two rules tall, so the ink below stays on its rules */
+.fs-inline { display: flex; align-items: center; height: calc(var(--lh-ink) * 2); margin-left: calc(var(--s1) * -1); }
+.fs-inline .fs-chips { padding: 0 var(--s1); }
+.fs-inline .fs-chip { min-height: 32px; padding: 0 10px; }
+/* holds the iOS keyboard up for the moment the caret moves from one block to the next */
+.fs-proxy {
+  position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; margin: 0;
+  resize: none; pointer-events: none; font-size: var(--fs-ink);
+}
+/* the margin dot's "more": every voice, wrapped */
+.fs-chips.fs-chips-wrap { flex-wrap: wrap; overflow: visible; padding: 0 0 var(--s1); }
 
-/* the segment row's right-hand word, and what steps out in Still (today only) */
-.fs-seg button {
-  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; font: inherit; letter-spacing: inherit;
-  text-transform: inherit; color: var(--print); min-height: var(--hit); cursor: pointer;
-}
-.fs-seg .fs-seg-end { margin-left: auto; }
-.fs-seg a:focus-visible, .fs-seg button:focus-visible, .fs-echo-tap:focus-visible, .fs-link:focus-visible, .fs-list-row:focus-visible, .fs-qrow:focus-visible {
+/* the header word Pages, where you are, and what steps out in Still (today only) */
+a.fs-word { text-decoration: none; }
+.fs-hdr .fs-word[aria-current="page"] { color: var(--ink); }
+.fs-echo-tap:focus-visible, .fs-link:focus-visible, .fs-list-row:focus-visible, .fs-qrow:focus-visible {
   outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
 }
 [data-light="still"] .fs-notstill, [data-light="still"] .fs-pagelist { display: none; }
-
-/* the composer: plain ink at the bottom, the chip row above it */
-.fs-page > .fs-composer { border-top: 1px solid var(--seam); padding: 0 var(--gutter); }
-.fs-compose {
-  display: block; width: 100%; min-height: calc(var(--lh-ink) + var(--s2)); max-height: calc(var(--lh-ink) * 5 + var(--s2));
-  padding: var(--s1) 0; margin: 0; resize: none; border: 0; outline: none; overflow-y: auto; background: transparent;
-  font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
-}
-.fs-page > .fs-composer .fs-sp { line-height: 1; padding-top: var(--s1); }
-.fs-page > .fs-composer .fs-replying {
-  appearance: none; border: 0; background: transparent; padding: var(--s1) 0 0; margin: 0; width: 100%; text-align: left;
-  font: inherit; cursor: pointer; display: block;
-}
 
 /* the echo: one kept line above a new page */
 .fs-echo { padding: var(--s1) var(--gutter) 0; touch-action: pan-y; transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease); }
@@ -456,8 +458,18 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span { font-style: italic; }
 .fs-qtitle { display: block; }
-.fs-qrow .fs-quiet { display: block; }
-.fs-word.fs-col-act { min-height: calc(var(--lh-ink) * 2); padding: 0; color: var(--ink); }
+/* the Pages screen: search on the first rule, a small month word, who spoke on a council */
+.fs-search {
+  appearance: none; display: block; width: 100%; height: var(--lh-ink); margin: 0; padding: 0; border: 0; outline: none;
+  background: transparent; font: inherit; font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--ink);
+}
+.fs-search::placeholder { color: var(--print); font-style: italic; }
+.fs-search::-webkit-search-cancel-button { display: none; }
+.fs-month {
+  margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--print); line-height: var(--lh-ink);
+}
+.fs-list-meta .fs-spoke { vertical-align: middle; margin-left: var(--s1); }
 .fs-ask { display: flex; align-items: center; min-height: var(--hit); padding: 0 var(--gutter) var(--s1); border-top: 1px solid var(--seam); }
 .fs-ask .fs-word { margin-left: calc(var(--s1) * -1); color: var(--ink); }
 
@@ -466,7 +478,6 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-sheet-body .fs-chips { padding-left: 0; padding-right: 0; }
 .fs-row.fs-list-row { display: block; padding: 0; }
 .fs-picker { border-top: 0; }
-.fs-found { margin-top: var(--s1); }
 a.fs-row { color: var(--ink); text-decoration: none; }
 
 /* ==== Flow (package 4): today's checks, the lean slider, the look back, the lean line ==== */
