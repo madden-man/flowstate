@@ -5,7 +5,7 @@ import { freshDB } from '../db/helpers';
 import { store } from '../../src/db/fields';
 import { defaultSettings } from '../../src/db/seed';
 import type { Settings } from '../../src/db/schema';
-import { readPlaylist, storeAlbums, shelf, keepCover } from '../../src/music/covers';
+import { readPlaylist, storeAlbums, shelf, keepCover, COVERS_AT_ONCE } from '../../src/music/covers';
 import { PLAYLIST_PATH, groupAlbums, type Album } from '../../src/music/spotify';
 import type { Keep } from '../../src/music/connect';
 import { noteMusic, pagesWithAlbum } from '../../src/model/music';
@@ -13,7 +13,7 @@ import { newPage, writeLine } from '../../src/model/pages';
 
 const API = 'https://api.spotify.com/v1';
 const entry = (uri: string, album: string, artist: string) => ({
-  item: { type: 'track', uri, album: { uri: `spotify:album:${album}`, name: album, images: [{ url: `https://i.scdn.co/${album}-640`, width: 640 }] }, artists: [{ name: artist }] },
+  item: { type: 'track', uri, album: { uri: `spotify:album:${album}`, name: album, images: [{ url: `https://i.scdn.co/${album}-640`, width: 640 }, { url: `https://i.scdn.co/${album}-300`, width: 300 }, { url: `https://i.scdn.co/${album}-64`, width: 64 }] }, artists: [{ name: artist }] },
 });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const blob = (s: string) => new Blob([s], { type: 'image/png' });
@@ -44,7 +44,7 @@ describe('the playlist read', () => {
     const kept = await shelf();
     expect(kept.map(r => r.order)).toEqual([0, 1, 2]);
     expect(kept.every(r => r.cover instanceof Blob)).toBe(true);
-    expect(await kept[0].cover!.text()).toBe('https://i.scdn.co/Oneknowing-640');
+    expect(await kept[0].cover!.text()).toBe('https://i.scdn.co/Oneknowing-300');
   });
 
   it('skips episodes and fetches a cover once: a refresh only fetches the new album', async () => {
@@ -60,6 +60,27 @@ describe('the playlist read', () => {
     const one = await store.get('albums', 'spotify:album:One');
     expect(one?.order).toBe(-1);
     expect(one?.cover).toBeInstanceOf(Blob);
+  });
+
+  it('the shelf has every tile before a single cover arrives, and fills in as they land', async () => {
+    const a = (album: string, order: number): Album => ({ albumUri: `spotify:album:${album}`, album, artist: 'A', order, firstTrackUri: `t-${album}`, coverUrl: `c-${album}` });
+    const list = [a('One', 0), a('Two', 1), a('Three', 2), a('Four', 3), a('Five', 4), a('Six', 5)];
+    let release!: () => void;
+    const gate = new Promise<void>(r => { release = r; });
+    let started = 0;
+    const getCover = async (u: string) => { started++; await gate; return blob(u); };
+    const seen: number[] = [];
+    const onProgress = async () => { seen.push((await shelf()).filter(r => r.cover).length); };
+    const done = storeAlbums(list, getCover, onProgress);
+    await vi.waitFor(() => expect(started).toBe(COVERS_AT_ONCE));
+    // the rows are written and the shelf shows six tiles while every cover is still on its way
+    expect((await shelf()).map(r => r.album)).toEqual(['One', 'Two', 'Three', 'Four', 'Five', 'Six']);
+    expect(seen).toEqual([0]);
+    release();
+    const rows = await done;
+    expect(rows.every(r => r.cover instanceof Blob)).toBe(true);
+    expect(seen[seen.length - 1]).toBe(6);
+    expect(seen.length).toBe(7);
   });
 
   it('a cover that fails to arrive is tried again next time', async () => {
