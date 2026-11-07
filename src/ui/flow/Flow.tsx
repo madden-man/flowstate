@@ -85,19 +85,14 @@ export function Flow() {
 }
 
 function Back({ back, now: t, toSlider }: { back: LookBack; now: number; toSlider: (id: string) => void }) {
-  const { raw, open, quiet, voices, balances, lines } = back;
-  if (![raw, open, quiet, voices, balances, lines].some(l => l.length)) return null;
+  const { open, quiet, voices, balances, lines } = back;
+  if (![open, quiet, voices, balances, lines].some(l => l.length)) return null;
   return (
     <section class="fs-back fs-notstill" aria-label="Look back">
       <h2 class="fs-print fs-back-title">Look back</h2>
-      {raw.length > 0 && (
-        <List title="Still raw">
-          {raw.map(e => <a key={e.id} class="fs-back-link" href={`#/journal/${e.id}`}>{e.line}</a>)}
-        </List>
-      )}
       {open.length > 0 && (
         <List title="Still open">
-          {open.map(q => <a key={q.id} class="fs-back-link" href={`#/journal/${q.id}`}>{q.title}</a>)}
+          {open.map(q => <a key={q.id} class="fs-back-link" href={`#/questions/${q.id}`}>{q.title}</a>)}
         </List>
       )}
       {quiet.length > 0 && (

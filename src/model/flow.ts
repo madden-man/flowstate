@@ -4,7 +4,7 @@
 // Nothing here counts a run of days; there are no totals.
 import type { Cadence, Item, Lean, Paradox, Voice } from '../db/schema';
 import { store, type Read } from '../db/fields';
-import { entries, questions } from './pages';
+import { questions } from './pages';
 import { goalsOf, openSlots, slotLine, clampLean } from './paradox';
 
 const DAY_MS = 86_400_000;
@@ -139,16 +139,6 @@ export const snapLean = (raw: number): number => { const l = clampLean(raw); ret
 
 // ---------------------------------------------------------------- look back
 
-export type RawEntry = { id: string; line: string };
-/** Entries still raw (newest first), each with its title or first line. Today's page is not looked back on. */
-export async function rawEntries(now = Date.now(), limit = 5): Promise<RawEntry[]> {
-  const from = startOfDay(now);
-  return (await entries())
-    .filter(e => e.page.state === 'open' && e.page.createdAt < from && !e.page.locked)
-    .slice(0, limit)
-    .map(e => ({ id: e.page.id, line: e.line }));
-}
-
 export type OpenQuestion = { id: string; title: string };
 export async function openQuestions(limit = 5): Promise<OpenQuestion[]> {
   return (await questions())
@@ -201,8 +191,8 @@ export async function leanLines(): Promise<LeanLineData[]> {
   return rows.filter(r => r.points.length > 0);
 }
 
+/** The look back. Entries have no state since V1, so nothing lists them as still raw (V2 took that list out). */
 export type LookBack = {
-  raw: RawEntry[];
   open: OpenQuestion[];
   quiet: QuietParadox[];
   voices: Read<Voice>[];
@@ -210,10 +200,10 @@ export type LookBack = {
   lines: LeanLineData[];
 };
 export async function lookBack(now = Date.now()): Promise<LookBack> {
-  const [raw, open, quiet, voices, balances, lines] = await Promise.all([
-    rawEntries(now), openQuestions(), quietParadoxes(now), quietVoices(now), openBalances(), leanLines(),
+  const [open, quiet, voices, balances, lines] = await Promise.all([
+    openQuestions(), quietParadoxes(now), quietVoices(now), openBalances(), leanLines(),
   ]);
-  return { raw, open, quiet, voices, balances, lines };
+  return { open, quiet, voices, balances, lines };
 }
 
 // ---------------------------------------------------------------- the lean line's path
