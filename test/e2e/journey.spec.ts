@@ -72,16 +72,19 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.getByRole('button', { name: 'Take to the council' }).click();
   await expect(page).toHaveURL(/#\/council\/[\w-]+$/);
   const councilUrl = page.url();
-  await expect(page.locator('.fs-council .fs-msg', { hasText: answered })).toBeVisible();
-  await expect(page.locator('.fs-from a').first()).toHaveText(first);
+  await expect(page.locator('.fs-from a').first()).toHaveText(answered);
 
-  // ---- the council: two voices ----
+  // ---- the council: seat two voices, and they take turns ----
+  const seat = (name: string) => page.getByRole('group', { name: 'Who sits' }).getByRole('button', { name, exact: true });
+  await seat('Skeptic').click();
+  await seat('Warrior').click();
+  await page.getByRole('button', { name: 'Begin' }).click();
   const message = page.getByRole('textbox', { name: 'Message' });
   const skeptic = 'The mind is not pure, nor is it reliable.';
   const warrior = 'Then stand anyway.';
-  await chip(page, 'Skeptic').click();
+  await expect(chip(page, 'Skeptic')).toHaveAttribute('aria-pressed', 'true');
   await say(page, message, skeptic);
-  await chip(page, 'Warrior').click();
+  await expect(chip(page, 'Warrior')).toHaveAttribute('aria-pressed', 'true');
   await say(page, message, warrior);
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
@@ -183,7 +186,7 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   const file = JSON.parse(await (await import('node:fs/promises')).readFile((await download.path())!, 'utf8'));
   expect(file.app).toBe('flowstate');
   expect(file.encrypted).toBe(true);
-  expect(file.tables.pages.length).toBeGreaterThan(2);
+  expect(file.tables.pages.length).toBeGreaterThan(1); // what the journey wrote; the seed writes no pages (V5)
   await expect(settings.locator('[data-export] small')).toHaveText(/^Last /);
 
   expect(outside).toEqual([]);

@@ -15,7 +15,8 @@ import { voiceList, reloadVoices, speaker, editing, draft } from './state';
 
 type Shade = 'light' | 'deep';
 
-export function VoiceSheet() {
+/** onMade hears a new voice's id (the council seats it at once). */
+export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
   const open = openSheet.value === 'voice';
   const id = editing.value;
   const all = voiceList.value;
@@ -63,6 +64,7 @@ export function VoiceSheet() {
       } else {
         const made = await addVoice({ name, aka: akaWords(aka), colour, shade, twinId: twin });
         speaker.value = made.id; // the new voice speaks on the very next message
+        onMade?.(made.id);
       }
       await reloadVoices();
       shut();

@@ -1,14 +1,13 @@
 // The sky (PLAN.md section 8, DESIGN.md rules 12 to 14). Sunrise and sunset are computed here from the
-// stored place, offline, with no library; with no place the day runs 07:00 to 19:00. The light crosses
-// over a 40-minute dusk (and dawn) by stretching --t-light for that one change. Still is a light the
-// user chooses; package 5 adds the blind gesture and the ring, this file holds the state.
+// stored place, offline, with no library; with no place the day runs 07:00 to 19:00. Sunrise and sunset
+// change the light in one --t-light breath, the token's own duration, so the page, chips, rules and
+// sheets turn together (V5, 2026-11-08: the 40-minute stretch left them in two lights at once). Still is
+// a light the user chooses; package 5 adds the blind gesture and the ring, this file holds the state.
 import { signal, computed, effect } from '@preact/signals';
 import type { LightPin, Place } from '../db/schema';
 import { settings } from './settings';
 
 export type Light = 'day' | 'night' | 'still';
-export const DUSK_MIN = 40;
-const MIN = 60_000;
 const DAY_MS = 86_400_000;
 
 // ---- solar maths (the sunrise equation; Meeus-style approximations, good to a minute or two) ----
@@ -41,16 +40,12 @@ export function sunTimes(day: Date, place?: Place | null): SunTimes {
   return { rise: fromJulian(transit - w / 360), set: fromJulian(transit + w / 360), fromPlace: true };
 }
 
-export type Sky = { light: 'day' | 'night'; fadeEndsAt?: number; from?: 'day' | 'night' };
+export type Sky = { light: 'day' | 'night' };
 
-/** Day from sunrise to sunset; the 40 minutes before sunrise fade toward day, the 40 after sunset toward night. */
+/** Day from sunrise to sunset, night otherwise. */
 export function skyAt(t: number, place?: Place | null): Sky {
   const { rise, set } = sunTimes(new Date(t), place);
-  const span = DUSK_MIN * MIN;
-  if (t >= rise - span && t < rise) return { light: 'day', from: 'night', fadeEndsAt: rise };
-  if (t >= rise && t < set) return { light: 'day' };
-  if (t >= set && t < set + span) return { light: 'night', from: 'day', fadeEndsAt: set + span };
-  return { light: 'night' };
+  return { light: t >= rise && t < set ? 'day' : 'night' };
 }
 
 // ---- places ----
@@ -111,7 +106,6 @@ export function liftAtSunrise(t: number): void {
 
 // ---- applying it to <html> ----
 
-let fadeTimer: ReturnType<typeof setTimeout> | undefined;
 let prev: Light | null = null;
 
 function setThemeColour(root: HTMLElement) {
@@ -120,39 +114,20 @@ function setThemeColour(root: HTMLElement) {
   if (meta && page) meta.setAttribute('content', page);
 }
 
-function apply(root: HTMLElement, next: Light, fadeMs: number | null) {
-  clearTimeout(fadeTimer);
-  if (fadeMs && fadeMs > 0) {
-    // The dusk: this one change takes as long as the sky does. The token comes back afterwards.
-    root.style.setProperty('--t-light', `${Math.round(fadeMs)}ms`);
-    fadeTimer = setTimeout(() => root.style.removeProperty('--t-light'), fadeMs + 1000);
-  } else {
-    root.style.removeProperty('--t-light');
-  }
+function apply(root: HTMLElement, next: Light) {
   root.dataset.light = next;
   setThemeColour(root);
 }
 
 /** Starts the sky: sets data-light now, then follows the clock. Returns a stop function. */
 export function startLight(root: HTMLElement = document.documentElement): () => void {
-  const first = sky.peek();
-  const target = light.peek();
-  if (target !== 'still' && pin.peek() === 'sky' && first.fadeEndsAt && first.from) {
-    // Opened mid-dusk: start from the light being left and cross over the minutes that remain.
-    root.dataset.light = first.from;
-    prev = target;
-    requestAnimationFrame(() => requestAnimationFrame(() => apply(root, target, first.fadeEndsAt! - Date.now())));
-  } else {
-    apply(root, target, null);
-    prev = target;
-  }
+  prev = light.peek();
+  apply(root, prev);
   const stop = effect(() => {
     const next = light.value;
     if (next === prev) return;
-    const s = sky.peek();
-    const bySky = !still.peek() && pin.peek() === 'sky' && prev !== 'still';
     prev = next;
-    apply(root, next, bySky && s.fadeEndsAt ? s.fadeEndsAt - Date.now() : null);
+    apply(root, next);
   });
   const tick = () => {
     now.value = Date.now();

@@ -35,8 +35,9 @@ export type Settings = {
   seededAt?: Millis;
   /** Not in PLAN.md section 4 (package 8): what navigator.storage.persist() last answered, so Settings reads it offline. */
   persisted?: boolean;
-  /** Not in PLAN.md section 4 (package 8): seed pages added after the first seed, by name, so each lands once. */
-  seedsAdded?: string[];
+  /** Not in PLAN.md section 4 (V5): one-time passes over old data already run, by name, so each runs once.
+   *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go). */
+  cleaned?: string[];
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;
@@ -79,6 +80,10 @@ export type Page = {
   /** Not in PLAN.md section 4 (package 1): the linked pages this one is a "smaller version of" (also in linkedPageIds). */
   smallerOf?: string[];
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
+  /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
+   *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
+   *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
+  seats?: string[];
 };
 
 export type Message = {

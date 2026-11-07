@@ -52,14 +52,14 @@ describe('council pages', () => {
 
   it('finds pages to link by title or first line, questions first, leaving out councils and links already made', async () => {
     await store.put('pages', { id: 'q1', kind: 'question', createdAt: T0, updatedAt: T0, state: 'open', title: 'How do I retain skills?', tags: [], paradoxIds: [], linkedPageIds: [] });
+    await store.many({ pages: [{ id: 'e1', kind: 'entry', createdAt: T0 - 9, updatedAt: T0 - 9, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] }], messages: [{ id: 'm-e1', pageId: 'e1', at: T0 - 9, text: 'I determine my core.', kept: true }] });
     const p = await c.newCouncil({ now: T0 });
     const all = await c.linkCandidates('', p.id);
-    // the seeded models question (package 8) is a question too
-    expect(all.map(x => x.id)).toEqual(['q1', 'pg-models', 'pg-manifesto']);
-    expect(all[2].label).toBe('I determine my core.');
-    expect((await c.linkCandidates('CORE', p.id)).map(x => x.id)).toEqual(['pg-manifesto']);
+    expect(all.map(x => x.id)).toEqual(['q1', 'e1']);
+    expect(all[1].label).toBe('I determine my core.');
+    expect((await c.linkCandidates('CORE', p.id)).map(x => x.id)).toEqual(['e1']);
     await c.linkPages(p.id, 'q1');
-    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['pg-models', 'pg-manifesto']);
+    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['e1']);
     await expect(c.linkPages(p.id, 'gone')).rejects.toThrow();
   });
 });
@@ -132,6 +132,116 @@ describe('speaker selection', () => {
     const vs = await c.allVoices();
     expect(c.lastSpeaker([{ voiceId: 'v-red' }, { voiceId: 'v-warrior' }, { voiceId: undefined }], vs)?.name).toBe('Warrior');
     expect(c.lastSpeaker([{ voiceId: undefined }], vs)).toBeUndefined();
+  });
+});
+
+describe('seats and turns (V3)', () => {
+  // The council screen's loop: who is up, a line in their voice, and the tap cleared after it.
+  const table = async (seats: string[] | undefined, still = false) => {
+    const vs = await c.allVoices();
+    const ms: { voiceId?: string }[] = [];
+    const up = (tap?: c.Tapped) => c.nextSpeaker(tap, vs, still, { seats, messages: ms });
+    const say = (tap?: c.Tapped) => { const v = up(tap); ms.push({ voiceId: v }); return v; };
+    return { vs, ms, up, say };
+  };
+
+  it('seats and unseats on the page, in the order tapped; twice changes nothing', async () => {
+    const p = await c.newCouncil({ now: T0 });
+    expect((await store.get('pages', p.id))!.seats).toBeUndefined();
+    await c.seat(p.id, 'v-warrior', T0 + 1);
+    await c.seat(p.id, 'v-mystic', T0 + 2);
+    await c.seat(p.id, 'v-warrior', T0 + 3);
+    expect((await store.get('pages', p.id))!.seats).toEqual(['v-warrior', 'v-mystic']);
+    await c.toggleSeat(p.id, 'v-skeptic', T0 + 4);
+    await c.toggleSeat(p.id, 'v-warrior', T0 + 5);
+    const after = (await store.get('pages', p.id))!;
+    expect(after.seats).toEqual(['v-mystic', 'v-skeptic']);
+    expect(after.updatedAt).toBe(T0 + 5);
+    await c.unseat(p.id, 'v-joker');
+    expect((await c.councilById(p.id))!.page.seats).toEqual(['v-mystic', 'v-skeptic']);
+    await expect(c.seat(p.id, 'gone')).rejects.toThrow();
+    await expect(c.seat('pg-manifesto', 'v-mystic')).rejects.toThrow();
+  });
+
+  it('two seats alternate without a tap, starting with the first seated', async () => {
+    const t = await table(['v-skeptic', 'v-mystic']);
+    expect(t.up()).toBe('v-skeptic');
+    expect([t.say(), t.say(), t.say(), t.say()]).toEqual(['v-skeptic', 'v-mystic', 'v-skeptic', 'v-mystic']);
+  });
+
+  it('three seats go round in seat order, not pantheon order', async () => {
+    const t = await table(['v-warrior', 'v-skeptic', 'v-architect']);
+    expect([t.say(), t.say(), t.say(), t.say(), t.say()]).toEqual(['v-warrior', 'v-skeptic', 'v-architect', 'v-warrior', 'v-skeptic']);
+  });
+
+  it('a chip tap speaks for one line, then the turn goes on from the one who just spoke', async () => {
+    const t = await table(['v-warrior', 'v-skeptic', 'v-architect']);
+    expect(t.say()).toBe('v-warrior');
+    expect(t.say('v-architect')).toBe('v-architect');
+    expect(t.say()).toBe('v-warrior');
+    expect(t.say()).toBe('v-skeptic');
+    // tapping the voice already up changes nothing
+    expect(t.say('v-architect')).toBe('v-architect');
+    expect(t.say()).toBe('v-warrior');
+  });
+
+  it('Ink is one tap and takes no turn', async () => {
+    const t = await table(['v-skeptic', 'v-mystic']);
+    expect(t.say()).toBe('v-skeptic');
+    expect(t.say(null)).toBeUndefined();
+    expect(t.say(null)).toBeUndefined();
+    expect(t.up()).toBe('v-mystic');
+    expect(t.say()).toBe('v-mystic');
+    // a council that opens on a line in ink still starts with the first seat
+    const u = await table(['v-skeptic', 'v-mystic']);
+    expect(u.say(null)).toBeUndefined();
+    expect(u.say()).toBe('v-skeptic');
+  });
+
+  it('a seat removed mid-council is passed over, and the turn goes on to the seat after it', async () => {
+    const seats = ['v-warrior', 'v-skeptic', 'v-architect', 'v-mystic'];
+    const vs = await c.allVoices();
+    const ms = [{ voiceId: 'v-warrior' }, { voiceId: 'v-skeptic' }];
+    const at = (s: string[]) => c.nextSpeaker(undefined, vs, false, { seats: s, messages: ms });
+    expect(at(seats)).toBe('v-architect');
+    // the Skeptic, who just spoke, leaves: the Architect after it is still up
+    expect(at(['v-warrior', 'v-architect', 'v-mystic'])).toBe('v-architect');
+    // the Architect, who was up, leaves: the Mystic after it
+    expect(at(['v-warrior', 'v-skeptic', 'v-mystic'])).toBe('v-mystic');
+    // everyone after the last speaker leaves: round to the first seat
+    expect(at(['v-warrior', 'v-skeptic'])).toBe('v-warrior');
+    // an archived voice keeps its seat but takes no turn
+    await c.archiveVoice('v-architect');
+    expect(c.nextSpeaker(undefined, await c.allVoices(), false, { seats, messages: ms })).toBe('v-mystic');
+    // and the rotation works against the stored page too
+    const p = await c.newCouncil({ now: T0 });
+    for (const id of ['v-warrior', 'v-skeptic', 'v-mystic']) await c.seat(p.id, id);
+    await c.speak(p.id, 'Stand tall, young one.', { voiceId: 'v-warrior', now: T0 });
+    await c.unseat(p.id, 'v-skeptic');
+    const d = (await c.councilById(p.id))!;
+    expect(c.turnOf(d.page.seats, d.messages, await c.allVoices())).toBe('v-mystic');
+  });
+
+  it('in Still a seated deep twin keeps its seat but is passed over, and a tap on it does nothing', async () => {
+    const t = await table(['v-mystic', 'v-phantom', 'v-warrior'], true);
+    expect(c.seatedVoices(['v-mystic', 'v-phantom', 'v-warrior'], t.vs, true).map(v => v.name)).toEqual(['Mystic', 'Warrior']);
+    expect([t.say(), t.say(), t.say()]).toEqual(['v-mystic', 'v-warrior', 'v-mystic']);
+    expect(t.say('v-phantom')).toBe('v-warrior');
+    // by night the Phantom is back in the round
+    const n = await table(['v-mystic', 'v-phantom', 'v-warrior']);
+    expect([n.say(), n.say(), n.say()]).toEqual(['v-mystic', 'v-phantom', 'v-warrior']);
+  });
+
+  it('with no seats it behaves as before: ink unless a chip is tapped, and the tap holds', async () => {
+    for (const seats of [undefined, [] as string[], ['gone']]) {
+      const t = await table(seats);
+      expect(c.isSeated(seats, t.vs)).toBe(false);
+      expect(t.say()).toBeUndefined();
+      expect(t.say('v-mystic')).toBe('v-mystic');
+      expect(t.say(null)).toBeUndefined();
+    }
+    expect(c.isSeated(['v-mystic'], await c.allVoices())).toBe(true);
+    expect(c.isSeated(['v-phantom'], await c.allVoices(), true)).toBe(false);
   });
 });
 

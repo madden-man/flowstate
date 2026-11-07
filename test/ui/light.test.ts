@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { sunTimes, skyAt, parsePlace, TOWNS, light, sky, still, enterStill, leaveStill, liftAtSunrise, now, moonGlows, DUSK_MIN } from '../../src/ui/light';
+import { sunTimes, skyAt, parsePlace, TOWNS, light, sky, still, enterStill, leaveStill, liftAtSunrise, now, moonGlows } from '../../src/ui/light';
 import { settings } from '../../src/ui/settings';
 import { defaultSettings } from '../../src/db/seed';
 
@@ -49,12 +49,12 @@ describe('the sky', () => {
     expect(skyAt(at(3)).light).toBe('night');
     expect(skyAt(at(21)).light).toBe('night');
   });
-  it('crosses over a 40-minute dusk after sunset and a 40-minute dawn before sunrise', () => {
-    expect(DUSK_MIN).toBe(40);
-    expect(skyAt(at(19, 10))).toEqual({ light: 'night', from: 'day', fadeEndsAt: at(19, 40) });
-    expect(skyAt(at(19, 40))).toEqual({ light: 'night' });
-    expect(skyAt(at(6, 30))).toEqual({ light: 'day', from: 'night', fadeEndsAt: at(7) });
-    expect(skyAt(at(6, 19))).toEqual({ light: 'night' });
+  it('turns at sunrise and sunset, with no stretched dawn or dusk either side (V5)', () => {
+    expect(skyAt(at(6, 59))).toEqual({ light: 'night' });
+    expect(skyAt(at(7))).toEqual({ light: 'day' });
+    expect(skyAt(at(18, 59))).toEqual({ light: 'day' });
+    expect(skyAt(at(19))).toEqual({ light: 'night' });
+    expect(skyAt(at(19, 10))).toEqual({ light: 'night' });
   });
 });
 

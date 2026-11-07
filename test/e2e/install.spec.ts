@@ -34,7 +34,7 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
 
   // the other tabs open offline too, and a deep link lands on its tab
   await page.getByRole('link', { name: 'Council' }).click();
-  await expect(page.getByText('Mystic')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New council' })).toBeVisible();
   await page.goto('/#/be/px-selfless-selfish');
   await expect(page.getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('selfless', { exact: true })).toBeVisible();

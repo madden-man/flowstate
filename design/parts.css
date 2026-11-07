@@ -214,7 +214,7 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-council { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--kb, 0px); }
 .fs-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s1) var(--gutter) var(--s2); }
 .fs-chat p { margin: 0; min-height: var(--lh-ink); }
-.fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
+.fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: pointer; } /* a tap replies (V3) */
 .fs-council .fs-quote {
   display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   border-left: 2px solid var(--qc, var(--print)); padding-left: 6px;
@@ -250,6 +250,14 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-spoke i { display: block; width: 3px; height: 14px; background: var(--vc); }
 .fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
 .fs-blank { padding-top: var(--lh-ink); }
+
+/* V3, the seats screen ("Who sits?"): every voice as a chip at full tap size, wrapped, toggled on and off.
+   The same row stands in for the chips under a conversation after "+ seat", with Done beside it. */
+.fs-seats { display: flex; flex-wrap: wrap; gap: var(--s1); padding: var(--s1) 0; font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }
+.fs-seats .fs-chip { min-height: var(--hit); padding: 0 var(--s2); }
+.fs-seatrow { display: flex; align-items: flex-start; gap: var(--s1); padding: 0 var(--s1) 0 var(--gutter); max-height: 40vh; overflow-y: auto; }
+.fs-seatrow .fs-seats { flex: 1; min-width: 0; }
+.fs-seatrow > .fs-word { flex: none; margin-top: var(--s1); }
 .fs-said { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); font-style: italic; color: var(--ink); }
 
 /* the colour wheel: a conic ring on the voice formula, so it follows the light */

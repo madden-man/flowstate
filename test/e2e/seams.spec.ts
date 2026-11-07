@@ -1,6 +1,6 @@
 // The seams between the Journal (package 1) and the Council (package 2), offline: a question's line
-// taken to the council lands on the real council page, copied, with "From: <question>" at the top,
-// and that link opens the question again. Then the council's Link a page finds journal pages by a
+// taken to the council lands on the council's seats (V3) with "About: <the line>" at the top, and
+// that link opens the question again. Then the council's Link a page finds journal pages by a
 // question's title and by an entry's first line. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -23,7 +23,7 @@ async function ask(page: Page, title: string) {
   await expect(page.locator('.fs-qrow', { hasText: title })).toBeVisible();
 }
 
-test('journal and council meet: take to the council, From, and Link a page, offline', async ({ page, context, baseURL }) => {
+test('journal and council meet: take to the council, About, and Link a page, offline', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
   context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
   await page.goto('/');
@@ -58,21 +58,27 @@ test('journal and council meet: take to the council, From, and Link a page, offl
   await hold(page, said, 'This line');
   await page.getByRole('button', { name: 'Take to the council' }).click();
 
-  // the real council page: the line copied, "From" the question at the top
+  // the council's seats: "About" the line at the top, nothing copied
   await expect(page).toHaveURL(/#\/council\/[\w-]+$/);
   const councilUrl = page.url();
-  await expect(page.locator('.fs-council .fs-msg', { hasText: said })).toBeVisible();
+  await expect(page.getByText('Who sits?')).toBeVisible();
+  await expect(page.locator('.fs-council .fs-msg')).toHaveCount(0);
   const from = page.locator('.fs-from').first();
-  await expect(from.locator('small')).toHaveText('From');
-  await expect(from.locator('a')).toHaveText(q1);
+  await expect(from.locator('small')).toHaveText('About');
+  await expect(from.locator('a')).toHaveText(said);
 
   // the link back opens the question
   await from.locator('a').click();
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(q1);
   expect(page.url()).toBe(questionUrl);
 
-  // Link a page from the council finds the other question by its title
+  // nobody seated, Begin, a line in ink; then Link a page from it finds the other question by its title
   await page.goto(councilUrl);
+  await page.getByRole('button', { name: 'Begin' }).click();
+  const message = page.getByRole('textbox', { name: 'Message' });
+  await expect(message).toHaveAttribute('placeholder', 'A line in ink…');
+  await message.fill(said);
+  await message.press('Enter');
   await hold(page, said, 'Message');
   await page.getByRole('button', { name: /Link a page/ }).click();
   const find = page.locator('[data-sheet="Link a page"] input');
