@@ -352,7 +352,10 @@ export function PageView({ id }: { id?: string }) {
   const date = page ? new Date(page.createdAt) : new Date();
 
   return (
-    <Page no={data?.no} date={date}>
+    <Page no={data?.no} date={date} music={page ? {
+      id: page.id, music: page.music,
+      onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
+    } : undefined}>
       <Seg on={kind === 'question' ? 'questions' : isToday ? 'entries' : 'earlier'} />
       {page && (
         <div class="fs-meta">

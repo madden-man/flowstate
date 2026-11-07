@@ -12,6 +12,7 @@ import { tick } from '../parts/Haptic';
 import { backupNow, parseBackup, importData, BackupError, type BackupFile, type ImportMode } from '../../db/backup';
 import { isStandalone, storageHealth, askPersist, bytes, type StorageHealth } from '../../pwa/install';
 import type { LightPin } from '../../db/schema';
+import { MusicRows } from '../music/MusicRows';
 
 const PINS: [LightPin, string][] = [['sky', 'Follow the sky'], ['day', 'Day'], ['night', 'Night']];
 
@@ -153,6 +154,7 @@ function SettingsBody() {
       <PlaceRow />
       <Toggle label="Sounds" on={s.sounds} set={v => void saveSettings({ sounds: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
+      <MusicRows />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>
       <ExportRow />
       <ImportRow />

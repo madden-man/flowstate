@@ -1,10 +1,11 @@
 // Every writing surface is a page (DESIGN.md rule 5): the notebook header with "No." and "DATE:" in
-// grey sans at the top right, the moon and Settings at the top left, and ruled paper under the ink.
+// grey sans at the top right, the moon, Settings and the ♪ line at the top left, and ruled paper under the ink.
 import type { ComponentChildren } from 'preact';
 import { Moon } from './Moon';
 import { openSheet } from '../sheets';
 import { notebookDate } from '../date';
 import { tick } from './Haptic';
+import { MusicLine, type MusicPage } from '../music/MusicLine';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -12,15 +13,18 @@ type Props = {
   /** A printed label in place of the number ("Council", "Today"). */
   label?: string;
   date?: Date;
+  /** The page being written, when there is one: the ♪ line keeps its album (package 7). Optional. */
+  music?: MusicPage;
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date() }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music }: Omit<Props, 'children'>) {
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
         <Moon />
         <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>
+        <MusicLine page={music} />
       </div>
       <div class="fs-hdr-r">
         {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}

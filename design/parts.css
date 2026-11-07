@@ -525,3 +525,30 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 .fs-leanline { display: block; width: 100%; height: calc(var(--lh-ink) * 2); overflow: visible; }
 .fs-leanline-mid { stroke: var(--rule); stroke-width: 1; }
 .fs-leanline-ink { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+
+/* ==== package 7: music. The ♪ word, the small cover beside it, the album grid, the Settings rows ==== */
+.fs-musicword { font-size: var(--fs-fill); letter-spacing: 0; text-transform: none; padding: 0 var(--s1); }
+.fs-mini {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer;
+  width: var(--hit); height: var(--hit); display: grid; place-items: center;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
+}
+.fs-mini img, .fs-mini span { display: block; width: var(--s3); height: var(--s3); border-radius: 3px; object-fit: cover; box-shadow: var(--shadow-tile); background: var(--seam); }
+.fs-mini.holding img { transform: translateY(-2px); }
+.fs-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); padding: var(--s1) 0 var(--s2); }
+.fs-tile {
+  appearance: none; border: 0; padding: 0; margin: 0; cursor: pointer; aspect-ratio: 1; overflow: hidden;
+  border-radius: 4px; background: var(--seam); box-shadow: var(--shadow-tile);
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  transition: transform var(--t-ui) var(--ease);
+}
+.fs-tile img, .fs-tile span { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fs-tile:active { transform: translateY(1px); }
+.fs-tile[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fs-tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* the covers are photographs: Night and Still lower their light with the page (DESIGN.md rule 14) */
+[data-light="night"] .fs-tile img, [data-light="night"] .fs-mini img { opacity: .88; }
+[data-light="still"] .fs-tile img, [data-light="still"] .fs-mini img { opacity: .62; }
+.fs-musicrow { align-items: center; }
+.fs-musicacct { display: inline-flex; align-items: center; gap: var(--s1); margin-right: calc(var(--s1) * -1); }
+.fs-albumpages { margin-top: 0; }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vi } from 'vitest';
-import { groupAlbums, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playFromAlbumWithWake, PLAYLIST_URI, CLIENT_ID, SCOPES } from '../../src/music/spotify';
+import { groupAlbums, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playFromAlbumWithWake, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
 
 const track = (uri: string, album: string, artist: string, images = [{ url: `${album}-640`, width: 640 }, { url: `${album}-300`, width: 300 }]) => ({
   track: { uri, album: { uri: `spotify:album:${album}`, name: album, images }, artists: [{ name: artist }] },
@@ -61,6 +61,28 @@ describe('play from an album', () => {
     const opened: string[] = [];
     expect(await playFromAlbumWithWake(tokens, { firstTrackUri: 'spotify:track:abc' }, h => opened.push(h), 0)).toBe('playing');
     expect(opened).toEqual([PLAYLIST_URI]);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('with no account', () => {
+  it('points the phone at the playlist: the spotify: URI, then the web player if the page is still in front', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('document', { visibilityState: 'visible' });
+    const went: string[] = [];
+    openPlaylist(h => went.push(h), 1200);
+    expect(went).toEqual([PLAYLIST_URI]);
+    vi.advanceTimersByTime(1200);
+    expect(went).toEqual([PLAYLIST_URI, PLAYLIST_WEB]);
+    expect(PLAYLIST_WEB).toBe('https://open.spotify.com/playlist/0T6Gzc2hN81u3vGC5IJZ9a');
+
+    // the Spotify app opened: the page went to the back, so the web player stays shut
+    const again: string[] = [];
+    openPlaylist(h => again.push(h), 1200);
+    vi.stubGlobal('document', { visibilityState: 'hidden' });
+    vi.advanceTimersByTime(1200);
+    expect(again).toEqual([PLAYLIST_URI]);
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 });

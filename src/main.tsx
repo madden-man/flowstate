@@ -8,12 +8,14 @@ import { ensureSeeded } from './db/seed';
 import { loadSettings } from './ui/settings';
 import { startLight } from './ui/light';
 import { startUpdates, askPersist } from './pwa/install';
+import { bootMusic } from './ui/music/state';
 
 async function boot() {
   await init();
   const firstRun = await ensureSeeded();
   await loadSettings();
   startLight();
+  bootMusic();
   if (firstRun) void askPersist();
   startUpdates();
   render(<App />, document.getElementById('app')!);
