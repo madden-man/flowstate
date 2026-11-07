@@ -1,10 +1,10 @@
 // What the council screens share: the pantheon as a signal, who speaks next, which voice the sheet
-// is editing, and the long press (pick up, keep close or reply; DESIGN.md rule 8).
+// is editing, and the long press (pick up or keep close; DESIGN.md rule 8).
 import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Voice, VoiceColour } from '../../db/schema';
 import type { Read } from '../../db/fields';
-import { allVoices } from '../../model/council';
+import { allVoices, type Tapped } from '../../model/council';
 
 /** Every voice, archived ones included, in order. Reloaded after any voice edit. */
 export const voiceList = signal<Read<Voice>[]>([]);
@@ -12,8 +12,9 @@ export async function reloadVoices(): Promise<void> {
   voiceList.value = await allVoices();
 }
 
-/** The chip you tapped: who speaks next, until you tap another. undefined is plain ink. */
-export const speaker = signal<string | undefined>(undefined);
+/** The chip you tapped: a voice's id, null for Ink, undefined for none. At a seated council it speaks
+ *  for one line and is cleared; with nobody seated it holds until another is tapped (model nextSpeaker). */
+export const speaker = signal<Tapped>(undefined);
 
 /** The voice the voice sheet is editing; null adds a new one. */
 export const editing = signal<string | null>(null);

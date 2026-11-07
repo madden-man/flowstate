@@ -80,6 +80,10 @@ export type Page = {
   /** Not in PLAN.md section 4 (package 1): the linked pages this one is a "smaller version of" (also in linkedPageIds). */
   smallerOf?: string[];
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
+  /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
+   *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
+   *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
+  seats?: string[];
 };
 
 export type Message = {
