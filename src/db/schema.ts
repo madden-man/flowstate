@@ -26,8 +26,13 @@ export type Settings = {
   lastBackupAt?: Millis;
   seededAt?: Millis;
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis };
+  /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
+  echo?: EchoState;
   sealed?: Sealed;
 };
+
+/** The echo above a new page (DESIGN.md rule 16): one kept line a day, oldest unseen first. Ids only, no text. */
+export type EchoState = { day: string; id?: string; dismissed?: boolean; linked?: boolean; seen: string[] };
 
 /** A voice's colour: an OKLCH hue angle, or null for the Black voice (--black-voice).
  *  chroma is a multiplier on --voice-c, for the Brown voice (tokens.css --v-brown uses .5). */
@@ -57,6 +62,10 @@ export type Page = {
   tags: string[];
   paradoxIds: string[];
   linkedPageIds: string[];
+  /** Not in PLAN.md section 4 (package 1): the notebook's plain mood words for an entry, clear like tags. */
+  mood?: string[];
+  /** Not in PLAN.md section 4 (package 1): the linked pages this one is a "smaller version of" (also in linkedPageIds). */
+  smallerOf?: string[];
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
 };
 
@@ -70,6 +79,8 @@ export type Message = {
   text: string;
   replyTo?: string;
   kept: boolean;
+  /** Not in PLAN.md section 4 (package 1): set in italic as the wiser second person, an answer or a later reading. */
+  wise?: boolean;
   sealed?: Sealed;
 };
 
