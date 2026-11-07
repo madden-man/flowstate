@@ -72,10 +72,10 @@ function GoalForm({ open }: { open: boolean }) {
       </label>
     );
   };
-  const saveWord = both ? 'Save both' : any ? 'Save one side' : 'Save';
+  const saveWord = both ? 'Save both' : 'Save';
 
   return (
-    <Sheet open={open} onClose={closeBeSheet} title="A goal, and its balance"
+    <Sheet open={open} onClose={closeBeSheet} title="Fill both"
       action={{ label: saveWord, inert: !any, onPress: async () => { await save(); closeBeSheet(); } }}>
     <div class="fs-rows">
       {field('a', a, setA)}

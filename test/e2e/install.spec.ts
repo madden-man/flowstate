@@ -44,7 +44,7 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   const before = await pairs.count();
   await card.getByRole('button', { name: '+ Goal' }).click();
   await page.getByRole('textbox', { name: 'selfless goal' }).fill('Share what you make with the world');
-  await page.getByRole('button', { name: 'Save one side' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   const slot = card.getByRole('button', { name: 'and on the selfish side?' });
   await expect(slot).toBeVisible();
   await slot.click();
