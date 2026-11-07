@@ -93,7 +93,7 @@ async function hold(page: Page, text: string) {
   await expect(page.locator('[data-sheet="This line"]')).toBeVisible();
 }
 
-test('the journal, offline: two lines, a voice, keep close, turn to answer, and it all survives a reload', async ({ page, context, baseURL }) => {
+test('the journal, offline: two paragraphs, a voice, keep close, ask this, and it all survives a reload', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
   context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
   await page.goto('/');
@@ -109,10 +109,15 @@ test('the journal, offline: two lines, a voice, keep close, turn to answer, and 
   await page$(page).click();
   await page$(page).pressSequentially(first, { delay: 2 });
   await page$(page).press('Enter');
-  await page.getByRole('group', { name: 'Who speaks next' }).getByRole('button', { name: 'Mystic' }).click();
+  // the margin dot: the chips step out for this paragraph only
+  await page.getByRole('button', { name: 'Who speaks this line' }).click();
+  await page.getByRole('group', { name: 'Who speaks this line' }).getByRole('button', { name: 'Mystic' }).click();
+  await expect(page.getByRole('group', { name: 'Who speaks this line' })).toHaveCount(0);
   await page$(page).pressSequentially(second, { delay: 2 });
   await page$(page).press('Enter');
   await expect(page.locator('.fs-msg.fs-v', { hasText: second }).locator('.fs-sp')).toHaveText('Mystic');
+  // the next Return is ink again
+  await expect(page.locator('.fs-msg.cur')).not.toHaveClass(/fs-v/);
 
   // long press the Mystic's line and keep it close
   await hold(page, second);
@@ -120,25 +125,29 @@ test('the journal, offline: two lines, a voice, keep close, turn to answer, and 
   await expect(page.locator('.fs-msg', { hasText: second }).locator('.fs-kept')).toBeVisible();
   await expect(page.locator('[data-sheet="This line"]')).toHaveCount(0);
 
-  // long press the first line and turn it to a question: the answer frame opens beneath
+  // long press the first line and ask it: a question page is made, the day stays whole
   await hold(page, first);
-  await page.getByRole('button', { name: /Turn to answer/ }).click();
+  await page.getByRole('button', { name: /Ask this/ }).click();
+  await expect(page).toHaveURL(/#\/journal$/);
+  const asked = page.locator('.fs-link', { hasText: first });
+  await expect(asked.locator('small')).toHaveText('Asked · Questions');
+  await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
+  await asked.click();
   await expect(page).toHaveURL(/#\/journal\/[0-9a-f-]{36}$/);
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
-  await expect(page.getByRole('textbox', { name: 'Answer' })).toBeFocused();
   const questionUrl = page.url();
 
-  await page.getByRole('link', { name: 'Questions' }).click();
-  await expect(page.locator('.fs-qrow', { hasText: first })).toContainText('[space to answer left]');
+  await page.goto('/#/journal/questions');
+  await expect(page.locator('.fs-qrow', { hasText: first })).toBeVisible();
+  await expect(page.getByText('[space to answer left]')).toHaveCount(0);
 
   await page.reload();
   await expect(page.locator('.fs-qrow', { hasText: first })).toBeVisible();
   await page.goto(questionUrl);
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
+  await page.goto('/#/journal');
+  await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
   await expect(page.locator('.fs-msg.fs-v', { hasText: second }).locator('.fs-sp')).toHaveText('Mystic');
   await expect(page.locator('.fs-msg', { hasText: second }).locator('.fs-kept')).toBeVisible();
-  // the new day's page is empty again (the entry became a question), with an echo above it
-  await page.getByRole('link', { name: 'Entries' }).click();
-  await expect(page.locator('[data-echo]')).toBeVisible();
   expect(outside).toEqual([]);
 });

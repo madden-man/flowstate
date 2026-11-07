@@ -41,9 +41,10 @@ test('still: pull the page down, the ring, the kept line, and leaving changes no
   const lightBefore = await page.locator('html').getAttribute('data-light');
   const before = await dump(page);
 
-  // a finger on the page's ruled column, at its top, drawn down 150px
+  // a finger on the page's ruled column, drawn down 150px (a few rules below the first, which is the
+  // editor's own: a touch beside it is taken by the field, and fields keep their gestures)
   const col = (await page.locator('.fs-col').boundingBox())!;
-  const x = col.x + col.width / 2, y = col.y + 40;
+  const x = col.x + col.width / 2, y = col.y + 120;
   const cdp = await context.newCDPSession(page);
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', ty?: number) =>
     cdp.send('Input.dispatchTouchEvent', { type, touchPoints: ty === undefined ? [] : [{ x, y: ty }] });

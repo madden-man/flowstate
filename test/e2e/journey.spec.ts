@@ -1,12 +1,18 @@
 // The seams pass (package 8): the whole journey end to end, offline, in one go. Cold load and the threshold
-// breath; write a line, speak as the Mystic, keep it close, turn the first line to a question, answer it,
-// take the answer to the council, speak there as two voices; add a goal pair on Be, check it due on Flow,
+// breath; write a paragraph, give the next one the Mystic's voice from the margin dot, keep it close, ask
+// the first line (a new question page; the day stays whole), write under the question, take that line to
+// the council, speak there as two voices; find the entry on Pages; add a goal pair on Be, check it due on Flow,
 // drag the lean; pull the blind into Still and see the kept line, leave Still; set a PIN, reload, unlock
 // with the word, and everything is still there; export makes a file. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
 
 const today$ = (p: Page) => p.getByRole('textbox', { name: "Today's page" });
 const chip = (p: Page, name: string) => p.getByRole('group', { name: 'Who speaks next' }).getByRole('button', { name, exact: true });
+/** The margin dot of the paragraph you are on, then a voice for that paragraph only. */
+const voice = async (p: Page, name: string) => {
+  await p.getByRole('button', { name: 'Who speaks this line' }).click();
+  await p.getByRole('group', { name: 'Who speaks this line' }).getByRole('button', { name, exact: true }).click();
+};
 const tabs = (p: Page) => p.getByRole('navigation', { name: 'Sections' });
 const tab = (p: Page, name: string) => tabs(p).getByRole('link', { name, exact: true });
 const tap = async (p: Page, digits: string) => {
@@ -52,18 +58,21 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   const first = 'How can I gauge my pleasure/pain barometer?';
   const mystic = 'Listen to the quiet voices within.';
   await say(page, today$(page), first);
-  await chip(page, 'Mystic').click();
+  await voice(page, 'Mystic');
   await say(page, today$(page), mystic);
   await expect(page.locator('.fs-msg.fs-v', { hasText: mystic }).locator('.fs-sp')).toHaveText('Mystic');
   await hold(page, mystic, 'This line');
   await page.getByRole('switch', { name: /Keep close/ }).click();
   await expect(page.locator('.fs-msg', { hasText: mystic }).locator('.fs-kept')).toBeVisible();
 
-  // ---- turn the first line to a question, answer it, take the answer to the council ----
+  // ---- ask the first line: a question page, linked; the day keeps it. Write under it, take that to the council ----
   await hold(page, first, 'This line');
-  await page.getByRole('button', { name: /Turn to answer/ }).click();
+  await page.getByRole('button', { name: /Ask this/ }).click();
+  await expect(page).toHaveURL(/#\/journal$/);
+  await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
+  await page.locator('.fs-link', { hasText: first }).click();
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
-  const answer = page.getByRole('textbox', { name: 'Answer' });
+  const answer = page.getByRole('textbox', { name: 'This page' });
   await expect(answer).toBeFocused();
   const questionUrl = page.url();
   const answered = 'Stand tall, young one.';
@@ -157,11 +166,18 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.keyboard.type('flow');
   await expect(tab(page, 'Journal')).toHaveAttribute('aria-current', 'page', { timeout: 15_000 });
 
-  // ---- everything is still there ----
+  // ---- everything is still there, and Pages lists the entry ----
   await page.goto(questionUrl);
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
+  await expect(page.locator('.fs-msg', { hasText: answered })).toBeVisible();
+  await page.goto('/#/journal');
+  await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
   await expect(page.locator('.fs-msg', { hasText: mystic }).locator('.fs-kept')).toBeVisible();
-  await expect(page.locator('.fs-msg.fs-wise', { hasText: answered })).toBeVisible();
+  await page.getByRole('link', { name: 'Pages' }).click();
+  await expect(page).toHaveURL(/#\/journal\/pages$/);
+  await expect(page.locator('a.fs-list-row[href^="#/journal/"]', { hasText: first })).toBeVisible();
+  // the council is known by its question, and shows who spoke
+  await expect(page.locator('a.fs-list-row[href^="#/council/"]').locator('.fs-spoke')).toHaveAttribute('aria-label', 'Skeptic, Warrior');
   await page.goto(councilUrl);
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');

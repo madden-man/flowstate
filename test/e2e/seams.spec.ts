@@ -50,7 +50,8 @@ test('journal and council meet: take to the council, From, and Link a page, offl
   await page.locator('.fs-qrow', { hasText: q1 }).click();
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(q1);
   const questionUrl = page.url();
-  const answer = page.getByRole('textbox', { name: 'Answer' });
+  // the question page is written on like any page: plain ink under the title
+  const answer = page.getByRole('textbox', { name: 'This page' });
   const said = 'The mind is not pure, nor is it reliable.';
   await answer.click();
   await answer.pressSequentially(said, { delay: 2 });
