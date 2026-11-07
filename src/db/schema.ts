@@ -100,6 +100,9 @@ export type Item = {
   nextTo?: string;
   doneLog: { at: Millis }[];
   order: number;
+  /** Not in PLAN.md section 4 (package 3): a goal is archived, never deleted. Missing means false, so
+   *  no migration is needed; an archived goal leaves the spread and its balance shows an open slot. */
+  archived?: boolean;
   sealed?: Sealed;
 };
 

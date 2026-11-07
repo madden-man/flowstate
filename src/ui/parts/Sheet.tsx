@@ -14,9 +14,11 @@ function tokenMs(name: string): number {
   return v.endsWith('ms') ? n : n * 1000;
 }
 
-type Props = { open: boolean; onClose: () => void; title: string; children?: ComponentChildren };
+/** An optional word beside Done (a save that stays print-grey and inert until it can act). */
+export type SheetAction = { label: string; inert?: boolean; onPress: () => void };
+type Props = { open: boolean; onClose: () => void; title: string; action?: SheetAction; children?: ComponentChildren };
 
-export function Sheet({ open, onClose, title, children }: Props) {
+export function Sheet({ open, onClose, title, action, children }: Props) {
   const [shown, setShown] = useState(open);
   const [leaving, setLeaving] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -77,7 +79,13 @@ export function Sheet({ open, onClose, title, children }: Props) {
           <div class="fs-grab" />
           <div class="fs-sheet-title">
             <h2>{title}</h2>
-            <button type="button" class="fs-word" onClick={onClose}>Done</button>
+            <span class="fs-sheet-words">
+              {action && (
+                <button type="button" class={`fs-word fs-go${action.inert ? ' inert' : ''}`} aria-disabled={action.inert ? 'true' : undefined}
+                  onClick={() => { if (!action.inert) action.onPress(); }}>{action.label}</button>
+              )}
+              <button type="button" class="fs-word" onClick={onClose}>Done</button>
+            </span>
           </div>
         </div>
         <div class="fs-sheet-body">{children}</div>

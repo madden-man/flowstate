@@ -37,6 +37,28 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   await expect(page.getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('selfless', { exact: true })).toBeVisible();
 
+  // Be (package 3): a goal on the selfless side only leaves a dashed slot on the selfish side; filling
+  // it from the slot links the two across the seam; a reload offline keeps all of it
+  const card = page.locator('#be-px-selfless-selfish');
+  const pairs = card.locator('path.fs-pair:not(.open)');
+  const before = await pairs.count();
+  await card.getByRole('button', { name: '+ Goal' }).click();
+  await page.getByRole('textbox', { name: 'selfless goal' }).fill('Share what you make with the world');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const slot = card.getByRole('button', { name: 'and on the selfish side?' });
+  await expect(slot).toBeVisible();
+  await slot.click();
+  await expect(page.getByRole('textbox', { name: 'selfish goal' })).toBeFocused();
+  await page.getByRole('textbox', { name: 'selfish goal' }).fill('Write for its own sake');
+  await page.getByRole('button', { name: 'Save both' }).click();
+  await expect(slot).toHaveCount(0);
+  await expect(pairs).toHaveCount(before + 1);
+  await page.reload();
+  await expect(card.getByRole('button', { name: 'Share what you make with the world' })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Write for its own sake', exact: true })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'and on the selfish side?' })).toHaveCount(0);
+  await expect(pairs).toHaveCount(before + 1);
+
   // Settings rises from the header and goes away without leaving anything over the tabs
   await page.getByRole('button', { name: 'Settings' }).click();
   const sheet = page.locator('[data-sheet="Settings"]');
