@@ -1,5 +1,7 @@
 // Every writing surface is a page (DESIGN.md rule 5): the notebook header with "No." and "DATE:" in
 // grey sans at the top right, the moon, Settings and the ♪ line at the top left, and ruled paper under the ink.
+// The Journal's pages also carry the word Pages after the moon (v2): the list of entries and councils,
+// not offered in Still.
 // Every page carries the blind (pull it down for Still) and, in Still, the kept line at its top.
 import type { ComponentChildren, JSX } from 'preact';
 import { useRef } from 'preact/hooks';
@@ -20,14 +22,19 @@ type Props = {
   date?: Date;
   /** The page being written, when there is one: the ♪ line keeps its album (package 7). Optional. */
   music?: MusicPage;
+  /** The Journal's header word Pages (v2): shown on journal pages, marked current on the Pages screen. */
+  pages?: 'link' | 'here';
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages }: Omit<Props, 'children'>) {
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
         <Moon />
+        {pages && (
+          <a class="fs-word fs-notstill" href="#/journal/pages" aria-current={pages === 'here' ? 'page' : undefined}>Pages</a>
+        )}
         <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>
         <MusicLine page={music} />
       </div>
@@ -40,10 +47,10 @@ export function PageHeader({ no, label, date = new Date(), music }: Omit<Props, 
   );
 }
 
-/** A keystroke in a composer counts toward Still's twelve minutes (and nothing else does). */
+/** A keystroke in a composer or on a journal page's column counts toward Still's twelve minutes (and nothing else does). */
 const onInput = (e: JSX.TargetedEvent<HTMLElement>) => {
   const t = e.target as HTMLElement;
-  if (t.tagName === 'TEXTAREA' && t.closest('.fs-composer')) noteKeystroke();
+  if (t.tagName === 'TEXTAREA' && t.closest('.fs-composer, .fs-col')) noteKeystroke();
 };
 
 export function Page({ children, ...header }: Props) {

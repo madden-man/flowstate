@@ -74,10 +74,14 @@ export type Page = {
   tags: string[];
   paradoxIds: string[];
   linkedPageIds: string[];
-  /** Not in PLAN.md section 4 (package 1): the notebook's plain mood words for an entry, clear like tags. */
+  /** Not in PLAN.md section 4 (package 1): the notebook's plain mood words for an entry, clear like tags.
+   *  v2 (V1) took Mood out of the UI; the field stays so older rows and backups still read. */
   mood?: string[];
   /** Not in PLAN.md section 4 (package 1): the linked pages this one is a "smaller version of" (also in linkedPageIds). */
   smallerOf?: string[];
+  /** Not in PLAN.md section 4 (v2, V1): on a question made by "Ask this", the page its line was written on
+   *  (also in linkedPageIds), so that page shows the link as "Asked". An id, clear like the links. */
+  askedFrom?: string;
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
 };
 
@@ -93,6 +97,10 @@ export type Message = {
   kept: boolean;
   /** Not in PLAN.md section 4 (package 1): set in italic as the wiser second person, an answer or a later reading. */
   wise?: boolean;
+  /** Not in PLAN.md section 4 (v2, V1): the line's earlier text, kept when it is edited on a later day than it
+   *  was written (one per day of editing; at is when that text was replaced). Sealed with text in fields.ts.
+   *  Optional, so no Dexie version bump: older rows simply have none. */
+  revisions?: { at: Millis; text: string }[];
   sealed?: Sealed;
 };
 

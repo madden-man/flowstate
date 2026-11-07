@@ -1,9 +1,9 @@
 // Routes and the tab bar (PLAN.md section 5). Four words, always visible; hash routes so deep links
-// and standalone mode both work: #/journal/:id, #/journal/questions, #/council/:id, #/be/:id, #/flow.
+// and standalone mode both work: #/journal/:id, #/journal/pages, #/journal/questions, #/council/:id, #/be/:id, #/flow.
 import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
-import { JournalToday, JournalPage, Questions, Earlier } from './ui/journal/Journal';
+import { JournalToday, JournalPage, JournalPages, Questions } from './ui/journal/Journal';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
@@ -52,7 +52,7 @@ function Frame() {
         <Router key={dataVersion.value}>
           <Route path="/journal" component={JournalToday} />
           <Route path="/journal/questions" component={Questions} />
-          <Route path="/journal/earlier" component={Earlier} />
+          <Route path="/journal/pages" component={JournalPages} />
           <Route path="/journal/:id" component={JournalPage} />
           <Route path="/council" component={Council} />
           <Route path="/council/:id" component={Council} />

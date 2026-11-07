@@ -1,12 +1,13 @@
-// A journal page (PLAN.md section 5, item 1): the notebook header, a column of messages in order, and at
-// the bottom the plain-ink composer with the chip row above it. The chip you tap speaks the next line.
-// Autosave on every keystroke (debounced); the first keystroke of a day makes the page. Long press any
-// line for its sheet. Today's page is the writing surface; an earlier entry is read back, with Revisit to
-// add a later reading beneath it; a question page opens its answer frame, set in italic as the wiser
-// second person.
-import { useEffect, useRef, useState } from 'preact/hooks';
+// A journal page (PLAN.md section 5, item 1; v2): the page column is the editor. Under the notebook header
+// the page is a column of paragraphs (blocks), each one `messages` row. Tap any paragraph to write in it;
+// the next rule at the bottom is always ready. Return makes the next paragraph, Shift+Return breaks a
+// line inside one. Every keystroke autosaves, debounced per block; the first keystroke of a day makes the
+// page. A margin dot marks the block you are on: tap it and the chips step out for that block only (Ink,
+// the starred voices, more), then step back; the next Return is ink again. Long press any other paragraph
+// for its sheet (five things). An earlier page is written on the same way, and a block written on a later
+// day carries the date it was written.
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { signal } from '@preact/signals';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
 import { Chip } from '../parts/Chip';
@@ -20,25 +21,20 @@ import { settings, saveSettings } from '../settings';
 import { light } from '../light';
 import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
-import { Seg } from './Seg';
-import { LineSheet } from './LineSheet';
+import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import {
-  today, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, turnToAnswer, linkPages, takeToCouncil,
-  setMood, setEntryState, setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags,
-  MOODS, ENTRY_STATES, entryState, type Draft, type PageLink, type Kept, type LinkKind,
+  today, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, linkPages, takeToCouncil,
+  setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags,
+  type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel,
 } from '../../model/pages';
 import type { Read } from '../../db/fields';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
 
 const SAVE_AFTER_MS = 300;
-const uuid = () => crypto.randomUUID();
+const uuid = (): string => crypto.randomUUID();
 
-/** Set by Turn to answer: the question page opens with its answer frame ready. */
-export const answerNext = signal<string | null>(null);
-
-
-type Data = { page?: Read<PageRow>; messages: Read<Message>[]; no: number; links: PageLink[] };
+type Data = { page?: Read<PageRow>; messages: Read<Message>[]; no?: number; links: PageLink[] };
 type Voices = { chips: Read<Voice>[]; byId: Map<string, Read<Voice>> };
 
 async function load(id?: string): Promise<Data | { to: string }> {
@@ -53,7 +49,14 @@ async function load(id?: string): Promise<Data | { to: string }> {
   return { page: r.page, messages: r.messages, no: r.no, links: await linksOf(r.page) };
 }
 
-/** Keeps the composer above the iOS keyboard: the app takes the visual viewport's height while it is up. */
+/** The block being written stays in sight: scrolled to within the column, above the keyboard. */
+function keepInView() {
+  const a = document.activeElement;
+  if (a instanceof HTMLElement && a.closest('.fs-col') && !a.classList.contains('fs-proxy')) a.scrollIntoView({ block: 'nearest' });
+}
+
+/** Keeps the page above the iOS keyboard: the app takes the visual viewport's height while it is up, and
+ *  the block you are writing in is scrolled back into view once the keyboard has risen. */
 function useKeyboardFit() {
   useEffect(() => {
     const vv = window.visualViewport;
@@ -65,6 +68,7 @@ function useKeyboardFit() {
       app.style.transform = up && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : '';
       if (up) app.style.setProperty('--safe-bottom', '0px');
       else app.style.removeProperty('--safe-bottom');
+      if (up) requestAnimationFrame(keepInView);
     };
     vv.addEventListener('resize', fit);
     vv.addEventListener('scroll', fit);
@@ -91,41 +95,79 @@ function Inked({ text }: { text: string }) {
   return <>{parts.map((s, i) => (i % 2 ? <span key={i} class="fs-tagword">{s}</span> : s))}</>;
 }
 
-type LineProps = {
-  m: Read<Message>; voice?: Read<Voice>; quoted?: Read<Message>; dated?: Date; held: boolean; editing: boolean;
-  onHold: () => void; onTap?: () => void; onEdit: (text: string) => void; onEditEnd: () => void;
+type CaretDoc = Document & {
+  caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+  caretRangeFromPoint?: (x: number, y: number) => Range | null;
 };
 
-function LineView({ m, voice, quoted, dated, held, editing, onHold, onTap, onEdit, onEditEnd }: LineProps) {
-  const hold = useHold(onHold, onTap);
-  const area = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (!editing || !area.current) return;
-    grow(area.current);
-    area.current.focus({ preventScroll: true });
-    const n = area.current.value.length;
-    area.current.setSelectionRange(n, n);
-  }, [editing]);
+/** Where a tap landed in a paragraph's text, so the caret goes there and not to the end. */
+function offsetAt(el: Element | null, x: number, y: number): number | undefined {
+  if (!el) return undefined;
+  const d = document as CaretDoc;
+  let node: Node | undefined, off = 0;
+  const pos = d.caretPositionFromPoint?.(x, y);
+  if (pos) { node = pos.offsetNode; off = pos.offset; }
+  else {
+    const r = d.caretRangeFromPoint?.(x, y);
+    if (r) { node = r.startContainer; off = r.startOffset; }
+  }
+  if (!node || !el.contains(node)) return undefined;
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let n = 0;
+  for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+    if (t === node) return n + off;
+    n += t.textContent?.length ?? 0;
+  }
+  return undefined;
+}
+
+/** How a link reads at the bottom of the page. A question asked from here says where it lives. */
+const linkWords = (l: LinkLabel) => (l === 'Asked' ? 'Asked · Questions' : l);
+
+/** One block on the column, in render order: a saved message, or a block not written yet (the next rule,
+ *  or one opened by Return between two others) with the place it will take. */
+type Block = { id: string; m?: Read<Message>; at: number };
+
+type BlockProps = {
+  b: Block; text: string; voice?: Read<Voice>; quoted?: Read<Message>; dated?: Date; cur: boolean; edit: boolean; label: string;
+  held: boolean; chips?: JSX.Element; dotOpen: boolean; saved: boolean;
+  area: (el: HTMLTextAreaElement | null) => void;
+  onHold: () => void; onTap: (offset: number | undefined) => void; onDot: () => void;
+  onInput: (text: string) => void; onKeyDown: (e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => void;
+  onFocus: () => void; onBlur: (to: EventTarget | null) => void;
+};
+
+function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chips, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
+  const hold = useHold(onHold, e => onTap(offsetAt((e.currentTarget as HTMLElement).querySelector('p'), e.clientX, e.clientY)));
+  const own = useRef<HTMLTextAreaElement | null>(null);
+  // the line height changes with the light (Still has more air), so the height is measured again
+  useLayoutEffect(() => grow(own.current), [edit, light.value]);
+  const m = b.m;
   const deep = voice?.shade === 'deep';
-  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m.wise ? ' fs-wise' : ''}${held ? ' held' : ''}`;
+  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m?.wise ? ' fs-wise' : ''}${held ? ' held' : ''}${cur ? ' cur' : ''}`;
   const style = voice ? ({ '--vc': voiceColour(voice.colour, voice.shade) } as JSX.CSSProperties) : undefined;
   return (
-    <>
+    <div class="fs-block">
       {dated && <small class="fs-dated">{notebookDate(dated)}</small>}
-      <div class={cls} style={style} data-line={m.id} {...(editing ? {} : hold)}>
+      {chips}
+      <div class={cls} style={style} data-line={b.id} {...(edit ? {} : hold)}>
+        {cur && (
+          <button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded={dotOpen}
+            onMouseDown={e => e.preventDefault()} onPointerDown={e => e.preventDefault()} onClick={onDot} />
+        )}
         {voice && <span class="fs-sp">{voice.name}</span>}
         {quoted && <span class="fs-quote">{quoted.text}</span>}
-        {m.kept && <small class="fs-kept">kept</small>}
-        {editing ? (
-          <textarea ref={area} class="fs-edit" aria-label="This line" defaultValue={m.text} spellcheck
-            onInput={e => { grow(e.currentTarget); onEdit(e.currentTarget.value); }}
-            onBlur={onEditEnd}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.currentTarget.blur(); } }} />
+        {m?.kept && <small class="fs-kept">kept</small>}
+        {edit ? (
+          <textarea ref={el => { own.current = el; area(el); }} class="fs-edit" aria-label={label} defaultValue={text} spellcheck rows={1}
+            data-saved={saved ? 'true' : 'false'}
+            onInput={e => { grow(e.currentTarget); onInput(e.currentTarget.value); }}
+            onKeyDown={onKeyDown} onFocus={onFocus} onBlur={e => onBlur(e.relatedTarget)} />
         ) : (
-          <p><Inked text={m.text} /></p>
+          <p><Inked text={text} /></p>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -147,45 +189,39 @@ export function PageView({ id }: { id?: string }) {
   const [data, setData] = useState<Data | null>(null);
   const [to, setTo] = useState<string | null>(null);
   const [vs, setVs] = useState<Voices>({ chips: [], byId: new Map() });
-  const [draft, setDraft] = useState('');
-  const [speaker, setSpeaker] = useState<string | undefined>();
-  const [reply, setReply] = useState<Read<Message> | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [revisit, setRevisit] = useState(false);
+  const [tailId, setTailId] = useState(uuid);
+  const [cur, setCurState] = useState<string | null>(null);
+  const [inserts, setInserts] = useState<{ id: string; at: number }[]>([]);
+  const [voiceOf, setVoiceOf] = useState<Record<string, string | undefined>>({});
+  const [dotFor, setDotFor] = useState<string | null>(null);
   const [held, setHeld] = useState<Read<Message> | null>(null);
-  const [moodOpen, setMoodOpen] = useState(false);
-  const [saved, setSaved] = useState(true);
   const [echo, setEcho] = useState<Kept | null>(null);
-  const draftId = useRef(uuid());
+  const [saved, setSaved] = useState(true);
   const pageRef = useRef<Read<PageRow> | undefined>();
   const echoRef = useRef<Kept | null>(null);
   const chain = useRef<Promise<void>>(Promise.resolve());
   const jobs = useRef(new Map<string, () => Promise<void>>());
   const timer = useRef<ReturnType<typeof setTimeout>>();
-  const composer = useRef<HTMLTextAreaElement>(null);
+  const texts = useRef(new Map<string, string>());
+  const voiceRef = useRef<Record<string, string | undefined>>({});
+  const areas = useRef(new Map<string, HTMLTextAreaElement>());
+  const proxy = useRef<HTMLTextAreaElement>(null);
+  const want = useRef<{ id: string; at: number | 'end' } | null>(null);
+  const curRef = useRef<string | null>(null);
   const column = useRef<HTMLDivElement>(null);
   useKeyboardFit();
-  useEffect(() => grow(composer.current), [light.value]);
 
   const page = data?.page;
   const kind = page?.kind ?? 'entry';
-  const wise = kind === 'question' || (!isToday && revisit);
-  const showComposer = isToday || kind === 'question' || revisit;
-  const speakerVoice = speaker ? vs.byId.get(speaker) : undefined;
-  const speaks = still && speakerVoice?.shade === 'deep' ? undefined : speakerVoice;
 
   // ---- reading ----
-  const refresh = async (focus = false) => {
+  const refresh = async () => {
     const r = await load(id);
     if ('to' in r) { setTo(r.to); return; }
     pageRef.current = r.page;
     setData(r);
     if (isToday && !r.messages.some(m => m.text.trim())) await loadEcho(r.page?.id);
     else setEcho(null);
-    if (focus || answerNext.peek() === r.page?.id) {
-      answerNext.value = null;
-      requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }));
-    }
   };
 
   const loadEcho = async (pageId?: string) => {
@@ -202,13 +238,12 @@ export function PageView({ id }: { id?: string }) {
   useEffect(() => {
     let live = true;
     Promise.all([chipVoices(), voicesById()]).then(([chips, byId]) => live && setVs({ chips, byId }));
-    void refresh(isToday).then(() => {
-      if (live && isToday) requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }));
-    });
+    // the page opens with the caret on its next rule: the first rule of a new day, or under the last block
+    void refresh().then(() => { if (live) focusOn(tailId, 'end'); });
     return () => { live = false; };
   }, [id]);
 
-  // ---- writing: every keystroke queues the newest text for its line; one write at a time ----
+  // ---- writing: every keystroke queues the newest text for its block; one write at a time ----
   const flush = () => {
     clearTimeout(timer.current);
     const run = [...jobs.current.values()];
@@ -226,10 +261,10 @@ export function PageView({ id }: { id?: string }) {
     clearTimeout(timer.current);
     timer.current = setTimeout(flush, SAVE_AFTER_MS);
   };
-  const lineJob = (mid: string, d: Draft) => async () => {
+  const lineJob = (mid: string, d: Draft, at?: number) => async () => {
     const e = settings.peek().echo;
     const linkTo = !pageRef.current && e?.linked && e.day === dayKey(Date.now()) ? echoRef.current?.page.id : undefined;
-    const r = await writeLine(pageRef.current, mid, d, Date.now(), { linkTo });
+    const r = await writeLine(pageRef.current, mid, d, Date.now(), { linkTo, at });
     if (!r) return;
     const made = !pageRef.current;
     pageRef.current = r.page;
@@ -248,28 +283,127 @@ export function PageView({ id }: { id?: string }) {
     };
   }, []);
 
-  const draftOf = (text: string, voiceId = speaks?.id): Draft => ({ text, voiceId, replyTo: reply?.id, wise });
-  const onCompose = (e: JSX.TargetedEvent<HTMLTextAreaElement>) => {
-    const v = e.currentTarget.value;
-    grow(e.currentTarget);
-    setDraft(v);
-    queue(draftId.current, lineJob(draftId.current, draftOf(v)));
+  // ---- the blocks, in order ----
+  const all = (data?.messages ?? []);
+  const savedIds = new Set(all.map(m => m.id));
+  const messages = all.filter(m => m.text.trim() || m.id === cur);
+  // a question turned from an entry before v2 still carries its title as a line; it shows once, as the title
+  const shown = kind === 'question' ? messages.filter(m => m.wise || m.text.trim() !== page?.title?.trim()) : messages;
+  const blocks: Block[] = [
+    ...shown.map(m => ({ id: m.id, m, at: m.at })),
+    ...inserts.filter(x => !savedIds.has(x.id)).map(x => ({ id: x.id, at: x.at })),
+  ].sort((a, b) => a.at - b.at);
+  if (!savedIds.has(tailId)) blocks.push({ id: tailId, at: Infinity });
+  const blockRef = useRef(blocks);
+  blockRef.current = blocks;
+  const atOf = (bid: string) => inserts.find(x => x.id === bid)?.at;
+  const msgOf = (bid: string) => (data?.messages ?? []).find(m => m.id === bid);
+  const voiceFor = (bid: string) => (bid in voiceRef.current ? voiceRef.current[bid] : msgOf(bid)?.voiceId);
+  const textOf = (bid: string) => areas.current.get(bid)?.value ?? texts.current.get(bid) ?? msgOf(bid)?.text ?? '';
+  const draftFor = (bid: string, text: string): Draft => {
+    const m = msgOf(bid);
+    return { text, voiceId: voiceFor(bid), replyTo: m?.replyTo, wise: m?.wise };
   };
-  const commit = () => {
-    if (!draft.trim()) return;
+
+  // once the next rule has been written on and you have moved on from it, a fresh one waits beneath
+  useEffect(() => { if (savedIds.has(tailId) && cur !== tailId) setTailId(uuid()); });
+
+  // ---- focus: the caret goes where it was asked for once that block is on the page ----
+  const focusOn = (bid: string, at: number | 'end') => {
+    want.current = { id: bid, at };
+    curRef.current = bid;
+    setCurState(bid);
+    setDotFor(null);
+  };
+  useLayoutEffect(() => {
+    const w = want.current;
+    if (!w) return;
+    const el = areas.current.get(w.id);
+    if (!el) return;
+    want.current = null;
+    el.focus({ preventScroll: true });
+    const n = w.at === 'end' ? el.value.length : Math.min(w.at, el.value.length);
+    el.setSelectionRange(n, n);
+    requestAnimationFrame(keepInView);
+  });
+  /** Holds the iOS keyboard up while the block that will take the caret is drawn (focus must move inside the tap). */
+  const holdKeyboard = () => proxy.current?.focus({ preventScroll: true });
+
+  /** Leaving a block: an emptied one is removed, one opened by Return and never written on goes. */
+  const leave = (bid: string | null) => {
+    if (!bid) return;
+    const text = textOf(bid);
+    if (text.trim()) { void flush(); return; }
+    jobs.current.delete(bid);
+    texts.current.delete(bid);
+    if (savedIds.has(bid)) queue(bid, lineJob(bid, { text: '' }));
+    setInserts(xs => (xs.some(x => x.id === bid) ? xs.filter(x => x.id !== bid) : xs));
     void flush();
-    draftId.current = uuid();
-    setDraft('');
-    setReply(null);
-    requestAnimationFrame(() => {
-      grow(composer.current);
-      column.current?.scrollTo({ top: column.current.scrollHeight });
-    });
   };
-  const pick = (voiceId: string | undefined) => {
-    setSpeaker(voiceId);
-    if (draft) queue(draftId.current, lineJob(draftId.current, draftOf(draft, voiceId)));
-    composer.current?.focus({ preventScroll: true });
+  const moveTo = (bid: string, at: number | 'end') => {
+    if (curRef.current !== bid) leave(curRef.current);
+    focusOn(bid, at);
+  };
+
+  const onInput = (bid: string, text: string) => {
+    texts.current.set(bid, text);
+    // an emptied block keeps its last words until you leave it, so clearing a line to rewrite it does not move it
+    if (!text.trim()) { jobs.current.delete(bid); if (!jobs.current.size) setSaved(true); return; }
+    queue(bid, lineJob(bid, draftFor(bid, text), atOf(bid)));
+  };
+
+  const onKeyDown = (bid: string, e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.isComposing) return;
+    const el = e.currentTarget;
+    const list = blockRef.current;
+    const i = list.findIndex(x => x.id === bid);
+    if (e.key === 'Backspace' && !el.value && el.selectionStart === 0 && i > 0) {
+      e.preventDefault();
+      holdKeyboard();
+      moveTo(list[i - 1].id, 'end');
+      return;
+    }
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    const v = el.value, pos = el.selectionStart ?? v.length;
+    const before = v.slice(0, pos).replace(/\s+$/, ''), after = v.slice(pos).replace(/^\s+/, '');
+    if (!before.trim()) return;
+    if (before !== v) {
+      el.value = before;
+      grow(el);
+      onInput(bid, before);
+    }
+    // a block still waiting for its first save keeps its place at the end while the next one opens
+    if (bid === tailId && !savedIds.has(bid)) setInserts(xs => [...xs, { id: bid, at: Date.now() }]);
+    const next = list[i + 1];
+    const last = !next || next.at === Infinity;
+    let nid: string, at: number | undefined;
+    if (last) {
+      nid = next && next.id !== bid ? next.id : uuid();
+      if (nid !== tailId) setTailId(nid);
+    } else {
+      nid = uuid();
+      at = list[i].at + (next.at - list[i].at) / 2;
+      setInserts(xs => [...xs, { id: nid, at: at! }]);
+    }
+    if (after) {
+      texts.current.set(nid, after);
+      queue(nid, lineJob(nid, { text: after }, at));
+    }
+    holdKeyboard();
+    curRef.current = null; // the block just left was written on; nothing to clean up
+    void flush();
+    focusOn(nid, 0);
+  };
+
+  const pick = (bid: string, voiceId: string | undefined) => {
+    voiceRef.current = { ...voiceRef.current, [bid]: voiceId };
+    setVoiceOf(voiceRef.current);
+    const text = textOf(bid);
+    if (text.trim()) queue(bid, lineJob(bid, draftFor(bid, text), atOf(bid)));
+    setDotFor(null);
+    if (openSheet.value === 'speak') openSheet.value = null;
+    want.current = { id: bid, at: areas.current.get(bid)?.selectionStart ?? 'end' };
   };
 
   // ---- the long-press sheet ----
@@ -280,29 +414,26 @@ export function PageView({ id }: { id?: string }) {
     await flush();
     await fn(m, p);
   };
+  const putMessage = (next: Read<Message>) => setData(d => (d ? { ...d, messages: d.messages.map(x => (x.id === next.id ? next : x)) } : d));
   const acts = {
     keep: () => withHeld(async m => {
       const next = await setKept(m, !m.kept);
       if (next.kept) { tick('keep'); bell('keep'); }
-      setData(d => (d ? { ...d, messages: d.messages.map(x => (x.id === next.id ? next : x)) } : d));
+      putMessage(next);
       closeSheet();
-    }),
-    reply: () => withHeld(async m => {
-      setReply(m);
-      if (!showComposer) setRevisit(true);
-      closeSheet();
-      requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }));
     }),
     speak: (voiceId: string | undefined) => withHeld(async m => {
-      const next = await speakAs(m, voiceId);
-      setData(d => (d ? { ...d, messages: d.messages.map(x => (x.id === next.id ? next : x)) } : d));
+      voiceRef.current = { ...voiceRef.current, [m.id]: voiceId };
+      setVoiceOf(voiceRef.current);
+      putMessage(await speakAs(m, voiceId));
       closeSheet();
     }),
-    turn: () => withHeld(async (m, p) => {
-      const q = await turnToAnswer(p, m);
+    ask: () => withHeld(async (m, p) => {
+      const r = await askThis(p, m);
+      pageRef.current = r.page;
+      const links = await linksOf(r.page);
+      setData(d => (d ? { ...d, page: r.page, links } : d));
       closeSheet();
-      if (isToday) { answerNext.value = q.id; route(`/journal/${q.id}`); }
-      else await refresh(true);
     }),
     link: (other: Read<PageRow>, how: LinkKind) => withHeld(async (_m, p) => {
       const [np] = await linkPages(p, other, how);
@@ -334,7 +465,7 @@ export function PageView({ id }: { id?: string }) {
       // no page yet: the link waits for the first keystroke, and shows now
       setData(d => (d ? { ...d, links: [...d.links, { page: k.page, label: 'Related', line: k.message.text }] } : d));
     }
-    composer.current?.focus({ preventScroll: true });
+    areas.current.get(tailId)?.focus({ preventScroll: true });
   };
   const echoDismiss = async () => {
     const e = settings.peek().echo;
@@ -344,120 +475,88 @@ export function PageView({ id }: { id?: string }) {
 
   if (to) return <Redirect to={to} />;
 
-  const messages = (data?.messages ?? []).filter(m => m.id !== draftId.current && (m.text.trim() || m.id === editing));
-  const shown = kind === 'question' ? messages.filter(m => m.wise || m.text.trim() !== page?.title?.trim()) : messages;
-  const answered = messages.some(m => m.wise);
-  const todayKey = dayKey(Date.now());
-  const byId = new Map(messages.map(m => [m.id, m]));
+  const byId = new Map(all.map(m => [m.id, m]));
   const date = page ? new Date(page.createdAt) : new Date();
+  const pageLabel = isToday ? "Today's page" : 'This page';
+  const written = shown.some(m => m.text.trim());
+  const starred = vs.chips.filter(v => v.starred);
+  const lastArea = [...blocks].reverse().find(b => b.id === cur || b.id === tailId)?.id;
+  let prevAt = page?.createdAt;
 
   return (
-    <Page no={data?.no} date={date} music={page ? {
-      id: page.id, music: page.music,
-      onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
-    } : undefined}>
-      <Seg on={kind === 'question' ? 'questions' : isToday ? 'entries' : 'earlier'} />
-      {page && (
-        <div class="fs-meta">
-          <button type="button" class="fs-word" aria-expanded={moodOpen} onClick={() => setMoodOpen(!moodOpen)}>
-            {page.mood?.length ? page.mood.join(' · ') : 'Mood'}
-          </button>
-          {page.tags.map(t => <span key={t} class="fs-tagword">#{t}</span>)}
-          <span class="fs-state">
-            {kind === 'question'
-              ? <span>{page.state}</span>
-              : ENTRY_STATES.map(([name]) => (
-                <button key={name} type="button" class="fs-word" aria-pressed={entryState(page.state) === name}
-                  onClick={async () => { const np = await setEntryState(page, name); pageRef.current = np; setData(d => (d ? { ...d, page: np } : d)); }}>{name}</button>
-              ))}
-          </span>
-        </div>
-      )}
-      {page && moodOpen && (
-        <div class="fs-opts fs-moods" role="group" aria-label="Mood">
-          {MOODS.map(w => {
-            const on = !!page.mood?.includes(w);
-            return (
-              <button key={w} type="button" class="fs-opt" aria-pressed={on} onClick={async () => {
-                const np = await setMood(page, on ? (page.mood ?? []).filter(x => x !== w) : [...(page.mood ?? []), w]);
-                pageRef.current = np;
-                setData(d => (d ? { ...d, page: np } : d));
-              }}>{w}</button>
-            );
-          })}
-        </div>
-      )}
-      {echo && !messages.length && !still && (
+    <Page no={kind === 'entry' ? data?.no : undefined} label={kind === 'question' ? 'Question' : undefined} date={date} pages="link"
+      music={page ? {
+        id: page.id, music: page.music,
+        onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
+      } : undefined}>
+      {echo && !written && !still && (
         <Echo text={echo.message.text} date={new Date(echo.page.createdAt)} still={still} onLink={echoLink} onDismiss={echoDismiss} />
       )}
       <div ref={column} class="fs-sheetof fs-rules fs-col"
-        onClick={e => { if (e.target === e.currentTarget && showComposer) composer.current?.focus({ preventScroll: true }); }}>
+        onClick={e => {
+          if (e.target !== e.currentTarget || !data) return;
+          // a tap under the last block writes on the next rule
+          const bid = savedIds.has(tailId) ? (cur ?? tailId) : tailId;
+          const el = areas.current.get(bid);
+          if (el && bid === cur) { el.focus({ preventScroll: true }); return; }
+          holdKeyboard();
+          moveTo(bid, 'end');
+        }}>
+        <textarea ref={proxy} class="fs-proxy" aria-hidden="true" tabIndex={-1} />
         {kind === 'question' && page && (
           <TitleEdit page={page} onSave={title => queue(`title:${page.id}`, async () => {
             const np = await setTitle(pageRef.current ?? page, title);
             pageRef.current = np;
           })} />
         )}
-        {shown.map((m, i) => {
-          const prevAt = i ? shown[i - 1].at : page?.createdAt ?? m.at;
-          const dated = dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;
+        {data && blocks.map(b => {
+          const m = b.m;
+          const dated = m && prevAt !== undefined && dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;
+          if (m) prevAt = m.at;
+          const vid = b.id in voiceOf ? voiceOf[b.id] : m?.voiceId;
+          const voice = vid ? vs.byId.get(vid) : undefined;
           return (
-            <LineView key={m.id} m={m} voice={m.voiceId ? vs.byId.get(m.voiceId) : undefined}
-              quoted={m.replyTo ? byId.get(m.replyTo) : undefined} dated={dated}
-              held={openSheet.value === 'line' && held?.id === m.id} editing={editing === m.id}
-              onHold={() => { setHeld(m); openSheet.value = 'line'; tick('sheet'); }}
-              onTap={dayKey(m.at) === todayKey ? () => setEditing(m.id) : undefined}
-              onEdit={text => queue(m.id, lineJob(m.id, { text, voiceId: m.voiceId, replyTo: m.replyTo, wise: m.wise }))}
-              onEditEnd={() => { void flush(); setEditing(null); }} />
+            <BlockView key={b.id} b={b} text={texts.current.get(b.id) ?? m?.text ?? ''} voice={voice}
+              quoted={m?.replyTo ? byId.get(m.replyTo) : undefined} dated={dated} cur={b.id === cur} edit={b.id === cur || !m}
+              label={b.id === lastArea ? pageLabel : 'This line'}
+              held={!!m && openSheet.value === 'line' && held?.id === m.id} dotOpen={dotFor === b.id} saved={saved && !!data}
+              chips={dotFor === b.id && b.id === cur ? (
+                <div class="fs-inline" onMouseDown={e => e.preventDefault()}>
+                  <div class="fs-chips" role="group" aria-label="Who speaks this line">
+                    <Chip label="Ink" ariaLabel="Plain ink" pressed={!vid} onPress={() => pick(b.id, undefined)} />
+                    {starred.map(v => (
+                      <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+                        pressed={vid === v.id} onPress={() => pick(b.id, v.id)} />
+                    ))}
+                    <Chip label="more" add onPress={() => { setDotFor(null); openSheet.value = 'speak'; tick('sheet'); }} />
+                  </div>
+                </div>
+              ) : undefined}
+              area={el => { if (el) areas.current.set(b.id, el); else areas.current.delete(b.id); }}
+              onHold={() => { if (m) { setDotFor(null); setHeld(m); openSheet.value = 'line'; tick('sheet'); } }}
+              onTap={off => { holdKeyboard(); moveTo(b.id, off ?? 'end'); }}
+              onDot={() => setDotFor(dotFor === b.id ? null : b.id)}
+              onInput={text => onInput(b.id, text)}
+              onKeyDown={e => onKeyDown(b.id, e)}
+              onFocus={() => { if (curRef.current !== b.id) moveTo(b.id, 'end'); }}
+              onBlur={next => { if (curRef.current === b.id && next !== proxy.current) leave(b.id); }} />
           );
         })}
-        {kind === 'question' && !answered && !draft && <p class="fs-quiet">[space to answer left]</p>}
         {!!data?.links.length && (
           <nav class="fs-links" aria-label="Linked pages">
             {data.links.map(l => (
               <a key={l.page.id} class="fs-link" href={hrefOf(l.page)}>
-                <small>{l.label}</small>
+                <small>{linkWords(l.label)}</small>
                 <span>{l.line || notebookDate(new Date(l.page.createdAt))}</span>
               </a>
             ))}
           </nav>
         )}
-        {!isToday && kind === 'entry' && !revisit && page && (
-          <button type="button" class="fs-word fs-col-act" onClick={() => {
-            setRevisit(true);
-            requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }));
-          }}>Revisit</button>
-        )}
       </div>
-      {showComposer && (
-        <>
-          <div class="fs-chips" role="group" aria-label="Who speaks next" onMouseDown={e => e.preventDefault()}>
-            <Chip label="Ink" ariaLabel="Plain ink" pressed={!speaks} onPress={() => pick(undefined)} />
-            {vs.chips.map(v => (
-              <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
-                pressed={speaks?.id === v.id} onPress={() => pick(v.id)} />
-            ))}
-          </div>
-          <div class="fs-composer">
-            {reply && (
-              <button type="button" class="fs-replying" aria-label="Not a reply" onClick={() => setReply(null)}>
-                <span class="fs-quote">{reply.text}</span>
-              </button>
-            )}
-            <div class={speaks ? `fs-v${speaks.shade === 'deep' ? ' deep' : ''}` : undefined}
-              style={speaks ? ({ '--vc': voiceColour(speaks.colour, speaks.shade) } as JSX.CSSProperties) : undefined}>
-              {speaks && <span class="fs-sp">{speaks.name}</span>}
-              <textarea ref={composer} class={`fs-compose${wise ? ' fs-wise' : ''}`} rows={1} spellcheck
-                aria-label={isToday ? "Today's page" : kind === 'question' ? 'Answer' : 'A later reading'}
-                value={draft} onInput={onCompose} onBlur={() => void flush()}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); commit(); } }}
-                data-saved={saved && data ? 'true' : 'false'} disabled={!data} />
-            </div>
-          </div>
-        </>
-      )}
       <LineSheet held={held} page={page} voices={vs.chips} byId={vs.byId} acts={acts}
         onClose={() => { openSheet.value = null; }} />
+      <SpeakSheet voices={vs.chips} current={cur ? voiceFor(cur) : undefined}
+        onPick={v => { if (cur) pick(cur, v); }} onClose={() => { openSheet.value = null; }} />
     </Page>
   );
 }
