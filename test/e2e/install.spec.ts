@@ -10,7 +10,7 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
 
   await page.goto('/');
   await expect(page).toHaveURL(/#\/journal$/);
-  await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText(['Journal', 'Council', 'Be', 'Flow']);
+  await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link')).toHaveText(['Journal', 'Council', '?', 'Be', 'Flow']);
   await expect(page.locator('html')).toHaveAttribute('data-light', /^(day|night)$/);
 
   // wait until the service worker has precached everything and controls the page
@@ -148,11 +148,11 @@ test('the journal, offline: two paragraphs, a voice, keep close, ask this, and i
   await expect(asked.locator('small')).toHaveText('Asked · Questions');
   await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
   await asked.click();
-  await expect(page).toHaveURL(/#\/journal\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/#\/questions\/[0-9a-f-]{36}$/);
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
   const questionUrl = page.url();
 
-  await page.goto('/#/journal/questions');
+  await page.goto('/#/questions');
   await expect(page.locator('.fs-qrow', { hasText: first })).toBeVisible();
   await expect(page.getByText('[space to answer left]')).toHaveCount(0);
 

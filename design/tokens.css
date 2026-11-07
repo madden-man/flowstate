@@ -14,6 +14,7 @@
   --track-print: .08em;
   --fs-fill: 15px;   /* the written fill-in after "No." and "DATE:" in the page header (package 0, every page) */
   --fs-tab: 12px;    /* the four tab words (package 0, the tab bar) */
+  --fs-mark: 19px;   /* the ? mark in the tab bar, a glyph in the serif a size up, like the header's ♪ (V2, the Questions tab) */
   --hit: 44px;       /* the smallest tap target: tab words, the moon, Settings rows (package 0) */
 
   /* space */
