@@ -88,6 +88,37 @@ export async function councilById(id: string): Promise<CouncilPage | null> {
   return { page, messages: await messagesOf(id), linked: await linkedPages(page) };
 }
 
+// ---------------------------------------------------------------- seats (V3)
+
+async function councilPageOf(pageId: string): Promise<Read<Page>> {
+  const page = await store.get('pages', pageId);
+  if (!page || page.kind !== 'council') throw new Error('No such council');
+  return page;
+}
+
+/** Seats a voice at the end of the seat order. Seating twice changes nothing. */
+export async function seat(pageId: string, voiceId: string, now = Date.now()): Promise<Read<Page>> {
+  const page = await councilPageOf(pageId);
+  if (page.seats?.includes(voiceId)) return page;
+  if (!(await store.get('voices', voiceId))) throw new Error('No such voice');
+  const next = { ...page, seats: [...(page.seats ?? []), voiceId], updatedAt: now };
+  await store.put('pages', next);
+  return next;
+}
+
+/** Lets a voice leave its seat; its lines stay. The seats left keep their order. */
+export async function unseat(pageId: string, voiceId: string, now = Date.now()): Promise<Read<Page>> {
+  const page = await councilPageOf(pageId);
+  if (!page.seats?.includes(voiceId)) return page;
+  const next = { ...page, seats: page.seats.filter(id => id !== voiceId), updatedAt: now };
+  await store.put('pages', next);
+  return next;
+}
+
+/** Seats the voice when it is standing, lets it go when it is seated. */
+export const toggleSeat = async (pageId: string, voiceId: string, now = Date.now()): Promise<Read<Page>> =>
+  ((await councilPageOf(pageId)).seats?.includes(voiceId) ? unseat : seat)(pageId, voiceId, now);
+
 // ---------------------------------------------------------------- messages
 
 /** A line spoken on a page: by a voice, or plain ink when voiceId is undefined. */
@@ -122,6 +153,14 @@ export async function reorderMessage(pageId: string, messageId: string, to: numb
   return messagesOf(pageId);
 }
 
+/** "Speak as": the line passes to another voice, or to plain ink when voiceId is undefined. */
+export async function revoice(messageId: string, voiceId: string | undefined, now = Date.now()): Promise<void> {
+  const m = await store.get('messages', messageId);
+  if (!m) throw new Error('No such message');
+  const { voiceId: _, ...rest } = m;
+  await store.put('messages', voiceId ? { ...rest, voiceId, updatedAt: now } : { ...rest, updatedAt: now });
+}
+
 export async function keepClose(messageId: string, kept = true, now = Date.now()): Promise<void> {
   const m = await store.get('messages', messageId);
   if (!m) throw new Error('No such message');
@@ -141,10 +180,47 @@ export function chipVoices<V extends Voice>(vs: V[], still = false): V[] {
     .sort((a, b) => Number(b.starred) - Number(a.starred) || a.order - b.order);
 }
 
-/** Who speaks next: the chip that was tapped, while it is still in the row; otherwise plain ink. */
-export function nextSpeaker(selected: string | undefined, vs: Voice[], still = false): string | undefined {
-  return selected && chipVoices(vs, still).some(v => v.id === selected) ? selected : undefined;
+/** The voices seated at a council, in seat order, that can take a turn now: archived voices and ids
+ *  with no voice leave, and in Still so do the deep twins (their seats are kept for later). */
+export function seatedVoices<V extends Voice>(seats: string[] | undefined, vs: V[], still = false): V[] {
+  const open = chipVoices(vs, still);
+  return (seats ?? []).map(id => open.find(v => v.id === id)).filter((v): v is V => !!v);
 }
+
+/** Whose turn it is at a seated council: the seat after the last seated voice that spoke, round the
+ *  table; the first seat when none has spoken yet. Plain ink takes no turn, so a line in ink leaves the
+ *  turn where it was. A voice that has left its seat (or is hidden in Still) is passed over: the turn
+ *  is counted from the last speaker still in the stored seats, then the next seat that can speak. */
+export function turnOf(seats: string[] | undefined, ms: Pick<Message, 'voiceId'>[], vs: Voice[], still = false): string | undefined {
+  const all = seats ?? [];
+  const open = new Set(seatedVoices(all, vs, still).map(v => v.id));
+  if (!open.size) return undefined;
+  let at = -1;
+  for (let i = ms.length - 1; i >= 0 && at < 0; i--) at = ms[i].voiceId ? all.indexOf(ms[i].voiceId!) : -1;
+  for (let k = 1; k <= all.length; k++) {
+    const id = all[(at + k) % all.length];
+    if (open.has(id)) return id;
+  }
+  return undefined;
+}
+
+/** What a chip tap leaves for the next line: a voice's id, null for Ink, undefined for nothing tapped. */
+export type Tapped = string | null | undefined;
+
+/** Who speaks next.
+ *  With no seats (an older council, or one begun with nobody seated): the chip that was tapped while it
+ *  is still in the row, otherwise plain ink; the tap holds until another chip is tapped.
+ *  With seats: a tapped chip (Ink included) speaks for one line, and otherwise the turn goes round the
+ *  seats (turnOf). The UI clears the tap after each line, so the rotation resumes from whoever spoke. */
+export function nextSpeaker(selected: Tapped, vs: Voice[], still = false, at?: { seats?: string[]; messages: Pick<Message, 'voiceId'>[] }): string | undefined {
+  const tapped = selected && chipVoices(vs, still).some(v => v.id === selected) ? selected : undefined;
+  if (!at || !seatedVoices(at.seats, vs, still).length) return tapped;
+  if (selected === null) return undefined;
+  return tapped ?? turnOf(at.seats, at.messages, vs, still);
+}
+
+/** True when the council has someone seated who can speak now, so turns go round (and the UI clears a tap after each line). */
+export const isSeated = (seats: string[] | undefined, vs: Voice[], still = false): boolean => seatedVoices(seats, vs, still).length > 0;
 
 /** The lamp takes the colour of the last voice that spoke (plain ink lights nothing). */
 export function lastSpeaker<V extends Voice>(ms: Pick<Message, 'voiceId'>[], vs: V[]): V | undefined {
