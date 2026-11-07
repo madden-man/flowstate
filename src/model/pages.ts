@@ -53,10 +53,23 @@ export async function pageById(id: string): Promise<{ page: Read<Page>; messages
   return { page, messages: await messagesOf(id), no };
 }
 
+/** Every question, open ones first, then the answered (an older 'revisited' row reads as answered),
+ *  newest first within each. This order is the Questions list's and the walk's (Previous, Next). */
 export async function questions(): Promise<Read<Page>[]> {
   const qs = await store.query('pages', t => t.where('kind').equals('question'));
-  // open ones first, then the rest, newest first within each
   return qs.sort((a, b) => Number(a.state !== 'open') - Number(b.state !== 'open') || b.createdAt - a.createdAt);
+}
+
+export type Walk = { at: number; of: number; prev: string; next: string };
+/** Where an open question sits among the open ones ("2 of 3 open"), and the ones either side. Next on the
+ *  last wraps to the first, Previous on the first to the last. None for an answered question, or when it
+ *  is the only open one (there is nowhere to walk). */
+export async function walkOf(id: string): Promise<Walk | undefined> {
+  const open = (await questions()).filter(q => q.state === 'open');
+  const i = open.findIndex(q => q.id === id);
+  if (i < 0 || open.length < 2) return undefined;
+  const n = open.length;
+  return { at: i + 1, of: n, prev: open[(i - 1 + n) % n].id, next: open[(i + 1) % n].id };
 }
 
 export async function voices(): Promise<Read<Voice>[]> {
@@ -110,14 +123,6 @@ export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Pag
   return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...extra };
 }
 
-/** A question's state after one more answer: the first answers it, one on a later day marks it revisited. */
-export function answerState(page: Pick<Page, 'state'>, earlier: Pick<Message, 'wise' | 'text' | 'at'>[], now = Date.now()): Page['state'] {
-  const answers = earlier.filter(m => m.wise && m.text.trim());
-  if (!answers.length) return page.state === 'revisited' ? 'revisited' : 'answered';
-  if (answers.some(m => dayKey(m.at) !== dayKey(now))) return 'revisited';
-  return page.state === 'open' ? 'answered' : page.state;
-}
-
 export type Draft = { text: string; voiceId?: string; replyTo?: string; wise?: boolean };
 export type Line = { page: Read<Page>; message?: Read<Message>; messages: Read<Message>[] };
 
@@ -136,7 +141,9 @@ export function revise(m: Pick<Message, 'at' | 'text' | 'revisions'>, text: stri
  * and the message (with `messageId` when the caller chose one); later keystrokes update that message.
  * A new line goes at the end of the page, or at `at` when the caller places it between two others
  * (Return in the middle of a page). An emptied line is removed, and the page's tags are read again from
- * every line. An edit on a later day keeps the old text (`revise`). A new wise line answers a question.
+ * every line. An edit on a later day keeps the old text (`revise`). A line's `wise` is carried as the
+ * draft says, but writing never marks a question's state (V2): only "This answers it" does (`answerWith`).
+ * Emptying a question's last wise line takes the answer back with it, as "Not the answer" would.
  */
 export async function writeLine(
   page: Read<Page> | undefined, messageId: string | undefined, draft: Draft, now = Date.now(),
@@ -156,7 +163,7 @@ export async function writeLine(
   }
   if (existing && !draft.text) {
     const rest = before.filter(m => m.id !== existing.id);
-    p = { ...p, tags: tagsOf(rest), updatedAt: now };
+    p = { ...p, ...(existing.wise ? reopened(p, rest) : {}), tags: tagsOf(rest), updatedAt: now };
     await store.delete('messages', existing.id);
     await store.put('pages', p);
     return { page: p, messages: rest };
@@ -172,9 +179,7 @@ export async function writeLine(
   const messages = existing
     ? before.map(m => (m.id === message.id ? message : m))
     : [...before, message].sort((a, b) => a.at - b.at);
-  let state = p.state;
-  if (!existing && draft.wise && p.kind === 'question') state = answerState(p, before, now);
-  p = { ...p, state, tags: tagsOf(messages), updatedAt: now };
+  p = { ...p, tags: tagsOf(messages), updatedAt: now };
   await store.many({ pages: [p, ...others], messages: [message] });
   return { page: p, message, messages };
 }
@@ -206,7 +211,30 @@ export async function askThis(p: Read<Page>, m: Pick<Message, 'text'>, now = Dat
   return { question, page };
 }
 
-/** "Ask a question": one line, and it is the page's title. */
+/** A question with no wise line left goes back to open; with one, it stays as it is. */
+function reopened(p: Read<Page>, rest: Pick<Message, 'wise' | 'text'>[]): Partial<Page> {
+  if (p.kind !== 'question' || rest.some(m => m.wise && m.text.trim())) return {};
+  return { state: 'open', answeredAt: undefined };
+}
+
+/**
+ * "This answers it" (V2): the held line turns wise (italic, the wiser second person) and the question
+ * moves under Answered with today's date. "Not the answer" (`wise` false) clears the line's wise; once no
+ * wise line is left the question is open again. Nothing else marks a question's state.
+ */
+export async function answerWith(
+  q: Read<Page>, m: Read<Message>, wise = true, now = Date.now(),
+): Promise<{ page: Read<Page>; message: Read<Message> }> {
+  // the line as stored now: a write flushed just before the sheet's tap may have changed its text
+  const message: Read<Message> = { ...((await store.get('messages', m.id)) ?? m), wise: wise || undefined, updatedAt: now };
+  let page: Read<Page> = { ...q, updatedAt: now };
+  if (wise && q.state === 'open') page = { ...page, state: 'answered', answeredAt: now };
+  if (!wise) page = { ...page, ...reopened(q, (await messagesOf(q.id)).filter(x => x.id !== m.id)) };
+  await store.many({ pages: [page], messages: [message] });
+  return { page, message };
+}
+
+/** "New question" on the Questions list: one line, and it is the page's title. */
 export async function askQuestion(title: string, now = Date.now()): Promise<Read<Page>> {
   const p = newPage('question', now, { title: title.trim() });
   await store.put('pages', p);
