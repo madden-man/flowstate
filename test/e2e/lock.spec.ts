@@ -56,6 +56,8 @@ test('lock: set a PIN, reload to the keypad, open with the word, turn it off', a
   await expect(keypad(page)).toBeVisible();
   await expect(page.getByText('Who to Be, How to Flow')).toBeVisible();
   await expect(page.getByText('I choose how to flow.')).toBeVisible();
+  // one threshold: the keypad sits beneath the manifesto, under the breathing ring
+  await expect(page.locator('[data-threshold][data-lock] .fs-ring-mark')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Sections' })).toHaveCount(0);
   await expect(page).toHaveURL(/#\/flow$/);
 

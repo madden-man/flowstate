@@ -1,0 +1,79 @@
+// Still (package 5), offline: pull the page down like a blind with a finger, past 80px, and Still settles
+// in: the ring breathes where the moon was, the "No." count is gone and a kept line sits at the top. Tap
+// the ring and the light comes back; reload and Still is still off, and nothing in the data has changed.
+import { test, expect, type Page } from '@playwright/test';
+
+/** Every row of every table, as the database holds it: the export, read straight from IndexedDB. */
+const dump = (page: Page) => page.evaluate(() => new Promise<string>((resolve, reject) => {
+  const open = indexedDB.open('flowstate');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const db = open.result;
+    const names = [...db.objectStoreNames].sort();
+    const tx = db.transaction(names, 'readonly');
+    const out: Record<string, unknown[]> = {};
+    for (const n of names) {
+      const r = tx.objectStore(n).getAll();
+      r.onsuccess = () => { out[n] = r.result; };
+    }
+    tx.oncomplete = () => { db.close(); resolve(JSON.stringify(out)); };
+    tx.onerror = () => reject(tx.error);
+  };
+}));
+
+test('still: pull the page down, the ring, the kept line, and leaving changes nothing', async ({ page, context, baseURL }) => {
+  const outside: string[] = [];
+  context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
+
+  // a cold load opens on the manifesto for one breath; a reload in the same session goes straight in
+  await page.goto('/');
+  await expect(page.locator('[data-threshold]')).toContainText('I determine my core.');
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  await expect(page.locator('[data-threshold]')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+
+  await expect(page.getByRole('textbox', { name: "Today's page" })).toBeEnabled();
+  await expect(page.locator('.fs-count')).toBeVisible();
+  await expect(page.locator('html')).not.toHaveAttribute('data-light', 'still');
+  const lightBefore = await page.locator('html').getAttribute('data-light');
+  const before = await dump(page);
+
+  // a finger on the page's ruled column, at its top, drawn down 150px
+  const col = (await page.locator('.fs-col').boundingBox())!;
+  const x = col.x + col.width / 2, y = col.y + 40;
+  const cdp = await context.newCDPSession(page);
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', ty?: number) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: ty === undefined ? [] : [{ x, y: ty }] });
+  await touch('touchStart', y);
+  for (let dy = 10; dy <= 150; dy += 10) await touch('touchMove', y + dy);
+  // the page follows the finger, with Still waiting above it
+  await expect(page.locator('.fs-page')).toHaveAttribute('style', /translateY\(1[45]\dpx\)/);
+  await expect(page.locator('.fs-blind')).toHaveClass(/ready/);
+  await touch('touchEnd');
+
+  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
+  await expect(page.getByRole('button', { name: 'Leave Still' })).toBeVisible();
+  await expect(page.locator('.fs-count')).toBeHidden();
+  await expect(page.locator('[data-kept-line]')).toHaveText('I determine my core.');
+  await expect(page.locator('.fs-page')).not.toHaveAttribute('style', /translateY\(\d/);
+
+  // short of the line, the page goes back up and nothing happens
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-light', lightBefore!);
+  await expect(page.locator('.fs-count')).toBeVisible();
+  await touch('touchStart', y);
+  for (let dy = 10; dy <= 50; dy += 10) await touch('touchMove', y + dy);
+  await touch('touchEnd');
+  await expect(page.locator('html')).toHaveAttribute('data-light', lightBefore!);
+
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: "Today's page" })).toBeEnabled();
+  await expect(page.locator('html')).toHaveAttribute('data-light', lightBefore!);
+  await expect(page.locator('[data-kept-line]')).toHaveCount(0);
+  expect(await dump(page)).toBe(before);
+
+  expect(outside).toEqual([]);
+});

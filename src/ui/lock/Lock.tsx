@@ -1,13 +1,11 @@
-// The lock screen (PLAN.md section 7): the notebook's title and the manifesto's two lines on the page
-// colour, the keypad beneath, no tab bar. The right PIN opens the journal with a tick and a bell; a wrong
+// The lock (PLAN.md section 7): on the threshold (parts/Threshold, package 5) the notebook's title and the
+// manifesto's two lines sit on the page colour with the ring breathing, and this keypad beneath, no tab bar. The right PIN opens the journal with a tick and a bell; a wrong
 // one empties the dots and says so in print grey, and after five wrong tries the keypad waits a little
 // longer each time (1s, 2s, 4s, 8s). Never a shake, an alert or a lockout.
-// Package 5's Threshold carries the manifesto with the breath; at integration this keypad mounts in its slot.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Keypad } from '../parts/Keypad';
 import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
-import { MANIFESTO } from '../../db/seed';
 import { settings } from '../settings';
 import { tryPin, PIN_MIN } from './pin';
 
@@ -38,22 +36,13 @@ export function usePinEntry(check: (pin: string) => Promise<{ ok: true } | { ok:
   return { value, onInput, held, note, action };
 }
 
-export function Lock() {
+/** The keypad for the threshold's slot: the right PIN ticks, rings the unlock bell and opens the app. */
+export function LockPad() {
   const digits = settings.value.lock.digits;
   const entry = usePinEntry(async pin => {
     const r = await tryPin(pin);
     if (r.ok) { tick('unlock'); bell('unlock'); }
     return r;
   }, digits);
-  return (
-    <div class="fs-app">
-      <main class="fs-lock" data-lock>
-        <div class="fs-lock-words">
-          <h1 class="fs-lock-title">Who to Be, How to Flow</h1>
-          <p class="fs-lock-man">{MANIFESTO[0]}<br />{MANIFESTO[1]}</p>
-        </div>
-        <Keypad label="PIN" value={entry.value} onInput={entry.onInput} digits={digits} action={entry.action} held={entry.held} note={entry.note} />
-      </main>
-    </div>
-  );
+  return <Keypad label="PIN" value={entry.value} onInput={entry.onInput} digits={digits} action={entry.action} held={entry.held} note={entry.note} />;
 }

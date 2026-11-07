@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words, always visible; hash routes so deep links
 // and standalone mode both work: #/journal/:id, #/journal/questions, #/council/:id, #/be/:id, #/flow.
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
 import { JournalToday, JournalPage, Questions, Earlier } from './ui/journal/Journal';
@@ -13,8 +13,9 @@ import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { tick } from './ui/parts/Haptic';
+import { Threshold, thresholdWanted } from './ui/parts/Threshold';
 import type { ComponentChildren } from 'preact';
-import { Lock } from './ui/lock/Lock';
+import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
 
@@ -69,11 +70,23 @@ function Frame() {
   );
 }
 
-/** The lock gate (package 6): with a PIN on and the key out of memory, the lock screen stands in front
- *  of everything, tab bar included. The hash is left alone, so a deep link lands once the PIN opens it. */
+/** One threshold (PLAN.md sections 7 and 8). With a PIN on and the key out of memory, the threshold stands in
+ *  front of everything, tab bar included: the manifesto, the ring breathing, and the keypad beneath (package 6).
+ *  The hash is left alone, so a deep link lands once the PIN opens it. Unlocked, a cold load breathes once
+ *  over the page (package 5) and the page comes up. */
 function Gate({ children }: { children: ComponentChildren }) {
   useEffect(() => startRelock(), []);
-  return gateState() === 'locked' ? <Lock /> : <>{children}</>;
+  const [breath, setBreath] = useState(thresholdWanted);
+  const locked = gateState() === 'locked';
+  // the locked threshold was the breath: once the PIN opens the app, the page comes straight up
+  useEffect(() => { if (locked) setBreath(false); }, [locked]);
+  if (locked) return <Threshold keypad={<LockPad />} onDone={() => setBreath(false)} />;
+  return (
+    <>
+      {children}
+      {breath && <Threshold onDone={() => setBreath(false)} />}
+    </>
+  );
 }
 
 export function App() {

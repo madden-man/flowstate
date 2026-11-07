@@ -8,7 +8,6 @@ import { openSheet, dataVersion } from '../sheets';
 import { settings, saveSettings, loadSettings } from '../settings';
 import { parsePlace, sunTimes, clock, TOWNS, leaveStill, now } from '../light';
 import { notebookDate } from '../date';
-import { tick } from '../parts/Haptic';
 import { backupNow, parseBackup, importData, BackupError, type BackupFile, type ImportMode } from '../../db/backup';
 import { PinRows } from '../lock/PinRows';
 import { PinSheet } from '../lock/PinSheet';
@@ -38,7 +37,7 @@ function LightRow() {
       <div class="fs-opts" role="group" aria-label="Light">
         {PINS.map(([v, label]) => (
           <button key={v} type="button" class="fs-opt" aria-pressed={pin === v}
-            onClick={() => { leaveStill(); tick('check'); void saveSettings({ light: v }); }}>{label}</button>
+            onClick={() => { leaveStill(); void saveSettings({ light: v }); }}>{label}</button>
         ))}
       </div>
     </div>
@@ -72,7 +71,7 @@ function PlaceRow() {
 
 function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
   return (
-    <button type="button" class="fs-row" role="switch" aria-checked={on} onClick={() => { set(!on); if (!on) tick('check'); }}>
+    <button type="button" class="fs-row" role="switch" aria-checked={on} onClick={() => set(!on)}>
       <span>{label}</span><small>{on ? 'On' : 'Off'}</small>
     </button>
   );

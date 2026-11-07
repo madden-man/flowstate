@@ -1,23 +1,14 @@
-// The moon at the left of every page header: tap for Still. In Still the ring takes its place and is
-// the exit. Static for now; package 5 adds the breath and the pull-down blind.
-import { light, moonGlows, enterStill, leaveStill } from '../light';
-import { tick } from './Haptic';
-import { bell } from './Sound';
+// The moon at the left of every page header: tap for Still. In Still the breathing ring takes its place
+// and is the exit (parts/Ring).
+import { light, moonGlows } from '../light';
+import { settle } from '../still';
+import { Ring } from './Ring';
 
 export function Moon() {
-  const isStill = light.value === 'still';
-  const onTap = () => {
-    if (isStill) leaveStill();
-    else {
-      enterStill();
-      tick('still');
-      bell('settle');
-    }
-  };
+  if (light.value === 'still') return <Ring />;
   return (
-    <button type="button" class={`fs-moon${moonGlows.value ? ' glow' : ''}`} aria-label={isStill ? 'Leave Still' : 'Still'} aria-pressed={isStill} onClick={onTap}>
+    <button type="button" class={`fs-moon${moonGlows.value ? ' glow' : ''}`} aria-label="Still" aria-pressed="false" onClick={settle}>
       <i />
-      <b />
     </button>
   );
 }

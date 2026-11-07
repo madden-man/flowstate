@@ -33,7 +33,7 @@ export function PinRows() {
           <div class="fs-opts" role="group" aria-label="Relock after">
             {RELOCK_CHOICES.map(([min, label]) => (
               <button key={min} type="button" class="fs-opt" aria-pressed={lock.relockAfterMin === min}
-                onClick={() => { tick('check'); void saveSettings({ lock: { ...settings.value.lock, relockAfterMin: min } }); }}>{label}</button>
+                onClick={() => void saveSettings({ lock: { ...settings.value.lock, relockAfterMin: min } })}>{label}</button>
             ))}
           </div>
         </div>
