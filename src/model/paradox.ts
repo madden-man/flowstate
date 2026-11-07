@@ -88,6 +88,30 @@ export function antonymSuggestions(poleA: string, poleB = ''): string[] {
   return antonymsOf(poleA).filter(w => w !== b);
 }
 
+// ---- the three-word line ----
+
+const poleWord = (p: Pole) => (p.shadow ? `${p.value} (${p.shadow})` : p.value);
+const middleWord = (m?: Middle) => m?.word ?? m?.scenario;
+
+/** "selfless · compassionate self-awareness · selfish": pole A, the middle (left out when empty), pole B. */
+export const threeWords = (v: { poleA: Pole; poleB: Pole; middle?: Middle }) =>
+  [poleWord(v.poleA), middleWord(v.middle), poleWord(v.poleB)].filter(Boolean).join(' · ');
+
+/**
+ * The notebook's three-word line under the spread: the current version in ink, and every earlier version
+ * on its own line beneath, struck through, oldest first. Null when there is no middle and no revisions.
+ */
+export function threeWordLines(p: Pick<Paradox, 'poleA' | 'poleB' | 'middle' | 'revisions'>): { current: string; struck: string[] } | null {
+  if (!middleWord(p.middle) && !p.revisions.length) return null;
+  const current = threeWords(p);
+  const struck: string[] = [];
+  for (const r of p.revisions) { // pushed in order, so the array is oldest first
+    const line = threeWords(r);
+    if (line !== current && line !== struck[struck.length - 1]) struck.push(line);
+  }
+  return { current, struck };
+}
+
 // ---- reading the spreads ----
 
 export type SpreadData = { paradox: Read<Paradox>; items: Read<Item>[] };

@@ -215,16 +215,6 @@ button.fs-row, label.fs-row { cursor: pointer; }
 .fs-ctag-text { fill: var(--ink); font-family: var(--serif); font-size: var(--fs-chip); letter-spacing: .02em; }
 .fs-ctag-shadow { fill: var(--print); font-style: italic; }
 
-/* the seam: the middle word and its struck revisions, written down the gutter */
-.fs-seamword {
-  position: absolute; transform: translate(-50%, -50%) rotate(-90deg); transform-origin: center;
-  display: grid; justify-items: center; gap: 0; width: max-content; white-space: nowrap; pointer-events: none;
-  background: var(--page); padding: 0 var(--s1); line-height: 18px;
-  transition: background-color var(--t-light) var(--ease);
-}
-.fs-seamword > * { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.fs-middle { font-style: italic; font-size: var(--fs-chip); color: var(--ink); }
-
 /* a goal on its page, and the dashed slot for a missing balance */
 .fs-goal, .fs-slot {
   appearance: none; position: absolute; margin: 0; border: 0; background: transparent; color: var(--ink);
@@ -241,16 +231,20 @@ button.fs-row, label.fs-row { cursor: pointer; }
 .fs-slot.b { justify-content: flex-end; }
 .fs-goal:focus-visible, .fs-slot:focus-visible, .fs-addgoal:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 
-/* "+ Goal" in the empty bottom-left corner; Versions and Edit in the empty top-right */
+/* the notebook's three-word line under the spread: the current version in ink, the struck ones beneath */
+.fs-threewords { padding: var(--s1) 0 var(--s2); text-align: center; }
+.fs-threeword { margin: 0; font-size: var(--fs-fill); line-height: 1.5; color: var(--ink); }
+.fs-threeword .fs-strike { font-size: var(--fs-chip); }
+
+/* "+ Goal" under the spread, the first thing under the thumb; Edit in the empty top-right corner */
 .fs-addgoal {
-  appearance: none; position: absolute; left: 0; bottom: 0; margin: 0; cursor: pointer; min-height: var(--hit);
+  appearance: none; margin: 0; cursor: pointer; min-height: var(--hit);
   padding: 0 var(--s2); border-radius: 999px; border: 1px solid var(--ink); background: var(--page); color: var(--ink);
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
   transition: background-color var(--t-light) var(--ease);
 }
 .fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; display: flex; align-items: center; }
 .fs-print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
-.fs-versions { list-style: none; margin: var(--s1) 0 0; padding: 0; display: grid; gap: 2px; }
 
 /* the Be sheets */
 .fs-acts { align-items: center; }

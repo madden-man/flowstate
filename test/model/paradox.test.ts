@@ -5,7 +5,7 @@ import { store } from '../../src/db/fields';
 import type { Item, Paradox } from '../../src/db/schema';
 import {
   canSaveParadox, cleanPole, cleanMiddle, revise, sameVersion, createParadox, saveParadox, OnePoleError,
-  antonymSuggestions, spreads, goalsOf, pairOf, openSlots, slotLine, leanToY, yToLean, clampLean,
+  antonymSuggestions, threeWords, threeWordLines, spreads, goalsOf, pairOf, openSlots, slotLine, leanToY, yToLean, clampLean,
   layoutColumn, nextFreeLean, moveGoal, riders, dropGoal, addGoals, saveGoal, archiveGoal, followable, arrows,
 } from '../../src/model/paradox';
 
@@ -55,6 +55,32 @@ describe('the paradox rule', () => {
     expect(antonymSuggestions('Selfless')).toEqual(['selfish']);
     expect(antonymSuggestions('selfless', 'Selfish')).toEqual([]);
     expect(antonymSuggestions('nothing')).toEqual([]);
+  });
+});
+
+describe('the three-word line', () => {
+  it('reads pole A, the middle, pole B; the middle is left out when empty; shadows in brackets', () => {
+    expect(threeWords({ poleA: pole('selfless', ''), poleB: pole('selfish', ''), middle: { word: 'compassionate self-awareness' } }))
+      .toBe('selfless · compassionate self-awareness · selfish');
+    expect(threeWords({ poleA: pole('thoughtful', '', 'obsessive'), poleB: pole('reactive', '') })).toBe('thoughtful (obsessive) · reactive');
+    expect(threeWords({ poleA: pole('a', ''), poleB: pole('b', ''), middle: { scenario: 'a scene' } })).toBe('a · a scene · b');
+  });
+
+  it('is omitted with no middle and no revisions; earlier versions are struck beneath, oldest first', async () => {
+    await ensureSeeded();
+    const [p1, p2] = await spreads();
+    expect(threeWordLines(p2.paradox)).toBeNull();
+    expect(threeWordLines(p1.paradox)).toEqual({
+      current: 'selfless · selfish',
+      struck: ['selfless · compassionate self-awareness · selfish', 'selfless · balance self with others, fill all needs · selfish'],
+    });
+    const v = await saveParadox(p1.paradox, { poleA: p1.paradox.poleA, poleB: p1.paradox.poleB, middle: { word: 'fill both' } });
+    const lines = threeWordLines(v)!;
+    expect(lines.current).toBe('selfless · fill both · selfish');
+    expect(lines.struck).toHaveLength(3);
+    expect(lines.struck[2]).toBe('selfless · selfish');
+    // a version that reads the same as the one now in ink is not struck twice
+    expect(threeWordLines({ ...v, middle: undefined })!.struck).not.toContain('selfless · selfish');
   });
 });
 

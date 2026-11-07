@@ -1,6 +1,7 @@
 // The spread (DESIGN.md rule 11): a paradox drawn like the notebook. Two facing pages, pole A's goals on
 // the left and pole B's on the right, each at the height of its lean; the seam down the middle carries
-// the middle word and its struck revisions; the diagonal runs between the corner tags. A goal is linked
+// only the vertical rule and the dotted pair links; the diagonal runs between the corner tags. Under the
+// spread sits the notebook's three-word line (pole A · middle · pole B) with its struck versions. A goal is linked
 // to its balance by a dotted path; a missing balance is a dashed slot at the same height. Drawn arrows
 // join goals that follow one another. Long press lifts a goal; it slides up and down its page.
 //
@@ -14,13 +15,13 @@ import { CornerTag, tagSize } from './CornerTag';
 import { Arrow, linkPath, type Rect } from './Arrow';
 import { Strike } from './Strike';
 import { tick } from './Haptic';
-import { arrows, layoutColumn, openSlots, pairOf, riders, slotLine, yToLean, type Box } from '../../model/paradox';
+import { arrows, layoutColumn, openSlots, pairOf, riders, slotLine, threeWordLines, yToLean, type Box } from '../../model/paradox';
 
 const LIFT_MS = 350;      // how long a press must rest before the goal lifts
 const SLOP_PX = 8;        // movement that turns a press into a scroll
 const MIN_BAND = 300;     // the usable height between the corner tags, at the least
 const GAP = 8;            // between stacked goals
-const LINE = 18;          // one line of the middle on the seam
+const SPINE = 18;         // the gap between the facing pages
 const GUESS_H = 40;       // a goal's height before it has been measured
 
 export type SpreadProps = {
@@ -45,7 +46,6 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const suppress = useRef(false);
-  const [versions, setVersions] = useState(false);
 
   // ---- measure after display ----
   useEffect(() => {
@@ -69,13 +69,10 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
     return () => el.removeEventListener('touchmove', hold);
   }, []);
 
-  const struck = paradox.revisions.map(r => r.middle?.word ?? r.middle?.scenario).filter((w, i, all): w is string => !!w && all.indexOf(w) === i && w !== (paradox.middle?.word ?? paradox.middle?.scenario));
-  const middle = paradox.middle?.word ?? paradox.middle?.scenario;
-  const seamLines = (middle ? 1 : 0) + struck.length;
-  const spine = seamLines ? seamLines * LINE + 14 : 18;
+  const words = threeWordLines(paradox);
   const S = Math.max(tagSize(paradox.poleA.value, paradox.poleA.shadow), tagSize(paradox.poleB.value, paradox.poleB.shadow));
   // a goal leaves a little of its page free by the seam, so the dotted link to its balance has room to show
-  const pageW = width ? Math.max(80, (width - spine) / 2 - 12) : 0;
+  const pageW = width ? Math.max(80, (width - SPINE) / 2 - 12) : 0;
 
   // the drag's lean is what the layout sees for the goal and any pair riding with it
   const live = useMemo(() => {
@@ -194,13 +191,6 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
         <CornerTag corner="tl" value={paradox.poleA.value} shadow={paradox.poleA.shadow} size={S} />
         <CornerTag corner="br" value={paradox.poleB.value} shadow={paradox.poleB.shadow} size={S} />
 
-        {layout && seamLines > 0 && (
-          <div class="fs-seamword" style={{ left: `${width / 2}px`, top: `${H / 2}px`, maxWidth: `${H - S}px` }}>
-            {middle && <span class="fs-middle">{middle}</span>}
-            {[...struck].reverse().map(w => <Strike key={w}>{w}</Strike>)}
-          </div>
-        )}
-
         {layout && (
           <svg class="fs-spread-ink" width={width} height={H} viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
             {live.filter(i => i.pole === 'a').map(i => {
@@ -238,24 +228,18 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </button>
         ))}
 
-        <button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button>
         <div class="fs-spread-words">
           {paradox.status !== 'active' && <span class="fs-state fs-print">{paradox.status}</span>}
-          {paradox.revisions.length > 0 && (
-            <button type="button" class="fs-word fs-state" aria-expanded={versions} onClick={() => setVersions(!versions)}>Versions</button>
-          )}
           <button type="button" class="fs-word" onClick={onEdit}>Edit</button>
         </div>
       </div>
-      {versions && (
-        <ol class="fs-versions fs-state" aria-label="Versions">
-          {[...paradox.revisions].reverse().map((r, k) => (
-            <li key={k}>
-              <Strike>{[r.poleA.value + (r.poleA.shadow ? ` (${r.poleA.shadow})` : ''), r.middle?.word ?? r.middle?.scenario, r.poleB.value + (r.poleB.shadow ? ` (${r.poleB.shadow})` : '')].filter(Boolean).join(', ')}</Strike>
-            </li>
-          ))}
-        </ol>
+      {words && (
+        <div class="fs-threewords" aria-label="Three words">
+          <p class="fs-threeword">{words.current}</p>
+          {words.struck.map((w, k) => <p key={k} class="fs-threeword fs-state"><Strike>{w}</Strike></p>)}
+        </div>
       )}
+      <button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button>
     </article>
   );
 }
