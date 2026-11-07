@@ -1,6 +1,6 @@
 # FlowState v2: a journal first
 
-Date: 2026-11-08. Status: planned, not built. The proposal walkthrough is `design/v2/index.html` (published at https://claude.ai/artifact/U2BU6omFPRKqWJcpeFY7cq, shared with anyone who has the link). `PLAN.md` stays the architecture; this file records the 2026-11-08 review and what Tommy decided.
+Date: 2026-11-08. Status: built and deployed 2026-11-08 (PRs #11 V5, #12 V3, #13 V4, #14 V1, #15 V2, all merged to main; live at https://flowstate-journal.netlify.app; the walkthrough artifact T8HMcrmXhHUBiTx2TCKjVV republished from design/walkthrough.html). The proposal walkthrough is `design/v2/index.html` (published at https://claude.ai/artifact/U2BU6omFPRKqWJcpeFY7cq, shared with anyone who has the link). `PLAN.md` stays the architecture; this file records the 2026-11-08 review and what Tommy decided.
 
 Tommy's ask: "make it a more cohesive and easy experience. I want it to be intuitive to jump in there and start writing, and I want the council chatroom to be a little easier too. Mostly the questions / entries / organization of everything made it harder to just use it as a journal."
 
