@@ -267,7 +267,10 @@ export async function searchPages(q: string): Promise<Listed[]> {
     const ms = byPage.get(page.id) ?? [];
     const inTitle = !!page.title?.toLowerCase().includes(needle);
     const hit = ms.find(m => m.text.toLowerCase().includes(needle));
-    if (inTitle || hit) out.push({ page, no: i + 1, line: firstLine(page, ms), match: !inTitle ? hit?.text : undefined });
+    if (!inTitle && !hit) return;
+    const line = firstLine(page, ms);
+    // the matching line shows beneath only when it is not the first line already shown (package 8)
+    out.push({ page, no: i + 1, line, match: !inTitle && hit && hit.text !== line ? hit.text : undefined });
   });
   return out.reverse();
 }

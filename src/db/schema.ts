@@ -33,6 +33,10 @@ export type Settings = {
   };
   lastBackupAt?: Millis;
   seededAt?: Millis;
+  /** Not in PLAN.md section 4 (package 8): what navigator.storage.persist() last answered, so Settings reads it offline. */
+  persisted?: boolean;
+  /** Not in PLAN.md section 4 (package 8): seed pages added after the first seed, by name, so each lands once. */
+  seedsAdded?: string[];
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;

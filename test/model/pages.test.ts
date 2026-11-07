@@ -150,7 +150,8 @@ describe('question states', () => {
     const ans = await askQuestion('answered', D6);
     await writeLine(ans, undefined, { text: 'yes', wise: true }, D6);
     const young = await askQuestion('new open', D7);
-    expect((await questions()).map(q => q.id)).toEqual([young.id, old.id, ans.id]);
+    // the seeded models question (package 8) is left out here; the seed test covers it
+    expect((await questions()).map(q => q.id).filter(id => id !== 'pg-models')).toEqual([young.id, old.id, ans.id]);
   });
 });
 
@@ -245,7 +246,7 @@ describe('finding and voices', () => {
     const e = await entryWith([{ text: 'Hard rain today' }, { text: 'the class again' }], D6);
     expect((await findPages('hard', q.id)).map(x => x.page.id)).toEqual([e.id]);
     expect((await findPages('class')).map(x => x.page.id)).toEqual([q.id]);
-    expect((await findPages('')).length).toBe(3);
+    expect((await findPages('')).length).toBe(4); // with the seeded manifesto and models question
   });
   it('a caller-chosen id names the new line', async () => {
     const r = await writeLine(undefined, 'm-chosen', { text: 'x' }, D7);

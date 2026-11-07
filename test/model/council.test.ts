@@ -54,11 +54,12 @@ describe('council pages', () => {
     await store.put('pages', { id: 'q1', kind: 'question', createdAt: T0, updatedAt: T0, state: 'open', title: 'How do I retain skills?', tags: [], paradoxIds: [], linkedPageIds: [] });
     const p = await c.newCouncil({ now: T0 });
     const all = await c.linkCandidates('', p.id);
-    expect(all.map(x => x.id)).toEqual(['q1', 'pg-manifesto']);
-    expect(all[1].label).toBe('I determine my core.');
+    // the seeded models question (package 8) is a question too
+    expect(all.map(x => x.id)).toEqual(['q1', 'pg-models', 'pg-manifesto']);
+    expect(all[2].label).toBe('I determine my core.');
     expect((await c.linkCandidates('CORE', p.id)).map(x => x.id)).toEqual(['pg-manifesto']);
     await c.linkPages(p.id, 'q1');
-    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['pg-manifesto']);
+    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['pg-models', 'pg-manifesto']);
     await expect(c.linkPages(p.id, 'gone')).rejects.toThrow();
   });
 });

@@ -115,10 +115,27 @@ export function seedManifesto(): { page: Page; messages: Message[] } {
   return { page, messages };
 }
 
+/** The role-model list (PLAN.md section 11, question 4, decided by Tommy: a question page). The four names
+ *  are one plain-ink line under the question, and the page stays open: space to answer left. */
+export const MODELS_TITLE = 'Who are my models?';
+export const MODELS_LINE = 'Grumpa, Isaac, Alison, Myself';
+
+export function seedModels(): { page: Page; messages: Message[] } {
+  const at = NOTEBOOK_11_6 + 120_000;
+  const page: Page = {
+    id: 'pg-models', kind: 'question', title: MODELS_TITLE, createdAt: at, updatedAt: at, state: 'open',
+    tags: [], paradoxIds: [], linkedPageIds: [],
+  };
+  return { page, messages: [{ id: 'm-models-1', pageId: page.id, at: at + 1, text: MODELS_LINE, kept: false }] };
+}
+
+/** Seed pages added after the first seed, by name: a journal seeded before them gets each one once. */
+const ADDITIONS: Record<string, () => { page: Page; messages: Message[] }> = { models: seedModels };
+
 export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
-    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now,
+    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, seedsAdded: Object.keys(ADDITIONS),
   };
 }
 
@@ -127,9 +144,32 @@ export async function ensureSeeded(now = Date.now()): Promise<boolean> {
   if (await store.get('settings', 'app')) return false;
   const { paradoxes, items } = seedParadoxes();
   const { page, messages } = seedManifesto();
+  const models = seedModels();
   await store.many({
-    voices: seedVoices(), paradoxes, items, pages: [page], messages,
+    voices: seedVoices(), paradoxes, items, pages: [page, models.page], messages: [...messages, ...models.messages],
     settings: [defaultSettings(now)],
   });
   return true;
+}
+
+/**
+ * For a journal seeded before a seed page existed: adds each missing one once, marks it in the settings
+ * row, and never brings one back. A page already there by id is left alone. Runs when the journal is open
+ * (the gate in app.tsx), since a question's title is sealed with the PIN. Returns the names it added.
+ */
+export async function ensureSeedAdditions(): Promise<string[]> {
+  const s = await store.get('settings', 'app');
+  if (!s) return [];
+  const done = new Set(s.seedsAdded ?? []);
+  const todo = Object.keys(ADDITIONS).filter(n => !done.has(n));
+  if (!todo.length) return [];
+  const pages: Page[] = [], messages: Message[] = [];
+  for (const name of todo) {
+    const add = ADDITIONS[name]();
+    if (await store.get('pages', add.page.id)) continue;
+    pages.push(add.page);
+    messages.push(...add.messages);
+  }
+  await store.many({ pages, messages, settings: [{ ...s, seedsAdded: [...done, ...todo] }] });
+  return todo;
 }

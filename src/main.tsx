@@ -7,7 +7,8 @@ import { init } from './db/fields';
 import { ensureSeeded } from './db/seed';
 import { loadSettings } from './ui/settings';
 import { startLight } from './ui/light';
-import { startUpdates, askPersist } from './pwa/install';
+import { startUpdates, countLaunch } from './pwa/install';
+import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
 
 async function boot() {
@@ -16,7 +17,9 @@ async function boot() {
   await loadSettings();
   startLight();
   bootMusic();
-  if (firstRun) void askPersist();
+  // first run asks Safari to keep the data, and the answer goes into the settings row
+  if (firstRun) void persistNow();
+  countLaunch();
   startUpdates();
   render(<App />, document.getElementById('app')!);
 }

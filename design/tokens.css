@@ -27,7 +27,7 @@
   --page: #F6F1E4;   /* cream */
   --rule: #D4E1EA;   /* the notebook's pale blue rule */
   --ink:  #2A2724;
-  --print: #8D9399;  /* "No." and "DATE:" grey */
+  --print: #7A8087;  /* "No." and "DATE:" grey; 3.5:1 on the cream (package 8 raised it from #8D9399, 2.75:1, for every print label) */
   --seam: #E5DFD0;   /* the diagonal, dividers */
   --lamp: transparent;
   --black-voice: #2B2B2E;
@@ -49,7 +49,7 @@
 }
 
 [data-light="still"] {
-  --page: #0F1016; --rule: #171822; --ink: #A19B8E; --print: #545762; --seam: #1B1C25;
+  --page: #0F1016; --rule: #171822; --ink: #A19B8E; --print: #666973; --seam: #1B1C25;   /* print 3.5:1 (package 8 raised it from #545762, 2.6:1) */
   --lamp: #171824; --lamp-mix: 30%;
   --black-voice: #9A9AA0;
   --voice-l: 66%; --voice-c: .055;   /* embers */

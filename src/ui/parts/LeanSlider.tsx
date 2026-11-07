@@ -103,8 +103,9 @@ export function LeanSlider({ a, b, lean, note = '', onLean, onNote, disabled }: 
           <line class="fs-lean-detent" x1="50%" y1="35%" x2="50%" y2="65%" />
           <line class="fs-lean-detent" x1="99.6%" y1="35%" x2="99.6%" y2="65%" />
         </svg>
-        {shown !== undefined && (
-          <svg class="fs-lean-mark" style={{ left: pct(shown) }} viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
+        {/* no lean yet: a print-grey mark waits at the middle, so the first drag has something to hold (package 8) */}
+        {(
+          <svg class={`fs-lean-mark${shown === undefined ? ' waiting' : ''}`} style={{ left: pct(shown ?? 0) }} viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
             <path d="M6.4 2.5 C5.8 8 6.2 15 5.6 21.5" />
           </svg>
         )}
