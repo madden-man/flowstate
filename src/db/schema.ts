@@ -23,7 +23,14 @@ export type Settings = {
   stillAfterMidnight: 'offer' | 'never';
   sounds: boolean;
   haptics: boolean;
-  lock: { enabled: boolean; salt?: string; verifier?: Sealed; iterations?: number; relockAfterMin: number };
+  lock: {
+    enabled: boolean; salt?: string; verifier?: Sealed; iterations?: number;
+    /** Minutes in the background before the key drops; 0 means as soon as the app is hidden. */
+    relockAfterMin: number;
+    /** Not in PLAN.md section 4 (package 6): how many digits the PIN has, so the lock screen opens on the
+     *  last one instead of asking for a separate "open" tap. It tells a stranger the length, nothing more. */
+    digits?: number;
+  };
   lastBackupAt?: Millis;
   seededAt?: Millis;
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis };

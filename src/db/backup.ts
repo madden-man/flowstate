@@ -1,8 +1,11 @@
 // Export and import (PLAN.md section 7). One JSON file: every table, the schema version, exportedAt.
-// Rows are written as stored, so a sealed row stays sealed in the file (encrypted export is package 6).
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables } from './schema';
-import { isSealed, toB64, fromB64 } from './crypto';
-import { keyState, LockedError } from './fields';
+// Rows are written as stored, so with the lock on every sealed row stays sealed in the file and the
+// header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
+// Import opens a sealed file with that file's own PIN, then stores every row the way this journal
+// stores rows now: sealed with the current key, or plain when the lock is off.
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings } from './schema';
+import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
+import { keyState, LockedError, openRow, storedForm } from './fields';
 
 export const BACKUP_APP = 'flowstate';
 
@@ -10,11 +13,25 @@ export type BackupFile = {
   app: typeof BACKUP_APP;
   schemaVersion: number;
   exportedAt: number;
+  /** Set when the journal had a PIN: the sealed rows open with a key derived from it (package 6). */
+  encrypted?: true;
+  salt?: string;
+  iterations?: number;
+  verifier?: Sealed;
+  digits?: number;
   tables: { [K in TableName]: unknown[] };
 };
 
+/** What it takes to open a sealed file: its own salt and iteration count, and its verifier to check a PIN. */
+export type FileLock = { salt: string; iterations: number; verifier: Sealed; digits?: number };
+
 export class BackupError extends Error {
   constructor(message: string) { super(message); this.name = 'BackupError'; }
+}
+
+/** The file is sealed with a PIN, and no key for it was given: ask for that file's PIN. */
+export class NeedsPinError extends BackupError {
+  constructor() { super('This file is locked with a PIN'); this.name = 'NeedsPinError'; }
 }
 
 const pk = (t: TableName, row: Record<string, unknown>) => String(t === 'albums' ? row.albumUri : row.id);
@@ -34,7 +51,27 @@ export async function exportData(database: FlowDB = defaultDb, now = Date.now())
   tables.albums = await Promise.all(
     (tables.albums as Tables['albums'][]).map(async a => (a.cover ? { ...a, cover: await coverOut(a.cover) } : a)),
   );
-  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, tables };
+  const lock = (tables.settings as Settings[]).find(r => r.id === 'app')?.lock;
+  const sealedRows = TABLES.some(t => (tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
+  const header = lock?.enabled && lock.salt && lock.verifier && sealedRows
+    ? { encrypted: true as const, salt: lock.salt, iterations: lock.iterations ?? 0, verifier: lock.verifier, ...(lock.digits ? { digits: lock.digits } : {}) }
+    : {};
+  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, ...header, tables };
+}
+
+/** The file's lock when any of its rows are sealed; null for a plain file. A sealed file with no usable header is damaged. */
+export function fileLock(file: BackupFile): FileLock | null {
+  const hasSealed = TABLES.some(t => (file.tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
+  if (!hasSealed) return null;
+  if (typeof file.salt !== 'string' || typeof file.iterations !== 'number' || file.iterations < 1 || !isSealed(file.verifier))
+    throw new BackupError('This file is locked, and its lock is damaged');
+  return { salt: file.salt, iterations: file.iterations, verifier: file.verifier, digits: file.digits };
+}
+
+/** True when the key opens this file (it was derived from the file's PIN with the file's salt). */
+export async function fileKeyFits(file: BackupFile, fileKey: CryptoKey): Promise<boolean> {
+  const fl = fileLock(file);
+  return !!fl && checkVerifier(fileKey, fl.verifier);
 }
 
 export const fileName = (now = new Date()) =>
@@ -80,15 +117,30 @@ export type ImportResult = { added: number; updated: number; kept: number };
  * merge: keyed on id; a row in the file wins only when it is newer (stamp). Settings stay this phone's,
  * except where this phone has none.
  */
-export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb): Promise<ImportResult> {
-  if (keyState() !== 'plain') throw new LockedError();
-  const hasSealed = TABLES.some(t => (file.tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
-  if (hasSealed) throw new BackupError('This file is locked with a PIN');
+export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
+  // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
+  if (keyState() === 'locked') throw new LockedError();
+  const fl = fileLock(file);
+  if (fl) {
+    if (!fileKey) throw new NeedsPinError();
+    if (!(await checkVerifier(fileKey, fl.verifier))) throw new BackupError('Not that one');
+  }
+  // This phone's lock stays this phone's: a file's lock settings never replace the ones its rows are sealed with now.
+  const myLock = (await database.settings.get('app'))?.lock;
   const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
   for (const t of TABLES) {
-    incoming[t] = (file.tables[t] as Record<string, unknown>[]).map(r =>
-      t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON) } : r,
-    );
+    const rows: Record<string, unknown>[] = [];
+    for (const r of file.tables[t] as Record<string, unknown>[]) {
+      let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON) } : r;
+      // open with the file's key (a wrong one throws before anything is written), then store as this journal stores rows
+      let opened = (await openRow(t, row as never, fileKey ?? null)) as Record<string, unknown>;
+      if (t === 'settings') {
+        opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
+      }
+      row = (await storedForm(t, opened as never)) as Record<string, unknown>;
+      rows.push(row);
+    }
+    incoming[t] = rows;
   }
   const result: ImportResult = { added: 0, updated: 0, kept: 0 };
   await database.transaction('rw', TABLES.map(t => database.table(t)), async () => {
@@ -149,7 +201,7 @@ export async function backupNow(database: FlowDB = defaultDb): Promise<'shared' 
   if (outcome !== 'cancelled') {
     const bytes = new Blob([JSON.stringify(data)]).size;
     await database.transaction('rw', database.backups, database.settings, async () => {
-      await database.backups.put({ id: crypto.randomUUID(), at: now, bytes, encrypted: false });
+      await database.backups.put({ id: crypto.randomUUID(), at: now, bytes, encrypted: !!data.encrypted });
       await database.settings.update('app', { lastBackupAt: now });
     });
   }

@@ -14,6 +14,10 @@ import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
+import type { ComponentChildren } from 'preact';
+import { LockPad } from './ui/lock/Lock';
+import { gateState } from './ui/lock/pin';
+import { startRelock } from './ui/lock/relock';
 
 export const TABS = [
   ['journal', 'Journal'],
@@ -66,13 +70,31 @@ function Frame() {
   );
 }
 
+/** One threshold (PLAN.md sections 7 and 8). With a PIN on and the key out of memory, the threshold stands in
+ *  front of everything, tab bar included: the manifesto, the ring breathing, and the keypad beneath (package 6).
+ *  The hash is left alone, so a deep link lands once the PIN opens it. Unlocked, a cold load breathes once
+ *  over the page (package 5) and the page comes up. */
+function Gate({ children }: { children: ComponentChildren }) {
+  useEffect(() => startRelock(), []);
+  const [breath, setBreath] = useState(thresholdWanted);
+  const locked = gateState() === 'locked';
+  // the locked threshold was the breath: once the PIN opens the app, the page comes straight up
+  useEffect(() => { if (locked) setBreath(false); }, [locked]);
+  if (locked) return <Threshold keypad={<LockPad />} onDone={() => setBreath(false)} />;
+  return (
+    <>
+      {children}
+      {breath && <Threshold onDone={() => setBreath(false)} />}
+    </>
+  );
+}
+
 export function App() {
-  // a breath before the page, on a cold load (package 5; package 6 adds the keypad to this screen)
-  const [threshold, setThreshold] = useState(thresholdWanted);
   return (
     <HashLocation>
-      <Frame />
-      {threshold && <Threshold onDone={() => setThreshold(false)} />}
+      <Gate>
+        <Frame />
+      </Gate>
     </HashLocation>
   );
 }

@@ -22,8 +22,8 @@ const TICKS: Record<string, string[]> = {
   detent: ['src/ui/parts/LeanSlider.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/journal/Seg.tsx', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx'],
-  unlock: ['src/ui/lock/'], // package 6
+  sheet: ['src/ui/parts/Page.tsx', 'src/ui/journal/Seg.tsx', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx'],
+  unlock: ['src/ui/lock/Lock.tsx'],
 };
 // Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album.
 const BELLS: Record<string, string[]> = {
@@ -32,7 +32,7 @@ const BELLS: Record<string, string[]> = {
   leanLow: ['src/ui/parts/LeanSlider.tsx'],
   leanHigh: ['src/ui/parts/LeanSlider.tsx'],
   album: ['src/ui/music/'],
-  unlock: ['src/ui/lock/'], // package 6
+  unlock: ['src/ui/lock/Lock.tsx'],
 };
 
 const allowed = (table: Record<string, string[]>, line: string) => {
@@ -52,8 +52,8 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('the listed events that exist so far all fire somewhere', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
-    for (const t of ['tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet']) expect(ticks, t).toContain(t);
-    for (const b of ['settle', 'keep', 'leanLow', 'leanHigh', 'album']) expect(bells, b).toContain(b);
+    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet']) expect(ticks, t).toContain(t);
+    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');

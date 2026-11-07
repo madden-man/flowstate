@@ -1,8 +1,8 @@
 // The threshold (DESIGN.md section 1: "the threshold is a breath"): after a cold load the app opens on
 // the manifesto's two lines on the page colour while the ring breathes once, then the page comes up.
 // A tap goes straight through. It is skipped under reduced motion and when the page is reloaded within
-// the same session. Package 6 puts the keypad on this same screen: pass it as `keypad`, and the
-// threshold then waits for `onDone` from the lock instead of the breath.
+// the same session. Locked (package 6), the same screen carries the keypad beneath the manifesto: the
+// ring keeps breathing, and the threshold stays until the PIN opens the app (the gate in app.tsx).
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { MANIFESTO } from '../../db/seed';
@@ -29,7 +29,7 @@ export function thresholdWanted(): boolean {
 type Props = {
   /** Called once the breath is over (or on a tap); the app then shows the page. */
   onDone: () => void;
-  /** The slot for package 6's keypad. With a keypad the breath does not end the threshold: the lock does. */
+  /** The lock's keypad (package 6). With a keypad the breath does not end the threshold: the PIN does. */
   keypad?: ComponentChildren;
 };
 
@@ -47,10 +47,13 @@ export function Threshold({ onDone, keypad }: Props) {
     return () => clearTimeout(t);
   }, []);
   return (
-    <div class={`fs-threshold${out ? ' out' : ''}`} data-threshold onPointerDown={keypad ? undefined : leave}>
-      <p class="fs-threshold-title">Who to Be, How to Flow</p>
-      <p class="fs-manifesto">{MANIFESTO[0]}<br />{MANIFESTO[1]}</p>
-      <RingMark />
+    <div class={`fs-threshold${keypad ? ' locked' : ''}${out ? ' out' : ''}`} data-threshold data-lock={keypad ? '' : undefined}
+      onPointerDown={keypad ? undefined : leave}>
+      <div class="fs-threshold-words">
+        <h1 class="fs-threshold-title">Who to Be, How to Flow</h1>
+        <p class="fs-manifesto">{MANIFESTO[0]}<br />{MANIFESTO[1]}</p>
+        <RingMark />
+      </div>
       {keypad && <div class="fs-threshold-keypad">{keypad}</div>}
     </div>
   );
