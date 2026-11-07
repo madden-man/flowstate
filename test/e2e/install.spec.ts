@@ -52,17 +52,32 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   const slot = card.getByRole('button', { name: 'and on the selfish side?' });
   await expect(slot).toBeVisible();
+  // the upright spread (V4): the slot sits on the goal's row, level with it, on the other side of the seam
+  const box = async (name: string) => (await card.getByRole('button', { name, exact: true }).boundingBox())!;
+  const lone = await box('Share what you make with the world');
+  const open = (await slot.boundingBox())!;
+  expect(open.y).toBeCloseTo(lone.y, 0);
+  expect(open.x).toBeGreaterThan(lone.x + lone.width);
   await slot.click();
   await expect(page.getByRole('textbox', { name: 'selfish goal' })).toBeFocused();
   await page.getByRole('textbox', { name: 'selfish goal' }).fill('Write for its own sake');
   await page.getByRole('button', { name: 'Save both' }).click();
   await expect(slot).toHaveCount(0);
   await expect(pairs).toHaveCount(before + 1);
+  // the pair shares one row
+  const [give, keep] = [await box('Share what you make with the world'), await box('Write for its own sake')];
+  expect(keep.y).toBeCloseTo(give.y, 0);
   await page.reload();
   await expect(card.getByRole('button', { name: 'Share what you make with the world' })).toBeVisible();
   await expect(card.getByRole('button', { name: 'Write for its own sake', exact: true })).toBeVisible();
   await expect(card.getByRole('button', { name: 'and on the selfish side?' })).toHaveCount(0);
   await expect(pairs).toHaveCount(before + 1);
+  // the poles stand on their rules; the earlier versions of the three words stay struck through under Edit
+  await card.getByRole('button', { name: 'Edit' }).click();
+  const paradoxSheet = page.locator('[data-sheet="The paradox"]');
+  await expect(paradoxSheet.getByLabel('Earlier versions').locator('[data-struck]')).toHaveCount(2);
+  await paradoxSheet.getByRole('button', { name: 'Done' }).click();
+  await expect(paradoxSheet).toHaveCount(0);
 
   // Settings rises from the header and goes away without leaving anything over the tabs
   await page.getByRole('button', { name: 'Settings' }).click();
