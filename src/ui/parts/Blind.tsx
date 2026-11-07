@@ -14,18 +14,22 @@ import { RingMark } from './Ring';
 export const BLIND_COMMIT_PX = 80;
 /** How far the decision waits before calling a drag a pull, a scroll or a sideways swipe. */
 const DECIDE_PX = 8;
-/** What keeps its own gesture: fields, the chip row, sliders, the spread, sheets, anything marked. */
-const OWN = 'textarea, input, select, [contenteditable], .fs-composer, .fs-composer-wrap, .fs-chips, [role="slider"], .fs-spread, .fs-sheet, .fs-scrim, [data-noblind]';
+/** A pull starts at once; a finger that rests first is a long press (pick up, keep close, reply). */
+const PROMPT_MS = 350;
+/** What keeps its own gesture: fields, the chip row, sliders, sheets, anything marked. */
+const OWN = 'textarea, input, select, [contenteditable], .fs-composer, .fs-composer-wrap, .fs-chips, [role="slider"], .fs-sheet, .fs-scrim, [data-noblind]';
 
-/** Every scroller between the touch and the page is at its top. */
-function atTop(target: Element, page: Element): boolean {
+/** The touch is free for the blind: every scroller between it and the page is at its top, and nothing on
+ *  the way has taken the touch for itself (touch-action: none, as the spread's goals do). */
+function free(target: Element, page: Element): boolean {
+  if (target.closest(OWN)) return false;
   for (let el: Element | null = target; el && el !== page; el = el.parentElement) {
-    if (el.scrollTop > 0) return false;
+    if (el.scrollTop > 0 || getComputedStyle(el).touchAction === 'none') return false;
   }
   return true;
 }
 
-type Drag = { y0: number; x0: number; dy: number; state: 'maybe' | 'pull' | 'no'; id?: number };
+type Drag = { y0: number; x0: number; t0: number; dy: number; state: 'maybe' | 'pull' | 'no'; id?: number };
 
 /** Wires the blind onto a page. The page element moves; the blind panel inside it hangs above its top. */
 export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HTMLElement>): void {
@@ -40,8 +44,8 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
     };
     const start = (x: number, y: number, target: EventTarget | null, id?: number) => {
       drag.current = null;
-      if (still.peek() || !(target instanceof Element) || target.closest(OWN) || !atTop(target, page)) return;
-      drag.current = { x0: x, y0: y, dy: 0, state: 'maybe', id };
+      if (still.peek() || !(target instanceof Element) || !free(target, page)) return;
+      drag.current = { x0: x, y0: y, t0: Date.now(), dy: 0, state: 'maybe', id };
     };
     /** Returns true while the page is being pulled (the caller then stops the browser's own pan). */
     const move = (x: number, y: number): boolean => {
@@ -50,7 +54,7 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
       const dy = y - d.y0, dx = x - d.x0;
       if (d.state === 'maybe') {
         if (Math.abs(dy) < DECIDE_PX && Math.abs(dx) < DECIDE_PX) return false;
-        d.state = dy > 0 && dy > Math.abs(dx) * 1.2 ? 'pull' : 'no';
+        d.state = dy > 0 && dy > Math.abs(dx) * 1.2 && Date.now() - d.t0 < PROMPT_MS ? 'pull' : 'no';
         if (d.state === 'no') return false;
       }
       // the page follows the finger, up to about half the screen

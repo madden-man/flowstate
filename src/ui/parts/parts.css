@@ -586,10 +586,12 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 .fs-kept-line { margin: 0; padding: var(--s1) var(--gutter) 0; font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: 1.45; }
 /* the ring asks once, beneath it */
 .fs-enough {
-  margin: 0; padding: 0 var(--gutter); display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s1);
+  margin: 0; padding: 0 var(--gutter); display: flex; align-items: center; white-space: nowrap; overflow-x: auto; scrollbar-width: none;
   font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: 1.45;
 }
-.fs-enough span { margin-right: var(--s1); }
+.fs-enough span { margin-right: auto; padding-right: var(--s1); }
+.fs-enough .fs-word { padding: 0 calc(var(--s1) / 2); font-style: normal; }
+.fs-enough .fs-word:last-child { margin-right: calc(var(--s1) / -2); }
 
 /* a breath before the page: the manifesto on the page colour while the ring breathes once */
 .fs-threshold {

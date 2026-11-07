@@ -90,7 +90,6 @@ details code{font-size:12px}
 .seg .on{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:3px}
 .echo{font-style:italic;color:var(--print);font-size:15px;line-height:22px;padding:8px var(--gutter) 0;display:flex;gap:10px;align-items:flex-start;cursor:pointer;touch-action:pan-y;transition:transform var(--t-page) var(--ease),opacity var(--t-page)}
 .echo i{font-style:normal;font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding-top:5px;flex:none}
-.steady{text-align:center;font-style:italic;padding:22px var(--gutter) 10px;color:var(--ink)}
 /* lists (flow, settings) */
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .row small{font-family:var(--sans);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--print);text-align:right}
@@ -159,17 +158,16 @@ details code{font-size:12px}
 .sheet .opt small{font-family:var(--sans);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--print)}
 .sheet a{color:inherit;text-decoration:none}
 .scrim{position:absolute;inset:0;background:var(--scrim);z-index:3}
-.blind{position:absolute;left:0;right:0;top:0;height:0;background:var(--page);color:var(--print);border-bottom:1px solid var(--rule);box-shadow:var(--shadow-sheet);display:grid;place-content:end center;justify-items:center;gap:10px;padding-bottom:14px;font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;z-index:2;overflow:hidden;transition:height var(--t-page) var(--ease);white-space:nowrap}
-.blind.ready{color:var(--ink)}
-.blind .ring{border-color:currentColor;animation:none;transform:scale(.8)}
-.pushable{display:flex;flex-direction:column;flex:1;transition:transform var(--t-page) var(--ease);touch-action:none;cursor:grab}
-.dragging .pushable,.dragging .blind{transition:none}
 @media (prefers-reduced-motion:reduce){.ring,.thr .man,.caret{animation:none}}
 </style>
 <!-- The app's own page parts (src/ui/parts/parts.css, copied here by npm run tokens:check's fix line). Every Journal, Council and Be step is built from them. -->
 <link rel="stylesheet" href="parts.css">
 <style>
 /* a real .fs-app inside a mock phone: the status bar above stands in for the safe area */
+.screen:not([data-light="still"]) .fs-moon .fs-ring-mark{display:none}
+.screen .fs-threshold{position:absolute;border-radius:inherit;animation:thr-out var(--t-page) var(--ease) var(--t-breath) forwards}
+@keyframes thr-out{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.screen .fs-threshold{display:none}}
 .screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent}
 </style>
 </head>
@@ -184,32 +182,16 @@ details code{font-size:12px}
 
 
 <!-- 1 -->
-<section class="step" id="threshold" data-name="The threshold">
+<section class="step" id="threshold" data-name="A breath before the page">
   <h2>A breath before the page</h2>
-  <p class="line">Tap your word while the lines breathe.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night" data-step="threshold"><div class="island"></div>
-    <div class="status"><span>21:14</span><span>FlowState</span></div>
-    <div class="thr">
-      <div class="title">Who to Be, How to Flow</div>
-      <div class="man">I determine my core.<br>I choose how to flow.</div>
-      <div class="dots"><i></i><i></i><i></i><i></i></div>
-      <div class="keys">
-        <div class="key"><b>1</b><small>&nbsp;</small></div><div class="key"><b>2</b><small>ABC</small></div><div class="key"><b>3</b><small>DEF</small></div>
-        <div class="key"><b>4</b><small>GHI</small></div><div class="key"><b>5</b><small>JKL</small></div><div class="key"><b>6</b><small>MNO</small></div>
-        <div class="key"><b>7</b><small>PQRS</small></div><div class="key"><b>8</b><small>TUV</small></div><div class="key"><b>9</b><small>WXYZ</small></div>
-        <div></div><div class="key"><b>0</b><small>&nbsp;</small></div><div></div>
-      </div>
-    </div>
-    <div class="after">
-      <div class="status"><span>21:14</span><span>Journal</span></div>
-      <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>14</b></span><span>Date <b>11 / 7 / 26</b></span></div></div>
-      <div class="pg" contenteditable="true" spellcheck="false"><p><br></p></div>
-      <div class="chips"><span class="chip on">Ink</span><span class="chip" data-voice="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</span><span class="chip" data-voice="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</span><span class="chip" data-voice="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</span><span class="chip" data-voice="Architect" style="--vc:var(--v-green)"><i></i>Architect</span><span class="chip add">+ voice</span></div>
-      <div class="tabs"><span class="on">Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
-    </div>
+  <p class="line">The manifesto while the ring breathes once.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="threshold" data-j><div class="island"></div>
+    <div class="status"><span>21:14</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules fs-col"></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today&#39;s page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+    <div class="fs-threshold" data-threshold><p class="fs-threshold-title">Who to Be, How to Flow</p><p class="fs-manifesto">I determine my core.<br>I choose how to flow.</p><span class="fs-ring-mark"></span></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Light</td><td><code>data-light</code> on <code>&lt;html&gt;</code>; the breath is <code>--t-breath</code>, static under reduced motion.</td></tr>
+    <tr><td>Part</td><td><code>parts/Threshold</code>: one <code>--t-breath</code> on a cold load; skipped under reduced motion and on a reload in the same session. The keypad (package 6) goes in its <code>keypad</code> slot.</td></tr>
   </table></details>
 </section>
 
@@ -447,18 +429,12 @@ details code{font-size:12px}
 <section class="step" id="blind" data-name="Pull the page down">
   <h2>When thoughts spin, pull the page down</h2>
   <p class="line">Let go past the line.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day" data-step="blind"><div class="island"></div>
-    <div class="blind" data-light="still"><div class="ring"></div><span>Release to settle</span></div>
-    <div class="pushable">
-      <div class="status"><span>23:58</span><span>Journal</span></div>
-      <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>16</b></span><span>Date <b>11 / 8 / 26</b></span></div></div>
-      <div class="pg"><p>On the inside I'm boiling in my own soup. Shouldn't there be some process I can use to escape from this suffering and shrug off the neverending sensitivity<span class="caret"></span></p></div>
-      <div class="chips"><span class="chip on">Ink</span><span class="chip" style="--vc:var(--v-black)"><i></i>Skeptic</span><span class="chip" style="--vc:var(--v-blue)"><i></i>Mystic</span><span class="chip" style="--vc:var(--v-red)"><i></i>Warrior</span><span class="chip deep" style="--vc:var(--d-blue)"><i></i>Phantom</span><span class="chip add">+ voice</span></div>
-      <div class="tabs"><span class="on">Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
-    </div>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="blind"><div class="island"></div>
+    <div class="status"><span>23:58</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><div class="fs-blind" data-light="still" aria-hidden="true"><span class="fs-ring-mark hold"></span></div><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>16</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">boiling</button><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg"><p>On the inside I&#39;m boiling in my own soup.</p></div><div class="fs-msg"><p>Shouldn&#39;t there be some process I can use to escape from this suffering and shrug off the neverending sensitivity that sits under my skin everywhere I go?</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today&#39;s page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Gesture</td><td>Release past 80px commits; one tick and a low tone. Nothing is written.</td></tr>
+    <tr><td>Part</td><td><code>parts/Blind</code> on every <code>parts/Page</code>: arms only at a scroll area&#39;s top on a prompt downward drag; past 80px, <code>settle()</code> gives one tick and the low tone. Nothing is written.</td></tr>
   </table></details>
 </section>
 
@@ -466,16 +442,13 @@ details code{font-size:12px}
 <section class="step" id="still" data-name="Still">
   <h2>Still</h2>
   <p class="line">One kept line; the ring brings you back.</p>
-  <div class="phone" data-mock><div class="screen" data-light="still" data-step="still"><div class="island"></div>
+  <div class="phone" data-mock><div class="screen" data-light="still" data-step="still" data-j><div class="island"></div>
     <div class="status"><span>00:02</span><span>&nbsp;</span></div>
-    <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>16</b></span><span>Date <b>11 / 8 / 26</b></span></div></div>
-    <div class="steady">Stand tall, young one.</div>
-    <div class="pg" contenteditable="true" spellcheck="false"><p>On the inside I'm boiling in my own soup. Shouldn't there be some process I can use to escape from this suffering and shrug off the neverending sensitivity that sits under my skin everywhere I go?</p><p><span class="caret"></span><br></p></div>
-    <div class="chips"><span class="chip on">Ink</span><span class="chip" data-voice="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</span><span class="chip" data-voice="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</span><span class="chip" data-voice="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</span><span class="chip deep" data-voice="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</span><span class="chip add">+ voice</span></div>
-    <div class="tabs"><span class="on">Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>16</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header><p class="fs-kept-line" data-kept-line>Stand tall, young one.</p><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">boiling</button><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg"><p>On the inside I&#39;m boiling in my own soup.</p></div><div class="fs-msg"><p>Shouldn&#39;t there be some process I can use to escape from this suffering and shrug off the neverending sensitivity that sits under my skin everywhere I go?</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today&#39;s page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Light</td><td><code>[data-light="still"]</code>: lower luminance, no wash, no counts; deep twins leave the chip row, their lines stay.</td></tr>
+    <tr><td>Light</td><td><code>[data-light="still"]</code>: no counts, states, lists or deep chips; their lines stay. <code>parts/Ring</code> breathes on <code>--t-breath</code>.</td></tr>
+    <tr><td>Kept line</td><td><code>parts/StillTop</code>, oldest unseen first, one per session (<code>src/ui/still.ts</code>).</td></tr>
   </table></details>
 </section>
 
@@ -483,20 +456,12 @@ details code{font-size:12px}
 <section class="step" id="enough" data-name="Enough for now?">
   <h2>After twelve minutes, the ring asks once</h2>
   <p class="line">Close the page or keep writing.</p>
-  <div class="phone" data-mock><div class="screen" data-light="still" data-step="enough"><div class="island"></div>
+  <div class="phone" data-mock><div class="screen" data-light="still" data-step="enough" data-j><div class="island"></div>
     <div class="status"><span>00:14</span><span>&nbsp;</span></div>
-    <div class="hdr"><div class="sw"><div class="moon"></div><div class="ring"></div></div><div class="r"><span>Date <b>11 / 8 / 26</b></span></div></div>
-    <div class="steady">Stand tall, young one.</div>
-    <div class="pg" contenteditable="true" spellcheck="false"><p>…that sits under my skin everywhere I go? I control myself externally, and I logic through all the while, but on the inside</p><p><br></p></div>
-    <div class="scrim" data-act="dismiss"></div>
-    <div class="sheet"><div class="grab"></div>
-      <p class="q" style="margin-bottom:6px">Enough for now?</p>
-      <p class="opt" data-act="close-page"><span>Close the page</span><small>filed as raw</small></p>
-      <p class="opt" data-act="dismiss"><span>Keep writing</span><small>&nbsp;</small></p>
-    </div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>16</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header><p class="fs-enough" role="group" aria-label="Enough for now?"><span>Enough for now?</span><button type="button" class="fs-word" data-enough="close">Close the page</button><button type="button" class="fs-word" data-enough="keep">Keep writing</button></p><p class="fs-kept-line" data-kept-line>Stand tall, young one.</p><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">boiling</button><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg"><p>On the inside I&#39;m boiling in my own soup.</p></div><div class="fs-msg"><p>Shouldn&#39;t there be some process I can use to escape from this suffering and shrug off the neverending sensitivity that sits under my skin everywhere I go?</p></div><div class="fs-msg"><p>I control myself externally, and I logic through all the while, but on the inside</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today&#39;s page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Timer</td><td>Twelve minutes of typing, once a session; Close files the page raw.</td></tr>
+    <tr><td>Rule</td><td>Composer keystrokes count; a pause over 5s counts as 5s. Once per Still session; Close routes to <code>#/journal</code> and stays in Still.</td></tr>
   </table></details>
 </section>
 
@@ -711,7 +676,7 @@ details code{font-size:12px}
     var it=t.closest('.it:not(.ghost)'); if(it){drag={kind:'it',el:it,sp:it.closest('.spread'),screen:screen};it.classList.add('lift');e.preventDefault();return;}
     var lean=t.closest('.lean'); if(lean){drag={kind:'lean',el:lean,screen:screen,last:null};moveLean(lean,e);e.preventDefault();return;}
     var echo=t.closest('.echo'); if(echo){drag={kind:'echo',el:echo,x0:e.clientX,dx:0};return;}
-    if(screen.dataset.step==='blind'&&screen.dataset.light!=='still'&&t.closest('.pushable')){drag={kind:'blind',screen:screen,y0:e.clientY,dy:0,blind:screen.querySelector('.blind'),push:screen.querySelector('.pushable')};screen.classList.add('dragging');e.preventDefault();return;}
+    if(screen.dataset.step==='blind'&&screen.dataset.light!=='still'&&t.closest('.fs-page')&&!t.closest('.fs-chips,.fs-composer,.fs-moon')){drag={kind:'blind',screen:screen,y0:e.clientY,dy:0,blind:screen.querySelector('.fs-blind'),push:screen.querySelector('.fs-page')};drag.push.classList.add('fs-pulling');e.preventDefault();return;}
     var line=t.closest('[data-press]'); if(line){press={el:line,screen:screen,x:e.clientX,y:e.clientY,timer:setTimeout(function(){line.setAttribute('data-pressed','');openSheet(screen);press=null;},500)};}
   });
   function moveLean(lean,e){var r=lean.getBoundingClientRect(),x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var det=[0,.5,1],snap=null;det.forEach(function(d){if(Math.abs(x-d)<.07){x=d;snap=d;}});lean.querySelector('b').style.left=(x*100)+'%';if(snap!==null&&drag&&drag.last!==snap){drag.last=snap;tick();if(snap!==.5)bell(snap===0?440:587,.5,.05);}if(snap===null&&drag)drag.last=null;}
@@ -719,13 +684,13 @@ details code{font-size:12px}
     if(drag.kind==='it'){var sp=drag.sp,r=sp.getBoundingClientRect();var t=Math.max(.06,Math.min(.94,(e.clientY-r.top)/r.height));drag.el.dataset.t=t;layoutSpread(sp);}
     if(drag.kind==='lean')moveLean(drag.el,e);
     if(drag.kind==='echo'){drag.dx=e.clientX-drag.x0;drag.el.style.transform='translateX('+drag.dx+'px)';drag.el.style.opacity=String(Math.max(.1,1-Math.abs(drag.dx)/140));if(Math.abs(drag.dx)>6)drag.el.dataset.moved='1';}
-    if(drag.kind==='blind'){var H=drag.screen.clientHeight;drag.dy=Math.max(0,Math.min(H*.42,e.clientY-drag.y0));drag.blind.style.height=drag.dy+'px';drag.push.style.transform='translateY('+drag.dy+'px)';drag.blind.classList.toggle('ready',drag.dy>=80);}
+    if(drag.kind==='blind'){var H=drag.screen.clientHeight;drag.dy=Math.max(0,Math.min(H*.45,e.clientY-drag.y0));drag.push.style.transform=drag.dy?'translateY('+drag.dy+'px)':'';drag.blind.classList.toggle('ready',drag.dy>=80);}
     if(press&&(Math.abs(e.clientX-press.x)>8||Math.abs(e.clientY-press.y)>8)){clearTimeout(press.timer);press=null;}
   });
   function endDrag(e){if(press){clearTimeout(press.timer);press=null;}if(!drag)return;var d=drag;drag=null;
     if(d.kind==='it'){d.el.classList.remove('lift');tick();}
     if(d.kind==='echo'){if(Math.abs(d.dx)>70){d.el.style.transform='translateX('+(d.dx>0?400:-400)+'px)';d.el.style.opacity='0';setTimeout(function(){d.el.remove();},300);tick();}else{d.el.style.transform='';d.el.style.opacity='';setTimeout(function(){delete d.el.dataset.moved;},50);}}
-    if(d.kind==='blind'){d.screen.classList.remove('dragging');d.push.style.transform='';if(d.dy>=80){setLight(d.screen,'still');low();tick();d.blind.style.height='0px';}else{d.blind.style.height='0px';}d.blind.classList.remove('ready');}
+    if(d.kind==='blind'){d.push.classList.remove('fs-pulling');d.push.style.transform='';d.blind.classList.remove('ready');if(d.dy>=80){setLight(d.screen,'still');low();tick();}}
   }
   document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
 
@@ -844,6 +809,18 @@ details code{font-size:12px}
   main.addEventListener('pointerdown',function(e){var r=e.target.closest&&e.target.closest('[data-p4] .fs-lean-rule');if(!r)return;drag=r;r.classList.add('drag');place(r,at(r.getBoundingClientRect(),e.clientX));});
   document.addEventListener('pointermove',function(e){if(drag)place(drag,at(drag.getBoundingClientRect(),e.clientX));});
   document.addEventListener('pointerup',function(){if(drag)drag.classList.remove('drag');drag=null;});
+})();
+</script>
+<script>
+/* package 5: tap the threshold's page to breathe again; "Close the page" and "Keep writing" answer the ring */
+(function(){
+  document.getElementById('main').addEventListener('click',function(e){
+    var scr=e.target.closest&&e.target.closest('.screen');if(!scr)return;
+    if(scr.dataset.step==='threshold'&&!e.target.closest('.fs-chips,.fs-composer')){var th=scr.querySelector('.fs-threshold');if(th&&getComputedStyle(th).visibility==='hidden'){var n=th.cloneNode(true);th.replaceWith(n);}}
+    var b=e.target.closest('[data-enough]');if(!b)return;
+    var line=scr.querySelector('.fs-enough');if(line)line.remove();
+    if(b.dataset.enough==='close'){var c=scr.querySelector('.fs-col');c.style.transition='opacity var(--t-page) var(--ease)';c.style.opacity='0';setTimeout(function(){c.innerHTML='';c.style.opacity='';},600);}
+  });
 })();
 </script>
 </body>
