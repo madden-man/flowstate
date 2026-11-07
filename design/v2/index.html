@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState v2: a journal first</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="parts.css">
+<style>
+/* Page chrome around the phones; the phones themselves run on tokens.css and parts.css unchanged. */
+:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow: walkthrough chrome */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow: walkthrough chrome */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px 16px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
+header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+.lights{margin-left:auto;display:flex;gap:4px;background:var(--rail);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lights button,.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
+.lights button[aria-pressed="true"]{background:var(--fg);color:var(--rail)}
+.lights button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
+nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
+nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
+nav.rail a[aria-current]{background:var(--bg)}
+nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
+@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
+main{min-width:0}
+.step{display:none}
+.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
+.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
+.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
+.ctl{display:flex;gap:10px;justify-content:center}
+.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
+details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
+summary{cursor:pointer;color:var(--fg)}
+details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
+details td:first-child{color:var(--fg);white-space:nowrap}
+details code{font-size:12px}
+details s{color:var(--muted)}
+
+/* ---------- the phone ---------- */
+.phone{width:min(100%,380px);aspect-ratio:390/800;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative;user-select:none;-webkit-user-select:none} /* design-lint: allow: the phone shell */
+.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--page);color:var(--ink);font-family:var(--serif);font-size:var(--fs-ink);line-height:var(--lh-ink);transition:background-color var(--t-light) var(--ease),color var(--t-light) var(--ease)}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow: the phone shell */
+.status{display:flex;justify-content:space-between;padding:15px 28px 0;font-family:var(--sans);font-size:12px;color:var(--print);position:relative}
+.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent;position:relative}
+.screen .fs-moon b{display:none}
+.screen[data-light="still"] .fs-moon i{display:none}
+.screen[data-light="still"] .fs-moon b{display:block;animation:breathe var(--t-breath) var(--ease) infinite}
+@keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
+.screen .fs-hdr-l .fs-word{padding-inline:var(--s1)}
+.screen .fs-sheetof{overflow:hidden}
+/* the ? mark in the bar: a glyph like the header's ♪, so the four words stay */
+.screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
+
+/* ---------- v2 pieces that do not exist yet (the proposal) ---------- */
+/* the page is the editor: a paragraph is a block; the one you are on carries a margin dot */
+.v2-para{position:relative}
+.v2-para.cur::before{content:"";position:absolute;left:calc(var(--gutter) * -1 + 7px);top:calc(var(--lh-ink) / 2 - 3px);width:6px;height:6px;border-radius:50%;border:1px solid var(--print)}
+.v2-para.cur.fs-v::before{display:none}
+.v2-caret{display:inline-block;width:1.5px;height:20px;background:var(--ink);vertical-align:-4px;animation:blink calc(var(--t-breath) / 9) steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+/* the margin dot, tapped: the chips step out in that paragraph's row, then step back */
+.v2-inline{padding:4px 0 6px;margin-left:calc(var(--s1) * -1)}
+.v2-inline .fs-chips{padding:0}
+.v2-inline .fs-chip{min-height:32px;padding:0 10px}
+.v2-inline .fs-chip.more{border-style:dashed;color:var(--print)}
+/* the Pages screen */
+.v2-month{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);line-height:var(--lh-ink);margin:0}
+.v2-search{display:flex;align-items:center;height:var(--lh-ink);color:var(--print);font-style:italic;font-size:var(--fs-fill)}
+.screen .fs-list-row{min-height:calc(var(--lh-ink) * 2)}
+.screen .fs-list-row.q .fs-list-line{font-size:var(--fs-title)}
+.screen .fs-list-row .fs-spoke{height:var(--lh-ink);vertical-align:middle;margin-left:var(--s1)}
+/* the council: who sits */
+.v2-seats{display:flex;flex-wrap:wrap;gap:var(--s1);padding:var(--s1) 0}
+.v2-seats .fs-chip{min-height:var(--hit);padding:0 14px;font-size:15px}
+/* the spread, upright: pole A on the top rule, pole B on the bottom one, the seam between */
+.v2-ladder{position:relative;height:470px;margin:var(--s1) var(--gutter) 0;font-family:var(--serif)}
+.v2-ladder::before{content:"";position:absolute;left:50%;top:var(--lh-ink);bottom:var(--lh-ink);width:1px;background:var(--seam)}
+.v2-pole{position:absolute;left:0;right:0;text-align:center;font-size:var(--fs-chip);letter-spacing:.02em;line-height:var(--lh-ink);margin:0}
+.v2-pole.a{top:0}
+.v2-pole.b{bottom:0}
+.v2-pole i{font-style:italic;color:var(--print)}
+.v2-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-style:italic;color:var(--print);font-size:var(--fs-chip);white-space:nowrap;background:var(--page);padding:0 var(--s1);margin:0;transition:background-color var(--t-light)}
+.v2-goal{position:absolute;width:44%;font-size:13px;line-height:17px;margin:0;color:var(--ink)}
+.v2-goal.a{left:0}
+.v2-goal.b{right:0;text-align:right}
+.v2-goal small{display:block;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);line-height:1.6}
+.v2-slot{position:absolute;width:44%;right:0;border:1px dashed var(--print);border-radius:var(--s1);color:var(--print);font-style:italic;font-size:13px;line-height:17px;padding:6px 8px;text-align:right;margin:0}
+.v2-tie{position:absolute;left:44%;right:44%;height:0;border-top:1px dotted var(--print);opacity:.8}
+.screen .fs-addgoal{position:static;margin:var(--s1) var(--gutter) 0;align-self:flex-start}
+@media (prefers-reduced-motion:reduce){.v2-caret,.screen .fs-moon b{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState v2: a journal first</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+
+<!-- 1 -->
+<section class="step" id="open" data-name="Open, and write">
+  <h2>Open, and write</h2>
+  <p class="line">The caret waits on the first rule.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:14</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col"><p class="v2-para cur"><span class="v2-caret"></span></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Gone</td><td>The segment row (Entries · Questions · Earlier · Search), the Mood row, the raw · revisited · integrated buttons, the bottom composer, the standing chip row.</td></tr>
+    <tr><td>Kept</td><td>Header (moon, Pages, Settings, ♪, No., Date), rules, the four tabs, the echo above a new page once a line is kept.</td></tr>
+    <tr><td>Lights</td><td>Sunrise and sunset change the light in one <code>--t-light</code> breath. The 40-minute stretch goes: it left chips, sheets and rules in the new light while the page was still in the old one.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="paragraphs" data-name="Return makes the next line">
+  <h2>Return makes the next line, not a message</h2>
+  <p class="line">Paragraphs on the rules, saved as you go.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:40</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="v2-para">All this, and I'm reduced to simple journaling. I suppose at the end of the day it's the simple things that make the most difference.</p>
+        <p class="v2-para">The hard part is naming what's actually bothering me. It isn't the move. It's the quiet after it. <span class="fs-tagword">#evergreen</span></p>
+        <p class="v2-para cur">So, plainly: what am I waiting for<span class="v2-caret"></span></p>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Blocks</td><td>Each paragraph is one <code>messages</code> row, as today; the page column itself is editable (tap any paragraph, type on the last rule). Return adds a block, Shift+Return breaks a line.</td></tr>
+    <tr><td>Saving</td><td><code>writeLine</code> unchanged, debounced per block. <code>#tags</code> still fill <code>page.tags</code>.</td></tr>
+    <tr><td>Dot</td><td>The margin dot marks the block you are on and is the voice control (next step).</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="voice" data-name="A voice when you want one">
+  <h2>Tap the margin to give a line a voice</h2>
+  <p class="line">Chips step out for that paragraph, then back.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:03</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="v2-para">So, plainly: what am I waiting for?</p>
+        <div class="fs-msg fs-v v2-para" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p>Listen to the quiet voices within, even when you may not agree with them.</p></div>
+        <div class="v2-inline"><div class="fs-chips" role="group" aria-label="Who speaks this line"><button type="button" class="fs-chip" aria-pressed="false">Ink</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip more" aria-pressed="false">more</button></div></div>
+        <div class="fs-msg fs-v v2-para cur" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>And which voices are those, exactly?<span class="v2-caret"></span></p></div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Row</td><td>Ink, the starred voices, then <em>more</em> (the full pantheon in a sheet). The pick applies to the current block only; the next Return goes back to ink.</td></tr>
+    <tr><td>Colour</td><td><code>.fs-v</code> as today: a 3px rule and the wash; deep twins doubled. Still hides deep twins from the row.</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="hold" data-name="Hold a line: five things">
+  <h2>Hold a line: five things, no more</h2>
+  <p class="line">Reply and the entry states are gone.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:52</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="v2-para">The hard part is naming what's actually bothering me. It isn't the move. It's the quiet after it.</p>
+        <div class="fs-msg held v2-para"><p>How can I gauge my pleasure/pain barometer?</p></div>
+      </div>
+    </section>
+    <div class="fs-scrim"></div>
+    <section class="fs-sheet" aria-label="This line"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>This line</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body"><p class="fs-held">How can I gauge my pleasure/pain barometer?</p><div class="fs-rows"><button type="button" class="fs-row"><span>Keep close</span><small>Echo · Still</small></button><button type="button" class="fs-row"><span>Speak as…</span><small>Ink</small></button><button type="button" class="fs-row"><span>Ask this</span><small>A question page</small></button><button type="button" class="fs-row"><span>Take to the council</span></button><button type="button" class="fs-row"><span>Link a page</span></button></div></div></section>
+    </main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>LineSheet</code> keeps Keep close, Speak as, Link, Take to the council. <s>Reply</s> leaves the journal (a reply is the next paragraph). <s>Turn to answer</s> becomes <em>Ask this</em>.</td></tr>
+    <tr><td>States</td><td>raw · revisited · integrated and Mood are removed from the UI; <code>page.state</code> stays for questions (open · answered).</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="ask" data-name="Ask this lifts the line">
+  <h2>Ask this lifts the line; the day stays whole</h2>
+  <p class="line">The question lands in its own section, linked back.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:53</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="v2-para">The hard part is naming what's actually bothering me. It isn't the move. It's the quiet after it.</p>
+        <p class="v2-para">How can I gauge my pleasure/pain barometer?</p>
+        <p class="v2-para cur"><span class="v2-caret"></span></p>
+        <nav class="fs-links" aria-label="Linked pages"><a class="fs-link"><small>Asked · Questions</small><span>How can I gauge my pleasure/pain barometer?</span></a></nav>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Today</td><td><code>turnToAnswer</code> converts the whole day's page into the question, so the journal's today empties and every other paragraph of the day moves with it.</td></tr>
+    <tr><td>v2</td><td><code>askThis(page, line)</code>: a new question page titled by the line, linked both ways; the line stays on the day's page with an <em>Asked</em> link beneath.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5b -->
+<section class="step" id="questions" data-name="Questions, a section of their own">
+  <h2>Questions have a section of their own</h2>
+  <p class="line">The ? in the bar; open ones first, answered ones rest below.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:54</span><span>Questions</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Questions</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <a class="fs-list-row q"><span class="fs-list-meta">11 / 8 / 26</span><span class="fs-list-line">How can I gauge my pleasure/pain barometer?</span></a>
+        <a class="fs-list-row q"><span class="fs-list-meta">11 / 6 / 26</span><span class="fs-list-line">Who are my models?</span></a>
+        <a class="fs-list-row q"><span class="fs-list-meta">11 / 5 / 26</span><span class="fs-list-line">What would the Mystic say to the Skeptic?</span></a>
+        <p class="v2-month" style="margin-top:var(--lh-ink)">Answered</p>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 5 / 26 · 11 / 7 / 26</span><span class="fs-list-line fs-quiet">How do I retain skills built on dysfunctional beliefs?</span></a>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 4 / 26 · 11 / 5 / 26</span><span class="fs-list-line fs-quiet">What is the smallest version of this?</span></a>
+      </div>
+      <div class="fs-ask"><button type="button" class="fs-word">New question</button></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-current="page" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Bar</td><td>A <b>?</b> mark as the third tab, after Council, a glyph like the header's ♪, so the four words stay. Journal's Pages list drops questions; Flow's look back keeps <em>Still open</em>.</td></tr>
+    <tr><td>Top instead?</td><td>Considered a <b>?</b> beside ♪ in the header of every page. Passed on it: the header already carries four things, and a section you click through belongs in the bar with the other sections.</td></tr>
+    <tr><td>Rows</td><td><code>questions()</code> as now: open first, then answered with the date it was answered.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5c -->
+<section class="step" id="through" data-name="Click through, write to the answer">
+  <h2>Click through each one and write to the answer</h2>
+  <p class="line">The arrows walk the open questions; the cursor is the only prompt.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:40</span><span>Questions</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Questions</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>2 of 3 open</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="fs-q v2-para">Who are my models?</p>
+        <p class="v2-para">Grumpa, Isaac, Alison. Myself, on the days I can manage it.</p>
+        <p class="v2-para">What they share: none of them hurry. Grumpa least of all.</p>
+        <div class="fs-msg fs-wise v2-para cur"><p>Then the answer is not a list of people. It is the pace.<span class="v2-caret"></span></p></div>
+      </div>
+      <div class="fs-ask" style="justify-content:space-between"><button type="button" class="fs-word">‹ Previous</button><button type="button" class="fs-word">Next ›</button></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-current="page" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Walk</td><td>Previous and Next move through the open questions in list order (and a horizontal swipe does the same); the counter is hidden in Still.</td></tr>
+    <tr><td>Answer</td><td>Writing is plain ink. Hold a line, <em>This answers it</em>: the line turns italic (<code>wise</code>) and the question moves under Answered. Nothing else marks state.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="pages" data-name="Pages: one list">
+  <h2>Pages: the entries, one list</h2>
+  <p class="line">Entries and councils by date; search on top.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:55</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word" aria-current="page" style="color:var(--ink)">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Pages</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="v2-search">Search…</div>
+        <p class="v2-month">November</p>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 8 / 26 <span class="fs-tagword">#evergreen</span></span><span class="fs-list-line">All this, and I'm reduced to simple journaling.</span></a>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 7 / 26 · council <span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-red)"></i></span></span><span class="fs-list-line">Which voices are those, exactly?</span></a>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 6 / 26</span><span class="fs-list-line">Colour-coded journaling might give voice to new minds within.</span></a>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 5 / 26</span><span class="fs-list-line">Wait out the truly hard parts. They never last forever.</span></a>
+        <a class="fs-list-row"><span class="fs-list-meta">11 / 4 / 26</span><span class="fs-list-line">I determine my core. I choose how to flow.</span></a>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Route</td><td><code>#/journal/pages</code> replaces <code>/earlier</code> and the Search sheet. Entries and councils only, grouped by month, newest first.</td></tr>
+    <tr><td>Rows</td><td>date · first line; a council shows who spoke as colour rules.</td></tr>
+    <tr><td>Still</td><td>Pages is not offered in Still, as the lists are not today.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="anypage" data-name="Write on any page">
+  <h2>Write on any page; the date keeps itself</h2>
+  <p class="line">No Revisit button: the next rule is always there.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:30</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>1</b></span><span>Date: <b>11 / 5 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <p class="v2-para">Wait out the truly hard parts of life. They never last forever.</p>
+        <p class="v2-para">Boiling in my own soup today. Nothing to solve; something to sit through.</p>
+        <small class="fs-dated">11 / 8 / 26</small>
+        <p class="v2-para cur">Three days on, and it did pass. Noting that here so the next time I believe it sooner<span class="v2-caret"></span></p>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Dates</td><td>A block written on a later day gets the <code>fs-dated</code> marker, which already exists; <em>Revisit</em> and the revisited state go.</td></tr>
+    <tr><td>Editing</td><td>Any block on any day can be edited; the notebook keeps crossings-out, so an edit on a later day keeps the old text in <code>revisions</code>.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="seat" data-name="Seat the voices first">
+  <h2>A council starts by seating the voices</h2>
+  <p class="line">Pick who is at the table; only they get chips.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:10</span><span>Council</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <p class="fs-quiet">Who sits?</p>
+        <div class="v2-seats" role="group" aria-label="Who sits"><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip deep" aria-pressed="false" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip add" aria-pressed="false">+ voice</button></div>
+        <p class="fs-from"><small>About</small> <a>How can I gauge my pleasure/pain barometer?</a></p>
+      </div>
+      <div class="fs-composer-wrap"><button type="button" class="fs-new">Begin</button></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Data</td><td><code>page.seats: voiceId[]</code> on a council page. <em>Take to the council</em> opens this screen with the line as <em>About</em>.</td></tr>
+    <tr><td>List</td><td>The Council tab is the list of councils with <em>New council</em> always at the bottom; the composer no longer sits on the list.</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="turns" data-name="The next voice is ready">
+  <h2>Type, return, the next voice is already speaking</h2>
+  <p class="line">Seated voices take turns; tap a chip to break the order.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:14</span><span>Council</span></div>
+    <div class="fs-app" data-lamp style="--lamp-voice:var(--v-black)"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Councils</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-council"><div class="fs-chat fs-rules">
+        <p class="fs-from"><small>About</small> <a>How can I gauge my pleasure/pain barometer?</a></p>
+        <div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p>Listen to the quiet voices within, even when you may not agree with them.</p></div>
+        <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>And which voices are those, exactly? Name one.</p></div>
+        <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p>The one that says: stand tall, young one. Then get up.</p></div>
+        <div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p>That one, yes. It never shouts.</p></div>
+        <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>Then how would you know it from wishful thinking?</p></div>
+      </div>
+      <div class="fs-composer-wrap"><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false">Ink</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip add" aria-pressed="false">+ seat</button></div><div class="fs-composer"><textarea rows="1" aria-label="Message" placeholder="Warrior speaks…" style="--vc:var(--v-red)"></textarea></div></div></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Turns</td><td><code>nextSpeaker</code> becomes round-robin over <code>page.seats</code> after each send; a chip tap overrides for one message. Ink is always one tap.</td></tr>
+    <tr><td>Reply</td><td>Tap a message to reply to it (quote above the composer); long press keeps Keep close, Speak as, Link.</td></tr>
+    <tr><td>Lamp</td><td>Unchanged: the last speaker's colour in the corner.</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="upright" data-name="The spread stands upright">
+  <h2>The spread stands upright</h2>
+  <p class="line">One pole on top, one at the bottom; goals at their heights.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>10:20</span><span>Be</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-be-top"><span></span><button type="button" class="fs-word">Edit</button></div>
+      <div class="fs-sheetof fs-rules fs-be">
+        <div class="v2-ladder">
+          <p class="v2-pole a">selfless</p>
+          <p class="v2-goal a" style="top:82px">find volunteer opportunities near Evergreen<small>monthly</small></p>
+          <span class="v2-tie" style="top:92px"></span>
+          <p class="v2-goal b" style="top:82px">find something nice for yourself which gives breathing room<small>weekly</small></p>
+          <p class="v2-goal a" style="top:180px">when something useful is created, share it with the world<small>weekly</small></p>
+          <span class="v2-tie" style="top:190px"></span>
+          <p class="v2-goal b" style="top:180px">write for its own sake, not worrying whether it is viable<small>daily</small></p>
+          <p class="v2-mid" style="top:292px">compassionate self-awareness</p>
+          <p class="v2-goal a" style="top:326px">remind yourself, through metrics, that you matter by helping others<small>weekly</small></p>
+          <span class="v2-tie" style="top:336px"></span>
+          <p class="v2-slot" style="top:326px">and on the selfish side?</p>
+          <p class="v2-pole b">selfish</p>
+        </div>
+      </div>
+      <button type="button" class="fs-addgoal">+ Goal</button>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Layout</td><td><code>parts/Spread</code> loses the diagonal and the rotated corner tags: pole A is the top rule, pole B the bottom, the seam vertical. <code>lean</code> still maps to height, so dragging and <code>dropGoal</code> are unchanged.</td></tr>
+    <tr><td>Pairs</td><td>A pair shares a row, tied across the seam by the dotted line; a missing balance is the dashed slot. The middle word sits on the seam. Versions stay struck through under Edit.</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="scratch" data-name="The voices stay, the seed pages go">
+  <h2>Your voices stay; the seed pages go</h2>
+  <p class="line">No manifesto entry, no models question; the pantheon and spreads as they are.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>10:30</span><span>Questions</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Questions</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules"></div>
+      <div class="fs-ask"><button type="button" class="fs-word">New question</button></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-current="page" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Seed</td><td><code>ensureSeeded</code> keeps voices and the two paradoxes; <code>seedManifesto</code> and <code>seedModels</code> go, and the models entry leaves the <code>ADDITIONS</code> list.</td></tr>
+    <tr><td>Your phone</td><td>A one-time pass removes <code>pg-manifesto</code> and <code>pg-models</code> only if they were never written on; every voice you added or renamed stays. The echo starts from nothing until a line is kept.</td></tr>
+    <tr><td>Threshold</td><td>The manifesto on the lock screen is copy, not data; it stays.</td></tr>
+  </table></details>
+</section>
+
+</main>
+</div>
+<script>
+(function(){
+  var steps=[].slice.call(document.querySelectorAll('.step')),rail=document.getElementById('rail'),counter=document.getElementById('counter'),i=0,GLOBAL='design';
+  steps.forEach(function(s,j){var li=document.createElement('li'),a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(j+1)+'</span><span class="t"></span>';a.querySelector('.t').textContent=s.dataset.name;a.addEventListener('click',function(e){e.preventDefault();go(j);});li.appendChild(a);rail.appendChild(li);
+    var c=document.createElement('div');c.className='ctl';c.innerHTML='<button type="button" data-prev>Previous</button><button type="button" data-next>Next</button>';s.appendChild(c);
+    s.querySelectorAll('.screen').forEach(function(sc){sc.dataset.lightDefault=sc.dataset.light;});});
+  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+  document.addEventListener('click',function(e){if(e.target.closest('[data-prev]'))go(i-1);if(e.target.closest('[data-next]'))go(i+1);var m=e.target.closest('.screen .fs-moon');if(m){var sc=m.closest('.screen');sc.dataset.light=sc.dataset.light==='still'?(GLOBAL==='design'||GLOBAL==='still'?(sc.dataset.lightDefault==='still'?'night':sc.dataset.lightDefault):GLOBAL):'still';}});
+  document.addEventListener('keydown',function(e){if(e.target.closest&&e.target.closest('input,textarea'))return;if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
+  document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){GLOBAL=b.dataset.light;document.querySelectorAll('.lights [data-light]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});document.querySelectorAll('.screen').forEach(function(s){s.dataset.light=GLOBAL==='design'?s.dataset.lightDefault:GLOBAL;});});});
+  function fromHash(){var h=(location.hash||'').replace('#','');var k=steps.findIndex(function(s){return s.id===h;});go(k>=0?k:0);}
+  window.addEventListener('hashchange',fromHash);fromHash();
+})();
+</script>
+</body>
+</html>
