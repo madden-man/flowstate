@@ -6,10 +6,11 @@ import { store, setKey } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
 import {
-  parseTags, tagsOf, firstSentence, firstLine, writeLine, messagesOf, setKept, speakAs, turnToAnswer, askQuestion,
-  answerState, questions, linkPages, linksOf, takeToCouncil, entries, searchPages, keptLines, pickEcho, setMood,
-  setEntryState, entryState, today, pageById, dayKey, findPages, chipVoices, voicesById,
+  parseTags, tagsOf, firstSentence, firstLine, writeLine, messagesOf, setKept, speakAs, askThis, askQuestion,
+  answerState, questions, linkPages, linksOf, takeToCouncil, entries, searchPages, keptLines, pickEcho, revise,
+  today, pageById, dayKey, findPages, chipVoices, voicesById, pagesList,
 } from '../../src/model/pages';
+import * as model from '../../src/model/pages';
 
 let db: FlowDB;
 beforeEach(async () => { db = await freshDB(); await ensureSeeded(); });
@@ -69,26 +70,24 @@ describe('message ops', () => {
     expect(ms[1].replyTo).toBe(m.id);
     expect(r!.messages.length).toBe(2);
   });
-  it('a later reading on an entry is wise and marks it revisited; states keep PLAN names', async () => {
+  it('entry states and mood words are gone from the model (v2); an entry stays open whatever is written', async () => {
+    for (const gone of ['turnToAnswer', 'setEntryState', 'entryState', 'ENTRY_STATES', 'setMood', 'MOODS']) expect(model).not.toHaveProperty(gone);
     const p = await entryWith([{ text: 'All this, and I am reduced to simple journaling.' }]);
-    expect(entryState(p.state)).toBe('raw');
     const r = await writeLine(p, undefined, { text: 'It was the simple things.', wise: true }, D7);
-    expect(r!.page.state).toBe('revisited');
-    expect(entryState(r!.page.state)).toBe('revisited');
-    const done = await setEntryState(r!.page, 'integrated');
-    expect(done.state).toBe('answered');
-    expect(entryState(done.state)).toBe('integrated');
+    expect(r!.page.state).toBe('open');
   });
-  it('mood words are stored on the page', async () => {
-    const p = await entryWith([{ text: 'boiling in my own soup' }]);
-    await setMood(p, ['boiling', 'hard']);
-    expect((await pageById(p.id))!.page.mood).toEqual(['boiling', 'hard']);
+  it('a block placed between two others (Return mid-page) reads back in its place', async () => {
+    const p = await entryWith([{ text: 'one' }, { text: 'three' }]);
+    const [a, c] = await messagesOf(p.id);
+    const r = await writeLine(p, 'm-two', { text: 'two' }, D7, { at: a.at + (c.at - a.at) / 2 });
+    expect(r!.messages.map(m => m.text)).toEqual(['one', 'two', 'three']);
+    expect((await messagesOf(p.id)).map(m => m.text)).toEqual(['one', 'two', 'three']);
   });
   it('a line stays sealed once a key is set, and the page title too', async () => {
     const salt = randomSalt();
     await setKey(await deriveKey('1', salt, 1000), { salt, iterations: 1000 });
     const p = await entryWith([{ text: 'How can I gauge my pleasure/pain barometer?' }]);
-    const q = await turnToAnswer(p, { text: 'How can I gauge my pleasure/pain barometer?' });
+    const { question: q } = await askThis(p, { text: 'How can I gauge my pleasure/pain barometer?' });
     const raw = JSON.stringify([await db.pages.get(q.id), await db.messages.toArray()]);
     expect(raw).not.toContain('barometer');
     expect((await pageById(q.id))!.page.title).toBe('How can I gauge my pleasure/pain barometer?');
@@ -106,22 +105,33 @@ describe('speak as', () => {
   });
 });
 
-describe('turn to answer', () => {
+describe('ask this', () => {
   it('titles the page with the first sentence of a long line, or the whole of a short one', () => {
     expect(firstSentence('Should I commit myself to hard things?')).toBe('Should I commit myself to hard things?');
     const long = 'How do I retain skills that were developed due to dysfunctional beliefs? Enough to remain within those constraints, and more besides.';
     expect(firstSentence(long)).toBe('How do I retain skills that were developed due to dysfunctional beliefs?');
     expect(firstSentence('x '.repeat(60).trim())).toBe('x '.repeat(60).trim());
   });
-  it('makes the entry a question, open, listed under Questions, and its first answer answers it', async () => {
+  it('makes a new open question titled by the line, linked both ways; the day keeps every line', async () => {
     const p = await entryWith([{ text: 'How can I gauge my pleasure/pain barometer to know when I should pull the rip cord? It is hard.' }, { text: 'more' }]);
     const [m] = await messagesOf(p.id);
-    const q = await turnToAnswer(p, m, D5 + 5000);
+    const { question: q, page } = await askThis(p, m, D5 + 5000);
     expect(q.kind).toBe('question');
+    expect(q.id).not.toBe(p.id);
     expect(q.title).toBe('How can I gauge my pleasure/pain barometer to know when I should pull the rip cord?');
     expect(q.state).toBe('open');
+    expect(q.linkedPageIds).toEqual([p.id]);
+    expect(page.linkedPageIds).toContain(q.id);
     expect((await questions()).map(x => x.id)).toContain(q.id);
-    expect((await today(new Date(D5))).page).toBeUndefined(); // today's entry is now a question
+    // the day stays whole: still today's entry, every line where it was
+    const t = await today(new Date(D5));
+    expect(t.page?.id).toBe(p.id);
+    expect(t.page?.kind).toBe('entry');
+    expect((await messagesOf(p.id)).map(x => x.text)).toEqual([m.text, 'more']);
+    expect(await messagesOf(q.id)).toEqual([]);
+    // the day's page reads it as Asked; the question reads where it was asked from
+    expect((await linksOf((await pageById(p.id))!.page)).map(l => [l.label, l.line])).toEqual([['Asked', q.title]]);
+    expect((await linksOf((await pageById(q.id))!.page)).map(l => [l.label, l.line])).toEqual([['Asked from', m.text]]);
     const a = await writeLine(q, undefined, { text: 'stand tall, young one', wise: true }, D5 + 6000);
     expect(a!.page.state).toBe('answered');
     expect(firstLine(a!.page, a!.messages)).toBe(q.title);
@@ -187,7 +197,70 @@ describe('links', () => {
   });
 });
 
+describe('No. counts entries only', () => {
+  it('questions and councils do not move the number', async () => {
+    const before = (await today(new Date(D7))).no;
+    await askQuestion('Who are my models, really?', D5);
+    const e = await entryWith([{ text: 'an entry' }], D6);
+    const [m] = await messagesOf(e.id);
+    await takeToCouncil(e, m, D6 + 10);
+    expect((await pageById(e.id))!.no).toBe(before);
+    expect((await today(new Date(D7))).no).toBe(before + 1);
+    const q = await askQuestion('another', D6);
+    expect((await pageById(q.id))!.no).toBeUndefined();
+    const t = await entryWith([{ text: 'today' }], D7);
+    expect((await today(new Date(D7))).no).toBe(before + 1);
+    expect((await pageById(t.id))!.no).toBe(before + 1);
+  });
+});
+
+describe('revisions', () => {
+  it('an edit on a later day keeps the old text, once per day; the same day changes only the line', async () => {
+    const p = await entryWith([{ text: 'Wait out the hard parts.' }], D5);
+    const [m] = await messagesOf(p.id);
+    await writeLine(p, m.id, { text: 'Wait out the truly hard parts.' }, D5 + 60_000);
+    expect((await messagesOf(p.id))[0].revisions).toBeUndefined();
+    await writeLine(p, m.id, { text: 'Wait out the truly hard parts of life' }, D7);
+    await writeLine(p, m.id, { text: 'Wait out the truly hard parts of life.' }, D7 + 1000);
+    const [after] = await messagesOf(p.id);
+    expect(after.text).toBe('Wait out the truly hard parts of life.');
+    expect(after.revisions).toEqual([{ at: D7, text: 'Wait out the truly hard parts.' }]);
+    expect(after.at).toBe(m.at); // the line keeps its place and its day
+  });
+  it('revise on its own', () => {
+    const m = { at: D5, text: 'a' };
+    expect(revise(m, 'a', D7)).toBeUndefined();
+    expect(revise(m, 'b', D5 + 1)).toBeUndefined();
+    expect(revise({ at: D5, text: '' }, 'b', D7)).toBeUndefined();
+    expect(revise(m, 'b', D7)).toEqual([{ at: D7, text: 'a' }]);
+    expect(revise({ ...m, revisions: [{ at: D6, text: 'z' }] }, 'b', D7)).toEqual([{ at: D6, text: 'z' }, { at: D7, text: 'a' }]);
+  });
+  it('the old text is sealed with the line once a key is set', async () => {
+    const salt = randomSalt();
+    await setKey(await deriveKey('1', salt, 1000), { salt, iterations: 1000 });
+    const p = await entryWith([{ text: 'pleasure and pain barometer' }], D5);
+    const [m] = await messagesOf(p.id);
+    await writeLine(p, m.id, { text: 'a new reading' }, D7);
+    const raw = JSON.stringify(await db.messages.toArray());
+    expect(raw).not.toContain('barometer');
+    expect(raw).not.toContain('reading');
+    expect((await messagesOf(p.id))[0].revisions).toEqual([{ at: D7, text: 'pleasure and pain barometer' }]);
+  });
+});
+
 describe('entries and search', () => {
+  it('the Pages list: entries and councils, newest first, with who spoke; no questions', async () => {
+    await askQuestion('a question is not listed', D5);
+    const e = await entryWith([{ text: 'an entry #evergreen' }], D5);
+    const [m] = await messagesOf(e.id);
+    const c = await takeToCouncil(e, m, D6);
+    await writeLine((await pageById(c.id))!.page, undefined, { text: 'Which voices?', voiceId: 'v-skeptic' }, D6 + 1);
+    await writeLine((await pageById(c.id))!.page, undefined, { text: 'Listen.', voiceId: 'v-mystic' }, D6 + 2);
+    const list = await pagesList();
+    expect(list.map(x => x.page.kind)).not.toContain('question');
+    expect(list.slice(0, 2).map(x => [x.page.kind, x.line])).toEqual([['council', 'an entry #evergreen'], ['entry', 'an entry #evergreen']]);
+    expect(list[0].spoke).toEqual(['v-skeptic', 'v-mystic']);
+  });
   it('entries are newest first with their first line; empty pages are left out', async () => {
     await entryWith([{ text: 'first page' }], D5);
     const e = await writeLine(undefined, undefined, { text: 'x' }, D6);

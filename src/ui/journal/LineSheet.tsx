@@ -1,5 +1,6 @@
-// The long-press sheet on any line (PLAN.md section 5, item 1): Keep close, Reply, Speak as…, Turn to
-// answer, Link a page, Take to the council. It rises from the bottom; the tabs stay in reach.
+// The long-press sheet on any line (PLAN.md section 5, item 1; v2): five things, no more. Keep close,
+// Speak as…, Ask this, Take to the council, Link a page. It rises from the bottom; the tabs stay in reach.
+// SpeakSheet is the margin dot's "more": the whole pantheon for the current line.
 import { useEffect, useState } from 'preact/hooks';
 import { Sheet } from '../parts/Sheet';
 import { Chip } from '../parts/Chip';
@@ -11,7 +12,7 @@ import type { Read } from '../../db/fields';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
 
 type Acts = {
-  keep: () => void; reply: () => void; speak: (voiceId: string | undefined) => void; turn: () => void;
+  keep: () => void; speak: (voiceId: string | undefined) => void; ask: () => void;
   link: (other: Read<PageRow>, how: LinkKind) => void; council: () => void;
 };
 type Props = {
@@ -60,9 +61,8 @@ export function LineSheet({ held, page, voices, byId, acts, onClose }: Props) {
             <button type="button" class="fs-row" role="switch" aria-checked={held.kept} onClick={acts.keep}>
               <span>Keep close</span><small>{held.kept ? 'Kept' : 'Echo · Still'}</small>
             </button>
-            <button type="button" class="fs-row" onClick={acts.reply}><span>Reply</span></button>
             <button type="button" class="fs-row" aria-expanded={more === 'speak'} onClick={() => setMore(more === 'speak' ? null : 'speak')}>
-              <span>Speak as…</span><small>{voice?.name ?? 'Plain ink'}</small>
+              <span>Speak as…</span><small>{voice?.name ?? 'Ink'}</small>
             </button>
             {more === 'speak' && (
               <div class="fs-chips" role="group" aria-label="Speak as">
@@ -73,17 +73,32 @@ export function LineSheet({ held, page, voices, byId, acts, onClose }: Props) {
                 ))}
               </div>
             )}
-            {page.kind === 'entry' && (
-              <button type="button" class="fs-row" onClick={acts.turn}><span>Turn to answer</span><small>Question</small></button>
-            )}
+            <button type="button" class="fs-row" onClick={acts.ask}><span>Ask this</span><small>A question page</small></button>
+            <button type="button" class="fs-row" onClick={acts.council}><span>Take to the council</span></button>
             <button type="button" class="fs-row" aria-expanded={more === 'link'} onClick={() => setMore(more === 'link' ? null : 'link')}>
               <span>Link a page</span><small>Related</small>
             </button>
             {more === 'link' && <LinkPicker page={page} onPick={acts.link} />}
-            <button type="button" class="fs-row" onClick={acts.council}><span>Take to the council</span></button>
           </div>
         </>
       )}
+    </Sheet>
+  );
+}
+
+/** The margin dot's "more": every voice, Ink first, for the current line only. Deep twins leave in Still (CSS). */
+export function SpeakSheet({ voices, current, onPick, onClose }: {
+  voices: Read<Voice>[]; current?: string; onPick: (voiceId: string | undefined) => void; onClose: () => void;
+}) {
+  return (
+    <Sheet open={openSheet.value === 'speak'} onClose={onClose} title="Who speaks this line">
+      <div class="fs-chips fs-chips-wrap" role="group" aria-label="Every voice">
+        <Chip label="Ink" ariaLabel="Plain ink" pressed={!current} onPress={() => onPick(undefined)} />
+        {voices.map(v => (
+          <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+            pressed={current === v.id} onPress={() => onPick(v.id)} />
+        ))}
+      </div>
     </Sheet>
   );
 }

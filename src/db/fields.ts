@@ -1,6 +1,6 @@
 // The one typed door to the database (PLAN.md section 7). Every secret text field is written and read
 // here, so no UI code ever touches a stored string:
-//   messages.text, items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
+//   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
@@ -20,6 +20,24 @@ const textSpec = <T extends { text: string }>(): Spec<T> => ({
   take: row => ({ clear: { ...row, text: '' }, secret: row.text }),
   give: (clear, secret) => ({ ...clear, text: String(secret ?? '') }),
 });
+
+/** A message seals its text, and the text of its revisions when it has any (v2). A row with no revisions
+ *  seals the bare string as before, so rows sealed before revisions existed read unchanged. */
+type MSecret = string | { t: string; r: string[] };
+const messageSpec: Spec<Tables['messages']> = {
+  take: row => {
+    if (!row.revisions?.length) return { clear: { ...row, text: '' }, secret: row.text };
+    return {
+      clear: { ...row, text: '', revisions: row.revisions.map(r => ({ ...r, text: '' })) },
+      secret: { t: row.text, r: row.revisions.map(r => r.text) } satisfies MSecret,
+    };
+  },
+  give: (clear, raw) => {
+    const s = raw as MSecret | null | undefined;
+    if (s === null || s === undefined || typeof s === 'string') return { ...clear, text: String(s ?? '') };
+    return { ...clear, text: s.t, revisions: (clear.revisions ?? []).map((r, i) => ({ ...r, text: s.r[i] ?? '' })) };
+  },
+};
 
 type PSecret = { a: string; b: string; s?: string; r: [string, string, string | undefined][] };
 const paradoxSpec: Spec<Tables['paradoxes']> = {
@@ -88,7 +106,7 @@ const leanSpec: Spec<Tables['leans']> = {
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
   pages: pageSpec,
-  messages: textSpec<Tables['messages']>(),
+  messages: messageSpec,
   items: textSpec<Tables['items']>(),
   leans: leanSpec,
   paradoxes: paradoxSpec,

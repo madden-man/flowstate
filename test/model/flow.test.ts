@@ -8,7 +8,7 @@ import {
   addLean, latestLean, leansOf, setLeanNote, snapLean, detentOf, rawEntries, openQuestions, quietParadoxes,
   quietVoices, openBalances, leanLines, lookBack, leanPath,
 } from '../../src/model/flow';
-import { askQuestion, writeToday, today as journalToday, setEntryState } from '../../src/model/pages';
+import { askQuestion, writeToday, today as journalToday } from '../../src/model/pages';
 import { addGoals } from '../../src/model/paradox';
 
 beforeEach(async () => { await freshDB(); });
@@ -160,7 +160,8 @@ describe('look back', () => {
     const raw = await rawEntries(now);
     expect(raw[0]).toEqual({ id: yesterday.page!.id, line: 'boiling in my own soup' });
     expect(raw.map(r => r.line)).not.toContain('today, still being written');
-    await setEntryState(yesterday.page!, 'revisited');
+    // v2 has no entry-state buttons; a page that is no longer open (older data) is not looked back on
+    await store.put('pages', { ...yesterday.page!, state: 'revisited' });
     expect((await rawEntries(now)).map(r => r.id)).not.toContain(yesterday.page!.id);
 
     const q = await askQuestion('How can I gauge my pleasure/pain barometer?');

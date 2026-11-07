@@ -16,14 +16,15 @@ export async function messagesOf(pageId: string): Promise<Read<Message>[]> {
 
 export type Today = { page?: Read<Page>; message?: Read<Message>; no: number };
 
-/** Today's dated entry, its plain-ink message and its number in the sequence ("No."). */
+/** Today's dated entry, its plain-ink message and its number in the sequence ("No."). No. counts entries
+ *  only (v2): questions and councils are their own sections, so the numbers no longer jump. */
 export async function today(now = new Date()): Promise<Today> {
-  const pages = await pagesInOrder();
+  const list = (await pagesInOrder()).filter(p => p.kind === 'entry');
   const from = startOfDay(now), to = endOfDay(now);
-  const page = [...pages].reverse().find(p => p.kind === 'entry' && p.createdAt >= from && p.createdAt <= to);
-  if (!page) return { no: pages.length + 1 };
+  const page = [...list].reverse().find(p => p.createdAt >= from && p.createdAt <= to);
+  if (!page) return { no: list.length + 1 };
   const message = (await messagesOf(page.id)).find(m => !m.voiceId);
-  return { page, message, no: pages.indexOf(page) + 1 };
+  return { page, message, no: list.indexOf(page) + 1 };
 }
 
 /** Writes today's text: the first keystroke makes the page and its message, later ones update them. */
@@ -43,16 +44,18 @@ export async function writeToday(current: Today, text: string, now = Date.now())
   return { ...current, page, message };
 }
 
-export async function pageById(id: string): Promise<{ page: Read<Page>; messages: Read<Message>[]; no: number } | null> {
+/** A page by id with its messages. no is its place among the entries; a question or council has none. */
+export async function pageById(id: string): Promise<{ page: Read<Page>; messages: Read<Message>[]; no?: number } | null> {
   const pages = await pagesInOrder();
-  const i = pages.findIndex(p => p.id === id);
-  if (i < 0) return null;
-  return { page: pages[i], messages: await messagesOf(id), no: i + 1 };
+  const page = pages.find(p => p.id === id);
+  if (!page) return null;
+  const no = page.kind === 'entry' ? pages.filter(p => p.kind === 'entry').indexOf(page) + 1 : undefined;
+  return { page, messages: await messagesOf(id), no };
 }
 
 export async function questions(): Promise<Read<Page>[]> {
   const qs = await store.query('pages', t => t.where('kind').equals('question'));
-  // open ones first ("space to answer left"), then the rest, newest first within each
+  // open ones first, then the rest, newest first within each
   return qs.sort((a, b) => Number(a.state !== 'open') - Number(b.state !== 'open') || b.createdAt - a.createdAt);
 }
 
@@ -70,17 +73,8 @@ export async function paradoxes(): Promise<{ paradox: Read<Paradox>; items: Read
 
 // ---------------------------------------------------------------------------------------------------
 // Package 1: the Journal. A page is a column of messages; every op below goes through `store`.
-// Entry states keep PLAN.md's names in the UI and map onto page.state:
-//   raw = 'open', revisited = 'revisited', integrated = 'answered'.
+// v2 (V1): the entry states and mood words left the UI; page.state is a question's (open, answered).
 // ---------------------------------------------------------------------------------------------------
-
-export type EntryState = 'raw' | 'revisited' | 'integrated';
-export const ENTRY_STATES: [EntryState, Page['state']][] = [['raw', 'open'], ['revisited', 'revisited'], ['integrated', 'answered']];
-export const entryState = (s: Page['state']): EntryState => ENTRY_STATES.find(([, v]) => v === s)![0];
-export const pageStateOf = (s: EntryState): Page['state'] => ENTRY_STATES.find(([k]) => k === s)![1];
-
-/** The notebook's own plain words for how a page feels; no emoji. */
-export const MOODS = ['simple', 'serious', 'quiet', 'boiling', 'hard', 'incomplete', 'energy'] as const;
 
 /** "YYYY-MM-DD" in the phone's own day. */
 export const dayKey = (t: number | Date) => {
@@ -127,14 +121,26 @@ export function answerState(page: Pick<Page, 'state'>, earlier: Pick<Message, 'w
 export type Draft = { text: string; voiceId?: string; replyTo?: string; wise?: boolean };
 export type Line = { page: Read<Page>; message?: Read<Message>; messages: Read<Message>[] };
 
+/** A line's text before an edit on a later day than it was written: kept once per day of editing, with
+ *  the time it was replaced. The first edit of a later day keeps the text as it stood; edits the same
+ *  day after that change only the line. */
+export function revise(m: Pick<Message, 'at' | 'text' | 'revisions'>, text: string, now: number): Message['revisions'] {
+  const revs = m.revisions;
+  if (text === m.text || !m.text.trim() || dayKey(m.at) === dayKey(now)) return revs;
+  if (revs?.some(r => dayKey(r.at) === dayKey(now))) return revs;
+  return [...(revs ?? []), { at: now, text: m.text }];
+}
+
 /**
  * Writes one line. The first keystroke of a day makes the page (an entry unless `kind` says otherwise)
- * and the message (with `messageId` when the caller chose one); later keystrokes update that message. An emptied line is removed, and the page's tags
- * are read again from every line. A new wise line answers a question (or revisits an entry).
+ * and the message (with `messageId` when the caller chose one); later keystrokes update that message.
+ * A new line goes at the end of the page, or at `at` when the caller places it between two others
+ * (Return in the middle of a page). An emptied line is removed, and the page's tags are read again from
+ * every line. An edit on a later day keeps the old text (`revise`). A new wise line answers a question.
  */
 export async function writeLine(
   page: Read<Page> | undefined, messageId: string | undefined, draft: Draft, now = Date.now(),
-  opts: { kind?: Page['kind']; linkTo?: string } = {},
+  opts: { kind?: Page['kind']; linkTo?: string; at?: number } = {},
 ): Promise<Line | null> {
   const before = page ? await messagesOf(page.id) : [];
   const existing = messageId ? before.find(m => m.id === messageId) : undefined;
@@ -156,16 +162,18 @@ export async function writeLine(
     return { page: p, messages: rest };
   }
   const last = before[before.length - 1];
+  const at = opts.at ?? Math.max(now, last ? last.at + 1 : now);
+  const revisions = existing ? revise(existing, draft.text, now) : undefined;
   const message: Read<Message> = {
-    ...(existing ?? { id: messageId ?? crypto.randomUUID(), pageId: p.id, at: Math.max(now, last ? last.at + 1 : now), kept: false }),
+    ...(existing ?? { id: messageId ?? crypto.randomUUID(), pageId: p.id, at, kept: false }),
     text: draft.text, voiceId: draft.voiceId, replyTo: draft.replyTo, wise: draft.wise || undefined, updatedAt: now,
+    ...(revisions ? { revisions } : {}),
   };
-  const messages = existing ? before.map(m => (m.id === message.id ? message : m)) : [...before, message];
+  const messages = existing
+    ? before.map(m => (m.id === message.id ? message : m))
+    : [...before, message].sort((a, b) => a.at - b.at);
   let state = p.state;
-  if (!existing && draft.wise) {
-    if (p.kind === 'question') state = answerState(p, before, now);
-    else if (p.kind === 'entry' && p.state === 'open') state = 'revisited';
-  }
+  if (!existing && draft.wise && p.kind === 'question') state = answerState(p, before, now);
   p = { ...p, state, tags: tagsOf(messages), updatedAt: now };
   await store.many({ pages: [p, ...others], messages: [message] });
   return { page: p, message, messages };
@@ -187,14 +195,15 @@ async function putPage(p: Read<Page>, patch: Partial<Page>, now: number): Promis
   await store.put('pages', next);
   return next;
 }
-export const setMood = (p: Read<Page>, mood: string[], now = Date.now()) => putPage(p, { mood }, now);
-export const setEntryState = (p: Read<Page>, s: EntryState, now = Date.now()) => putPage(p, { state: pageStateOf(s) }, now);
 export const setTitle = (p: Read<Page>, title: string, now = Date.now()) => putPage(p, { title }, now);
 
-/** "Turn to answer": the entry becomes a question titled by the line; its answer frame opens beneath. */
-export async function turnToAnswer(p: Read<Page>, m: Pick<Message, 'text'>, now = Date.now()): Promise<Read<Page>> {
-  const answered = (await messagesOf(p.id)).some(x => x.wise && x.text.trim());
-  return putPage(p, { kind: 'question', title: firstSentence(m.text), state: answered ? 'answered' : 'open' }, now);
+/** "Ask this": a new question page titled by the line, open, linked both ways with the page the line is
+ *  on. The line stays where it was written and the day stays whole; the page shows an "Asked" link. */
+export async function askThis(p: Read<Page>, m: Pick<Message, 'text'>, now = Date.now()): Promise<{ question: Read<Page>; page: Read<Page> }> {
+  const question = newPage('question', now, { title: firstSentence(m.text), linkedPageIds: [p.id], askedFrom: p.id });
+  const page: Read<Page> = { ...p, linkedPageIds: withId(p.linkedPageIds, question.id), updatedAt: now };
+  await store.many({ pages: [question, page] });
+  return { question, page };
 }
 
 /** "Ask a question": one line, and it is the page's title. */
@@ -215,19 +224,24 @@ export async function linkPages(a: Read<Page>, b: Read<Page>, kind: LinkKind = '
   return [na, nb];
 }
 
-export type LinkLabel = 'Smaller version of' | 'A smaller version' | 'Related';
+/** Asked: a question asked from this page (Ask this). Asked from: the page a question was asked from. */
+export type LinkLabel = 'Asked from' | 'Smaller version of' | 'A smaller version' | 'Asked' | 'Related';
 export type PageLink = { page: Read<Page>; label: LinkLabel; line: string };
 
-/** The links at the bottom of a page, "Smaller version of…" first. */
+/** The links at the bottom of a page, where a question was asked from first, then "Smaller version of…". */
 export async function linksOf(p: Read<Page>): Promise<PageLink[]> {
   const out: PageLink[] = [];
   for (const id of p.linkedPageIds) {
     const other = await store.get('pages', id);
     if (!other) continue;
-    const label: LinkLabel = p.smallerOf?.includes(id) ? 'Smaller version of' : other.smallerOf?.includes(p.id) ? 'A smaller version' : 'Related';
+    const label: LinkLabel = p.askedFrom === id ? 'Asked from'
+      : p.smallerOf?.includes(id) ? 'Smaller version of'
+      : other.smallerOf?.includes(p.id) ? 'A smaller version'
+      : other.askedFrom === p.id ? 'Asked'
+      : 'Related';
     out.push({ page: other, label, line: firstLine(other, await messagesOf(id)) });
   }
-  const rank = { 'Smaller version of': 0, 'A smaller version': 1, Related: 2 } as const;
+  const rank = { 'Asked from': 0, 'Smaller version of': 1, 'A smaller version': 2, Asked: 3, Related: 4 } as const;
   return out.sort((x, y) => rank[x.label] - rank[y.label]);
 }
 
@@ -240,6 +254,8 @@ export async function takeToCouncil(p: Read<Page>, m: Read<Message>, now = Date.
 }
 
 export type Listed = { page: Read<Page>; no: number; line: string; match?: string };
+/** A row on the Pages screen: an entry or a council, with the voices that spoke on it (first speaking first). */
+export type Paged = Listed & { spoke: string[] };
 
 async function everything(): Promise<{ pages: Read<Page>[]; byPage: Map<string, Read<Message>[]> }> {
   const [pages, messages] = await Promise.all([pagesInOrder(), store.all('messages')]);
@@ -254,6 +270,19 @@ export async function entries(): Promise<Listed[]> {
   return pages
     .map((page, i) => ({ page, no: i + 1, line: firstLine(page, byPage.get(page.id) ?? []) }))
     .filter(x => x.page.kind === 'entry' && x.line)
+    .reverse();
+}
+
+/** The Pages screen (v2): entries and councils, newest first, each with its first line and who spoke.
+ *  Questions have their own section; a page with nothing written is not listed. */
+export async function pagesList(): Promise<Paged[]> {
+  const { pages, byPage } = await everything();
+  return pages
+    .map((page, i) => {
+      const ms = byPage.get(page.id) ?? [];
+      return { page, no: i + 1, line: firstLine(page, ms), spoke: [...new Set(ms.map(m => m.voiceId).filter((v): v is string => !!v))] };
+    })
+    .filter(x => (x.page.kind === 'entry' || x.page.kind === 'council') && x.line)
     .reverse();
 }
 
