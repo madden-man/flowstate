@@ -194,3 +194,93 @@ button.fs-row, label.fs-row { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .fs-sheet, .fs-scrim, .fs-toast { animation: none; }
 }
+
+/* ==== Journal (package 1): a page of messages, the composer, the echo, the lists ==== */
+.fs-col { padding-bottom: var(--s2); overscroll-behavior: contain; }
+.fs-msg { position: relative; -webkit-touch-callout: none; transition: transform var(--t-ui) var(--ease); }
+.fs-msg p { margin: 0; min-height: var(--lh-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fs-msg.holding { -webkit-user-select: none; user-select: none; }
+.fs-msg.held { transform: translateY(-2px); }
+.fs-kept, .fs-dated, .fs-list-meta {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; color: var(--print); font-style: normal; line-height: var(--lh-ink);
+}
+.fs-kept { float: right; margin-left: var(--s1); }
+.fs-dated { display: block; }
+.fs-quote {
+  display: block; font-style: italic; color: var(--print); font-size: var(--fs-chip); line-height: var(--lh-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--seam); padding-left: var(--s1);
+}
+.fs-tagword { color: var(--print); text-transform: none; letter-spacing: 0; }
+.fs-edit {
+  display: block; width: 100%; border: 0; padding: 0; margin: 0; resize: none; outline: none; overflow: hidden;
+  background: transparent; font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-edit.fs-q { font-size: var(--fs-title); }
+
+/* the meta line under the header: mood, #tags, the state (states leave in Still) */
+.fs-meta {
+  display: flex; align-items: center; gap: var(--s1); padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; white-space: nowrap;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1;
+}
+.fs-meta::-webkit-scrollbar { display: none; }
+.fs-meta > .fs-word:first-child { margin-left: calc(var(--s1) * -1); }
+.fs-meta .fs-state { display: inline-flex; margin-left: auto; }
+[data-light="still"] .fs-meta .fs-state { display: none; }
+.fs-meta .fs-word[aria-pressed="true"] { color: var(--ink); }
+.fs-moods { padding: 0 var(--gutter) var(--s1); }
+
+/* the segment row's right-hand word, and what steps out in Still (today only) */
+.fs-seg button {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; font: inherit; letter-spacing: inherit;
+  text-transform: inherit; color: var(--print); min-height: var(--hit); cursor: pointer;
+}
+.fs-seg .fs-seg-end { margin-left: auto; }
+.fs-seg a:focus-visible, .fs-seg button:focus-visible, .fs-echo-tap:focus-visible, .fs-link:focus-visible, .fs-list-row:focus-visible, .fs-qrow:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
+}
+[data-light="still"] .fs-notstill, [data-light="still"] .fs-pagelist { display: none; }
+
+/* the composer: plain ink at the bottom, the chip row above it */
+.fs-composer { border-top: 1px solid var(--seam); padding: 0 var(--gutter); }
+.fs-compose {
+  display: block; width: 100%; min-height: calc(var(--lh-ink) + var(--s2)); max-height: calc(var(--lh-ink) * 5 + var(--s2));
+  padding: var(--s1) 0; margin: 0; resize: none; border: 0; outline: none; overflow-y: auto; background: transparent;
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-composer .fs-sp { line-height: 1; padding-top: var(--s1); }
+.fs-replying {
+  appearance: none; border: 0; background: transparent; padding: var(--s1) 0 0; margin: 0; width: 100%; text-align: left;
+  font: inherit; cursor: pointer; display: block;
+}
+
+/* the echo: one kept line above a new page */
+.fs-echo { padding: var(--s1) var(--gutter) 0; touch-action: pan-y; transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease); }
+.fs-echo.drag { transition: none; }
+.fs-echo-tap {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; width: 100%; text-align: left; cursor: pointer;
+  font: inherit; color: inherit; display: grid; min-height: var(--hit); align-content: center;
+}
+.fs-echo-date { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.6; }
+.fs-echo-line { font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: 1.45; }
+
+/* links at the bottom of a page, and the lists: two rule lines a row (a 44px target that keeps the rules) */
+.fs-links { margin-top: var(--lh-ink); }
+.fs-link, .fs-list-row, .fs-qrow { display: block; color: inherit; text-decoration: none; min-height: calc(var(--lh-ink) * 2); }
+.fs-link { color: var(--print); }
+.fs-link small, .fs-list-meta { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-link span { font-style: italic; }
+.fs-qtitle { display: block; }
+.fs-qrow .fs-quiet { display: block; }
+.fs-word.fs-col-act { min-height: calc(var(--lh-ink) * 2); padding: 0; color: var(--ink); }
+.fs-ask { display: flex; align-items: center; min-height: var(--hit); padding: 0 var(--gutter) var(--s1); border-top: 1px solid var(--seam); }
+.fs-ask .fs-word { margin-left: calc(var(--s1) * -1); color: var(--ink); }
+
+/* inside the sheets */
+.fs-held { margin: 0 0 var(--s1); color: var(--print); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-sheet-body .fs-chips { padding-left: 0; padding-right: 0; }
+.fs-row.fs-list-row { display: block; padding: 0; }
+.fs-picker { border-top: 0; }
+.fs-found { margin-top: var(--s1); }
+a.fs-row { color: var(--ink); text-decoration: none; }
