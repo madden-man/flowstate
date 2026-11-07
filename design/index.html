@@ -29,7 +29,7 @@ nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:
 @media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
 main{min-width:0}
 .step{display:none}
-.step.on{display:grid;justify-items:center;gap:14px}
+.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
 .step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
 .step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
 .ctl{display:flex;gap:10px;justify-content:center}
@@ -174,7 +174,7 @@ details code{font-size:12px}
 .dragging .pushable,.dragging .blind{transition:none}
 @media (prefers-reduced-motion:reduce){.ring,.thr .man,.caret,.music.playing i{animation:none}}
 </style>
-<!-- The app's own page parts (src/ui/parts/parts.css, copied here by npm run tokens:check's fix line). Steps 2, 7, 8, 9 and 16 are built from them. -->
+<!-- The app's own page parts (src/ui/parts/parts.css, copied here by npm run tokens:check's fix line). Every Journal, Council and Be step is built from them. -->
 <link rel="stylesheet" href="parts.css">
 <style>
 /* a real .fs-app inside a mock phone: the status bar above stands in for the safe area */
@@ -188,6 +188,8 @@ details code{font-size:12px}
 </header>
 <nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
 <main id="main">
+
+
 
 <!-- 1 -->
 <section class="step" id="threshold" data-name="The threshold">
@@ -215,72 +217,102 @@ details code{font-size:12px}
     </div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Light</td><td>Follows the sky; the threshold is shown at night. <code>data-light</code> on <code>&lt;html&gt;</code>, tokens in <code>design/tokens.css</code>.</td></tr>
-    <tr><td>Breath</td><td><code>--t-breath</code> 10s (4 in, 6 out) on the manifesto's opacity; static under reduced motion.</td></tr>
-    <tr><td>Touch</td><td>One haptic tick and one soft bell on unlock (<code>parts/Haptic</code>, <code>parts/Sound</code>). PLAN §8.</td></tr>
+    <tr><td>Light</td><td><code>data-light</code> on <code>&lt;html&gt;</code>; the breath is <code>--t-breath</code>, static under reduced motion.</td></tr>
   </table></details>
 </section>
 
 <!-- 2 -->
 <section class="step" id="page" data-name="A blank dated page">
   <h2>The page is already open</h2>
-  <p class="line">Type at the bottom; every keystroke saves itself.</p>
+  <p class="line">Type at the bottom; it saves itself.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="page" data-j><div class="island"></div>
     <div class="status"><span>09:40</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules fs-col"></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Parts</td><td><code>parts/Page</code> header ("No." hidden in Still), <code>parts/Chip</code>, <code>parts/Moon</code>; this phone uses <code>src/ui/parts/parts.css</code> itself.</td></tr>
-    <tr><td>Page</td><td>A page is a column of messages (<code>src/ui/journal/PageView.tsx</code>); the composer at the bottom writes the next one.</td></tr>
-    <tr><td>Saving</td><td>No save button: the first keystroke makes today&#39;s entry, every pause writes the line through <code>store</code> (<code>model/pages.ts</code> <code>writeLine</code>).</td></tr>
+    <tr><td>Parts</td><td><code>parts/Page</code>, <code>parts/Chip</code>, <code>src/ui/journal/PageView.tsx</code>.</td></tr>
+    <tr><td>Saving</td><td>The first keystroke makes the entry; <code>writeLine</code> through <code>store</code>.</td></tr>
   </table></details>
 </section>
 
 <!-- 3 -->
 <section class="step" id="voice" data-name="A line in a voice">
-  <h2>Tap a chip, and the next line speaks</h2>
-  <p class="line">Pick a voice, press return; the line takes its colour.</p>
+  <h2>The chip you tap speaks next</h2>
+  <p class="line">Press return; the line takes its colour.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="voice" data-j><div class="island"></div>
     <div class="status"><span>09:52</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">Mood</button><span class="fs-tagword">#evergreen</span><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg" data-j-line><p>All this, and I&#39;m reduced to simple journaling. I suppose at the end of the day, it&#39;s the simple things that make the most difference. <span class="fs-tagword">#evergreen</span></p></div><div class="fs-msg fs-v" style="--vc:var(--v-blue)" data-j-line><span class="fs-sp">Mystic</span><p>I shall make it my supreme duty to listen to the quiet voices within, even when I may not agree with them.</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="true" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div class="fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Colour</td><td>A voice is a hue angle; the light sets lightness and chroma, so one voice reads the same by day, night and in Still.</td></tr>
-    <tr><td>Message</td><td><code>.fs-v</code>: 3px left rule, wash at <code>--tint</code> (10%, 0% in Still). Deep twins get a doubled rule and leave the chip row in Still.</td></tr>
-    <tr><td>Meta</td><td>Mood words and <code>#tags</code> (parsed from the lines into <code>page.tags</code>) sit quietly under the header; raw, revisited, integrated leave in Still.</td></tr>
+    <tr><td>Colour</td><td>A voice is a hue; <code>.fs-v</code> is a 3px rule and a <code>--tint</code> wash.</td></tr>
+    <tr><td>Tags</td><td><code>#tags</code> in the lines fill <code>page.tags</code>.</td></tr>
   </table></details>
 </section>
 
 <!-- 4 -->
 <section class="step" id="answer" data-name="Turn to answer">
   <h2>Turn it to a question</h2>
-  <p class="line">Tap Turn to answer; the frame opens in the wiser voice.</p>
+  <p class="line">The answer opens in the wiser voice.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="answer" data-j><div class="island"></div>
     <div class="status"><span>10:05</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>11</b></span><span>Date: <b>11 / 5 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">Mood</button><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg" data-j-line><p>How do I retain skills that were developed due to dysfunctional beliefs, enough to remain within those constraints?</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section><div class="fs-scrim" data-j="close"></div><section class="fs-sheet" aria-label="This line"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>This line</h2><button type="button" class="fs-word" data-j="close">Done</button></div></div><div class="fs-sheet-body"><p class="fs-held">How do I retain skills that were developed due to dysfunctional beliefs, enough to remain within those constraints?</p><div class="fs-rows"><button type="button" class="fs-row" data-j="keep"><span>Keep close</span><small>Echo · Still</small></button><button type="button" class="fs-row" data-j="close"><span>Reply</span></button><button type="button" class="fs-row" data-j="close"><span>Speak as…</span><small>Plain ink</small></button><button type="button" class="fs-row" data-j="turn"><span>Turn to answer</span><small>Question</small></button><button type="button" class="fs-row" data-j="close"><span>Link a page</span><small>Related</small></button><button type="button" class="fs-row" data-j="close"><span>Take to the council</span></button></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Action</td><td><code>turnToAnswer</code>: <code>page.kind = &#39;question&#39;</code>, the title is the line&#39;s first sentence (editable), and the answer composer opens in italic.</td></tr>
-    <tr><td>States</td><td>The first answer marks it answered; one on a later day, revisited. Questions lists open ones first, under "[space to answer left]".</td></tr>
-    <tr><td>Why</td><td>Distanced self-talk lowers rumination over time (Kross &amp; Ayduk). PLAN §8.</td></tr>
+    <tr><td>Action</td><td><code>turnToAnswer</code>: the first sentence becomes the title; answers are italic.</td></tr>
+    <tr><td>Why</td><td>Distanced self-talk (Kross and Ayduk). PLAN section 8.</td></tr>
   </table></details>
 </section>
 
 <!-- 5 -->
 <section class="step" id="echo" data-name="The echo">
   <h2>Your own earlier answer returns</h2>
-  <p class="line">Tap the echo to link it, or swipe away.</p>
+  <p class="line">Tap to link it, or swipe it away.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="echo" data-j><div class="island"></div>
     <div class="status"><span>07:31</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>15</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-echo" data-j="echo"><button type="button" class="fs-echo-tap" data-j="echo-link"><small class="fs-echo-date">11 / 5 / 26</small><span class="fs-echo-line">Wait out the truly hard parts of life. They never last forever.</span></button></div><div class="fs-sheetof fs-rules fs-col"></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Source</td><td>Only lines you kept close (step 12), never generated: the oldest not yet shown, the same one all day (<code>pickEcho</code>, seen ids in <code>settings.echo</code>).</td></tr>
-    <tr><td>Part</td><td><code>parts/Echo</code>: a tap links both pages (<code>linkedPageIds</code>), a swipe dismisses it for today. In Still it is the line only.</td></tr>
+    <tr><td>Source</td><td>Kept lines only, oldest unseen first (<code>pickEcho</code>); a tap links the pages.</td></tr>
   </table></details>
 </section>
 
-<!-- package 2: the council, built from src/ui/parts/parts.css -->
+<!-- 6 -->
+<section class="step" id="keep" data-name="Keep close">
+  <h2>Hold a line to keep it close</h2>
+  <p class="line">Kept lines return as the echo.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-step="keep" data-j><div class="island"></div>
+    <div class="status"><span>10:02</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>9</b></span><span>Date: <b>11 / 5 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a>Entries</a><a class="fs-notstill" aria-current="page">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-edit fs-q" rows="4" aria-label="Question">How can I gauge my pleasure/pain barometer to know when I should pull the rip cord?</textarea><div class="fs-msg fs-wise" data-j-line><p>The mind is not pure, nor is it reliable. Yet, it is all we have for decision making.</p></div><div class="fs-msg fs-wise" data-j-line><p>Rationality may cry for your head many times before it is all said and done, but stand tall, young one.</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose fs-wise" rows="1" spellcheck="false" aria-label="Answer"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Hold</td><td><code>parts/Hold</code>, 500ms; <code>messages.kept</code>, one tick and a soft bell.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="questions" data-name="Questions">
+  <h2>Questions wait with space left</h2>
+  <p class="line">Open ones first; tap one to answer.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-step="questions"><div class="island"></div>
+    <div class="status"><span>10:12</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a>Entries</a><a class="fs-notstill" aria-current="page">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules"><div class="fs-pagelist"><a class="fs-qrow"><span class="fs-qtitle">What is the smallest version of this I could do today?</span><span class="fs-quiet">[space to answer left]</span></a><a class="fs-qrow"><span class="fs-qtitle">How do I retain skills that were developed due to dysfunctional beliefs?</span><span class="fs-quiet">[space to answer left]</span></a><a class="fs-qrow"><span class="fs-qtitle">How can I gauge my pleasure/pain barometer to know when I should pull the rip cord?</span><small class="fs-list-meta"><span class="fs-state">answered</span></small></a></div></div><div class="fs-ask"><button type="button" class="fs-word">Ask a question</button></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>List</td><td><code>questions()</code>: open first, newest first; Ask a question writes <code>page.title</code>, sealed.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="night" data-name="Night">
+  <h2>After sunset, the voices glow</h2>
+  <p class="line">The page follows the sky; nothing to switch.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="night" data-j><div class="island"></div>
+    <div class="status"><span>22:40</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-meta"><button type="button" class="fs-word">Mood</button><span class="fs-tagword">#evergreen</span><span class="fs-state"><button type="button" class="fs-word" aria-pressed="true">raw</button><button type="button" class="fs-word" aria-pressed="false">revisited</button><button type="button" class="fs-word" aria-pressed="false">integrated</button></span></div><div class="fs-sheetof fs-rules fs-col"><div class="fs-msg" data-j-line><p>All this, and I&#39;m reduced to simple journaling. I suppose at the end of the day, it&#39;s the simple things that make the most difference. <span class="fs-tagword">#evergreen</span></p></div><div class="fs-msg fs-v" style="--vc:var(--v-blue)" data-j-line><span class="fs-sp">Mystic</span><p>I shall make it my supreme duty to listen to the quiet voices within, even when I may not agree with them.</p></div><div class="fs-msg fs-v deep" style="--vc:var(--d-green)" data-j-line><span class="fs-sp">Workaholic</span><p>Many hard things are accomplished better from suffering.</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="true" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div class="fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+</section>
+
+<!-- 9 -->
 <section class="step" id="council" data-name="The council">
   <h2>The council</h2>
   <p class="line">Tap who speaks; the lamp follows.</p>
@@ -307,9 +339,12 @@ details code{font-size:12px}
     </main>
     <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Pages</td><td><code>model/council.ts</code>; Take to the council links both pages and copies the line, so "From" sits on top.</td></tr>
+  </table></details>
 </section>
 
-<!-- package 2: "+ voice" -->
+<!-- 10 -->
 <section class="step" id="add-voice" data-name="+ voice">
   <h2>+ voice</h2>
   <p class="line">Name it, turn the wheel.</p>
@@ -338,7 +373,7 @@ details code{font-size:12px}
   </div></div>
 </section>
 
-<!-- package 2: the Voices screen -->
+<!-- 11 -->
 <section class="step" id="voices" data-name="Voices">
   <h2>Voices</h2>
   <p class="line">Old names stay, struck through.</p>
@@ -360,7 +395,7 @@ details code{font-size:12px}
   </div></div>
 </section>
 
-<!-- 7 -->
+<!-- 12 -->
 <section class="step" id="spread" data-name="The spread">
   <h2>The spread, as in the notebook</h2>
   <p class="line">Hold a goal; slide it to weigh it.</p>
@@ -370,14 +405,12 @@ details code{font-size:12px}
     <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Parts</td><td><code>parts/Spread</code> (two facing pages, measured after display, relaid on resize), <code>parts/CornerTag</code> (an SVG line with the value on a text path), <code>parts/Arrow</code> (a drawn path and head), <code>parts/Strike</code>.</td></tr>
-    <tr><td>Lean</td><td>A goal's height is its <code>lean</code>, -1 top to +1 bottom of the band between the corner tags; goals at the same lean stack with a small gap. Long press lifts it 2px; release writes the lean, and a pair at the same height follows (<code>model/paradox.ts</code>).</td></tr>
-    <tr><td>Three words</td><td>Under the spread, the notebook's line: pole A · middle · pole B in ink, each earlier version struck beneath it, oldest first (<code>threeWordLines</code>); the seam keeps only the rule and the pair links.</td></tr>
-    <tr><td>Seed</td><td>selfless / selfish and thoughtful (obsessive) / reactive, leans in the notebook's diagonal order, A to B, top to bottom.</td></tr>
+    <tr><td>Parts</td><td><code>parts/Spread</code>, <code>CornerTag</code>, <code>Arrow</code>, <code>Strike</code>; measured after display.</td></tr>
+    <tr><td>Lean</td><td>Height is <code>lean</code>, -1 to +1; release writes it (<code>model/paradox.ts</code>).</td></tr>
   </table></details>
 </section>
 
-<!-- 8 -->
+<!-- 13 -->
 <section class="step" id="goal" data-name="A goal and its balance">
   <h2>A goal and its balance</h2>
   <p class="line">Save one side; the other waits, dashed.</p>
@@ -389,12 +422,11 @@ details code{font-size:12px}
 <section class="fs-sheet" aria-label="Fill both" data-sheet="Fill both"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Fill both</h2><span class="fs-sheet-words"><button type="button" class="fs-word fs-go">Save</button><button type="button" class="fs-word" data-act="dismiss">Done</button></span></div></div><div class="fs-sheet-body"><div class="fs-rows"><label class="fs-row stack fs-goalfield" data-side="a"><span class="fs-print">selfless</span><textarea class="fs-input fs-area" rows="2" aria-label="selfless goal" placeholder="A goal">Share what you make with the world</textarea></label><label class="fs-row stack fs-goalfield" data-side="b"><span class="fs-print">selfish</span><textarea class="fs-input fs-area" rows="2" aria-label="selfish goal" placeholder="What balances it?"></textarea></label><div class="fs-row stack"><span class="fs-print">Cadence</span><div class="fs-opts" role="group" aria-label="Cadence"><button type="button" class="fs-opt" aria-pressed="false">daily</button><button type="button" class="fs-opt" aria-pressed="false">weekly</button><button type="button" class="fs-opt" aria-pressed="false">monthly</button><button type="button" class="fs-opt" aria-pressed="false">yearly</button><button type="button" class="fs-opt" aria-pressed="false">once</button></div></div><div class="fs-row stack"><span class="fs-print">Follows</span><div class="fs-opts fs-oneline" role="group" aria-label="Follows"><button type="button" class="fs-opt" aria-pressed="false" title="find volunteer opportunities near Evergreen">find volunteer opportunities near…</button><button type="button" class="fs-opt" aria-pressed="false" title="remind yourself, through metrics, that you matter by helping others; when something useful is created, share it with the world">remind yourself, through metrics,…</button><button type="button" class="fs-opt" aria-pressed="false" title="write for its own sake, not worrying whether it is commercially viable or edifying">write for its own sake, not worry…</button><button type="button" class="fs-opt" aria-pressed="false" title="find something nice for yourself which gives you life / breathing room">find something nice for yourself…</button></div></div><div class="fs-row fs-acts"><button type="button" class="fs-word">Archive</button></div></div></div></section></template>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Sheet</td><td>"+ Goal" opens one field per pole, headed by the pole values, a cadence row and a "follows" picker (sets <code>nextTo</code>). Tapping a dashed slot opens the same sheet on the empty side.</td></tr>
-    <tr><td>Data</td><td>Two <code>items</code> rows sharing a <code>pairId</code> at the same lean; a lone goal shows a slot until filled. Goals archive (<code>archived</code>), never delete. PLAN section 6.</td></tr>
+    <tr><td>Data</td><td>Two <code>items</code> sharing a <code>pairId</code>; a lone goal keeps a slot. PLAN section 6.</td></tr>
   </table></details>
 </section>
 
-<!-- 8b -->
+<!-- 14 -->
 <section class="step" id="paradox" data-name="New paradox">
   <h2>New paradox</h2>
   <p class="line">Save waits for both sides.</p>
@@ -405,10 +437,10 @@ details code{font-size:12px}
   </div></div>
 </section>
 
-<!-- 9 -->
+<!-- 15 -->
 <section class="step" id="flow" data-name="Today, by cadence">
-  <h2>Check what is due, drag the lean</h2>
-  <p class="line">The slider clicks into three detents; nothing counts a streak.</p>
+  <h2>Check what is due</h2>
+  <p class="line">The lean clicks into three detents.</p>
   <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
     <div class="status"><span>08:15</span><span>Flow</span></div>
     <div class="hdr"><div class="sw"><div class="moon"></div><div class="ring"></div></div><div class="r"><span>Today</span><span>Date <b>11 / 7 / 26</b></span></div></div>
@@ -427,15 +459,14 @@ details code{font-size:12px}
     <div class="tabs"><span>Journal</span><span>Council</span><span>Be</span><span class="on">Flow</span></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Slider</td><td><code>parts/LeanSlider</code> with detents at -1, 0, +1; a haptic tick at each detent, a bell only at the ends.</td></tr>
-    <tr><td>Check</td><td>Drawn check mark, one tick, writes to <code>doneLog</code>. The look-back row is the only count on the screen, and Still removes it (step 10).</td></tr>
+    <tr><td>Slider</td><td>Detents at -1, 0, +1; a tick at each, a bell at the ends.</td></tr>
   </table></details>
 </section>
 
-<!-- 9 -->
+<!-- 16 -->
 <section class="step" id="blind" data-name="Pull the page down">
   <h2>When thoughts spin, pull the page down</h2>
-  <p class="line">Drag down and let go past the line.</p>
+  <p class="line">Let go past the line.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="blind"><div class="island"></div>
     <div class="blind" data-light="still"><div class="ring"></div><span>Release to settle</span></div>
     <div class="pushable">
@@ -447,15 +478,14 @@ details code{font-size:12px}
     </div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Gesture</td><td>A pull from the top of any page, like drawing a blind: the dark comes down with the drag; release past 80px commits to Still. The moon does the same with a tap.</td></tr>
-    <tr><td>Feel</td><td>One haptic tick and a long low tone (3s, fading) on commit. Nothing is written; the text stays exactly where it was.</td></tr>
+    <tr><td>Gesture</td><td>Release past 80px commits; one tick and a low tone. Nothing is written.</td></tr>
   </table></details>
 </section>
 
-<!-- 10 -->
+<!-- 17 -->
 <section class="step" id="still" data-name="Still">
   <h2>Still</h2>
-  <p class="line">No counts, no deep twins, one kept line; the ring lifts it.</p>
+  <p class="line">One kept line; the ring brings you back.</p>
   <div class="phone" data-mock><div class="screen" data-light="still" data-step="still"><div class="island"></div>
     <div class="status"><span>00:02</span><span>&nbsp;</span></div>
     <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>16</b></span><span>Date <b>11 / 8 / 26</b></span></div></div>
@@ -465,13 +495,11 @@ details code{font-size:12px}
     <div class="tabs"><span class="on">Journal</span><span>Council</span><span>Be</span><span>Flow</span></div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Light</td><td><code>[data-light="still"]</code>: page #0F1016, ink #A19B8E (about 6.5:1) <!-- design-lint: allow: prose naming the tokens -->, chroma × .4, no wash, 18px on 33px lines, UI motion slowed.</td></tr>
-    <tr><td>Rules</td><td>No "No.", no states, no look-back, no page list (today only); deep twins hidden from chips; the echo becomes a kept line of yours, seeded with the manifesto.</td></tr>
-    <tr><td>Leaving</td><td>Tap the ring, or it lifts itself at the next sunrise. Leaving changes no data.</td></tr>
+    <tr><td>Light</td><td><code>[data-light="still"]</code>: lower luminance, no wash, no counts; deep twins leave the chip row, their lines stay.</td></tr>
   </table></details>
 </section>
 
-<!-- 11 -->
+<!-- 18 -->
 <section class="step" id="enough" data-name="Enough for now?">
   <h2>After twelve minutes, the ring asks once</h2>
   <p class="line">Close the page or keep writing.</p>
@@ -488,29 +516,14 @@ details code{font-size:12px}
     </div>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Timer</td><td>Twelve minutes of typing within one Still session, measured from the first keystroke; one offer per session, stored in memory only.</td></tr>
-    <tr><td>Close</td><td>Sets <code>state = 'raw'</code>, returns to the kept line and the ring. The entry reappears in Flow's look-back once Still lifts.</td></tr>
+    <tr><td>Timer</td><td>Twelve minutes of typing, once a session; Close files the page raw.</td></tr>
   </table></details>
 </section>
 
-<!-- 12 -->
-<section class="step" id="keep" data-name="Keep close">
-  <h2>Long press to keep a line close</h2>
-  <p class="line">Hold a line; kept lines feed the echo and Still.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night" data-step="keep" data-j><div class="island"></div>
-    <div class="status"><span>22:51</span><span>Journal</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>9</b></span><span>Date: <b>11 / 5 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a>Entries</a><a class="fs-notstill" aria-current="page">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-edit fs-q" rows="4" aria-label="Question">How can I gauge my pleasure/pain barometer to know when I should pull the rip cord?</textarea><div class="fs-msg fs-wise" data-j-line><p>The mind is not pure, nor is it reliable. Yet, it is all we have for decision making.</p></div><div class="fs-msg fs-wise" data-j-line><p>Rationality may cry for your head many times before it is all said and done, but stand tall, young one.</p></div></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose fs-wise" rows="1" spellcheck="false" aria-label="Answer"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table>
-    <tr><td>Hold</td><td><code>parts/Hold</code>: a 500ms pointer hold, no context menu, no selection; the line lifts 2px and its sheet rises with one tick.</td></tr>
-    <tr><td>Data</td><td><code>messages.kept</code>; one tick and a soft bell (<code>parts/Haptic</code>, <code>parts/Sound</code>).</td></tr>
-  </table></details>
-</section>
-
-<!-- 13 -->
+<!-- 19 -->
 <section class="step" id="music" data-name="Music">
-  <h2>Put on an album from the playlist</h2>
-  <p class="line">Scroll the albums; tap one and it plays from its first song.</p>
+  <h2>Put on an album</h2>
+  <p class="line">Tap a cover; it plays from there.</p>
   <div class="phone" data-mock><div class="screen" data-light="night" data-step="music"><div class="island"></div>
     <div class="status"><span>21:30</span><span>Journal</span></div>
     <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">No. <b>17</b></span><span>Date <b>11 / 9 / 26</b></span></div></div>
@@ -579,18 +592,14 @@ details code{font-size:12px}
     </template>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Scroll</td><td>The sheet holds every album in the playlist, in playlist order, and scrolls; the four real covers here stand in for the rest.</td></tr>
-    <tr><td>Tiles</td><td>The playlist read once (<code>GET /playlists/{id}/tracks</code>), grouped by album in playlist order; covers cached as blobs in Dexie so the grid works offline. Tap = <code>PUT /me/player/play {context_uri: album, offset: 0}</code> on the phone's Spotify (Premium).</td></tr>
-    <tr><td>Without an account</td><td>"Open in Spotify" is a deep link to <code>spotify:playlist:0T6Gzc2hN81u3vGC5IJZ9a</code>; no tiles, no network from the app.</td></tr>
-    <tr><td>Memory</td><td>Now-playing polled every 20s while a page is open and saved as <code>page.music</code>, so a page remembers its album. <code>src/music/</code> is the only code allowed to <code>fetch</code>.</td></tr>
-    <tr><td>Not planned</td><td>The Web Playback SDK (unproven on iOS Safari, stops in the background). PLAN §8.</td></tr>
+    <tr><td>Tiles</td><td>Covers cached as blobs; <code>src/music/</code> is the only code that may <code>fetch</code>.</td></tr>
   </table></details>
 </section>
 
-<!-- 14 -->
+<!-- 20 -->
 <section class="step" id="settings" data-name="Settings">
   <h2>Settings holds the sky</h2>
-  <p class="line">Pick a light; add it to the Home Screen.</p>
+  <p class="line">Pick a light, or follow the sky.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="settings"><div class="island"></div>
     <div class="status"><span>12:02</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main">
@@ -630,15 +639,12 @@ details code{font-size:12px}
       </section></template>
   </div></div>
   <details><summary>How this is built</summary><table>
-    <tr><td>Sheet</td><td><code>parts/Sheet</code>: rises over a scrim between the page and the tab bar, so the four tabs stay in reach; Done, the scrim, Escape or a swipe down on the handle puts it away. Never a modal dialog.</td></tr>
-    <tr><td>Light</td><td><code>ui/light.ts</code>: sunrise and sunset from the stored place, offline (the sunrise equation, no library); 07:00 to 19:00 without one; a 40-minute dusk stretches <code>--t-light</code>. Day or Night pins it; Still sits over both.</td></tr>
-    <tr><td>Place</td><td>A town from a small offline table (Evergreen, Colorado is first) or a typed <code>lat, lon</code>. No location permission.</td></tr>
-    <tr><td>Data</td><td>Export: one JSON file to the share sheet. Import: merge (newest <code>updatedAt</code> wins) or replace. Storage: <code>navigator.storage.persist()</code> and its estimate.</td></tr>
-    <tr><td>Install</td><td>The Home Screen row shows until standalone mode is detected; an installed app is exempt from Safari's seven-day eviction.</td></tr>
+    <tr><td>Light</td><td><code>settings.light</code>: sky, day or night; sunrise from the stored place, offline.</td></tr>
   </table></details>
 </section>
 
 <div class="ctl"><button id="prev">Previous</button><button id="next">Next</button></div>
+
 </main>
 </div>
 <script>
