@@ -245,11 +245,11 @@ export async function linksOf(p: Read<Page>): Promise<PageLink[]> {
   return out.sort((x, y) => rank[x.label] - rank[y.label]);
 }
 
-/** "Take to the council": a council page linked both ways, its first message copied from the line. */
+/** "Take to the council": a council page linked both ways, the line as its About (V3: the title, shown
+ *  above the seats screen "Who sits?" and the conversation). No message is copied: the council opens empty. */
 export async function takeToCouncil(p: Read<Page>, m: Read<Message>, now = Date.now()): Promise<Read<Page>> {
-  const council = newPage('council', now, { title: p.kind === 'question' ? p.title : undefined, linkedPageIds: [p.id] });
-  const first: Message = { id: crypto.randomUUID(), pageId: council.id, at: now, updatedAt: now, voiceId: m.voiceId, text: m.text, kept: false };
-  await store.many({ pages: [council, { ...p, linkedPageIds: withId(p.linkedPageIds, council.id), updatedAt: now }], messages: [first] });
+  const council = newPage('council', now, { title: m.text.split('\n')[0].trim() || p.title, linkedPageIds: [p.id] });
+  await store.many({ pages: [council, { ...p, linkedPageIds: withId(p.linkedPageIds, council.id), updatedAt: now }] });
   return council;
 }
 

@@ -165,8 +165,7 @@ describe('look back', () => {
     expect((await rawEntries(now)).map(r => r.id)).not.toContain(yesterday.page!.id);
 
     const q = await askQuestion('How can I gauge my pleasure/pain barometer?');
-    // the seeded models question (package 8) stays open too
-    expect(await openQuestions()).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }, { id: 'pg-models', title: 'Who are my models?' }]);
+    expect(await openQuestions()).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }]);
   });
 
   it('paradoxes with no lean this month', async () => {

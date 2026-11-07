@@ -33,7 +33,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 
 ## 4. The lights (review)
 
-12. The light follows the sky: sunrise and sunset computed offline from a stored place (one-time in Settings; fallback 07:00 to 19:00), a 40-minute dusk crossfade (`--t-light`). Settings can pin Day or Night. The moon glows after sunset but never switches Still on by itself.
+12. The light follows the sky: sunrise and sunset computed offline from a stored place (one-time in Settings; fallback 07:00 to 19:00); sunrise and sunset change the light in one `--t-light` breath, everything together (V5). Settings can pin Day or Night. The moon glows after sunset but never switches Still on by itself.
 13. Still is one gesture from anywhere: pull the page down (commit past 80px) or tap the moon. In Still: no counts, states, page numbers, look-back or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
 14. Still lowers luminance, not warmth: page #0F1016, ink #A19B8E (about 6.5:1), chroma × .4, cool-neutral. (Illuminance moves arousal; colour temperature barely does.)
 15. Nothing counts a streak. No badges, confetti, counts on tabs (lint on the words in `src/ui`).

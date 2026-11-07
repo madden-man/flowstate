@@ -217,7 +217,7 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-council { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--kb, 0px); }
 .fs-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s1) var(--gutter) var(--s2); }
 .fs-chat p { margin: 0; min-height: var(--lh-ink); }
-.fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
+.fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: pointer; } /* a tap replies (V3) */
 .fs-council .fs-quote {
   display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   border-left: 2px solid var(--qc, var(--print)); padding-left: 6px;
@@ -253,6 +253,14 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-spoke i { display: block; width: 3px; height: 14px; background: var(--vc); }
 .fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
 .fs-blank { padding-top: var(--lh-ink); }
+
+/* V3, the seats screen ("Who sits?"): every voice as a chip at full tap size, wrapped, toggled on and off.
+   The same row stands in for the chips under a conversation after "+ seat", with Done beside it. */
+.fs-seats { display: flex; flex-wrap: wrap; gap: var(--s1); padding: var(--s1) 0; font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }
+.fs-seats .fs-chip { min-height: var(--hit); padding: 0 var(--s2); }
+.fs-seatrow { display: flex; align-items: flex-start; gap: var(--s1); padding: 0 var(--s1) 0 var(--gutter); max-height: 40vh; overflow-y: auto; }
+.fs-seatrow .fs-seats { flex: 1; min-width: 0; }
+.fs-seatrow > .fs-word { flex: none; margin-top: var(--s1); }
 .fs-said { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); font-style: italic; color: var(--ink); }
 
 /* the colour wheel: a conic ring on the voice formula, so it follows the light */
@@ -320,55 +328,67 @@ a.fs-row { text-decoration: none; cursor: pointer; }
   outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
 }
 
-/* ---- Be: the spread (package 3). Two facing pages, the seam, the diagonal, corner tags, goals by lean ---- */
+/* ---- Be: the spread, upright (V4, DESIGN.md rule 11). Pole A on the top rule, pole B on the bottom rule,
+   the seam between; a pair shares a row, tied across the seam; the middle word sits on the seam ---- */
 .fs-be-top { display: flex; justify-content: space-between; align-items: center; padding: 0 calc(var(--gutter) - var(--s1)); }
 .fs-be { padding-top: 0; }
 .fs-spread { position: relative; padding: var(--s1) 0 var(--s3); border-bottom: 1px solid var(--seam); scroll-margin-top: var(--s1); }
 .fs-spread:last-child { border-bottom: 0; }
 .fs-spread-pages { position: relative; min-height: var(--s4); font-family: var(--serif); }
 .fs-spread-ink { position: absolute; inset: 0; overflow: visible; pointer-events: none; color: var(--ink); }
-.fs-diag, .fs-seam { stroke: var(--seam); stroke-width: 1; fill: none; }
+.fs-seam { stroke: var(--seam); stroke-width: 1; fill: none; }
 .fs-pair { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
 .fs-pair.open { stroke-dasharray: 1.5 6; }
 .fs-arrow { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
 
-/* corner tags: a line across the corner, the value written along it */
-.fs-ctag { position: absolute; overflow: visible; pointer-events: none; }
-.fs-ctag.tl { left: 0; top: 0; }
-.fs-ctag.br { right: 0; bottom: 0; }
-.fs-ctag-line { stroke: var(--ink); stroke-width: 1; fill: none; }
-.fs-ctag-text { fill: var(--ink); font-family: var(--serif); font-size: var(--fs-chip); letter-spacing: .02em; }
-.fs-ctag-shadow { fill: var(--print); font-style: italic; }
+/* the poles: each word centred on its rule (A above the top rule, B below the bottom one), its shadow in brackets */
+.fs-pole {
+  position: absolute; left: 0; right: 0; margin: 0; padding: 0 var(--s4);
+  text-align: center; font-size: var(--fs-chip); letter-spacing: .02em; line-height: var(--lh-ink); color: var(--ink);
+  transition: border-color var(--t-light) var(--ease);
+}
+.fs-pole.a { top: 0; border-bottom: 1px solid var(--rule); }
+.fs-pole.b { border-top: 1px solid var(--rule); }
+.fs-pole i { font-style: italic; color: var(--print); }
+/* the middle word on the seam, on a patch of page so the line breaks around it; the patch relights with the page */
+.fs-mid {
+  position: absolute; left: 50%; transform: translateX(-50%); display: block; width: max-content; max-width: 64%; margin: 0; padding: 0 var(--s1);
+  text-align: center; font-size: var(--fs-chip); font-style: italic; line-height: 1.35; color: var(--print);
+  background: var(--page); transition: background-color var(--t-light) var(--ease);
+}
 
-/* a goal on its page, and the dashed slot for a missing balance */
+/* a goal on its pole's side of the seam, and the dashed slot for a missing balance on the other side of its row */
 .fs-goal, .fs-slot {
-  appearance: none; position: absolute; margin: 0; border: 0; background: transparent; color: var(--ink);
+  appearance: none; position: absolute; width: 44%; margin: 0; border: 0; background: transparent; color: var(--ink);
   font: inherit; font-size: var(--fs-chip); line-height: 1.35; text-align: left; padding: 4px 2px;
-  min-height: var(--hit); cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+  cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
   transition: transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease);
 }
-.fs-goal.b, .fs-slot.b { text-align: right; }
+/* a row reads along its first line: the goal's first line, the tie and the slot's words share one height */
+.fs-goal { min-height: var(--hit); display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+.fs-goal.a, .fs-slot.a { left: 0; }
+.fs-goal.b, .fs-slot.b { right: 0; text-align: right; }
 .fs-goal-text { display: block; }
 .fs-cadence { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
 .fs-goal.lift { transform: translateY(-2px); background: var(--page); box-shadow: var(--shadow-tile); border-radius: var(--s1); cursor: grabbing; transition: none; z-index: 2; }
 .fs-goal.riding { transition: none; }
-.fs-slot { border: 1px dashed var(--print); border-radius: var(--s1); color: var(--print); font-style: italic; padding: var(--s1); cursor: pointer; display: flex; align-items: center; }
+.fs-slot { border: 1px dashed var(--print); border-radius: var(--s1); color: var(--print); font-style: italic; padding: 3px var(--s1); cursor: pointer; display: flex; align-items: flex-start; }
 .fs-slot.b { justify-content: flex-end; }
+/* the slot is drawn one line tall; its tap reaches the full 44px, as the chips do */
+.fs-slot::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - max(50%, var(--hit) / 2)); bottom: calc(50% - max(50%, var(--hit) / 2)); }
 .fs-goal:focus-visible, .fs-slot:focus-visible, .fs-addgoal:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 
-/* the notebook's three-word line under the spread: the current version in ink, the struck ones beneath */
-.fs-threewords { padding: var(--s1) 0 var(--s2); text-align: center; }
-.fs-threeword { margin: 0; font-size: var(--fs-fill); line-height: 1.5; color: var(--ink); }
-.fs-threeword .fs-struck { font-size: var(--fs-chip); }
+/* earlier versions of the three words, struck through, in the sheet Edit opens */
+.fs-was { margin: 0; font-size: var(--fs-chip); line-height: 1.5; }
 
-/* "+ Goal" under the spread, the first thing under the thumb; Edit in the empty top-right corner */
+/* "+ Goal" under the spread, the first thing under the thumb; Edit at the right end of the top rule */
 .fs-addgoal {
   appearance: none; margin: 0; cursor: pointer; min-height: var(--hit);
   padding: 0 var(--s2); border-radius: 999px; border: 1px solid var(--ink); background: var(--page); color: var(--ink);
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
   transition: background-color var(--t-light) var(--ease);
 }
-.fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; display: flex; align-items: center; }
+.fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; height: var(--lh-ink); display: flex; align-items: center; z-index: 1; }
 .fs-print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
 
 /* the Be sheets */

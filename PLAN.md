@@ -70,7 +70,7 @@ One idea unifies the writing: a **page** is anything you write, and every piece 
 // messages: the text on a page, in order
 { id, pageId, at, voiceId?, text, replyTo?, kept }
 // voiceId null = plain ink. A question's answer is one or more messages.
-// kept = "keep close" (long press): feeds the echo and Still (§8). Seed: the manifesto's two lines.
+// kept = "keep close" (long press): feeds the echo and Still (§8). No seed pages (V5): the manifesto is threshold copy.
 
 // paradoxes: the Be tab
 { id, createdAt, updatedAt, status: 'active'|'resting'|'retired',
@@ -176,9 +176,9 @@ The notebook names three needs and the app answers each with a light:
 | Night | sunset to sunrise | "listen to the quiet voices within": a lamp in the corner, voices glowing | #1B1D26 / #D8D2C3 |
 | Still | chosen, never automatic | "boiling in my own soup... wait out the truly hard parts, they never last forever": settle, not solve | #0F1016 / #A19B8E, about 6.5:1 |
 
-- **The sky, not a setting.** `ui/light.ts` computes sunrise and sunset from a stored place (asked once in Settings; fallback 07:00 to 19:00; no network) and crossfades over a 40-minute dusk. Settings can pin Day or Night. Research: illuminance raises arousal while colour temperature barely moves it, so Still lowers luminance and stays cool-neutral.
+- **The sky, not a setting.** `ui/light.ts` computes sunrise and sunset from a stored place (asked once in Settings; fallback 07:00 to 19:00; no network) and changes the light at sunrise and sunset in one `--t-light` breath (V5; the 40-minute stretch left chips and sheets in the old light). Settings can pin Day or Night. Research: illuminance raises arousal while colour temperature barely moves it, so Still lowers luminance and stays cool-neutral.
 - **Still** is one gesture from anywhere: pull the page down like a blind (commit past 80px) or tap the moon. In Still: counts, states, page numbers, look-back and the page list vanish (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?" (Close the page files it raw). Leaving Still (ring, or the next sunrise) changes no data.
-- **Your own words, never generated.** Kept lines (`messages.kept`) are the echo above a new page and the line Still shows; the seed is the manifesto. Turn to answer opens the wiser second person beneath a question; distanced self-talk lowers rumination over time (Kross and Ayduk), and the notebook already does it ("stand tall, young one").
+- **Your own words, never generated.** Kept lines (`messages.kept`) are the echo above a new page and the line Still shows; a fresh journal has none until something is kept (V5). Turn to answer opens the wiser second person beneath a question; distanced self-talk lowers rumination over time (Kross and Ayduk), and the notebook already does it ("stand tall, young one").
 - **Type.** Ink is `ui-serif` (New York on iPhone), stationery labels `ui-sans-serif`; nothing is downloaded, which settles the self-hosted-font point in §2. Line height equals rule spacing: 17 on 28 by day, 18 on 33 in Still.
 - **Voices are formulas.** A voice stores a hue; `oklch(var(--voice-l) var(--voice-c) hue)` takes lightness and chroma from the light. Deep twins: lightness -17%, chroma × .6, a doubled left rule. Messages: 3px rule plus a 10% wash (0% in Still). The council's lamp takes the last speaker's colour.
 - **Motion** is slow and never bounces: `--t-ui` 180ms, `--t-page` 400ms, `--t-light` 1200ms, `--t-breath` 10s; zero under reduced motion. Sheets rise; nothing is a modal dialog. Tabs are words; no icons beyond the moon, the ring, the drawn arrow and the drawn check. No streaks, badges, confetti or counts on tabs.
@@ -212,7 +212,7 @@ src/
     flow.ts          cadence, due items, look-back queries
   ui/
     tokens.css       copied unchanged from design/tokens.css (DESIGN.md §2)
-    light.ts         the sky: sunrise/sunset from the stored place, dusk crossfade, Still state, the blind gesture
+    light.ts         the sky: sunrise/sunset from the stored place, one-breath turn, Still state, the blind gesture
     journal/ questions/ council/ be/ flow/ voices/ settings/ lock/
     parts/           Page, Chip, VoiceRule, CornerTag, Spread, Arrow, Strike, LeanSlider, Keypad, Sheet,
                      Moon, Ring, Echo, Sound (Web Audio bells), Haptic (the switch trick)
@@ -253,7 +253,7 @@ Packages 1 to 3 are independent after 0 and can run in parallel worktrees. 5 nee
 1. Should the plain-ink answers (the "young one" voice) have a name of their own in the chip row, or stay unlabelled? Plain ink is assumed.
 2. Should cadence items ("vegetable chopping in Evergreen") be checkable with a done log, or stay prose under the pole? Checkable is assumed, following "daily, weekly, monthly, yearly goals/tasks".
 3. Resolved: the "IVG section" is the dated 11/6 section of the notebook ("Follow up answer in 11/6 section: color coded journaling might give voice to new minds within"). It is the pantheon and three-word pages, already in the plan; no extra section.
-4. The role-model list (Grumpa, Isaac, Alison, Myself) reads as a page, not a feature. Assumed to live as a question page unless you want a "Models" screen.
+4. The role-model list (Grumpa, Isaac, Alison, Myself) reads as a page, not a feature. Assumed to live as a question page unless you want a "Models" screen. (V5, 2026-11-08: seed pages go; Tommy writes it himself.)
 5. The sky needs a place. Assumed: you type a town once in Settings (Evergreen) and the app keeps a latitude and longitude for it; no location permission is asked for.
 6. Still's "Enough for now?" after twelve minutes of typing: keep, change the minutes, or drop it? Kept at twelve, once per session.
 7. Deep twins leave the chip row in Still (you can still reach them from the Voices screen). Assumed yes.

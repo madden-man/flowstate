@@ -160,8 +160,7 @@ describe('question states', () => {
     const ans = await askQuestion('answered', D6);
     await writeLine(ans, undefined, { text: 'yes', wise: true }, D6);
     const young = await askQuestion('new open', D7);
-    // the seeded models question (package 8) is left out here; the seed test covers it
-    expect((await questions()).map(q => q.id).filter(id => id !== 'pg-models')).toEqual([young.id, old.id, ans.id]);
+    expect((await questions()).map(q => q.id)).toEqual([young.id, old.id, ans.id]);
   });
 });
 
@@ -180,20 +179,21 @@ describe('links', () => {
     expect(same.linkedPageIds).not.toContain(big.id);
   });
   it('a pending link (the echo tapped before the first keystroke) lands when the page is made', async () => {
-    const r = await writeLine(undefined, undefined, { text: 'x' }, D7, { linkTo: 'pg-manifesto' });
-    expect(r!.page.linkedPageIds).toEqual(['pg-manifesto']);
-    expect((await pageById('pg-manifesto'))!.page.linkedPageIds).toEqual([r!.page.id]);
+    const old = await entryWith([{ text: 'I determine my core.' }], D5);
+    const r = await writeLine(undefined, undefined, { text: 'x' }, D7, { linkTo: old.id });
+    expect(r!.page.linkedPageIds).toEqual([old.id]);
+    expect((await pageById(old.id))!.page.linkedPageIds).toEqual([r!.page.id]);
   });
-  it('take to the council makes a council page with the line copied, linked both ways', async () => {
-    const p = await entryWith([{ text: 'Our world is deeply out of balance.', voiceId: 'v-skeptic' }]);
+  it('take to the council makes an empty council about the line, linked both ways (V3: it opens on the seats)', async () => {
+    const p = await entryWith([{ text: 'Our world is deeply out of balance.\nAnd more.', voiceId: 'v-skeptic' }]);
     const [m] = await messagesOf(p.id);
     const c = await takeToCouncil(p, m, D7);
     expect(c.kind).toBe('council');
+    expect(c.title).toBe('Our world is deeply out of balance.');
+    expect(c.seats).toBeUndefined();
     expect(c.linkedPageIds).toEqual([p.id]);
     expect((await pageById(p.id))!.page.linkedPageIds).toContain(c.id);
-    const cm = await messagesOf(c.id);
-    expect(cm.map(x => [x.text, x.voiceId])).toEqual([['Our world is deeply out of balance.', 'v-skeptic']]);
-    expect(cm[0].id).not.toBe(m.id);
+    expect(await messagesOf(c.id)).toEqual([]);
   });
 });
 
@@ -267,7 +267,7 @@ describe('entries and search', () => {
     await writeLine(e!.page, e!.message!.id, { text: '' }, D6 + 1);
     await entryWith([{ text: 'third page #evergreen' }], D7);
     const list = await entries();
-    expect(list.map(x => x.line)).toEqual(['third page #evergreen', 'first page', 'I determine my core.']);
+    expect(list.map(x => x.line)).toEqual(['third page #evergreen', 'first page']);
     expect(list[0].page.tags).toEqual(['evergreen']);
   });
   it('finds pages by title or by any line, case-insensitive, newest first', async () => {
@@ -303,7 +303,10 @@ describe('echo', () => {
     const empty = pickEcho([], undefined, 'd1').state;
     expect(pickEcho([k('a', 1)], empty, 'd1').id).toBe('a'); // something was kept later that day
   });
-  it('kept lines come from every page but today, oldest first; the seed is the manifesto', async () => {
+  it('kept lines come from every page but today, oldest first; a fresh journal has none', async () => {
+    expect(await keptLines()).toEqual([]);
+    const old = await entryWith([{ text: 'I determine my core.' }, { text: 'I choose how to flow.' }], D5);
+    for (const om of await messagesOf(old.id)) await setKept(om, true);
     const p = await entryWith([{ text: 'Wait out the truly hard parts.' }], D7);
     const [m] = await messagesOf(p.id);
     await setKept(m, true);
@@ -319,7 +322,7 @@ describe('finding and voices', () => {
     const e = await entryWith([{ text: 'Hard rain today' }, { text: 'the class again' }], D6);
     expect((await findPages('hard', q.id)).map(x => x.page.id)).toEqual([e.id]);
     expect((await findPages('class')).map(x => x.page.id)).toEqual([q.id]);
-    expect((await findPages('')).length).toBe(4); // with the seeded manifesto and models question
+    expect((await findPages('')).length).toBe(2); // the seed writes no pages (V5)
   });
   it('a caller-chosen id names the new line', async () => {
     const r = await writeLine(undefined, 'm-chosen', { text: 'x' }, D7);

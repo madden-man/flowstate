@@ -29,6 +29,20 @@ test('still: pull the page down, the ring, the kept line, and leaving changes no
   await page.goto('/');
   await expect(page.locator('[data-threshold]')).toContainText('I determine my core.');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  // the seed writes no pages (V5): an entry from last week with one kept line, for Still to show
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open('flowstate');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction(['pages', 'messages'], 'readwrite');
+      const at = Date.now() - 7 * 86_400_000;
+      tx.objectStore('pages').put({ id: 'pg-last-week', kind: 'entry', createdAt: at, updatedAt: at, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] });
+      tx.objectStore('messages').put({ id: 'm-last-week', pageId: 'pg-last-week', at, text: 'Listen to the quiet voices within.', kept: true });
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => reject(tx.error);
+    };
+  }));
   await page.reload();
   await expect(page.locator('[data-threshold]')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
@@ -58,7 +72,7 @@ test('still: pull the page down, the ring, the kept line, and leaving changes no
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.getByRole('button', { name: 'Leave Still' })).toBeVisible();
   await expect(page.locator('.fs-count')).toBeHidden();
-  await expect(page.locator('[data-kept-line]')).toHaveText('I determine my core.');
+  await expect(page.locator('[data-kept-line]')).toHaveText('Listen to the quiet voices within.');
   await expect(page.locator('.fs-page')).not.toHaveAttribute('style', /translateY\(\d/);
 
   // short of the line, the page goes back up and nothing happens
