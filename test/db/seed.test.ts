@@ -70,7 +70,12 @@ describe('seed', () => {
       const pair = items.find(x => x.id === i.pairId)!;
       expect(pair.pairId).toBe(i.id);
       expect(pair.pole).not.toBe(i.pole);
-      expect(pair.lean).toBe(i.lean);
+    }
+    // the notebook's diagonal: A to B, top to bottom (package 3 moved the seed leans to make it true)
+    for (const p of [p1, p2]) {
+      const mine = items.filter(i => i.paradoxId === p.id).sort((a, b) => a.order - b.order);
+      expect(mine.map(i => i.lean)).toEqual([...mine.map(i => i.lean)].sort((a, b) => a - b));
+      expect(mine.map(i => i.pole)).toEqual(['a', 'a', 'b', 'b']);
     }
     expect(items.every(i => i.lean >= -1 && i.lean <= 1)).toBe(true);
   });
