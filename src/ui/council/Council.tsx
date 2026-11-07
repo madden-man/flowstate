@@ -45,7 +45,7 @@ export function CouncilSeg({ here }: { here?: 'councils' | 'voices' }) {
 
 // ---------------------------------------------------------------- chips and composer
 
-/** Plain ink first (the unlabelled pen), starred voices, the rest, "+ voice" last. Deep twins leave in Still. */
+/** Plain ink first ("Ink", no voice of its own), starred voices, the rest, "+ voice" last. Deep twins leave in Still. */
 export function ChipRow() {
   const { route } = useLocation();
   const still = isStill();
@@ -54,7 +54,7 @@ export function ChipRow() {
   const press = useLongPress(() => route('/voices'), '.fs-chip');
   return (
     <div class="fs-chips" role="group" aria-label="Who speaks next" {...press}>
-      <Chip label="Ink" pressed={!current} onPress={() => { speaker.value = undefined; }} />
+      <Chip label="Ink" ariaLabel="Plain ink" pressed={!current} onPress={() => { speaker.value = undefined; }} />
       {row.map(v => (
         <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
           pressed={current === v.id} onPress={() => { speaker.value = v.id; }} />

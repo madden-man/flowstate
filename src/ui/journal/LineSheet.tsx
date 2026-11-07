@@ -66,7 +66,7 @@ export function LineSheet({ held, page, voices, byId, acts, onClose }: Props) {
             </button>
             {more === 'speak' && (
               <div class="fs-chips" role="group" aria-label="Speak as">
-                <Chip label="" colour="var(--print)" ariaLabel="Plain ink" pressed={!held.voiceId} onPress={() => acts.speak(undefined)} />
+                <Chip label="Ink" ariaLabel="Plain ink" pressed={!held.voiceId} onPress={() => acts.speak(undefined)} />
                 {voices.map(v => (
                   <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
                     pressed={held.voiceId === v.id} onPress={() => acts.speak(v.id)} />

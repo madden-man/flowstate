@@ -8,7 +8,7 @@ type Props = {
   add?: boolean;
   pressed?: boolean;
   onPress?: () => void;
-  /** For a chip with no visible name (plain ink stays unlabelled in the chip row). */
+  /** A spoken name in place of the visible one: plain ink reads "Ink" and is called "Plain ink". */
   ariaLabel?: string;
 };
 

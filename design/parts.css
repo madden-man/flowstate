@@ -92,7 +92,8 @@
 .fs-v.deep { border-left-style: double; border-left-width: 5px; }
 .fs-sp { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--vc); font-style: normal; }
 .fs-aka { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: none; color: var(--print); }
-[data-light="still"] .fs-v.deep, [data-light="still"] .fs-chip.deep { display: none; }
+/* Still: deep twins leave the chip row; their written lines stay (DESIGN.md rule 13) */
+[data-light="still"] .fs-chip.deep { display: none; }
 
 /* ---- chips ---- */
 .fs-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: var(--s1) var(--gutter); font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }

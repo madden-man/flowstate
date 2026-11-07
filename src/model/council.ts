@@ -134,7 +134,7 @@ export const startsRun = (ms: Pick<Message, 'voiceId'>[], i: number): boolean =>
 // ---------------------------------------------------------------- speaker selection
 
 /** The chip row: starred voices first, then the rest, in their order; archived voices leave it,
- *  and in Still so do the deep twins. Plain ink (the unlabelled first chip) and "+ voice" are the UI's. */
+ *  and in Still so do the deep twins. Plain ink (the first chip, "Ink") and "+ voice" are the UI's. */
 export function chipVoices<V extends Voice>(vs: V[], still = false): V[] {
   return vs
     .filter(v => !v.archived && !(still && v.shade === 'deep'))

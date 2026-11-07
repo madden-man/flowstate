@@ -429,7 +429,7 @@ export function PageView({ id }: { id?: string }) {
       {showComposer && (
         <>
           <div class="fs-chips" role="group" aria-label="Who speaks next" onMouseDown={e => e.preventDefault()}>
-            <Chip label="" colour="var(--print)" ariaLabel="Plain ink" pressed={!speaks} onPress={() => pick(undefined)} />
+            <Chip label="Ink" ariaLabel="Plain ink" pressed={!speaks} onPress={() => pick(undefined)} />
             {vs.chips.map(v => (
               <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
                 pressed={speaks?.id === v.id} onPress={() => pick(v.id)} />
