@@ -43,6 +43,9 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   // it from the slot links the two across the seam; a reload offline keeps all of it
   const card = page.locator('#be-px-selfless-selfish');
   const pairs = card.locator('path.fs-pair:not(.open)');
+  // count the links only once the spread has been laid out (it draws nothing before)
+  await expect(card.locator('[data-laid="true"]')).toBeAttached();
+  await expect(pairs).not.toHaveCount(0);
   const before = await pairs.count();
   await card.getByRole('button', { name: '+ Goal' }).click();
   await page.getByRole('textbox', { name: 'selfless goal' }).fill('Share what you make with the world');
