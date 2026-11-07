@@ -71,13 +71,24 @@ export async function loadShelf() {
   albums.value = await shelf();
 }
 
-/** "Refresh playlist", and the first read after connecting. */
+/** How often the shelf is read again while covers arrive. */
+const SHELF_EVERY_MS = 400;
+
+/** "Refresh playlist", and the first read after connecting. The shelf shows its tiles as soon as the
+ *  playlist is read, and fills in as the covers land. */
 export async function refreshPlaylist() {
   if (reading.peek()) return;
   reading.value = true;
   readNote.value = null;
+  let shown = 0;
+  const onProgress = async () => {
+    const t = Date.now();
+    if (t - shown < SHELF_EVERY_MS) return;
+    shown = t;
+    await loadShelf();
+  };
   try {
-    await readPlaylist(keep);
+    await readPlaylist(keep, undefined, onProgress);
     await loadShelf();
   } catch (e) {
     failed(e);

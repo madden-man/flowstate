@@ -19,8 +19,8 @@ describe('groupAlbums', () => {
     expect(albums.map(a => a.order)).toEqual([0, 1]);
   });
 
-  it('skips local or removed tracks and picks a cover no wider than 640', () => {
-    const albums = groupAlbums([{ track: null }, track('t1', 'Range of Light', 'S. Carey', [{ url: 'big', width: 1000 }, { url: 'mid', width: 640 }])]);
+  it('skips local or removed tracks and picks a cover no wider than 300', () => {
+    const albums = groupAlbums([{ track: null }, track('t1', 'Range of Light', 'S. Carey', [{ url: 'big', width: 640 }, { url: 'mid', width: 300 }, { url: 'small', width: 64 }])]);
     expect(albums).toHaveLength(1);
     expect(albums[0].coverUrl).toBe('mid');
   });
