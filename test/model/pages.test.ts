@@ -174,16 +174,16 @@ describe('links', () => {
     expect(r!.page.linkedPageIds).toEqual(['pg-manifesto']);
     expect((await pageById('pg-manifesto'))!.page.linkedPageIds).toEqual([r!.page.id]);
   });
-  it('take to the council makes a council page with the line copied, linked both ways', async () => {
-    const p = await entryWith([{ text: 'Our world is deeply out of balance.', voiceId: 'v-skeptic' }]);
+  it('take to the council makes an empty council about the line, linked both ways (V3: it opens on the seats)', async () => {
+    const p = await entryWith([{ text: 'Our world is deeply out of balance.\nAnd more.', voiceId: 'v-skeptic' }]);
     const [m] = await messagesOf(p.id);
     const c = await takeToCouncil(p, m, D7);
     expect(c.kind).toBe('council');
+    expect(c.title).toBe('Our world is deeply out of balance.');
+    expect(c.seats).toBeUndefined();
     expect(c.linkedPageIds).toEqual([p.id]);
     expect((await pageById(p.id))!.page.linkedPageIds).toContain(c.id);
-    const cm = await messagesOf(c.id);
-    expect(cm.map(x => [x.text, x.voiceId])).toEqual([['Our world is deeply out of balance.', 'v-skeptic']]);
-    expect(cm[0].id).not.toBe(m.id);
+    expect(await messagesOf(c.id)).toEqual([]);
   });
 });
 
