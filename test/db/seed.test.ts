@@ -82,9 +82,10 @@ describe('seed', () => {
 
   it('makes the manifesto the first page, both lines kept', async () => {
     await ensureSeeded();
-    const pages = await store.all('pages');
-    expect(pages).toHaveLength(1);
-    const ms = (await store.all('messages')).sort((a, b) => a.at - b.at);
+    // the manifesto (11/4) comes before the models question (11/6, package 8)
+    const pages = (await store.all('pages')).sort((a, b) => a.createdAt - b.createdAt);
+    expect(pages.map(p => p.id)).toEqual(['pg-manifesto', 'pg-models']);
+    const ms = (await store.all('messages')).filter(m => m.pageId === 'pg-manifesto').sort((a, b) => a.at - b.at);
     expect(ms.map(m => m.text)).toEqual(['I determine my core.', 'I choose how to flow.']);
     expect(MANIFESTO.join(' ')).toBe('I determine my core. I choose how to flow.');
     expect(ms.every(m => m.kept && m.pageId === pages[0].id)).toBe(true);
@@ -101,5 +102,35 @@ describe('seed', () => {
     expect(antonymsOf('reactive')).toEqual(['thoughtful']);
     expect(antonymsOf('zzz')).toEqual([]);
     expect(new Set(ANTONYMS.flat()).size).toBe(ANTONYMS.length * 2);
+  });
+});
+
+describe('the models question (package 8)', () => {
+  it('a fresh seed has it: open, titled, one plain-ink line with the four names', async () => {
+    const { ensureSeeded, MODELS_TITLE, MODELS_LINE, ensureSeedAdditions } = await import('../../src/db/seed');
+    await ensureSeeded();
+    const p = (await store.get('pages', 'pg-models'))!;
+    expect(p.kind).toBe('question');
+    expect(p.title).toBe(MODELS_TITLE);
+    expect(p.state).toBe('open');
+    const ms = (await store.all('messages')).filter(m => m.pageId === 'pg-models');
+    expect(ms.map(m => [m.text, m.voiceId, m.wise])).toEqual([[MODELS_LINE, undefined, undefined]]);
+    expect(MODELS_LINE).toBe('Grumpa, Isaac, Alison, Myself');
+    expect(await ensureSeedAdditions()).toEqual([]);
+  });
+
+  it('a journal seeded before it gets it once, and never again', async () => {
+    const { ensureSeeded, ensureSeedAdditions } = await import('../../src/db/seed');
+    await ensureSeeded();
+    // as package 7 seeded: no models page, no seedsAdded
+    await db.pages.delete('pg-models');
+    await db.messages.delete('m-models-1');
+    await db.settings.update('app', { seedsAdded: undefined });
+    expect(await ensureSeedAdditions()).toEqual(['models']);
+    expect(await store.get('pages', 'pg-models')).toBeDefined();
+    // put away later: it does not come back
+    await db.pages.delete('pg-models');
+    expect(await ensureSeedAdditions()).toEqual([]);
+    expect(await store.get('pages', 'pg-models')).toBeUndefined();
   });
 });

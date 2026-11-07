@@ -112,7 +112,8 @@ describe('page titles', () => {
     expect(await unlock(key)).toBe(true);
     expect((await store.get('pages', 'q1'))!.title).toBe(question.title);
     const listed = await store.query('pages', t => t.where('kind').equals('question'));
-    expect(listed.map(p => p.title)).toEqual([question.title]);
+    // the seeded models question (package 8) opens with the same key
+    expect(listed.map(p => p.title).sort()).toEqual([question.title, 'Who are my models?'].sort());
   });
 
   it('a page without a title stays without one', async () => {
