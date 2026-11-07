@@ -82,12 +82,14 @@ describe('the kept line in Still', () => {
     expect(pickKept(kept, ['gone', 'a'])).toEqual({ id: 'b', seen: ['a', 'b'] });
     expect(pickKept([], ['a'])).toEqual({ seen: [] });
   });
-  it('the seed is the manifesto, and choosing it writes nothing to the data', async () => {
-    const { init } = await import('../../src/db/fields');
-    const { ensureSeeded } = await import('../../src/db/seed');
+  it('the oldest kept line first, and choosing it writes nothing to the data', async () => {
+    const { init, store } = await import('../../src/db/fields');
+    const { ensureSeeded, OLD_SEED_PAGES } = await import('../../src/db/seed');
     const { exportData } = await import('../../src/db/backup');
     await init();
     await ensureSeeded();
+    // two kept lines: the old seed's manifesto page, now that the seed writes no pages (V5)
+    await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages });
     localStorage.clear();
     resetStillSession();
     still.value = null;

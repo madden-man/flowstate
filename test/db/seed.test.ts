@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import { freshDB } from './helpers';
 import type { FlowDB } from '../../src/db/schema';
-import { ensureSeeded, HUES, BROWN_CHROMA, MANIFESTO, antonymsOf, ANTONYMS } from '../../src/db/seed';
-import { store } from '../../src/db/fields';
+import { ensureSeeded, HUES, BROWN_CHROMA, MANIFESTO, antonymsOf, ANTONYMS, cleanSeedPages, OLD_SEED_PAGES, SEED_PAGES_PASS } from '../../src/db/seed';
+import { store, setKey, lock, unlock } from '../../src/db/fields';
+import { deriveKey, randomSalt } from '../../src/db/crypto';
 
 let db: FlowDB;
 beforeEach(async () => { db = await freshDB(); });
@@ -80,15 +81,11 @@ describe('seed', () => {
     expect(items.every(i => i.lean >= -1 && i.lean <= 1)).toBe(true);
   });
 
-  it('makes the manifesto the first page, both lines kept', async () => {
+  it('writes no pages: the journal opens empty, the manifesto stays the threshold copy', async () => {
     await ensureSeeded();
-    // the manifesto (11/4) comes before the models question (11/6, package 8)
-    const pages = (await store.all('pages')).sort((a, b) => a.createdAt - b.createdAt);
-    expect(pages.map(p => p.id)).toEqual(['pg-manifesto', 'pg-models']);
-    const ms = (await store.all('messages')).filter(m => m.pageId === 'pg-manifesto').sort((a, b) => a.at - b.at);
-    expect(ms.map(m => m.text)).toEqual(['I determine my core.', 'I choose how to flow.']);
+    expect(await db.pages.count()).toBe(0);
+    expect(await db.messages.count()).toBe(0);
     expect(MANIFESTO.join(' ')).toBe('I determine my core. I choose how to flow.');
-    expect(ms.every(m => m.kept && m.pageId === pages[0].id)).toBe(true);
   });
 
   it('writes default settings: follow the sky, unlocked', async () => {
@@ -105,32 +102,96 @@ describe('seed', () => {
   });
 });
 
-describe('the models question (package 8)', () => {
-  it('a fresh seed has it: open, titled, one plain-ink line with the four names', async () => {
-    const { ensureSeeded, MODELS_TITLE, MODELS_LINE, ensureSeedAdditions } = await import('../../src/db/seed');
+describe('the seed pages pass (V5)', () => {
+  // A journal as packages 1 to 8 seeded it: settings without the pass, and the two seed pages.
+  async function oldJournal() {
     await ensureSeeded();
-    const p = (await store.get('pages', 'pg-models'))!;
-    expect(p.kind).toBe('question');
-    expect(p.title).toBe(MODELS_TITLE);
-    expect(p.state).toBe('open');
-    const ms = (await store.all('messages')).filter(m => m.pageId === 'pg-models');
-    expect(ms.map(m => [m.text, m.voiceId, m.wise])).toEqual([[MODELS_LINE, undefined, undefined]]);
-    expect(MODELS_LINE).toBe('Grumpa, Isaac, Alison, Myself');
-    expect(await ensureSeedAdditions()).toEqual([]);
+    await db.settings.update('app', { cleaned: undefined, seedsAdded: ['models'] } as never);
+    for (const { page, messages } of OLD_SEED_PAGES) await store.many({ pages: [page], messages });
+  }
+  const ids = async () => (await store.all('pages')).map(p => p.id).sort();
+
+  it('removes both pages and their lines when they were never written on, and marks the pass', async () => {
+    await oldJournal();
+    expect((await cleanSeedPages())!.sort()).toEqual(['pg-manifesto', 'pg-models']);
+    expect(await db.pages.count()).toBe(0);
+    expect(await db.messages.count()).toBe(0);
+    const s = (await store.get('settings', 'app'))!;
+    expect(s.cleaned).toEqual([SEED_PAGES_PASS]);
+    expect('seedsAdded' in s).toBe(false);
   });
 
-  it('a journal seeded before it gets it once, and never again', async () => {
-    const { ensureSeeded, ensureSeedAdditions } = await import('../../src/db/seed');
+  it('keeps a page with a line added', async () => {
+    await oldJournal();
+    await store.put('messages', { id: 'm-mine', pageId: 'pg-models', at: 9, text: 'and Dad', kept: false });
+    expect(await cleanSeedPages()).toEqual(['pg-manifesto']);
+    expect(await ids()).toEqual(['pg-models']);
+    expect((await store.all('messages')).map(m => m.id).sort()).toEqual(['m-mine', 'm-models-1']);
+  });
+
+  it('keeps a page whose kept flag, text, title, tags, links or state changed', async () => {
+    await oldJournal();
+    const m = (await store.get('messages', 'm-manifesto-2'))!;
+    await store.put('messages', { ...m, kept: false });
+    const p = (await store.get('pages', 'pg-models'))!;
+    await store.put('pages', { ...p, state: 'answered' });
+    expect(await cleanSeedPages()).toEqual([]);
+    expect(await ids()).toEqual(['pg-manifesto', 'pg-models']);
+    for (const change of [{ title: 'Who are my teachers?' }, { tags: ['family'] }, { linkedPageIds: ['pg-x'] }]) {
+      await oldJournal();
+      await store.put('pages', { ...OLD_SEED_PAGES[1].page, ...change });
+      await cleanSeedPages();
+      expect(await store.get('pages', 'pg-models')).toBeDefined();
+    }
+    await oldJournal();
+    await store.put('messages', { ...OLD_SEED_PAGES[0].messages[0], text: 'I determine my own core.' });
+    expect(await cleanSeedPages()).toEqual(['pg-models']);
+  });
+
+  it('runs once: a seed page put back later stays', async () => {
+    await oldJournal();
+    await cleanSeedPages();
+    await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages });
+    expect(await cleanSeedPages()).toBeNull();
+    expect(await ids()).toEqual(['pg-manifesto']);
+  });
+
+  it('a fresh journal has nothing to do and nothing else is touched', async () => {
     await ensureSeeded();
-    // as package 7 seeded: no models page, no seedsAdded
-    await db.pages.delete('pg-models');
-    await db.messages.delete('m-models-1');
-    await db.settings.update('app', { seedsAdded: undefined });
-    expect(await ensureSeedAdditions()).toEqual(['models']);
-    expect(await store.get('pages', 'pg-models')).toBeDefined();
-    // put away later: it does not come back
-    await db.pages.delete('pg-models');
-    expect(await ensureSeedAdditions()).toEqual([]);
-    expect(await store.get('pages', 'pg-models')).toBeUndefined();
+    const before = await Promise.all(db.tables.map(async t => [t.name, await t.toArray()]));
+    expect(await cleanSeedPages()).toBeNull();
+    expect(await Promise.all(db.tables.map(async t => [t.name, await t.toArray()]))).toEqual(before);
+  });
+
+  it('leaves every voice, renamed or added, and both paradoxes', async () => {
+    await oldJournal();
+    const v = (await store.get('voices', 'v-joker'))!;
+    await store.put('voices', { ...v, name: 'Jester' });
+    await store.put('voices', { ...v, id: 'v-mine', name: 'Gardener' });
+    await cleanSeedPages();
+    expect((await store.all('voices')).map(x => x.name)).toEqual(expect.arrayContaining(['Jester', 'Gardener', 'Skeptic']));
+    expect(await db.voices.count()).toBe(15); // the fourteen seeded and the one added
+    expect(await db.paradoxes.count()).toBe(2);
+    expect(await db.items.count()).toBe(8);
+  });
+
+  it('locked, it does nothing and waits for the next open; opened, it reads the sealed title and runs', async () => {
+    await oldJournal();
+    const salt = randomSalt();
+    const key = await deriveKey('3569', salt, 1000);
+    await setKey(key, { salt, iterations: 1000 });
+    lock();
+    expect(await cleanSeedPages()).toBeNull();
+    expect(await db.pages.count()).toBe(2);
+    expect(await unlock(key)).toBe(true);
+    expect((await cleanSeedPages())!.sort()).toEqual(['pg-manifesto', 'pg-models']);
+    expect((await store.get('settings', 'app'))!.cleaned).toEqual([SEED_PAGES_PASS]);
+  });
+
+  it('sweeps seed lines left without their page by a stop halfway', async () => {
+    await oldJournal();
+    await db.pages.delete('pg-manifesto');
+    expect(await cleanSeedPages()).toEqual(['pg-models']);
+    expect(await db.messages.count()).toBe(0);
   });
 });
