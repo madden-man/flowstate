@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from '../db/helpers';
 import type { FlowDB } from '../../src/db/schema';
-import { ensureSeeded } from '../../src/db/seed';
+import { ensureSeeded, OLD_SEED_PAGES } from '../../src/db/seed';
 import { store, keyState, lock, init } from '../../src/db/fields';
 import { loadSettings, settings } from '../../src/ui/settings';
 import { choosePin, tryPin, turnOff, pinFits, relock, wrongDelayMs, resetWrong, gate, gateState } from '../../src/ui/lock/pin';
@@ -15,6 +15,8 @@ let db: FlowDB;
 beforeEach(async () => {
   db = await freshDB();
   await ensureSeeded();
+  // two kept lines to seal: the old seed's manifesto page, now that the seed writes no pages (V5)
+  await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages });
   await loadSettings();
   resetWrong();
   gate.value = null;
