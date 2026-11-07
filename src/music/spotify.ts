@@ -131,7 +131,8 @@ export function groupAlbums(items: PlaylistItem[]): Album[] {
   for (const it of items) {
     const tr = it.item ?? it.track;
     if (!tr || (tr.type && tr.type !== 'track') || !tr.album?.uri || seen.has(tr.album.uri)) continue;
-    const cover = [...tr.album.images].sort((a, b) => b.width - a.width).find(i => i.width <= 640) ?? tr.album.images[0];
+    // the 300px cover: a tile is about a third of the phone, and the 640px one is four times the bytes
+    const cover = [...tr.album.images].sort((a, b) => b.width - a.width).find(i => i.width <= 300) ?? tr.album.images[0];
     seen.set(tr.album.uri, {
       albumUri: tr.album.uri,
       album: tr.album.name,
