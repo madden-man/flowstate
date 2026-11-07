@@ -3,10 +3,11 @@
 import { useEffect } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
-import { JournalToday, JournalPage, Questions } from './ui/journal/Journal';
+import { JournalToday, JournalPage, Questions, Earlier } from './ui/journal/Journal';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
+import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
@@ -43,12 +44,14 @@ function Frame() {
         <Router key={dataVersion.value}>
           <Route path="/journal" component={JournalToday} />
           <Route path="/journal/questions" component={Questions} />
+          <Route path="/journal/earlier" component={Earlier} />
           <Route path="/journal/:id" component={JournalPage} />
           <Route path="/council" component={Council} />
           <Route path="/council/:id" component={Council} />
           <Route path="/be" component={Be} />
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
+          <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
         <SettingsSheet />

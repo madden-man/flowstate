@@ -88,11 +88,13 @@ export function seedParadoxes(): { paradoxes: Paradox[]; items: Item[] } {
   const item = (paradoxId: string, id: string, pole: 'a' | 'b', text: string, lean: number, order: number, extra: Partial<Item> = {}): Item =>
     ({ id, paradoxId, pole, text, lean, order, doneLog: [], ...extra });
   const items: Item[] = [
-    // Along the diagonal, A to B. Pairs as the walkthrough's spread draws them.
-    item(p1.id, 'it-volunteer', 'a', 'find volunteer opportunities near Evergreen', -0.3, 0, { pairId: 'it-breathing-room', nextTo: 'it-share' }),
-    item(p1.id, 'it-share', 'a', 'remind yourself, through metrics, that you matter by helping others; when something useful is created, share it with the world', 0.25, 1, { pairId: 'it-own-sake' }),
-    item(p1.id, 'it-own-sake', 'b', 'write for its own sake, not worrying whether it is commercially viable or edifying', 0.25, 2, { pairId: 'it-share' }),
-    item(p1.id, 'it-breathing-room', 'b', 'find something nice for yourself which gives you life / breathing room', -0.3, 3, { pairId: 'it-volunteer' }),
+    // Along the diagonal, A to B, top to bottom: the notebook's order is volunteer, share, own sake,
+    // breathing room. Each goal keeps its balance (pairId) as the walkthrough draws them, but the pairs sit
+    // at different heights so the diagonal reads in the notebook's order (a pair shares a lean only by default).
+    item(p1.id, 'it-volunteer', 'a', 'find volunteer opportunities near Evergreen', -0.6, 0, { pairId: 'it-breathing-room', nextTo: 'it-share' }),
+    item(p1.id, 'it-share', 'a', 'remind yourself, through metrics, that you matter by helping others; when something useful is created, share it with the world', -0.2, 1, { pairId: 'it-own-sake' }),
+    item(p1.id, 'it-own-sake', 'b', 'write for its own sake, not worrying whether it is commercially viable or edifying', 0.2, 2, { pairId: 'it-share' }),
+    item(p1.id, 'it-breathing-room', 'b', 'find something nice for yourself which gives you life / breathing room', 0.6, 3, { pairId: 'it-volunteer' }),
     item(p2.id, 'it-journaling', 'a', 'journaling', -0.6, 0, { nextTo: 'it-asking-claude' }),
     item(p2.id, 'it-asking-claude', 'a', 'asking Claude', -0.2, 1, { nextTo: 'it-asking-friend' }),
     item(p2.id, 'it-asking-friend', 'b', 'asking a friend', 0.2, 2, { nextTo: 'it-feedback' }),

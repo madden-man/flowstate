@@ -92,7 +92,8 @@
 .fs-v.deep { border-left-style: double; border-left-width: 5px; }
 .fs-sp { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--vc); font-style: normal; }
 .fs-aka { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: none; color: var(--print); }
-[data-light="still"] .fs-v.deep, [data-light="still"] .fs-chip.deep { display: none; }
+/* Still: deep twins leave the chip row; their written lines stay (DESIGN.md rule 13) */
+[data-light="still"] .fs-chip.deep { display: none; }
 
 /* ---- chips ---- */
 .fs-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: var(--s1) var(--gutter); font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }
@@ -194,3 +195,270 @@ button.fs-row, label.fs-row { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .fs-sheet, .fs-scrim, .fs-toast { animation: none; }
 }
+
+/* ==== package 2: council and voices ==== */
+
+/* the lamp takes the last speaker's colour: a mix on the light's own lamp, none by day (--lamp-mix 0%) */
+.fs-app[data-lamp]::before {
+  background: radial-gradient(70% 45% at 12% -5%, color-mix(in oklch, var(--lamp-voice) var(--lamp-mix), var(--lamp)), transparent 70%);
+}
+a.fs-row { text-decoration: none; cursor: pointer; }
+
+/* a council: the chat column on the rules, the chip row and the composer under the thumb */
+.fs-council { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--kb, 0px); }
+.fs-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s1) var(--gutter) var(--s2); }
+.fs-chat p { margin: 0; min-height: var(--lh-ink); }
+.fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
+.fs-council .fs-quote {
+  display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  border-left: 2px solid var(--qc, var(--print)); padding-left: 6px;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: 0; line-height: var(--lh-ink); color: var(--print); font-style: normal;
+}
+.fs-council .fs-quote b { font-weight: 500; letter-spacing: var(--track-print); text-transform: uppercase; color: var(--qc, var(--ink)); }
+.fs-from { display: flex; gap: var(--s1); align-items: baseline; }
+.fs-from small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); flex: none; }
+.fs-from a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-composer-wrap { border-top: 1px solid var(--seam); background: var(--page); transition: background-color var(--t-light) var(--ease); }
+.fs-council .fs-replying { display: flex; align-items: center; gap: var(--s1); padding: 0 var(--s1) 0 var(--gutter); }
+.fs-council .fs-replying .fs-quote { flex: 1; min-width: 0; }
+.fs-council .fs-composer { padding: 0 var(--gutter) var(--s1); }
+.fs-council .fs-composer textarea {
+  --vc: transparent;
+  display: block; width: calc(100% + 13px); margin: 0 0 0 -13px; padding: 0 0 0 10px; border: 0; border-left: 3px solid var(--vc);
+  resize: none; outline: none; background: transparent; overflow-y: auto;
+  min-height: var(--lh-ink); max-height: calc(var(--lh-ink) * 4);
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-council .fs-composer textarea::placeholder { color: var(--print); font-style: italic; }
+.fs-new {
+  appearance: none; margin: var(--s1) var(--gutter); width: calc(100% - 2 * var(--gutter)); min-height: var(--hit); cursor: pointer;
+  border: 1px solid var(--ink); border-radius: 999px; background: transparent; color: var(--ink);
+  font-family: var(--sans); font-size: var(--fs-chip); letter-spacing: var(--track-print); text-transform: uppercase;
+}
+
+/* the list of councils: date and the voices that spoke on the first rule, the line on the second */
+.fs-crow { display: grid; grid-template-columns: 1fr auto; min-height: calc(var(--lh-ink) * 2); color: var(--ink); text-decoration: none; }
+.fs-crow small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+.fs-crow > span:not(.fs-spoke) { grid-column: 1 / -1; grid-row: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-spoke { display: inline-flex; gap: 3px; align-items: center; height: var(--lh-ink); }
+.fs-spoke i { display: block; width: 3px; height: 14px; background: var(--vc); }
+.fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
+.fs-blank { padding-top: var(--lh-ink); }
+.fs-said { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); font-style: italic; color: var(--ink); }
+
+/* the colour wheel: a conic ring on the voice formula, so it follows the light */
+.fs-wheel {
+  --wheel: 196px; --wl: var(--voice-l); --wc: var(--voice-c);
+  position: relative; width: var(--wheel); height: var(--wheel); margin: var(--s1) auto; border-radius: 50%;
+  touch-action: none; cursor: pointer; outline: none;
+}
+.fs-wheel.deep { --wl: calc(var(--voice-l) + var(--deep-dl)); --wc: calc(var(--voice-c) * var(--deep-ck)); }
+.fs-wheel-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(
+    oklch(var(--wl) var(--wc) 0), oklch(var(--wl) var(--wc) 30), oklch(var(--wl) var(--wc) 60), oklch(var(--wl) var(--wc) 90),
+    oklch(var(--wl) var(--wc) 120), oklch(var(--wl) var(--wc) 150), oklch(var(--wl) var(--wc) 180), oklch(var(--wl) var(--wc) 210),
+    oklch(var(--wl) var(--wc) 240), oklch(var(--wl) var(--wc) 270), oklch(var(--wl) var(--wc) 300), oklch(var(--wl) var(--wc) 330),
+    oklch(var(--wl) var(--wc) 360));
+  -webkit-mask: radial-gradient(circle closest-side, transparent 64%, var(--ink) 65%);
+  mask: radial-gradient(circle closest-side, transparent 64%, var(--ink) 65%);
+}
+.fs-wheel-dot {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: var(--vc); border: 2px solid var(--page); box-shadow: 0 0 0 1px var(--ink);
+  transform: rotate(var(--h)) translateY(calc(var(--wheel) * -.41));
+}
+.fs-wheel-mid { position: absolute; inset: 30%; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; font-family: var(--sans); font-size: var(--fs-chip); line-height: 1.2; color: var(--ink); }
+.fs-wheel-mid i { display: block; width: 28px; height: 28px; border-radius: 50%; background: var(--vc); }
+.fs-wheel:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.fs-warn { color: var(--ink); text-align: center; }
+.fs-opt-v i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--vc); margin-right: 6px; }
+
+/* a revision struck through with a drawn stroke (parts/Strike) */
+.fs-struck { position: relative; display: inline-block; text-decoration: none; color: var(--print); }
+.fs-struck-line { position: absolute; left: -3px; top: 20%; width: calc(100% + 6px); height: 60%; overflow: visible; pointer-events: none; }
+.fs-struck-line path { fill: none; stroke: var(--ink); stroke-width: 1.6px; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .85; }
+
+/* the Voices screen: each light voice with its deep twin beside it */
+.fs-vgroup {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); padding: var(--s1) 0;
+  border-top: 1px solid var(--seam); background: var(--page);
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.fs-vgroup.lift { z-index: 2; box-shadow: var(--shadow-tile); transform: translateY(-2px); }
+.fs-vcell { display: grid; align-content: start; min-width: 0; border-left: 3px solid var(--vc); padding-left: var(--s1); }
+.fs-vcell.deep { border-left: 5px double var(--vc); }
+.fs-vname {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; text-align: left; cursor: pointer;
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); min-height: var(--hit);
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px;
+}
+.fs-vname i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--vc); }
+.fs-vname .fs-aka { flex-basis: 100%; line-height: 1.4; }
+.fs-vacts { display: flex; margin-left: calc(var(--s1) * -1); }
+.fs-word[aria-pressed="true"] { color: var(--ink); }
+.fs-versions { display: grid; gap: 2px; padding-bottom: var(--s1); font-size: var(--fs-chip); }
+.fs-versions small { font-family: var(--sans); font-size: var(--fs-print); color: var(--print); }
+.fs-vslot {
+  appearance: none; margin: 0; align-self: start; min-height: var(--hit); cursor: pointer;
+  border: 1px dashed var(--seam); border-radius: var(--s1); background: transparent; color: var(--print);
+  font-family: var(--sans); font-size: var(--fs-chip);
+}
+.fs-vadd { padding-left: 0; padding-right: 0; }
+.fs-vmore { padding-top: var(--s2); }
+.fs-vmore h3 { margin: 0; font-weight: 400; }
+.fs-vname:focus-visible, .fs-new:focus-visible, .fs-crow:focus-visible, .fs-vslot:focus-visible, .fs-chip:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
+}
+
+/* ---- Be: the spread (package 3). Two facing pages, the seam, the diagonal, corner tags, goals by lean ---- */
+.fs-be-top { display: flex; justify-content: space-between; align-items: center; padding: 0 calc(var(--gutter) - var(--s1)); }
+.fs-be { padding-top: 0; }
+.fs-spread { position: relative; padding: var(--s1) 0 var(--s3); border-bottom: 1px solid var(--seam); scroll-margin-top: var(--s1); }
+.fs-spread:last-child { border-bottom: 0; }
+.fs-spread-pages { position: relative; min-height: var(--s4); font-family: var(--serif); }
+.fs-spread-ink { position: absolute; inset: 0; overflow: visible; pointer-events: none; color: var(--ink); }
+.fs-diag, .fs-seam { stroke: var(--seam); stroke-width: 1; fill: none; }
+.fs-pair { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.fs-pair.open { stroke-dasharray: 1.5 6; }
+.fs-arrow { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+
+/* corner tags: a line across the corner, the value written along it */
+.fs-ctag { position: absolute; overflow: visible; pointer-events: none; }
+.fs-ctag.tl { left: 0; top: 0; }
+.fs-ctag.br { right: 0; bottom: 0; }
+.fs-ctag-line { stroke: var(--ink); stroke-width: 1; fill: none; }
+.fs-ctag-text { fill: var(--ink); font-family: var(--serif); font-size: var(--fs-chip); letter-spacing: .02em; }
+.fs-ctag-shadow { fill: var(--print); font-style: italic; }
+
+/* a goal on its page, and the dashed slot for a missing balance */
+.fs-goal, .fs-slot {
+  appearance: none; position: absolute; margin: 0; border: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: var(--fs-chip); line-height: 1.35; text-align: left; padding: 4px 2px;
+  min-height: var(--hit); cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+  transition: transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease);
+}
+.fs-goal.b, .fs-slot.b { text-align: right; }
+.fs-goal-text { display: block; }
+.fs-cadence { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
+.fs-goal.lift { transform: translateY(-2px); background: var(--page); box-shadow: var(--shadow-tile); border-radius: var(--s1); cursor: grabbing; transition: none; z-index: 2; }
+.fs-goal.riding { transition: none; }
+.fs-slot { border: 1px dashed var(--print); border-radius: var(--s1); color: var(--print); font-style: italic; padding: var(--s1); cursor: pointer; display: flex; align-items: center; }
+.fs-slot.b { justify-content: flex-end; }
+.fs-goal:focus-visible, .fs-slot:focus-visible, .fs-addgoal:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+
+/* the notebook's three-word line under the spread: the current version in ink, the struck ones beneath */
+.fs-threewords { padding: var(--s1) 0 var(--s2); text-align: center; }
+.fs-threeword { margin: 0; font-size: var(--fs-fill); line-height: 1.5; color: var(--ink); }
+.fs-threeword .fs-struck { font-size: var(--fs-chip); }
+
+/* "+ Goal" under the spread, the first thing under the thumb; Edit in the empty top-right corner */
+.fs-addgoal {
+  appearance: none; margin: 0; cursor: pointer; min-height: var(--hit);
+  padding: 0 var(--s2); border-radius: 999px; border: 1px solid var(--ink); background: var(--page); color: var(--ink);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
+  transition: background-color var(--t-light) var(--ease);
+}
+.fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; display: flex; align-items: center; }
+.fs-print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
+
+/* the Be sheets */
+.fs-acts { align-items: center; }
+.fs-go { color: var(--ink); }
+.fs-go.inert { color: var(--print); cursor: default; }
+.fs-area { resize: none; display: block; }
+.fs-shadowfield { font-style: italic; }
+.fs-oneline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter); }
+.fs-oneline::-webkit-scrollbar { display: none; }
+.fs-oneline .fs-opt { flex: none; white-space: nowrap; }
+.fs-sheet-words { display: flex; align-items: center; }
+
+/* ==== Journal (package 1): a page of messages, the composer, the echo, the lists ==== */
+.fs-col { padding-bottom: var(--s2); overscroll-behavior: contain; }
+.fs-col .fs-msg { position: relative; -webkit-touch-callout: none; transition: transform var(--t-ui) var(--ease); }
+.fs-col .fs-msg p { margin: 0; min-height: var(--lh-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fs-col .fs-msg.holding { -webkit-user-select: none; user-select: none; }
+.fs-col .fs-msg.held { transform: translateY(-2px); }
+.fs-kept, .fs-dated, .fs-list-meta {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; color: var(--print); font-style: normal; line-height: var(--lh-ink);
+}
+.fs-kept { float: right; margin-left: var(--s1); }
+.fs-dated { display: block; }
+.fs-col .fs-quote, .fs-page > .fs-composer .fs-quote {
+  display: block; font-style: italic; color: var(--print); font-size: var(--fs-chip); line-height: var(--lh-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--seam); padding-left: var(--s1);
+}
+.fs-tagword { color: var(--print); text-transform: none; letter-spacing: 0; }
+.fs-edit {
+  display: block; width: 100%; border: 0; padding: 0; margin: 0; resize: none; outline: none; overflow: hidden;
+  background: transparent; font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-edit.fs-q { font-size: var(--fs-title); }
+
+/* the meta line under the header: mood, #tags, the state (states leave in Still) */
+.fs-meta {
+  display: flex; align-items: center; gap: var(--s1); padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; white-space: nowrap;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1;
+}
+.fs-meta::-webkit-scrollbar { display: none; }
+.fs-meta > .fs-word:first-child { margin-left: calc(var(--s1) * -1); }
+.fs-meta .fs-state { display: inline-flex; margin-left: auto; }
+[data-light="still"] .fs-meta .fs-state { display: none; }
+.fs-meta .fs-word[aria-pressed="true"] { color: var(--ink); }
+.fs-moods { padding: 0 var(--gutter) var(--s1); }
+
+/* the segment row's right-hand word, and what steps out in Still (today only) */
+.fs-seg button {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; font: inherit; letter-spacing: inherit;
+  text-transform: inherit; color: var(--print); min-height: var(--hit); cursor: pointer;
+}
+.fs-seg .fs-seg-end { margin-left: auto; }
+.fs-seg a:focus-visible, .fs-seg button:focus-visible, .fs-echo-tap:focus-visible, .fs-link:focus-visible, .fs-list-row:focus-visible, .fs-qrow:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
+}
+[data-light="still"] .fs-notstill, [data-light="still"] .fs-pagelist { display: none; }
+
+/* the composer: plain ink at the bottom, the chip row above it */
+.fs-page > .fs-composer { border-top: 1px solid var(--seam); padding: 0 var(--gutter); }
+.fs-compose {
+  display: block; width: 100%; min-height: calc(var(--lh-ink) + var(--s2)); max-height: calc(var(--lh-ink) * 5 + var(--s2));
+  padding: var(--s1) 0; margin: 0; resize: none; border: 0; outline: none; overflow-y: auto; background: transparent;
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-page > .fs-composer .fs-sp { line-height: 1; padding-top: var(--s1); }
+.fs-page > .fs-composer .fs-replying {
+  appearance: none; border: 0; background: transparent; padding: var(--s1) 0 0; margin: 0; width: 100%; text-align: left;
+  font: inherit; cursor: pointer; display: block;
+}
+
+/* the echo: one kept line above a new page */
+.fs-echo { padding: var(--s1) var(--gutter) 0; touch-action: pan-y; transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease); }
+.fs-echo.drag { transition: none; }
+.fs-echo-tap {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; width: 100%; text-align: left; cursor: pointer;
+  font: inherit; color: inherit; display: grid; min-height: var(--hit); align-content: center;
+}
+.fs-echo-date { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.6; }
+.fs-echo-line { font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: 1.45; }
+
+/* links at the bottom of a page, and the lists: two rule lines a row (a 44px target that keeps the rules) */
+.fs-links { margin-top: var(--lh-ink); }
+.fs-link, .fs-list-row, .fs-qrow { display: block; color: inherit; text-decoration: none; min-height: calc(var(--lh-ink) * 2); }
+.fs-link { color: var(--print); }
+.fs-link small, .fs-list-meta { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-link span { font-style: italic; }
+.fs-qtitle { display: block; }
+.fs-qrow .fs-quiet { display: block; }
+.fs-word.fs-col-act { min-height: calc(var(--lh-ink) * 2); padding: 0; color: var(--ink); }
+.fs-ask { display: flex; align-items: center; min-height: var(--hit); padding: 0 var(--gutter) var(--s1); border-top: 1px solid var(--seam); }
+.fs-ask .fs-word { margin-left: calc(var(--s1) * -1); color: var(--ink); }
+
+/* inside the sheets */
+.fs-held { margin: 0 0 var(--s1); color: var(--print); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-sheet-body .fs-chips { padding-left: 0; padding-right: 0; }
+.fs-row.fs-list-row { display: block; padding: 0; }
+.fs-picker { border-top: 0; }
+.fs-found { margin-top: var(--s1); }
+a.fs-row { color: var(--ink); text-decoration: none; }
