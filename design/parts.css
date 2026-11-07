@@ -125,13 +125,16 @@
 
 /* ---- the tab bar: four words, always visible, never covered ---- */
 .fs-tabs {
-  position: relative; z-index: 5; display: flex; justify-content: space-around;
+  position: relative; z-index: 5; display: flex; justify-content: space-around; align-items: baseline;
   padding: 0 var(--s1) var(--safe-bottom); border-top: 1px solid var(--seam); background: var(--page);
   font-family: var(--sans); font-size: var(--fs-tab); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
   transition: background-color var(--t-light) var(--ease);
 }
 .fs-tab { flex: 1; min-height: calc(var(--hit) + var(--s1)); display: grid; place-items: center; color: var(--print); text-decoration: none; transition: color var(--t-ui) var(--ease); }
 .fs-tab[aria-current="page"] { color: var(--ink); }
+/* the ? mark (V2): Questions as a glyph, not a fifth word; the serif a size up. The bar aligns its tabs on
+   their baselines (align-items above), so the larger glyph sits on the words' baseline, not below it. */
+.fs-tab-q { flex: .6; font-family: var(--serif); font-size: var(--fs-mark); letter-spacing: 0; text-transform: none; }
 
 /* ---- sheets rise; never a modal dialog. They live above the page and below the tab bar. ---- */
 .fs-scrim { position: absolute; inset: 0; z-index: 3; background: var(--scrim); transition: opacity var(--t-page) var(--ease); animation: fs-fade var(--t-page) var(--ease); }
@@ -477,7 +480,10 @@ a.fs-word { text-decoration: none; }
 .fs-link small, .fs-list-meta { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span { font-style: italic; }
-.fs-qtitle { display: block; }
+/* the Questions list (V2): open questions as serif titles, whole, a rule a line; the answered ones in print grey */
+.fs-qrow .fs-list-line { white-space: normal; font-size: var(--fs-title); }
+.fs-qrow.done .fs-list-line { font-size: inherit; color: var(--print); font-style: italic; }
+.fs-month.fs-answered { margin-top: var(--lh-ink); }
 /* the Pages screen: search on the first rule, a small month word, who spoke on a council */
 .fs-search {
   appearance: none; display: block; width: 100%; height: var(--lh-ink); margin: 0; padding: 0; border: 0; outline: none;
@@ -492,6 +498,10 @@ a.fs-word { text-decoration: none; }
 .fs-list-meta .fs-spoke { vertical-align: middle; margin-left: var(--s1); }
 .fs-ask { display: flex; align-items: center; min-height: var(--hit); padding: 0 var(--gutter) var(--s1); border-top: 1px solid var(--seam); }
 .fs-ask .fs-word { margin-left: calc(var(--s1) * -1); color: var(--ink); }
+/* a question page's walk through the open ones (V2): Previous at the left, Next at the right */
+.fs-ask.fs-walk { justify-content: space-between; }
+.fs-ask.fs-walk .fs-word:last-child { margin-left: 0; margin-right: calc(var(--s1) * -1); }
+.fs-col.fs-swipe { touch-action: pan-y; }
 
 /* inside the sheets */
 .fs-held { margin: 0 0 var(--s1); color: var(--print); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

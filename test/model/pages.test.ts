@@ -7,7 +7,7 @@ import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
 import {
   parseTags, tagsOf, firstSentence, firstLine, writeLine, messagesOf, setKept, speakAs, askThis, askQuestion,
-  answerState, questions, linkPages, linksOf, takeToCouncil, entries, searchPages, keptLines, pickEcho, revise,
+  answerWith, walkOf, questions, linkPages, linksOf, takeToCouncil, entries, searchPages, keptLines, pickEcho, revise,
   today, pageById, dayKey, findPages, chipVoices, voicesById, pagesList,
 } from '../../src/model/pages';
 import * as model from '../../src/model/pages';
@@ -132,35 +132,79 @@ describe('ask this', () => {
     // the day's page reads it as Asked; the question reads where it was asked from
     expect((await linksOf((await pageById(p.id))!.page)).map(l => [l.label, l.line])).toEqual([['Asked', q.title]]);
     expect((await linksOf((await pageById(q.id))!.page)).map(l => [l.label, l.line])).toEqual([['Asked from', m.text]]);
-    const a = await writeLine(q, undefined, { text: 'stand tall, young one', wise: true }, D5 + 6000);
-    expect(a!.page.state).toBe('answered');
+    // writing under the question never marks it (V2): only This answers it does
+    const a = await writeLine(q, undefined, { text: 'stand tall, young one' }, D5 + 6000);
+    expect(a!.page.state).toBe('open');
     expect(firstLine(a!.page, a!.messages)).toBe(q.title);
   });
 });
 
-describe('question states', () => {
-  it('the first answer answers; more the same day leaves it; one on a later day revisits', async () => {
+describe('question states (V2: only This answers it marks one)', () => {
+  it('a wise line written is only a line; This answers it makes the line wise and the question answered, with the day', async () => {
     const q = await askQuestion('  Should I commit myself to hard things that require sacrifice? ', D5);
     expect(q.title).toBe('Should I commit myself to hard things that require sacrifice?');
-    const a1 = await writeLine(q, undefined, { text: 'Define ways toward fulfillment.', wise: true, voiceId: 'v-architect' }, D5 + 1);
-    expect(a1!.page.state).toBe('answered');
-    const a2 = await writeLine(a1!.page, undefined, { text: 'and chase them internally', wise: true }, D5 + 2);
-    expect(a2!.page.state).toBe('answered');
-    const a3 = await writeLine(a2!.page, undefined, { text: 'Never sacrifice yourself for some fantasy future.', wise: true }, D7);
-    expect(a3!.page.state).toBe('revisited');
+    const w = await writeLine(q, undefined, { text: 'Define ways toward fulfillment.', wise: true }, D5 + 1);
+    expect(w!.page.state).toBe('open');
+    expect(w!.message!.wise).toBe(true);
+    const plain = await writeLine(w!.page, undefined, { text: 'and chase them internally' }, D5 + 2);
+    const m = plain!.message!;
+    const r = await answerWith(plain!.page, m, true, D6);
+    expect(r.message.wise).toBe(true);
+    expect(r.page.state).toBe('answered');
+    expect(r.page.answeredAt).toBe(D6);
+    expect((await pageById(q.id))!.page.state).toBe('answered');
+    expect((await messagesOf(q.id)).find(x => x.id === m.id)!.wise).toBe(true);
+    // a second answer leaves the day it was first answered
+    const again = await answerWith(r.page, (await messagesOf(q.id))[0], true, D7);
+    expect(again.page.answeredAt).toBe(D6);
   });
-  it('answerState on its own', () => {
-    expect(answerState({ state: 'open' }, [], D5)).toBe('answered');
-    expect(answerState({ state: 'answered' }, [{ wise: true, text: 'x', at: D5 }], D5)).toBe('answered');
-    expect(answerState({ state: 'answered' }, [{ wise: true, text: 'x', at: D5 }], D6)).toBe('revisited');
-    expect(answerState({ state: 'open' }, [{ wise: false, text: 'the entry itself', at: D5 }], D6)).toBe('answered');
+  it('Not the answer clears wise; the question opens again once no wise line is left', async () => {
+    const q = await askQuestion('Who are my models?', D5);
+    const a = await writeLine(q, undefined, { text: 'Grumpa, Isaac, Alison.' }, D5 + 1);
+    const b = await writeLine(a!.page, undefined, { text: 'Then it is the pace.' }, D5 + 2);
+    const [ma, mb] = b!.messages;
+    let p = (await answerWith(b!.page, ma, true, D6)).page;
+    p = (await answerWith(p, mb, true, D6)).page;
+    const one = await answerWith(p, ma, false, D7);
+    expect(one.message.wise).toBeUndefined();
+    expect(one.page.state).toBe('answered');
+    const none = await answerWith(one.page, mb, false, D7);
+    expect(none.page.state).toBe('open');
+    expect(none.page.answeredAt).toBeUndefined();
+    expect((await pageById(q.id))!.page.state).toBe('open');
+  });
+  it('emptying the last answer takes it back; an older revisited row lists as answered', async () => {
+    const q = await askQuestion('What is the smallest version of this?', D5);
+    const a = await writeLine(q, undefined, { text: 'One page a day.' }, D5 + 1);
+    const r = await answerWith(a!.page, a!.message!, true, D5 + 2);
+    const gone = await writeLine(r.page, r.message.id, { text: '' }, D5 + 3);
+    expect(gone!.page.state).toBe('open');
+    const old = await askQuestion('older', D6);
+    await model.setTitle({ ...old, state: 'revisited' }, 'older');
+    expect((await questions()).map(x => [x.title, x.state])).toEqual([['What is the smallest version of this?', 'open'], ['older', 'revisited']]);
   });
   it('lists open questions first, then answered, newest first within each', async () => {
     const old = await askQuestion('old open', D5);
     const ans = await askQuestion('answered', D6);
-    await writeLine(ans, undefined, { text: 'yes', wise: true }, D6);
+    const w = await writeLine(ans, undefined, { text: 'yes' }, D6);
+    await answerWith(w!.page, w!.message!, true, D6);
     const young = await askQuestion('new open', D7);
     expect((await questions()).map(q => q.id)).toEqual([young.id, old.id, ans.id]);
+  });
+  it('the walk: where an open question sits, its neighbours, wrapping at both ends', async () => {
+    const c = await askQuestion('What would the Mystic say to the Skeptic?', D5);
+    const b = await askQuestion('Who are my models?', D6);
+    const a = await askQuestion('How can I gauge my pleasure/pain barometer?', D7);
+    expect(await walkOf(b.id)).toEqual({ at: 2, of: 3, prev: a.id, next: c.id });
+    expect(await walkOf(c.id)).toEqual({ at: 3, of: 3, prev: b.id, next: a.id });
+    expect(await walkOf(a.id)).toEqual({ at: 1, of: 3, prev: c.id, next: b.id });
+    const w = await writeLine(b, undefined, { text: 'the pace' }, D7);
+    await answerWith(w!.page, w!.message!, true, D7);
+    expect(await walkOf(b.id)).toBeUndefined();
+    expect(await walkOf(a.id)).toEqual({ at: 1, of: 2, prev: c.id, next: c.id });
+    const w2 = await writeLine(c, undefined, { text: 'listen' }, D7);
+    await answerWith(w2!.page, w2!.message!, true, D7);
+    expect(await walkOf(a.id)).toBeUndefined();
   });
 });
 

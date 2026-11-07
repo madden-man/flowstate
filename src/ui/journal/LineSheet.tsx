@@ -1,5 +1,7 @@
 // The long-press sheet on any line (PLAN.md section 5, item 1; v2): five things, no more. Keep close,
 // Speak as…, Ask this, Take to the council, Link a page. It rises from the bottom; the tabs stay in reach.
+// On a question page (V2) Ask this gives its place to "This answers it", or "Not the answer" on a line that
+// already answers it, so the sheet stays five rows.
 // SpeakSheet is the margin dot's "more": the whole pantheon for the current line.
 import { useEffect, useState } from 'preact/hooks';
 import { Sheet } from '../parts/Sheet';
@@ -13,10 +15,10 @@ import type { Message, Page as PageRow, Voice } from '../../db/schema';
 
 type Acts = {
   keep: () => void; speak: (voiceId: string | undefined) => void; ask: () => void;
-  link: (other: Read<PageRow>, how: LinkKind) => void; council: () => void;
+  link: (other: Read<PageRow>, how: LinkKind) => void; council: () => void; answer: () => void;
 };
 type Props = {
-  held: Read<Message> | null; page?: Read<PageRow>; voices: Read<Voice>[]; byId: Map<string, Read<Voice>>;
+  held: Read<Message> | null; page?: Read<PageRow>; question?: boolean; voices: Read<Voice>[]; byId: Map<string, Read<Voice>>;
   acts: Acts; onClose: () => void;
 };
 
@@ -47,7 +49,7 @@ function LinkPicker({ page, onPick }: { page: Read<PageRow>; onPick: (p: Read<Pa
   );
 }
 
-export function LineSheet({ held, page, voices, byId, acts, onClose }: Props) {
+export function LineSheet({ held, page, question, voices, byId, acts, onClose }: Props) {
   const open = openSheet.value === 'line' && !!held && !!page;
   const [more, setMore] = useState<'speak' | 'link' | null>(null);
   useEffect(() => { if (open) setMore(null); }, [open, held?.id]);
@@ -73,7 +75,11 @@ export function LineSheet({ held, page, voices, byId, acts, onClose }: Props) {
                 ))}
               </div>
             )}
-            <button type="button" class="fs-row" onClick={acts.ask}><span>Ask this</span><small>A question page</small></button>
+            {question ? (
+              <button type="button" class="fs-row" onClick={acts.answer}><span>{held.wise ? 'Not the answer' : 'This answers it'}</span></button>
+            ) : (
+              <button type="button" class="fs-row" onClick={acts.ask}><span>Ask this</span><small>A question page</small></button>
+            )}
             <button type="button" class="fs-row" onClick={acts.council}><span>Take to the council</span></button>
             <button type="button" class="fs-row" aria-expanded={more === 'link'} onClick={() => setMore(more === 'link' ? null : 'link')}>
               <span>Link a page</span><small>Related</small>

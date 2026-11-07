@@ -25,7 +25,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 
 5. Every writing surface is a page: the notebook header ("No." and "DATE: 11 / 7 / 26" in grey sans, top right), rules the text sits on (line height equals rule spacing), ink in serif. Day 17 on 28; Still 18 on 33.
 6. One primary act per screen, and it is the first thing under the thumb. Journal opens on a blank dated page with the caret ready. No save buttons; everything autosaves.
-7. Tabs are four words (Journal, Council, Be, Flow). No icons anywhere except the moon, the ring, the drawn arrow and the drawn check. No icon libraries (lint).
+7. Tabs are four words (Journal, Council, Be, Flow) and, third, the **?** mark for Questions (V2): a glyph in the serif a size up, like the header's ♪, not a fifth word. No icons anywhere except the moon, the ring, the drawn arrow and the drawn check. No icon libraries (lint).
 8. Sheets rise; nothing is a modal dialog (`<dialog>`, `role="dialog"`, `alert`, `confirm`, `prompt` are banned, lint). Back is a swipe. Long press means pick up, keep close or reply.
 9. Messages spoken by a voice carry a 3px left rule in the voice colour and a 10% wash (0% in Still); deep twins carry a doubled rule. Chips: starred voices first, "+ voice" last.
 10. Revisions are shown struck through with a drawn stroke, never hidden; corner tags are a line across the corner with the value written along it; arrows between items are drawn paths.

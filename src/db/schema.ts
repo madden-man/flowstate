@@ -71,6 +71,8 @@ export type Page = {
   createdAt: Millis;
   updatedAt: Millis;
   title?: string;
+  /** A question's: open, or answered (V2: only "This answers it" sets it). 'revisited' is an older row's,
+   *  from before V2, and reads as answered. An entry or council stays 'open'. */
   state: 'open' | 'answered' | 'revisited';
   tags: string[];
   paradoxIds: string[];
@@ -83,6 +85,10 @@ export type Page = {
   /** Not in PLAN.md section 4 (v2, V1): on a question made by "Ask this", the page its line was written on
    *  (also in linkedPageIds), so that page shows the link as "Asked". An id, clear like the links. */
   askedFrom?: string;
+  /** Not in PLAN.md section 4 (v2, V2): when "This answers it" moved a question under Answered, shown on the
+   *  Questions list as the date answered; cleared when its last answer is taken back ("Not the answer").
+   *  Optional and unindexed, so no Dexie version bump; an older answered row simply has none. */
+  answeredAt?: Millis;
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is

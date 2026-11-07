@@ -14,10 +14,10 @@ async function hold(page: Page, text: string, sheet: string) {
 }
 
 async function ask(page: Page, title: string) {
-  await page.goto('/#/journal/questions');
+  await page.goto('/#/questions');
   const field = page.getByRole('textbox', { name: 'A question' });
   // after a question is asked the field stays open for the next one
-  if (!(await field.isVisible())) await page.getByRole('button', { name: 'Ask a question' }).click();
+  if (!(await field.isVisible())) await page.getByRole('button', { name: 'New question' }).click();
   await field.fill(title);
   await field.press('Enter');
   await expect(page.locator('.fs-qrow', { hasText: title })).toBeVisible();

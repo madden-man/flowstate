@@ -25,6 +25,7 @@ import {
 } from '../../model/council';
 import { voiceList, reloadVoices, speaker, editing, useLongPress, useKeyboardInset } from './state';
 import { VoiceSheet } from './VoiceSheet';
+import { hrefOf } from '../journal/href';
 import { MessageSheet } from './MessageSheet';
 
 const vcOf = (v: Voice): JSX.CSSProperties => ({ '--vc': voiceColour(v.colour, v.shade) } as JSX.CSSProperties);
@@ -209,10 +210,10 @@ function Links({ data }: { data: CouncilData }) {
   return (
     <>
       {about && (
-        <p class="fs-from"><small>About</small> {src ? <a href={`#/journal/${src.id}`}>{about}</a> : <a>{about}</a>}</p>
+        <p class="fs-from"><small>About</small> {src ? <a href={hrefOf(src)}>{about}</a> : <a>{about}</a>}</p>
       )}
       {(about ? rest : data.linked).map((l, i) => (
-        <p key={l.id} class="fs-from"><small>{!about && i === 0 ? 'From' : 'Linked'}</small> <a href={`#/journal/${l.id}`}>{l.label}</a></p>
+        <p key={l.id} class="fs-from"><small>{!about && i === 0 ? 'From' : 'Linked'}</small> <a href={hrefOf(l)}>{l.label}</a></p>
       ))}
     </>
   );

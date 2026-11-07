@@ -5,7 +5,7 @@ import { store } from '../../src/db/fields';
 import type { Cadence, Item } from '../../src/db/schema';
 import {
   isDue, onToday, nextDue, doneOn, periodOf, startOfWeek, withCheck, withoutToday, setDone, today,
-  addLean, latestLean, leansOf, setLeanNote, snapLean, detentOf, rawEntries, openQuestions, quietParadoxes,
+  addLean, latestLean, leansOf, setLeanNote, snapLean, detentOf, openQuestions, quietParadoxes,
   quietVoices, openBalances, leanLines, lookBack, leanPath,
 } from '../../src/model/flow';
 import { askQuestion, writeToday, today as journalToday } from '../../src/model/pages';
@@ -152,19 +152,14 @@ describe('leans', () => {
 });
 
 describe('look back', () => {
-  it('entries still raw, newest first, not today; questions still open', async () => {
+  it('questions still open (entries have no state since V1, so none is looked back on as raw)', async () => {
     await ensureSeeded();
     const now = L(2026, 11, 7, 9);
-    const yesterday = await writeToday(await journalToday(new Date(L(2026, 11, 6))), 'boiling in my own soup', L(2026, 11, 6, 21));
-    await writeToday(await journalToday(new Date(now)), 'today, still being written', now);
-    const raw = await rawEntries(now);
-    expect(raw[0]).toEqual({ id: yesterday.page!.id, line: 'boiling in my own soup' });
-    expect(raw.map(r => r.line)).not.toContain('today, still being written');
-    // v2 has no entry-state buttons; a page that is no longer open (older data) is not looked back on
-    await store.put('pages', { ...yesterday.page!, state: 'revisited' });
-    expect((await rawEntries(now)).map(r => r.id)).not.toContain(yesterday.page!.id);
-
+    await writeToday(await journalToday(new Date(L(2026, 11, 6))), 'boiling in my own soup', L(2026, 11, 6, 21));
     const q = await askQuestion('How can I gauge my pleasure/pain barometer?');
+    const back = await lookBack(now);
+    expect(back.open).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }]);
+    expect(back).not.toHaveProperty('raw');
     expect(await openQuestions()).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }]);
   });
 
@@ -211,6 +206,6 @@ describe('look back', () => {
     expect(lines.map(l => l.paradox.id)).toEqual(['px-selfless-selfish']);
     expect(lines[0].points).toEqual([{ at: 10, lean: -0.5 }, { at: 20, lean: 0.5 }]);
     const all = await lookBack(L(2026, 11, 7));
-    expect(Object.keys(all).sort()).toEqual(['balances', 'lines', 'open', 'quiet', 'raw', 'voices']);
+    expect(Object.keys(all).sort()).toEqual(['balances', 'lines', 'open', 'quiet', 'voices']);
   });
 });

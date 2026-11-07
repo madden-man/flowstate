@@ -32,7 +32,8 @@ async function say(page: Page, box: ReturnType<Page['getByRole']>, text: string)
   await box.click();
   await box.pressSequentially(text, { delay: 2 });
   await box.press('Enter');
-  await expect(page.locator('.fs-msg', { hasText: text })).toBeVisible();
+  // drawn as a paragraph once it is saved (until then it is still a textarea, and a hold would only focus it)
+  await expect(page.locator('.fs-msg p', { hasText: text })).toBeVisible();
 }
 
 test('the journey: threshold to export, offline, across a PIN and a reload', async ({ page, context, baseURL }) => {

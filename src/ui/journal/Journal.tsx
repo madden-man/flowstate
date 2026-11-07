@@ -1,15 +1,15 @@
 // Journal (PLAN.md section 5, item 1; v2). Today's dated page opens with the caret on its first rule; the
 // header word Pages lists the entries and councils by month, with search on the first rule; #/journal/:id
-// opens any page to read and write on. The Questions list stays at #/journal/questions (the ? tab, V2).
-import { useEffect, useRef, useState } from 'preact/hooks';
+// opens any page to read and write on. Questions have their own section (src/ui/questions, the ? tab, V2).
+import { useEffect, useState } from 'preact/hooks';
 import { Page, Ruled } from '../parts/Page';
 import { SpokeRules } from '../parts/SpokeRules';
 import { notebookDate } from '../date';
 import { PageView } from './PageView';
 import { hrefOf } from './href';
-import { questions, askQuestion, pagesList, searchPages, voicesById, type Paged } from '../../model/pages';
+import { pagesList, searchPages, voicesById, type Paged } from '../../model/pages';
 import type { Read } from '../../db/fields';
-import type { Page as PageRow, Voice } from '../../db/schema';
+import type { Voice } from '../../db/schema';
 
 export function JournalToday() {
   return <PageView />;
@@ -18,45 +18,6 @@ export function JournalToday() {
 /** #/journal/:id, a page read back. Today's entry redirects to #/journal; a council page to its tab. */
 export function JournalPage({ id }: { id: string }) {
   return <PageView key={id} id={id} />;
-}
-
-export function Questions() {
-  const [list, setList] = useState<Read<PageRow>[] | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [q, setQ] = useState('');
-  const field = useRef<HTMLInputElement>(null);
-  useEffect(() => { questions().then(setList); }, []);
-  useEffect(() => { if (asking) field.current?.focus(); }, [asking]);
-  const ask = async () => {
-    if (!q.trim()) { setAsking(false); return; }
-    await askQuestion(q);
-    setQ('');
-    setList(await questions());
-  };
-  return (
-    <Page label="Questions" pages="link">
-      <Ruled>
-        <div class="fs-pagelist">
-          {list?.map(p => (
-            <a key={p.id} href={`#/journal/${p.id}`} class="fs-qrow">
-              <span class="fs-qtitle">{p.title}</span>
-              {p.state !== 'open' && <small class="fs-list-meta"><span class="fs-state">{p.state}</span></small>}
-            </a>
-          ))}
-        </div>
-      </Ruled>
-      <div class="fs-ask">
-        {asking ? (
-          <input ref={field} class="fs-input" aria-label="A question" value={q} enterKeyHint="done"
-            onInput={e => setQ(e.currentTarget.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void ask(); } if (e.key === 'Escape') setAsking(false); }}
-            onBlur={() => { if (!q.trim()) setAsking(false); }} />
-        ) : (
-          <button type="button" class="fs-word" onClick={() => setAsking(true)}>Ask a question</button>
-        )}
-      </div>
-    </Page>
-  );
 }
 
 const monthOf = (t: number, now: Date) => {

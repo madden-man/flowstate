@@ -1,7 +1,8 @@
 // Every writing surface is a page (DESIGN.md rule 5): the notebook header with "No." and "DATE:" in
 // grey sans at the top right, the moon, Settings and the ♪ line at the top left, and ruled paper under the ink.
 // The Journal's pages also carry the word Pages after the moon (v2): the list of entries and councils,
-// not offered in Still.
+// not offered in Still. A question page carries the word Questions there instead (V2): the way back to
+// its list, in place of Pages and Settings; its header right says where it sits among the open ones.
 // Every page carries the blind (pull it down for Still) and, in Still, the kept line at its top.
 import type { ComponentChildren, JSX } from 'preact';
 import { useRef } from 'preact/hooks';
@@ -24,10 +25,14 @@ type Props = {
   music?: MusicPage;
   /** The Journal's header word Pages (v2): shown on journal pages, marked current on the Pages screen. */
   pages?: 'link' | 'here';
+  /** The way back from a section's page, in the place of Pages and Settings (V2: Questions on a question page). */
+  back?: { word: string; href: string };
+  /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
+  count?: string;
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, count }: Omit<Props, 'children'>) {
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -35,11 +40,15 @@ export function PageHeader({ no, label, date = new Date(), music, pages }: Omit<
         {pages && (
           <a class="fs-word fs-notstill" href="#/journal/pages" aria-current={pages === 'here' ? 'page' : undefined}>Pages</a>
         )}
-        <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>
+        {back && <a class="fs-word" href={back.href}>{back.word}</a>}
+        {/* the way back takes Settings' place as well (V2, as the proposal draws it), so "2 of 3 open" and the
+            date keep one line on a 375pt phone; Settings is one tap away on every other page */}
+        {!back && <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>}
         <MusicLine page={music} />
       </div>
       <div class="fs-hdr-r">
         {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
+        {count && <span class="fs-count">{count}</span>}
         {label && <span>{label}</span>}
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>

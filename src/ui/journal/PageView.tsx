@@ -6,6 +6,9 @@
 // the starred voices, more), then step back; the next Return is ink again. Long press any other paragraph
 // for its sheet (five things). An earlier page is written on the same way, and a block written on a later
 // day carries the date it was written.
+// A question page (#/questions/:id, V2) is this same editor under the question's title: writing is plain
+// ink, the long-press sheet offers "This answers it" in Ask this's place, the header says where it sits
+// among the open questions, and Previous and Next (or a horizontal swipe on the page) walk them.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useLocation } from 'preact-iso';
@@ -24,9 +27,9 @@ import { voiceColour } from '../voice';
 import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import {
-  today, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, linkPages, takeToCouncil,
-  setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags,
-  type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel,
+  today, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
+  setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
+  type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel, type Walk,
 } from '../../model/pages';
 import type { Read } from '../../db/fields';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
@@ -34,19 +37,54 @@ import type { Message, Page as PageRow, Voice } from '../../db/schema';
 const SAVE_AFTER_MS = 300;
 const uuid = (): string => crypto.randomUUID();
 
-type Data = { page?: Read<PageRow>; messages: Read<Message>[]; no?: number; links: PageLink[] };
+type Data = { page?: Read<PageRow>; messages: Read<Message>[]; no?: number; links: PageLink[]; walk?: Walk };
+/** The section a page was opened in: the Journal, or Questions (#/questions/:id, V2). */
+type Section = 'journal' | 'questions';
 type Voices = { chips: Read<Voice>[]; byId: Map<string, Read<Voice>> };
 
-async function load(id?: string): Promise<Data | { to: string }> {
+async function load(id: string | undefined, section: Section): Promise<Data | { to: string }> {
   const t = await today();
   if (!id || t.page?.id === id) {
     if (id) return { to: '/journal' };
     return { page: t.page, messages: t.page ? await messagesOf(t.page.id) : [], no: t.no, links: t.page ? await linksOf(t.page) : [] };
   }
   const r = await pageById(id);
-  if (!r) return { to: '/journal' };
-  if (r.page.kind === 'council') return { to: `/council/${id}` };
-  return { page: r.page, messages: r.messages, no: r.no, links: await linksOf(r.page) };
+  if (!r) return { to: section === 'questions' ? '/questions' : '/journal' };
+  // every page opens in its own section: a council on its tab, a question under the ? (V2)
+  const home = hrefOf(r.page).slice(1);
+  if ((r.page.kind === 'question') !== (section === 'questions') || r.page.kind === 'council') return { to: home };
+  const walk = r.page.kind === 'question' ? await walkOf(id) : undefined;
+  return { page: r.page, messages: r.messages, no: r.no, links: await linksOf(r.page), walk };
+}
+
+const SWIPE_SLOP_PX = 12;
+const SWIPE_PX = 60;
+
+/** A horizontal swipe on a question page walks the open questions (V2). Touch and pen only, so a mouse
+ *  selecting text never turns the page; once a drag reads as vertical it is left to the scroll (the column
+ *  is touch-action: pan-y). Nothing moves under the finger, so there is no motion to reduce. */
+function useSwipe(walk: Walk | undefined, go: (id: string) => void) {
+  const s = useRef<{ x: number; y: number; id: number; dir?: 'x' | 'y' } | null>(null);
+  if (!walk) return {};
+  return {
+    onPointerDown: (e: PointerEvent) => {
+      s.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY, id: e.pointerId };
+    },
+    onPointerMove: (e: PointerEvent) => {
+      const d = s.current;
+      if (!d || d.id !== e.pointerId || d.dir) return;
+      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      if (Math.hypot(dx, dy) > SWIPE_SLOP_PX) d.dir = Math.abs(dx) > Math.abs(dy) * 1.5 ? 'x' : 'y';
+    },
+    onPointerUp: (e: PointerEvent) => {
+      const d = s.current;
+      s.current = null;
+      if (!d || d.id !== e.pointerId || d.dir !== 'x') return;
+      const dx = e.clientX - d.x;
+      if (Math.abs(dx) >= SWIPE_PX) go(dx < 0 ? walk.next : walk.prev);
+    },
+    onPointerCancel: () => { s.current = null; },
+  };
 }
 
 /** The block being written stays in sight: scrolled to within the column, above the keyboard. */
@@ -182,7 +220,7 @@ function TitleEdit({ page, onSave }: { page: Read<PageRow>; onSave: (title: stri
   );
 }
 
-export function PageView({ id }: { id?: string }) {
+export function PageView({ id, section = 'journal' }: { id?: string; section?: Section }) {
   const isToday = !id;
   const { route } = useLocation();
   const still = light.value === 'still';
@@ -216,7 +254,7 @@ export function PageView({ id }: { id?: string }) {
 
   // ---- reading ----
   const refresh = async () => {
-    const r = await load(id);
+    const r = await load(id, section);
     if ('to' in r) { setTo(r.to); return; }
     pageRef.current = r.page;
     setData(r);
@@ -447,6 +485,14 @@ export function PageView({ id }: { id?: string }) {
       closeSheet();
       route(`/council/${c.id}`);
     }),
+    // "This answers it" on a question page, or "Not the answer" on a line already wise
+    answer: () => withHeld(async (m, p) => {
+      const r = await answerWith(p, m, !m.wise);
+      pageRef.current = r.page;
+      putMessage(r.message);
+      setData(d => (d ? { ...d, page: r.page } : d));
+      closeSheet();
+    }),
   };
 
   // ---- the echo ----
@@ -473,6 +519,10 @@ export function PageView({ id }: { id?: string }) {
     setTimeout(() => setEcho(null), 300);
   };
 
+  const walk = data?.walk;
+  const walkTo = (qid: string) => route(`/questions/${qid}`);
+  const swipe = useSwipe(walk, walkTo);
+
   if (to) return <Redirect to={to} />;
 
   const byId = new Map(all.map(m => [m.id, m]));
@@ -482,9 +532,13 @@ export function PageView({ id }: { id?: string }) {
   const starred = vs.chips.filter(v => v.starred);
   const lastArea = [...blocks].reverse().find(b => b.id === cur || b.id === tailId)?.id;
   let prevAt = page?.createdAt;
+  const isQuestion = kind === 'question';
+  // the walk's counter is for an open question; answered here, it goes (the walk stays to move on)
+  const count = isQuestion && walk && page?.state === 'open' ? `${walk.at} of ${walk.of} open` : undefined;
 
   return (
-    <Page no={kind === 'entry' ? data?.no : undefined} label={kind === 'question' ? 'Question' : undefined} date={date} pages="link"
+    <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count}
+      pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
       music={page ? {
         id: page.id, music: page.music,
         onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
@@ -492,7 +546,7 @@ export function PageView({ id }: { id?: string }) {
       {echo && !written && !still && (
         <Echo text={echo.message.text} date={new Date(echo.page.createdAt)} still={still} onLink={echoLink} onDismiss={echoDismiss} />
       )}
-      <div ref={column} class="fs-sheetof fs-rules fs-col"
+      <div ref={column} class={`fs-sheetof fs-rules fs-col${walk ? ' fs-swipe' : ''}`} {...swipe}
         onClick={e => {
           if (e.target !== e.currentTarget || !data) return;
           // a tap under the last block writes on the next rule
@@ -503,7 +557,7 @@ export function PageView({ id }: { id?: string }) {
           moveTo(bid, 'end');
         }}>
         <textarea ref={proxy} class="fs-proxy" aria-hidden="true" tabIndex={-1} />
-        {kind === 'question' && page && (
+        {isQuestion && page && (
           <TitleEdit page={page} onSave={title => queue(`title:${page.id}`, async () => {
             const np = await setTitle(pageRef.current ?? page, title);
             pageRef.current = np;
@@ -553,7 +607,13 @@ export function PageView({ id }: { id?: string }) {
           </nav>
         )}
       </div>
-      <LineSheet held={held} page={page} voices={vs.chips} byId={vs.byId} acts={acts}
+      {walk && (
+        <nav class="fs-ask fs-walk" aria-label="The open questions">
+          <button type="button" class="fs-word" onClick={() => walkTo(walk.prev)}>‹ Previous</button>
+          <button type="button" class="fs-word" onClick={() => walkTo(walk.next)}>Next ›</button>
+        </nav>
+      )}
+      <LineSheet held={held} page={page} question={isQuestion} voices={vs.chips} byId={vs.byId} acts={acts}
         onClose={() => { openSheet.value = null; }} />
       <SpeakSheet voices={vs.chips} current={cur ? voiceFor(cur) : undefined}
         onPick={v => { if (cur) pick(cur, v); }} onClose={() => { openSheet.value = null; }} />

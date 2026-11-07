@@ -1,9 +1,11 @@
-// Routes and the tab bar (PLAN.md section 5). Four words, always visible; hash routes so deep links
-// and standalone mode both work: #/journal/:id, #/journal/pages, #/journal/questions, #/council/:id, #/be/:id, #/flow.
+// Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
+// deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
+// #/council/:id, #/be/:id, #/flow. The old #/journal/questions goes to #/questions.
 import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
-import { JournalToday, JournalPage, JournalPages, Questions } from './ui/journal/Journal';
+import { JournalToday, JournalPage, JournalPages } from './ui/journal/Journal';
+import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
@@ -21,20 +23,24 @@ import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
 
-export const TABS = [
-  ['journal', 'Journal'],
-  ['council', 'Council'],
-  ['be', 'Be'],
-  ['flow', 'Flow'],
-] as const;
+/** The bar: four words, and Questions as a ? mark in the serif (V2, PLAN-V2.md section 2), so DESIGN.md
+ *  rule 7's four words stand. The mark carries its name for VoiceOver. */
+export const TABS: readonly { slug: string; word: string; label?: string }[] = [
+  { slug: 'journal', word: 'Journal' },
+  { slug: 'council', word: 'Council' },
+  { slug: 'questions', word: '?', label: 'Questions' },
+  { slug: 'be', word: 'Be' },
+  { slug: 'flow', word: 'Flow' },
+];
 
 function Tabs() {
   const { path } = useLocation();
   const here = path.split('/')[1];
   return (
     <nav class="fs-tabs" aria-label="Sections">
-      {TABS.map(([slug, word]) => (
-        <a key={slug} class="fs-tab" href={`#/${slug}`} aria-current={here === slug ? 'page' : undefined}
+      {TABS.map(({ slug, word, label }) => (
+        <a key={slug} class={label ? 'fs-tab fs-tab-q' : 'fs-tab'} href={`#/${slug}`} aria-label={label}
+          aria-current={here === slug ? 'page' : undefined}
           onClick={() => { if (here !== slug) tick('tab'); }}>{word}</a>
       ))}
     </nav>
@@ -51,9 +57,11 @@ function Frame() {
         {/* an import bumps dataVersion, and every open page reads again */}
         <Router key={dataVersion.value}>
           <Route path="/journal" component={JournalToday} />
-          <Route path="/journal/questions" component={Questions} />
+          <Route path="/journal/questions" component={() => <Redirect to="/questions" />} />
           <Route path="/journal/pages" component={JournalPages} />
           <Route path="/journal/:id" component={JournalPage} />
+          <Route path="/questions" component={Questions} />
+          <Route path="/questions/:id" component={QuestionPage} />
           <Route path="/council" component={Council} />
           <Route path="/council/:id" component={Council} />
           <Route path="/be" component={Be} />

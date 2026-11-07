@@ -25,7 +25,7 @@ describe('layers', () => {
     expect([...SECRET_TABLES].sort()).toEqual(['items', 'leans', 'messages', 'pages', 'paradoxes', 'settings']);
   });
   it('the Questions list reads titles through the model and store, never the database', () => {
-    const journal = fs.readFileSync('src/ui/journal/Journal.tsx', 'utf8');
+    const journal = fs.readFileSync('src/ui/questions/Questions.tsx', 'utf8');
     expect(journal).toMatch(/questions\(\)/);
     expect(fs.readFileSync('src/model/pages.ts', 'utf8')).toMatch(/export async function questions[\s\S]*?store\.query\('pages'/);
   });
