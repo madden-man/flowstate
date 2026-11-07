@@ -384,7 +384,7 @@ export function PageView({ id }: { id?: string }) {
           })}
         </div>
       )}
-      {echo && !messages.length && (
+      {echo && !messages.length && !still && (
         <Echo text={echo.message.text} date={new Date(echo.page.createdAt)} still={still} onLink={echoLink} onDismiss={echoDismiss} />
       )}
       <div ref={column} class="fs-sheetof fs-rules fs-col"

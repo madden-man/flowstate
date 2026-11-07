@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words, always visible; hash routes so deep links
 // and standalone mode both work: #/journal/:id, #/journal/questions, #/council/:id, #/be/:id, #/flow.
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
 import { JournalToday, JournalPage, Questions, Earlier } from './ui/journal/Journal';
@@ -12,6 +12,7 @@ import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { tick } from './ui/parts/Haptic';
+import { Threshold, thresholdWanted } from './ui/parts/Threshold';
 
 export const TABS = [
   ['journal', 'Journal'],
@@ -63,9 +64,12 @@ function Frame() {
 }
 
 export function App() {
+  // a breath before the page, on a cold load (package 5; package 6 adds the keypad to this screen)
+  const [threshold, setThreshold] = useState(thresholdWanted);
   return (
     <HashLocation>
       <Frame />
+      {threshold && <Threshold onDone={() => setThreshold(false)} />}
     </HashLocation>
   );
 }

@@ -1,6 +1,11 @@
 // Every writing surface is a page (DESIGN.md rule 5): the notebook header with "No." and "DATE:" in
 // grey sans at the top right, the moon and Settings at the top left, and ruled paper under the ink.
-import type { ComponentChildren } from 'preact';
+// Every page carries the blind (pull it down for Still) and, in Still, the kept line at its top.
+import type { ComponentChildren, JSX } from 'preact';
+import { useRef } from 'preact/hooks';
+import { useBlind, BlindPanel } from './Blind';
+import { StillTop } from './StillTop';
+import { noteKeystroke } from '../still';
 import { Moon } from './Moon';
 import { openSheet } from '../sheets';
 import { notebookDate } from '../date';
@@ -31,10 +36,21 @@ export function PageHeader({ no, label, date = new Date() }: Omit<Props, 'childr
   );
 }
 
+/** A keystroke in a composer counts toward Still's twelve minutes (and nothing else does). */
+const onInput = (e: JSX.TargetedEvent<HTMLElement>) => {
+  const t = e.target as HTMLElement;
+  if (t.tagName === 'TEXTAREA' && t.closest('.fs-composer')) noteKeystroke();
+};
+
 export function Page({ children, ...header }: Props) {
+  const page = useRef<HTMLElement>(null);
+  const blind = useRef<HTMLDivElement>(null);
+  useBlind(page, blind);
   return (
-    <section class="fs-page">
+    <section ref={page} class="fs-page" onInput={onInput}>
+      <BlindPanel panel={blind} />
       <PageHeader {...header} />
+      <StillTop />
       {children}
     </section>
   );
