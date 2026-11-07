@@ -91,10 +91,13 @@ export function seedParadoxes(): { paradoxes: Paradox[]; items: Item[] } {
     // Along the diagonal, A to B, top to bottom: the notebook's order is volunteer, share, own sake,
     // breathing room. Each goal keeps its balance (pairId) as the walkthrough draws them, but the pairs sit
     // at different heights so the diagonal reads in the notebook's order (a pair shares a lean only by default).
-    item(p1.id, 'it-volunteer', 'a', 'find volunteer opportunities near Evergreen', -0.6, 0, { pairId: 'it-breathing-room', nextTo: 'it-share' }),
-    item(p1.id, 'it-share', 'a', 'remind yourself, through metrics, that you matter by helping others; when something useful is created, share it with the world', -0.2, 1, { pairId: 'it-own-sake' }),
-    item(p1.id, 'it-own-sake', 'b', 'write for its own sake, not worrying whether it is commercially viable or edifying', 0.2, 2, { pairId: 'it-share' }),
-    item(p1.id, 'it-breathing-room', 'b', 'find something nice for yourself which gives you life / breathing room', 0.6, 3, { pairId: 'it-volunteer' }),
+    // Cadences (package 4): the notebook says "daily, weekly, monthly, yearly goals/tasks" but names none per
+    // item, so these follow each item's own wording: volunteering is monthly, the metrics reminder weekly,
+    // writing for its own sake daily, something nice for yourself weekly.
+    item(p1.id, 'it-volunteer', 'a', 'find volunteer opportunities near Evergreen', -0.6, 0, { pairId: 'it-breathing-room', nextTo: 'it-share', cadence: 'monthly' }),
+    item(p1.id, 'it-share', 'a', 'remind yourself, through metrics, that you matter by helping others; when something useful is created, share it with the world', -0.2, 1, { pairId: 'it-own-sake', cadence: 'weekly' }),
+    item(p1.id, 'it-own-sake', 'b', 'write for its own sake, not worrying whether it is commercially viable or edifying', 0.2, 2, { pairId: 'it-share', cadence: 'daily' }),
+    item(p1.id, 'it-breathing-room', 'b', 'find something nice for yourself which gives you life / breathing room', 0.6, 3, { pairId: 'it-volunteer', cadence: 'weekly' }),
     item(p2.id, 'it-journaling', 'a', 'journaling', -0.6, 0, { nextTo: 'it-asking-claude' }),
     item(p2.id, 'it-asking-claude', 'a', 'asking Claude', -0.2, 1, { nextTo: 'it-asking-friend' }),
     item(p2.id, 'it-asking-friend', 'b', 'asking a friend', 0.2, 2, { nextTo: 'it-feedback' }),
