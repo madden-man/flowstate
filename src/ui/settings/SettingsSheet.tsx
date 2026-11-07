@@ -153,6 +153,7 @@ function SettingsBody() {
       <PlaceRow />
       <Toggle label="Sounds" on={s.sounds} set={v => void saveSettings({ sounds: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
+      <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>
       <ExportRow />
       <ImportRow />
       <StorageRow />

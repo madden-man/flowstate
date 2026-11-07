@@ -194,3 +194,118 @@ button.fs-row, label.fs-row { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .fs-sheet, .fs-scrim, .fs-toast { animation: none; }
 }
+
+/* ==== package 2: council and voices ==== */
+
+/* the lamp takes the last speaker's colour: a mix on the light's own lamp, none by day (--lamp-mix 0%) */
+.fs-app[data-lamp]::before {
+  background: radial-gradient(70% 45% at 12% -5%, color-mix(in oklch, var(--lamp-voice) var(--lamp-mix), var(--lamp)), transparent 70%);
+}
+a.fs-row { text-decoration: none; cursor: pointer; }
+
+/* a council: the chat column on the rules, the chip row and the composer under the thumb */
+.fs-council { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--kb, 0px); }
+.fs-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s1) var(--gutter) var(--s2); }
+.fs-chat p { margin: 0; min-height: var(--lh-ink); }
+.fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: default; }
+.fs-quote {
+  display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  border-left: 2px solid var(--qc, var(--print)); padding-left: 6px;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: 0; line-height: var(--lh-ink); color: var(--print); font-style: normal;
+}
+.fs-quote b { font-weight: 500; letter-spacing: var(--track-print); text-transform: uppercase; color: var(--qc, var(--ink)); }
+.fs-from { display: flex; gap: var(--s1); align-items: baseline; }
+.fs-from small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); flex: none; }
+.fs-from a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-composer-wrap { border-top: 1px solid var(--seam); background: var(--page); transition: background-color var(--t-light) var(--ease); }
+.fs-replying { display: flex; align-items: center; gap: var(--s1); padding: 0 var(--s1) 0 var(--gutter); }
+.fs-replying .fs-quote { flex: 1; min-width: 0; }
+.fs-composer { padding: 0 var(--gutter) var(--s1); }
+.fs-composer textarea {
+  --vc: transparent;
+  display: block; width: calc(100% + 13px); margin: 0 0 0 -13px; padding: 0 0 0 10px; border: 0; border-left: 3px solid var(--vc);
+  resize: none; outline: none; background: transparent; overflow-y: auto;
+  min-height: var(--lh-ink); max-height: calc(var(--lh-ink) * 4);
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-composer textarea::placeholder { color: var(--print); font-style: italic; }
+.fs-new {
+  appearance: none; margin: var(--s1) var(--gutter); width: calc(100% - 2 * var(--gutter)); min-height: var(--hit); cursor: pointer;
+  border: 1px solid var(--ink); border-radius: 999px; background: transparent; color: var(--ink);
+  font-family: var(--sans); font-size: var(--fs-chip); letter-spacing: var(--track-print); text-transform: uppercase;
+}
+
+/* the list of councils: date and the voices that spoke on the first rule, the line on the second */
+.fs-crow { display: grid; grid-template-columns: 1fr auto; min-height: calc(var(--lh-ink) * 2); color: var(--ink); text-decoration: none; }
+.fs-crow small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+.fs-crow > span:not(.fs-spoke) { grid-column: 1 / -1; grid-row: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-spoke { display: inline-flex; gap: 3px; align-items: center; height: var(--lh-ink); }
+.fs-spoke i { display: block; width: 3px; height: 14px; background: var(--vc); }
+.fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
+.fs-blank { padding-top: var(--lh-ink); }
+.fs-said { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); font-style: italic; color: var(--ink); }
+
+/* the colour wheel: a conic ring on the voice formula, so it follows the light */
+.fs-wheel {
+  --wheel: 196px; --wl: var(--voice-l); --wc: var(--voice-c);
+  position: relative; width: var(--wheel); height: var(--wheel); margin: var(--s1) auto; border-radius: 50%;
+  touch-action: none; cursor: pointer; outline: none;
+}
+.fs-wheel.deep { --wl: calc(var(--voice-l) + var(--deep-dl)); --wc: calc(var(--voice-c) * var(--deep-ck)); }
+.fs-wheel-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(
+    oklch(var(--wl) var(--wc) 0), oklch(var(--wl) var(--wc) 30), oklch(var(--wl) var(--wc) 60), oklch(var(--wl) var(--wc) 90),
+    oklch(var(--wl) var(--wc) 120), oklch(var(--wl) var(--wc) 150), oklch(var(--wl) var(--wc) 180), oklch(var(--wl) var(--wc) 210),
+    oklch(var(--wl) var(--wc) 240), oklch(var(--wl) var(--wc) 270), oklch(var(--wl) var(--wc) 300), oklch(var(--wl) var(--wc) 330),
+    oklch(var(--wl) var(--wc) 360));
+  -webkit-mask: radial-gradient(circle closest-side, transparent 64%, var(--ink) 65%);
+  mask: radial-gradient(circle closest-side, transparent 64%, var(--ink) 65%);
+}
+.fs-wheel-dot {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: var(--vc); border: 2px solid var(--page); box-shadow: 0 0 0 1px var(--ink);
+  transform: rotate(var(--h)) translateY(calc(var(--wheel) * -.41));
+}
+.fs-wheel-mid { position: absolute; inset: 30%; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; font-family: var(--sans); font-size: var(--fs-chip); line-height: 1.2; color: var(--ink); }
+.fs-wheel-mid i { display: block; width: 28px; height: 28px; border-radius: 50%; background: var(--vc); }
+.fs-wheel:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.fs-warn { color: var(--ink); text-align: center; }
+.fs-opt-v i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--vc); margin-right: 6px; }
+
+/* a revision struck through with a drawn stroke (parts/Strike) */
+.fs-struck { position: relative; display: inline-block; text-decoration: none; color: var(--print); }
+.fs-struck-line { position: absolute; left: -3px; top: 20%; width: calc(100% + 6px); height: 60%; overflow: visible; pointer-events: none; }
+.fs-struck-line path { fill: none; stroke: var(--ink); stroke-width: 1.6px; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .85; }
+
+/* the Voices screen: each light voice with its deep twin beside it */
+.fs-vgroup {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); padding: var(--s1) 0;
+  border-top: 1px solid var(--seam); background: var(--page);
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.fs-vgroup.lift { z-index: 2; box-shadow: var(--shadow-tile); transform: translateY(-2px); }
+.fs-vcell { display: grid; align-content: start; min-width: 0; border-left: 3px solid var(--vc); padding-left: var(--s1); }
+.fs-vcell.deep { border-left: 5px double var(--vc); }
+.fs-vname {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0; text-align: left; cursor: pointer;
+  font: inherit; line-height: var(--lh-ink); color: var(--ink); min-height: var(--hit);
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px;
+}
+.fs-vname i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--vc); }
+.fs-vname .fs-aka { flex-basis: 100%; line-height: 1.4; }
+.fs-vacts { display: flex; margin-left: calc(var(--s1) * -1); }
+.fs-word[aria-pressed="true"] { color: var(--ink); }
+.fs-versions { display: grid; gap: 2px; padding-bottom: var(--s1); font-size: var(--fs-chip); }
+.fs-versions small { font-family: var(--sans); font-size: var(--fs-print); color: var(--print); }
+.fs-vslot {
+  appearance: none; margin: 0; align-self: start; min-height: var(--hit); cursor: pointer;
+  border: 1px dashed var(--seam); border-radius: var(--s1); background: transparent; color: var(--print);
+  font-family: var(--sans); font-size: var(--fs-chip);
+}
+.fs-vadd { padding-left: 0; padding-right: 0; }
+.fs-vmore { padding-top: var(--s2); }
+.fs-vmore h3 { margin: 0; font-weight: 400; }
+.fs-vname:focus-visible, .fs-new:focus-visible, .fs-crow:focus-visible, .fs-vslot:focus-visible, .fs-chip:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
+}
