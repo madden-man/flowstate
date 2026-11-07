@@ -318,29 +318,84 @@ details code{font-size:12px}
   </table></details>
 </section>
 
-<!-- 6 -->
-<section class="step" id="council" data-name="Council at night">
-  <h2>The page darkens after sunset</h2>
-  <p class="line">Pick who speaks, press return; the lamp takes their colour.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night" data-step="council" style="--lamp:color-mix(in oklch,var(--v-red) 35%,var(--page))"><div class="island"></div>
+<!-- package 2: the council, built from src/ui/parts/parts.css -->
+<section class="step" id="council" data-name="The council">
+  <h2>The council</h2>
+  <p class="line">Tap who speaks; the lamp follows.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-p2="council"><div class="island"></div>
     <div class="status"><span>22:40</span><span>Council</span></div>
-    <div class="hdr"><div class="sw"><div class="moon glow"></div><div class="ring"></div></div><div class="r"><span class="no">Council <b>3</b></span><span>Date <b>11 / 7 / 26</b></span></div></div>
-    <div class="pg">
-      <p class="q">Should I commit myself to hard things that require sacrifice?</p>
-      <div class="v" style="--vc:var(--v-black)"><span class="sp">Skeptic</span><p>Our world is deeply out of balance with fulfilling human needs.</p></div>
-      <div class="v" style="--vc:var(--v-green)"><span class="sp">Architect</span><p>Define ways toward fulfillment and chase them internally.</p></div>
-      <div class="v deep" style="--vc:var(--d-green)"><span class="sp">Workaholic</span><p>Many hard things are accomplished better from suffering.</p></div>
-      <div class="v" style="--vc:var(--v-red)"><span class="sp">Warrior</span><p>To hunt is human. Never sacrifice yourself for some fantasy future.</p></div>
-    </div>
-    <div class="chips"><span class="chip" data-voice="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</span><span class="chip" data-voice="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</span><span class="chip on" data-voice="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</span><span class="chip" data-voice="Architect" style="--vc:var(--v-green)"><i></i>Architect</span><span class="chip deep" data-voice="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</span><span class="chip add">+ voice</span></div>
-    <div class="composer"><input class="compose" placeholder="Warrior speaks…" aria-label="Message"></div>
-    <div class="tabs"><span>Journal</span><span class="on">Council</span><span>Be</span><span>Flow</span></div>
+    <div class="fs-app" data-lamp style="--lamp-voice:var(--v-red)"><main class="fs-main">
+      <section class="fs-page">
+        <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 7 / 26</b></span></div></header>
+        <nav class="fs-seg" aria-label="Council"><a>Councils</a><a>Voices</a></nav>
+        <div class="fs-council">
+          <div class="fs-chat fs-rules">
+            <p class="fs-from"><small>From</small> <a>Should I commit myself to hard things that require sacrifice?</a></p>
+            <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>Our world is deeply out of balance with fulfilling human needs.</p></div>
+            <div class="fs-msg fs-v" style="--vc:var(--v-green)"><span class="fs-sp">Architect</span><p>Define ways toward fulfillment and chase them internally.</p></div>
+            <div class="fs-msg fs-v deep" style="--vc:var(--d-green)"><span class="fs-sp">Workaholic</span><p>Many hard things are accomplished better from suffering.</p></div>
+            <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><span class="fs-quote" style="--qc:var(--d-green)"><b>Workaholic</b> Many hard things are accomplished better from suffering.</span><p>To hunt is human. Never sacrifice yourself for some fantasy future.</p></div>
+          </div>
+          <div class="fs-composer-wrap">
+            <div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false">Ink</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip deep" aria-pressed="false" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip add">+ voice</button></div>
+            <div class="fs-composer"><textarea rows="1" aria-label="Message" placeholder="Warrior speaks…" style="--vc:var(--v-red)"></textarea></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
   </div></div>
-  <details><summary>How this is built</summary><table>
-    <tr><td>Sky</td><td><code>ui/light.ts</code> computes sunrise and sunset from a stored latitude and longitude (no network); day → night over a 40-minute dusk. Settings can pin a light.</td></tr>
-    <tr><td>Lamp</td><td><code>--lamp</code> is a radial gradient at the top-left, mixed 35% toward the last speaker's colour.</td></tr>
-    <tr><td>Moon</td><td>Glows after sunset as an invitation; it never switches Still on by itself.</td></tr>
-  </table></details>
+</section>
+
+<!-- package 2: "+ voice" -->
+<section class="step" id="add-voice" data-name="+ voice">
+  <h2>+ voice</h2>
+  <p class="line">Name it, turn the wheel.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-p2="voice"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Council</span></div>
+    <div class="fs-app"><main class="fs-main">
+      <section class="fs-page">
+        <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 7 / 26</b></span></div></header>
+        <nav class="fs-seg" aria-label="Council"><a>Councils</a><a>Voices</a></nav>
+      </section>
+      <div class="fs-scrim"></div>
+      <section class="fs-sheet" aria-label="A new voice">
+        <div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>A new voice</h2><button type="button" class="fs-word">Done</button></div></div>
+        <div class="fs-sheet-body"><div class="fs-rows">
+          <label class="fs-row stack"><span>Name</span><input class="fs-input" value="Gardener" aria-label="Name"></label>
+          <label class="fs-row stack"><span>Also called</span><input class="fs-input" value="Tender" aria-label="Also called"></label>
+          <div class="fs-row stack"><span>Colour</span>
+            <div class="fs-wheel" role="slider" tabindex="0" aria-label="Colour" aria-valuenow="138" style="--h:138deg;--vc:oklch(var(--voice-l) var(--voice-c) 138)"><div class="fs-wheel-ring"></div><div class="fs-wheel-dot"></div><div class="fs-wheel-mid"><i></i><span>Gardener</span></div></div>
+            <span class="fs-note fs-warn" role="status">Close to the Architect's green</span>
+          </div>
+          <div class="fs-row stack"><span>Shade</span><div class="fs-opts"><button type="button" class="fs-opt" aria-pressed="true">Light</button><button type="button" class="fs-opt" aria-pressed="false">Deep</button></div></div>
+        </div></div>
+      </section>
+    </main>
+    <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+</section>
+
+<!-- package 2: the Voices screen -->
+<section class="step" id="voices" data-name="Voices">
+  <h2>Voices</h2>
+  <p class="line">Old names stay, struck through.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-p2="voices"><div class="island"></div>
+    <div class="status"><span>09:20</span><span>Voices</span></div>
+    <div class="fs-app"><main class="fs-main">
+      <section class="fs-page">
+        <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Voices</span><span>Date: <b>11 / 7 / 26</b></span></div></header>
+        <nav class="fs-seg" aria-label="Council"><a>Councils</a><a aria-current="page">Voices</a></nav>
+        <div class="fs-sheetof fs-voices"><div class="fs-vlist">
+          <div class="fs-vgroup"><div class="fs-vcell" style="--vc:var(--v-black)"><button type="button" class="fs-vname"><i></i>Skeptic<span class="fs-aka">Thinker, Philosopher</span></button><span class="fs-vacts"><button type="button" class="fs-word" aria-pressed="true">Starred</button></span></div><button type="button" class="fs-vslot">+ twin</button></div>
+          <div class="fs-vgroup"><div class="fs-vcell" style="--vc:var(--v-blue)"><button type="button" class="fs-vname"><i></i>Mystic<span class="fs-aka">Healer, Feeler</span></button><span class="fs-vacts"><button type="button" class="fs-word" aria-pressed="true">Starred</button></span></div><div class="fs-vcell deep" style="--vc:var(--d-blue)"><button type="button" class="fs-vname"><i></i>Phantom<span class="fs-aka">Ghost</span></button></div></div>
+          <div class="fs-vgroup lift"><div class="fs-vcell" style="--vc:var(--v-orange)"><button type="button" class="fs-vname"><i></i>Explorer<span class="fs-aka">Adventurer</span></button><span class="fs-vacts"><button type="button" class="fs-word" aria-pressed="false">Star</button></span></div><div class="fs-vcell deep" style="--vc:var(--d-orange)"><button type="button" class="fs-vname"><i></i>Sojourner<span class="fs-aka">Ranger</span></button><span class="fs-vacts"><button type="button" class="fs-word" aria-expanded="true">versions</button></span><span class="fs-versions"><span><s class="fs-struck">Wanderer<svg class="fs-struck-line" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path d="M1 6.2 C 24 4.9, 44 6.5, 66 5.3 S 92 4.7, 99 4.5"></path></svg></s> <small>11 / 6 / 26</small></span></span></div></div>
+          <div class="fs-vgroup"><div class="fs-vcell" style="--vc:var(--v-green)"><button type="button" class="fs-vname"><i></i>Architect<span class="fs-aka">King</span></button><span class="fs-vacts"><button type="button" class="fs-word" aria-pressed="true">Starred</button></span></div><div class="fs-vcell deep" style="--vc:var(--d-green)"><button type="button" class="fs-vname"><i></i>Workaholic<span class="fs-aka">Hoarder</span></button></div></div>
+        </div></div>
+      </section>
+    </main>
+    <nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
 </section>
 
 <!-- 7 -->
@@ -768,6 +823,50 @@ details code{font-size:12px}
 
   var h=(location.hash||'').replace('#','');var start=steps.findIndex(function(s){return s.id===h;});
   go(start>=0?start:0);
+})();
+</script>
+<script>
+/* package 2: the council, "+ voice" and Voices mocks are live (chips choose who speaks next, return speaks, the wheel turns) */
+(function(){
+  var main=document.getElementById('main');
+  var SEEN=[['Warrior',25,'red'],['Explorer',55,'orange'],['Engineer',60,'brown'],['Joker',95,'yellow'],['Architect',150,'green'],['Mystic',250,'blue'],['Meaning Maker',305,'purple'],['Sensualist',350,'pink']];
+  function dist(a,b){var d=Math.abs(((a-b)%360+360)%360);return d>180?360-d:d;}
+  main.addEventListener('keydown',function(e){
+    var ta=e.target.closest&&e.target.closest('[data-p2] .fs-composer textarea'); if(!ta) return;
+    e.stopPropagation();
+    if(e.key!=='Enter'||e.shiftKey) return;
+    e.preventDefault();
+    var t=ta.value.trim(); if(!t) return;
+    var scr=ta.closest('.screen'), on=scr.querySelector('.fs-chip[aria-pressed="true"]'), chat=scr.querySelector('.fs-chat');
+    var vc=on&&on.style.getPropertyValue('--vc'), who=on?on.textContent:'', d=document.createElement('div');
+    d.className='fs-msg'+(vc?' fs-v':'')+(on&&on.classList.contains('deep')?' deep':'');
+    if(vc){
+      d.style.setProperty('--vc',vc);
+      var last=chat.lastElementChild;
+      if(!last||last.getAttribute('data-who')!==who){var sp=document.createElement('span');sp.className='fs-sp';sp.textContent=who;d.appendChild(sp);}
+      var app=scr.querySelector('.fs-app');app.setAttribute('data-lamp','');app.style.setProperty('--lamp-voice',vc);
+    }
+    d.setAttribute('data-who',who);
+    var p=document.createElement('p');p.textContent=t;d.appendChild(p);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;ta.value='';
+  });
+  main.addEventListener('click',function(e){
+    var c=e.target.closest&&e.target.closest('[data-p2] .fs-chip'); if(!c||c.classList.contains('add')) return;
+    c.parentNode.querySelectorAll('.fs-chip:not(.add)').forEach(function(x){x.setAttribute('aria-pressed',String(x===c));});
+    var ta=c.closest('.screen').querySelector('.fs-composer textarea'), vc=c.style.getPropertyValue('--vc');
+    if(ta){ta.placeholder=vc?c.textContent+' speaks…':'A line in ink…';ta.style.setProperty('--vc',vc||'transparent');}
+  });
+  var wd=null;
+  function turn(w,e){
+    var r=w.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;
+    var h=Math.round((Math.atan2(dx,-dy)*180/Math.PI+360)%360), near=null;
+    w.style.setProperty('--h',h+'deg');w.style.setProperty('--vc','oklch(var(--voice-l) var(--voice-c) '+h+')');w.setAttribute('aria-valuenow',h);
+    SEEN.forEach(function(v){if(dist(h,v[1])<20&&(!near||dist(h,v[1])<dist(h,near[1])))near=v;});
+    var warn=w.parentNode.querySelector('.fs-warn');
+    if(warn){warn.textContent=near?'Close to the '+near[0]+"'s "+near[2]:'';warn.style.visibility=near?'visible':'hidden';}
+  }
+  main.addEventListener('pointerdown',function(e){var w=e.target.closest&&e.target.closest('[data-p2] .fs-wheel');if(w){wd=w;turn(w,e);e.preventDefault();}});
+  document.addEventListener('pointermove',function(e){if(wd)turn(wd,e);});
+  document.addEventListener('pointerup',function(){wd=null;});
 })();
 </script>
 </body>

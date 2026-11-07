@@ -7,6 +7,7 @@ import { JournalToday, JournalPage, Questions } from './ui/journal/Journal';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
+import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
@@ -49,6 +50,7 @@ function Frame() {
           <Route path="/be" component={Be} />
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
+          <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
         <SettingsSheet />

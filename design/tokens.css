@@ -36,12 +36,13 @@
   --voice-l: 52%; --voice-c: .15;    /* light voices */
   --deep-dl: -17%; --deep-ck: .6;    /* deep twins: darker, duller, same hue */
   --tint: 10%;                       /* message wash */
+  --lamp-mix: 0%;                    /* how much of the last speaker's colour the lamp takes (package 2, the council page): none by day */
   color-scheme: light;
 }
 
 [data-light="night"] {
   --page: #1B1D26; --rule: #262934; --ink: #D8D2C3; --print: #767A86; --seam: #2C2F3A;
-  --lamp: #262A38;
+  --lamp: #262A38; --lamp-mix: 35%;
   --black-voice: #C9C9CF;
   --voice-l: 74%; --voice-c: .12;
   color-scheme: dark;
@@ -49,7 +50,7 @@
 
 [data-light="still"] {
   --page: #0F1016; --rule: #171822; --ink: #A19B8E; --print: #545762; --seam: #1B1C25;
-  --lamp: #171824;
+  --lamp: #171824; --lamp-mix: 30%;
   --black-voice: #9A9AA0;
   --voice-l: 66%; --voice-c: .055;   /* embers */
   --tint: 0%;
