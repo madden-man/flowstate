@@ -10,6 +10,9 @@ import { parsePlace, sunTimes, clock, TOWNS, leaveStill, now } from '../light';
 import { notebookDate } from '../date';
 import { tick } from '../parts/Haptic';
 import { backupNow, parseBackup, importData, BackupError, type BackupFile, type ImportMode } from '../../db/backup';
+import { PinRows } from '../lock/PinRows';
+import { PinSheet } from '../lock/PinSheet';
+import { FilePin, fileNeedsPin } from '../lock/FilePin';
 import { isStandalone, storageHealth, askPersist, bytes, type StorageHealth } from '../../pwa/install';
 import type { LightPin } from '../../db/schema';
 
@@ -17,9 +20,12 @@ const PINS: [LightPin, string][] = [['sky', 'Follow the sky'], ['day', 'Day'], [
 
 export function SettingsSheet() {
   return (
-    <Sheet open={openSheet.value === 'settings'} onClose={() => { openSheet.value = null; }} title="Settings">
-      <SettingsBody />
-    </Sheet>
+    <>
+      <Sheet open={openSheet.value === 'settings'} onClose={() => { openSheet.value = null; }} title="Settings">
+        <SettingsBody />
+      </Sheet>
+      <PinSheet />
+    </>
   );
 }
 
@@ -91,17 +97,20 @@ function ExportRow() {
 function ImportRow() {
   const [file, setFile] = useState<BackupFile | null>(null);
   const [note, setNote] = useState('');
+  // a file saved with a PIN opens with that file's PIN first (package 6)
+  const [fileKey, setFileKey] = useState<CryptoKey | null>(null);
   const pick = async (e: JSX.TargetedEvent<HTMLInputElement>) => {
     const f = e.currentTarget.files?.[0];
     e.currentTarget.value = '';
     if (!f) return;
+    setFileKey(null);
     try { setFile(parseBackup(await f.text())); setNote(''); }
     catch (err) { setFile(null); setNote(err instanceof BackupError ? err.message : 'Could not read that file'); }
   };
   const run = async (mode: ImportMode) => {
     if (!file) return;
     try {
-      const r = await importData(file, mode);
+      const r = await importData(file, mode, undefined, fileKey ?? undefined);
       setNote(mode === 'replace' ? `Replaced: ${r.added} rows` : `Merged: ${r.added} new, ${r.updated} newer`);
       await loadSettings();
       dataVersion.value++;
@@ -109,14 +118,17 @@ function ImportRow() {
       setNote(err instanceof Error ? err.message : 'Import failed');
     }
     setFile(null);
+    setFileKey(null);
   };
+  const needsPin = !!file && !fileKey && fileNeedsPin(file);
   return (
     <div>
       <label class="fs-row">
         <span>Import</span><small>{file ? `From ${notebookDate(new Date(file.exportedAt))}` : 'A FlowState file'}</small>
         <input class="fs-hidden" type="file" accept="application/json,.json" onChange={pick} />
       </label>
-      {file && (
+      {file && needsPin && <FilePin file={file} onOpen={setFileKey} onCancel={() => setFile(null)} />}
+      {file && !needsPin && (
         <div class="fs-opts" role="group" aria-label="How to import" style={{ paddingBottom: 'var(--s1)' }}>
           <button type="button" class="fs-opt" onClick={() => void run('merge')}>Merge, newest wins</button>
           <button type="button" class="fs-opt" onClick={() => void run('replace')}>Replace this journal</button>
@@ -154,6 +166,7 @@ function SettingsBody() {
       <Toggle label="Sounds" on={s.sounds} set={v => void saveSettings({ sounds: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>
+      <PinRows />
       <ExportRow />
       <ImportRow />
       <StorageRow />

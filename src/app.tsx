@@ -12,6 +12,10 @@ import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { UpdateToast } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { tick } from './ui/parts/Haptic';
+import type { ComponentChildren } from 'preact';
+import { Lock } from './ui/lock/Lock';
+import { gateState } from './ui/lock/pin';
+import { startRelock } from './ui/lock/relock';
 
 export const TABS = [
   ['journal', 'Journal'],
@@ -62,10 +66,19 @@ function Frame() {
   );
 }
 
+/** The lock gate (package 6): with a PIN on and the key out of memory, the lock screen stands in front
+ *  of everything, tab bar included. The hash is left alone, so a deep link lands once the PIN opens it. */
+function Gate({ children }: { children: ComponentChildren }) {
+  useEffect(() => startRelock(), []);
+  return gateState() === 'locked' ? <Lock /> : <>{children}</>;
+}
+
 export function App() {
   return (
     <HashLocation>
-      <Frame />
+      <Gate>
+        <Frame />
+      </Gate>
     </HashLocation>
   );
 }
