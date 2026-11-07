@@ -1,5 +1,6 @@
 // The notebook's starting set (PLAN.md section 4, 2026-11-06): the pantheon, the two paradoxes and their
-// items, the manifesto as the first page, and the small antonym list. Runs once, on an empty database.
+// items, and the small antonym list. Runs once, on an empty database. No pages (V5, 2026-11-08): the
+// manifesto is the threshold's copy (MANIFESTO below), not a journal entry.
 // Every line here is the notebook's own; nothing is generated.
 import type { Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
 import { store } from './fields';
@@ -36,7 +37,6 @@ export function antonymsOf(word: string): string[] {
 
 // A fixed date for the seed: the notebook's 11/6 section.
 const NOTEBOOK_11_6 = Date.UTC(2026, 10, 6, 12);
-const NOTEBOOK_11_4 = Date.UTC(2026, 10, 4, 12);
 
 type V = { id: string; name: string; aka?: string[]; colour: VoiceColour; starred?: boolean; twin?: { id: string; name: string; aka?: string[] } };
 const hue = (h: number, chroma?: number): VoiceColour => (chroma === undefined ? { hue: h } : { hue: h, chroma });
@@ -106,70 +106,78 @@ export function seedParadoxes(): { paradoxes: Paradox[]; items: Item[] } {
   return { paradoxes: [p1, p2], items };
 }
 
-export function seedManifesto(): { page: Page; messages: Message[] } {
-  const page: Page = {
-    id: 'pg-manifesto', kind: 'entry', createdAt: NOTEBOOK_11_4, updatedAt: NOTEBOOK_11_4, state: 'open',
-    tags: [], paradoxIds: [], linkedPageIds: [],
-  };
-  const messages: Message[] = MANIFESTO.map((text, i) => ({ id: `m-manifesto-${i + 1}`, pageId: page.id, at: NOTEBOOK_11_4 + i, text, kept: true }));
-  return { page, messages };
-}
-
-/** The role-model list (PLAN.md section 11, question 4, decided by Tommy: a question page). The four names
- *  are one plain-ink line under the question, and the page stays open: space to answer left. */
-export const MODELS_TITLE = 'Who are my models?';
-export const MODELS_LINE = 'Grumpa, Isaac, Alison, Myself';
-
-export function seedModels(): { page: Page; messages: Message[] } {
-  const at = NOTEBOOK_11_6 + 120_000;
-  const page: Page = {
-    id: 'pg-models', kind: 'question', title: MODELS_TITLE, createdAt: at, updatedAt: at, state: 'open',
-    tags: [], paradoxIds: [], linkedPageIds: [],
-  };
-  return { page, messages: [{ id: 'm-models-1', pageId: page.id, at: at + 1, text: MODELS_LINE, kept: false }] };
-}
-
-/** Seed pages added after the first seed, by name: a journal seeded before them gets each one once. */
-const ADDITIONS: Record<string, () => { page: Page; messages: Message[] }> = { models: seedModels };
-
 export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
-    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, seedsAdded: Object.keys(ADDITIONS),
+    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
   };
 }
 
-/** Seeds once. The settings row marks it done, so deleting every voice later never brings them back. */
+/** Seeds once. The settings row marks it done, so deleting every voice later never brings them back.
+ *  No pages: the journal opens empty (Tommy, 2026-11-08, PLAN-V2.md section 2). */
 export async function ensureSeeded(now = Date.now()): Promise<boolean> {
   if (await store.get('settings', 'app')) return false;
   const { paradoxes, items } = seedParadoxes();
-  const { page, messages } = seedManifesto();
-  const models = seedModels();
-  await store.many({
-    voices: seedVoices(), paradoxes, items, pages: [page, models.page], messages: [...messages, ...models.messages],
-    settings: [defaultSettings(now)],
-  });
+  await store.many({ voices: seedVoices(), paradoxes, items, settings: [defaultSettings(now)] });
   return true;
 }
 
+// ---- the seed pages pass (V5, 2026-11-08) ----
+
+/** The name the pass leaves in settings.cleaned once it has run. */
+export const SEED_PAGES_PASS = 'seed-pages';
+
+// The two pages packages 1 and 8 seeded, exactly as they were written, kept only to recognise them.
+const OLD_11_4 = Date.UTC(2026, 10, 4, 12);
+const OLD_MODELS_AT = NOTEBOOK_11_6 + 120_000;
+const pageOf = (id: string, kind: Page['kind'], at: number, title?: string): Page => ({
+  id, kind, ...(title ? { title } : {}), createdAt: at, updatedAt: at, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [],
+});
+export const OLD_SEED_PAGES: { page: Page; messages: Message[] }[] = [
+  {
+    page: pageOf('pg-manifesto', 'entry', OLD_11_4),
+    messages: MANIFESTO.map((text, i) => ({ id: `m-manifesto-${i + 1}`, pageId: 'pg-manifesto', at: OLD_11_4 + i, text, kept: true })),
+  },
+  {
+    page: pageOf('pg-models', 'question', OLD_MODELS_AT, 'Who are my models?'),
+    messages: [{ id: 'm-models-1', pageId: 'pg-models', at: OLD_MODELS_AT + 1, text: 'Grumpa, Isaac, Alison, Myself', kept: false }],
+  },
+];
+
+/** The same row, field for field, ignoring key order and fields left undefined. */
+const canon = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map(canon)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canon(x)]))
+      : v;
+const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+
 /**
- * For a journal seeded before a seed page existed: adds each missing one once, marks it in the settings
- * row, and never brings one back. A page already there by id is left alone. Runs when the journal is open
- * (the gate in app.tsx), since a question's title is sealed with the PIN. Returns the names it added.
+ * Once, for a journal seeded before V5: takes away the manifesto entry and the models question only if
+ * they were never written on (page and messages exactly as seeded). A page that differs in anything, a
+ * line added, a kept flag, a tag, a link, its state, stays. Voices, paradoxes and every other row are
+ * never touched. Runs where the journal is open (the gate in app.tsx), since a question's title is
+ * sealed with the PIN; if a row reads locked it stops and tries again next open. Returns the ids removed,
+ * or null when it did not run (done before, a fresh journal, or locked), so the caller reloads settings only once.
  */
-export async function ensureSeedAdditions(): Promise<string[]> {
+export async function cleanSeedPages(): Promise<string[] | null> {
   const s = await store.get('settings', 'app');
-  if (!s) return [];
-  const done = new Set(s.seedsAdded ?? []);
-  const todo = Object.keys(ADDITIONS).filter(n => !done.has(n));
-  if (!todo.length) return [];
-  const pages: Page[] = [], messages: Message[] = [];
-  for (const name of todo) {
-    const add = ADDITIONS[name]();
-    if (await store.get('pages', add.page.id)) continue;
-    pages.push(add.page);
-    messages.push(...add.messages);
+  if (!s || s.locked || s.cleaned?.includes(SEED_PAGES_PASS)) return null;
+  const removed: string[] = [];
+  for (const seed of OLD_SEED_PAGES) {
+    const id = seed.page.id;
+    const page = await store.get('pages', id);
+    const messages = await store.query('messages', t => t.where('pageId').equals(id));
+    if (page?.locked || messages.some(m => m.locked)) return null;
+    const byId = (a: Message, b: Message) => a.id.localeCompare(b.id);
+    if (!same(messages.sort(byId), [...seed.messages].sort(byId))) continue;
+    if (page && !same(page, seed.page)) continue;
+    // the page first, so a stop halfway leaves no seed page with half its lines; seed lines left without
+    // their page are swept on the next open (they still match the seed exactly)
+    if (page) await store.delete('pages', id);
+    for (const m of messages) await store.delete('messages', m.id);
+    if (page) removed.push(id);
   }
-  await store.many({ pages, messages, settings: [{ ...s, seedsAdded: [...done, ...todo] }] });
-  return todo;
+  const { seedsAdded: _gone, ...rest } = s as Settings & { seedsAdded?: unknown };
+  await store.put('settings', { ...rest, cleaned: [...(s.cleaned ?? []), SEED_PAGES_PASS] });
+  return removed;
 }

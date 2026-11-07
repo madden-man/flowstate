@@ -3,7 +3,7 @@ import { freshDB } from './helpers';
 import type { FlowDB, Message, Paradox, Settings } from '../../src/db/schema';
 import { store, setKey, removeKey, unlock, lock, keyState, init, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
-import { ensureSeeded, defaultSettings } from '../../src/db/seed';
+import { ensureSeeded, defaultSettings, OLD_SEED_PAGES } from '../../src/db/seed';
 
 const FAST = 1000;
 let db: FlowDB;
@@ -24,6 +24,8 @@ describe('fields layer without a key', () => {
 describe('setKey', () => {
   it('re-encrypts every existing row in place, and reads still come back whole', async () => {
     await ensureSeeded();
+    // two kept lines to seal: the old seed's manifesto page, now that the seed writes no pages (V5)
+    await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages });
     await store.put('messages', msg('m1', 'the quiet voices within'));
     await store.put('leans', { id: 'l1', paradoxId: 'px-selfless-selfish', at: 5, lean: 0.4, note: 'leaning selfish this week' });
     await store.put('settings', { ...(await store.get('settings', 'app'))!, spotify: { tokens: { accessToken: 'AT-secret', refreshToken: 'RT-secret', expiresAt: 9 }, connectedAt: 3 } });
@@ -112,12 +114,12 @@ describe('page titles', () => {
     expect(await unlock(key)).toBe(true);
     expect((await store.get('pages', 'q1'))!.title).toBe(question.title);
     const listed = await store.query('pages', t => t.where('kind').equals('question'));
-    // the seeded models question (package 8) opens with the same key
-    expect(listed.map(p => p.title).sort()).toEqual([question.title, 'Who are my models?'].sort());
+    expect(listed.map(p => p.title)).toEqual([question.title]);
   });
 
   it('a page without a title stays without one', async () => {
     await ensureSeeded();
+    await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages }); // an entry, no title
     const salt = randomSalt();
     await setKey(await deriveKey('8', salt, FAST), { salt, iterations: FAST });
     expect((await store.get('pages', 'pg-manifesto'))!.title).toBeUndefined();

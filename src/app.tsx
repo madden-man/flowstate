@@ -12,7 +12,7 @@ import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
-import { ensureSeedAdditions } from './db/seed';
+import { cleanSeedPages } from './db/seed';
 import { loadSettings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
@@ -82,11 +82,11 @@ function Gate({ children }: { children: ComponentChildren }) {
   const locked = gateState() === 'locked';
   // the locked threshold was the breath: once the PIN opens the app, the page comes straight up
   useEffect(() => { if (locked) setBreath(false); }, [locked]);
-  // a journal seeded before a seed page existed gets it once it is open (package 8: the models question)
+  // once it is open, a journal seeded before V5 loses the seed pages it never wrote on (seed.ts cleanSeedPages)
   useEffect(() => {
     if (locked) return;
-    ensureSeedAdditions()
-      .then(async added => { if (added.length) { await loadSettings(); dataVersion.value++; } })
+    cleanSeedPages()
+      .then(async removed => { if (!removed) return; await loadSettings(); if (removed.length) dataVersion.value++; })
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);
   if (locked) return <Threshold keypad={<LockPad />} onDone={() => setBreath(false)} />;

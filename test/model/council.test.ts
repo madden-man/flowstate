@@ -52,14 +52,14 @@ describe('council pages', () => {
 
   it('finds pages to link by title or first line, questions first, leaving out councils and links already made', async () => {
     await store.put('pages', { id: 'q1', kind: 'question', createdAt: T0, updatedAt: T0, state: 'open', title: 'How do I retain skills?', tags: [], paradoxIds: [], linkedPageIds: [] });
+    await store.many({ pages: [{ id: 'e1', kind: 'entry', createdAt: T0 - 9, updatedAt: T0 - 9, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] }], messages: [{ id: 'm-e1', pageId: 'e1', at: T0 - 9, text: 'I determine my core.', kept: true }] });
     const p = await c.newCouncil({ now: T0 });
     const all = await c.linkCandidates('', p.id);
-    // the seeded models question (package 8) is a question too
-    expect(all.map(x => x.id)).toEqual(['q1', 'pg-models', 'pg-manifesto']);
-    expect(all[2].label).toBe('I determine my core.');
-    expect((await c.linkCandidates('CORE', p.id)).map(x => x.id)).toEqual(['pg-manifesto']);
+    expect(all.map(x => x.id)).toEqual(['q1', 'e1']);
+    expect(all[1].label).toBe('I determine my core.');
+    expect((await c.linkCandidates('CORE', p.id)).map(x => x.id)).toEqual(['e1']);
     await c.linkPages(p.id, 'q1');
-    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['pg-models', 'pg-manifesto']);
+    expect((await c.linkCandidates('', p.id)).map(x => x.id)).toEqual(['e1']);
     await expect(c.linkPages(p.id, 'gone')).rejects.toThrow();
   });
 });

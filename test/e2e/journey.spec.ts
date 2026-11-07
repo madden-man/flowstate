@@ -186,7 +186,7 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   const file = JSON.parse(await (await import('node:fs/promises')).readFile((await download.path())!, 'utf8'));
   expect(file.app).toBe('flowstate');
   expect(file.encrypted).toBe(true);
-  expect(file.tables.pages.length).toBeGreaterThan(2);
+  expect(file.tables.pages.length).toBeGreaterThan(1); // what the journey wrote; the seed writes no pages (V5)
   await expect(settings.locator('[data-export] small')).toHaveText(/^Last /);
 
   expect(outside).toEqual([]);
