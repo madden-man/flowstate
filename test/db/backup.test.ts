@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
 import { type FlowDB, SCHEMA_VERSION } from '../../src/db/schema';
-import { exportData, importData, parseBackup, BackupError, stamp, fileName } from '../../src/db/backup';
+import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded } from '../../src/db/seed';
-import { store, setKey } from '../../src/db/fields';
+import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
 let db: FlowDB;
@@ -115,13 +115,118 @@ describe('import validation', () => {
     const f = parseBackup('{"app":"flowstate","schemaVersion":1,"exportedAt":1,"tables":{}}');
     expect(f.tables.voices).toEqual([]);
   });
-  it('refuses a file sealed with a PIN while this journal has none, and any import while the lock is on', async () => {
+  it('refuses any import while locked: there is no key to store the rows with', async () => {
     await ensureSeeded();
+    const plain = await roundTrip(db);
     const salt = randomSalt();
     await setKey(await deriveKey('1', salt, 1000), { salt, iterations: 1000 });
-    const sealed = await roundTrip(db);
-    await expect(importData(sealed, 'merge', db)).rejects.toThrow();
-    const plainDb = await freshDB();
-    await expect(importData(sealed, 'merge', plainDb)).rejects.toThrow('locked with a PIN');
+    lock();
+    await expect(importData(plain, 'merge', db)).rejects.toBeInstanceOf(LockedError);
+  });
+});
+
+describe('encrypted export and import (package 6)', () => {
+  const FAST = 1000;
+  const raw = async (d: FlowDB) => JSON.stringify(await Promise.all(d.tables.map(t => t.toArray())));
+  async function sealWith(d: FlowDB, pin: string) {
+    await init(d);
+    const salt = randomSalt();
+    await setKey(await deriveKey(pin, salt, FAST), { salt, iterations: FAST, digits: pin.length });
+    return salt;
+  }
+  async function sealedFile(pin = '3569') {
+    await ensureSeeded();
+    await store.put('messages', { id: 'm1', pageId: 'pg-manifesto', at: 9, text: 'Wait out the truly hard parts', kept: false });
+    await store.put('pages', { id: 'q1', kind: 'question', createdAt: 1, updatedAt: 1, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], title: 'How can I gauge my pleasure/pain barometer?' });
+    await sealWith(db, pin);
+    return roundTrip(db);
+  }
+  const fileKey = (file: Awaited<ReturnType<typeof roundTrip>>, pin: string) => deriveKey(pin, file.salt!, file.iterations!);
+
+  it('export writes the sealed rows as stored, with salt, iterations and verifier in the header', async () => {
+    const file = await sealedFile();
+    expect(file.encrypted).toBe(true);
+    expect(file.iterations).toBe(FAST);
+    expect(file.digits).toBe(4);
+    expect(fileLock(file)!.verifier).toEqual((await db.settings.get('app'))!.lock.verifier);
+    const text = JSON.stringify(file);
+    for (const s of ['Wait out the truly hard parts', 'barometer', 'I choose how to flow.', 'vegetable chopping']) expect(text).not.toContain(s);
+  });
+
+  it('a plain journal exports a plain file', async () => {
+    await ensureSeeded();
+    const file = await roundTrip(db);
+    expect(file.encrypted).toBeUndefined();
+    expect(fileLock(file)).toBeNull();
+  });
+
+  it('round-trips with the same PIN: every row opens, then is sealed again with this journal\'s key', async () => {
+    const file = await sealedFile('3569');
+    const other = await freshDB();
+    await ensureSeeded();
+    await sealWith(other, '3569'); // same PIN, its own salt
+    await expect(importData(file, 'replace', other)).rejects.toBeInstanceOf(NeedsPinError);
+    await importData(file, 'replace', other, await fileKey(file, '3569'));
+    expect(await raw(other)).not.toContain('Wait out the truly hard parts');
+    lock();
+    const s = (await other.settings.get('app'))!;
+    expect(s.lock.salt).not.toBe(file.salt); // this phone's lock stayed this phone's
+    expect(await unlock(await deriveKey('3569', s.lock.salt!, FAST))).toBe(true);
+    expect((await store.get('messages', 'm1'))!.text).toBe('Wait out the truly hard parts');
+    expect((await store.get('pages', 'q1'))!.title).toBe('How can I gauge my pleasure/pain barometer?');
+  });
+
+  it('round-trips into a journal with a different current PIN', async () => {
+    const file = await sealedFile('3569');
+    const other = await freshDB();
+    await ensureSeeded();
+    const salt = await sealWith(other, '76937');
+    await importData(file, 'merge', other, await fileKey(file, '3569'));
+    lock();
+    expect(await unlock(await deriveKey('3569', salt, FAST))).toBe(false);
+    expect(await unlock(await deriveKey('76937', salt, FAST))).toBe(true);
+    expect((await store.get('messages', 'm1'))!.text).toBe('Wait out the truly hard parts');
+    expect((await other.messages.get('m1'))!.text).toBe('');
+  });
+
+  it('a sealed file imports into a journal with no PIN as plain rows', async () => {
+    const file = await sealedFile('3569');
+    const other = await freshDB();
+    await importData(file, 'replace', other, await fileKey(file, '3569'));
+    expect(keyState()).toBe('plain');
+    expect((await other.messages.get('m1'))!.text).toBe('Wait out the truly hard parts');
+    expect((await other.settings.get('app'))!.lock.enabled).toBe(false);
+  });
+
+  it('a plain file imports into a sealed journal sealed with the current key', async () => {
+    await ensureSeeded();
+    await store.put('messages', { id: 'm2', pageId: 'pg-manifesto', at: 9, text: 'stand tall, young one', kept: false });
+    const plain = await roundTrip(db);
+    const other = await freshDB();
+    await ensureSeeded();
+    const salt = await sealWith(other, '3569');
+    await importData(plain, 'replace', other);
+    expect(await raw(other)).not.toContain('stand tall');
+    const s = (await other.settings.get('app'))!;
+    expect(s.lock.enabled).toBe(true); // the file's plain lock did not turn this one off
+    lock();
+    expect(await unlock(await deriveKey('3569', salt, FAST))).toBe(true);
+    expect((await store.get('messages', 'm2'))!.text).toBe('stand tall, young one');
+  });
+
+  it('the wrong PIN for the file is refused and nothing is written', async () => {
+    const file = await sealedFile('3569');
+    const other = await freshDB();
+    await ensureSeeded();
+    await sealWith(other, '3569');
+    const before = await raw(other);
+    await expect(importData(file, 'replace', other, await fileKey(file, '0000'))).rejects.toThrow('Not that one');
+    expect(await raw(other)).toBe(before);
+  });
+
+  it('a sealed file whose header is gone is damaged, not opened', async () => {
+    const file = await sealedFile();
+    delete file.salt;
+    expect(() => fileLock(file)).toThrow(BackupError);
   });
 });

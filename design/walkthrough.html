@@ -213,10 +213,24 @@ details code{font-size:12px}
   </table></details>
 </section>
 
+<!-- 1b: package 6, the lock screen -->
+<section class="step" id="unlock" data-name="Unlock with a word">
+  <h2>Unlock with a word</h2>
+  <p class="line">Type FLOW.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="unlock"><div class="island"></div>
+    <div class="status"><span>21:14</span><span>FlowState</span></div>
+    <div class="fs-app"><main class="fs-lock" data-lock>
+      <div class="fs-lock-words"><h1 class="fs-lock-title">Who to Be, How to Flow</h1><p class="fs-lock-man">I determine my core.<br>I choose how to flow.</p></div>
+      <div class="fs-keypad" role="group" aria-label="PIN"><div class="fs-dots"><i></i><i></i><i></i><i></i></div><p class="fs-keypad-note" role="status"></p>
+        <div class="fs-keys"><button type="button" class="fs-key" aria-label="1"><b>1</b><small aria-hidden="true"></small></button><button type="button" class="fs-key" aria-label="2 ABC"><b>2</b><small aria-hidden="true">ABC</small></button><button type="button" class="fs-key" aria-label="3 DEF"><b>3</b><small aria-hidden="true">DEF</small></button><button type="button" class="fs-key" aria-label="4 GHI"><b>4</b><small aria-hidden="true">GHI</small></button><button type="button" class="fs-key" aria-label="5 JKL"><b>5</b><small aria-hidden="true">JKL</small></button><button type="button" class="fs-key" aria-label="6 MNO"><b>6</b><small aria-hidden="true">MNO</small></button><button type="button" class="fs-key" aria-label="7 PQRS"><b>7</b><small aria-hidden="true">PQRS</small></button><button type="button" class="fs-key" aria-label="8 TUV"><b>8</b><small aria-hidden="true">TUV</small></button><button type="button" class="fs-key" aria-label="9 WXYZ"><b>9</b><small aria-hidden="true">WXYZ</small></button><span></span><button type="button" class="fs-key" aria-label="0"><b>0</b><small aria-hidden="true"></small></button><button type="button" class="fs-word fs-key-word">delete</button></div></div>
+    </main></div>
+  </div></div>
+</section>
+
 <!-- 2 -->
 <section class="step" id="page" data-name="A blank dated page">
   <h2>The page is already open</h2>
-  <p class="line">Type at the bottom; it saves itself.</p>
+  <p class="line">Type at the bottom; it saves.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="page" data-j><div class="island"></div>
     <div class="status"><span>09:40</span><span>Journal</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>14</b></span><span>Date: <b>11 / 7 / 26</b></span></div></header><nav class="fs-seg" aria-label="Journal"><a aria-current="page">Entries</a><a class="fs-notstill">Questions</a><a class="fs-notstill">Earlier</a><button type="button" class="fs-seg-end fs-notstill">Search</button></nav><div class="fs-sheetof fs-rules fs-col"></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Skeptic" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Mystic" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Warrior" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Architect" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Meaning Maker" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Engineer" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Explorer" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Sensualist" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" data-v="Joker" style="--vc:var(--v-yellow)"><i></i>Joker</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Phantom" style="--vc:var(--d-blue)"><i></i>Phantom</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Workaholic" style="--vc:var(--d-green)"><i></i>Workaholic</button><button type="button" class="fs-chip deep" aria-pressed="false" data-v="Victim" style="--vc:var(--d-purple)"><i></i>Victim</button></div><div class="fs-composer"><div><textarea class="fs-compose" rows="1" spellcheck="false" aria-label="Today's page"></textarea></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
@@ -597,6 +611,7 @@ details code{font-size:12px}
           <label class="fs-row stack"><span>Place for sunrise</span><input class="fs-input" value="Evergreen, Colorado" aria-label="Place for sunrise"><span class="fs-note">Sunrise 06:36 · Sunset 16:53</span></label>
           <button type="button" class="fs-row" data-toggle="sounds"><span>Sounds</span><small>On</small></button>
           <button type="button" class="fs-row" data-toggle="haptics"><span>Haptics</span><small>On</small></button>
+          <div class="fs-row stack"><span>PIN</span><div class="fs-opts" role="group" aria-label="PIN"><button type="button" class="fs-opt">Change PIN</button><button type="button" class="fs-opt">Turn off</button></div><span class="fs-note">A short PIN is a curtain, not a vault.</span></div>
           <button type="button" class="fs-row"><span>Export</span><small>Last 11 / 2</small></button>
           <button type="button" class="fs-row"><span>Import</span><small>A FlowState file</small></button>
           <button type="button" class="fs-row"><span>Storage</span><small>Kept · 1.2 MB</small></button>
@@ -613,6 +628,7 @@ details code{font-size:12px}
           <label class="fs-row stack"><span>Place for sunrise</span><input class="fs-input" value="Evergreen, Colorado" aria-label="Place for sunrise"><span class="fs-note">Sunrise 06:36 · Sunset 16:53</span></label>
           <button type="button" class="fs-row" data-toggle="sounds"><span>Sounds</span><small>On</small></button>
           <button type="button" class="fs-row" data-toggle="haptics"><span>Haptics</span><small>On</small></button>
+          <div class="fs-row stack"><span>PIN</span><div class="fs-opts" role="group" aria-label="PIN"><button type="button" class="fs-opt">Change PIN</button><button type="button" class="fs-opt">Turn off</button></div><span class="fs-note">A short PIN is a curtain, not a vault.</span></div>
           <button type="button" class="fs-row"><span>Export</span><small>Last 11 / 2</small></button>
           <button type="button" class="fs-row"><span>Import</span><small>A FlowState file</small></button>
           <button type="button" class="fs-row"><span>Storage</span><small>Kept · 1.2 MB</small></button>
@@ -845,6 +861,17 @@ details code{font-size:12px}
   document.addEventListener('pointermove',function(e){if(drag)place(drag,at(drag.getBoundingClientRect(),e.clientX));});
   document.addEventListener('pointerup',function(){if(drag)drag.classList.remove('drag');drag=null;});
 })();
+</script>
+<script>
+/* package 6: the lock step's keypad. 3569 spells FLOW; any other four say "Not that one" and the dots empty. */
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-step="unlock"] .fs-key, [data-step="unlock"] .fs-key-word');if(!t)return;
+  var pad=t.closest('.fs-keypad'),dots=pad.querySelectorAll('.fs-dots i'),note=pad.querySelector('.fs-keypad-note');
+  var v=pad.dataset.v||'';
+  if(t.classList.contains('fs-key-word'))v=v.slice(0,-1);else if(v.length<4){v+=t.querySelector('b').textContent;note.textContent='';}
+  pad.dataset.v=v;dots.forEach(function(d,k){d.classList.toggle('on',k<v.length);});
+  if(v.length===4){setTimeout(function(){note.textContent=v==='3569'?'':'Not that one';if(v==='3569'){pad.closest('.fs-lock').querySelector('.fs-lock-title').textContent='Open';}pad.dataset.v='';dots.forEach(function(d){d.classList.remove('on');});},250);}
+});
 </script>
 </body>
 </html>

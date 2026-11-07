@@ -152,6 +152,21 @@ export async function init(target: FlowDB = defaultDb): Promise<void> {
   lockEnabled = !!s?.lock.enabled;
 }
 
+/**
+ * The lock's own fields (on, salt, iterations, verifier, digits) are written only by setKey and removeKey.
+ * A settings write from elsewhere carries a copy read earlier, so it keeps what is stored now and may
+ * change only relockAfterMin; a stale copy can never turn the lock off over sealed rows.
+ */
+async function keepLock<K extends TableName>(t: K, rows: Tables[K][]): Promise<Tables[K][]> {
+  if (t !== 'settings') return rows;
+  return Promise.all(rows.map(async r => {
+    const s = r as Settings;
+    const stored = await database.settings.get(s.id);
+    if (!stored) return r;
+    return { ...s, lock: { ...stored.lock, relockAfterMin: s.lock?.relockAfterMin ?? stored.lock.relockAfterMin } } as Tables[K];
+  }));
+}
+
 function writable() {
   if (keyState() === 'locked') throw new LockedError();
 }
@@ -173,13 +188,14 @@ export const store = {
   put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
     return serial(async () => {
       writable();
-      await table(t).put(await toStored(t, row, key));
+      const [kept] = await keepLock(t, [row]);
+      await table(t).put(await toStored(t, kept, key));
     });
   },
   bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
     return serial(async () => {
       writable();
-      const stored = await Promise.all(rows.map(r => toStored(t, r, key)));
+      const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
       await table(t).bulkPut(stored);
     });
   },
@@ -194,7 +210,7 @@ export const store = {
     return serial(async () => {
       writable();
       const prepared = await Promise.all(
-        (Object.keys(writes) as TableName[]).map(async t => [t, await Promise.all((writes[t] as Tables[TableName][]).map(r => toStored(t, r as never, key)))] as const),
+        (Object.keys(writes) as TableName[]).map(async t => [t, await Promise.all((await keepLock(t, writes[t] as Tables[TableName][])).map(r => toStored(t, r as never, key)))] as const),
       );
       await database.transaction('rw', prepared.map(([t]) => database.table(t)), async () => {
         for (const [t, rows] of prepared) await database.table(t).bulkPut(rows);
@@ -226,11 +242,19 @@ async function rewriteAll(next: CryptoKey | null, settingsPatch: (s: Settings) =
  * The lock settings (salt, iterations) are written in that same transaction with a fresh verifier,
  * so the database is never half sealed. Package 6 calls this after the PIN is chosen.
  */
-export function setKey(next: CryptoKey, lock: { salt: string; iterations: number; relockAfterMin?: number }): Promise<void> {
+export type LockSpec = { salt: string; iterations: number; relockAfterMin?: number; digits?: number };
+export function setKey(next: CryptoKey, lock: LockSpec): Promise<void> {
   return serial(async () => {
     writable();
     const verifier = await makeVerifier(next);
-    await rewriteAll(next, s => ({ ...s, lock: { ...s.lock, enabled: true, salt: lock.salt, iterations: lock.iterations, verifier, relockAfterMin: lock.relockAfterMin ?? s.lock.relockAfterMin } }));
+    await rewriteAll(next, s => ({
+      ...s,
+      lock: {
+        ...s.lock, enabled: true, salt: lock.salt, iterations: lock.iterations, verifier,
+        relockAfterMin: lock.relockAfterMin ?? s.lock.relockAfterMin,
+        digits: lock.digits ?? s.lock.digits,
+      },
+    }));
     key = next;
     lockEnabled = true;
   });
@@ -254,6 +278,17 @@ export async function unlock(candidate: CryptoKey): Promise<boolean> {
   key = candidate;
   lockEnabled = true;
   return true;
+}
+
+/** Opens a row as stored with a given key (an imported file's own); plain rows come back as they are. */
+export async function openRow<K extends TableName>(t: K, stored: Tables[K], withKey: CryptoKey | null): Promise<Read<Tables[K]>> {
+  return fromStored(t, stored, withKey);
+}
+
+/** A plain row as this journal would store it now: sealed with the key in memory, or plain with the lock off. */
+export async function storedForm<K extends TableName>(t: K, row: Tables[K]): Promise<Tables[K]> {
+  writable();
+  return toStored(t, row, key);
 }
 
 /** Drops the key from memory (relock). Rows stay sealed; reads come back marked locked. */
