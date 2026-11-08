@@ -834,3 +834,21 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fl-shape[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
 .fl-shape-draw { display: block; width: 100%; height: calc(var(--lh-ink) * 1.5); }
 .fl-shape[aria-pressed="true"] .fs-cycle .arc, .fl-shape[aria-pressed="true"] .fs-cycle .arrow { stroke: var(--ink); }
+
+/* ==== Flows (F4): the curve, the coil, the clock, the stairs, the fork ==== */
+/* the clock's awake stretch, thick in ink; its hour ticks, faint; 7 a pinned dot */
+.fs-cycle .thick { stroke: var(--ink); stroke-width: 3.5; }
+.fs-cycle .faint-tick { stroke-dasharray: none; opacity: .5; }
+.fs-cycle .pin { fill: var(--ink); stroke: none; }
+/* the curve's stamps: a drawn check or cross on the flat; the seeded record is faint, his own marks are not */
+.fs-cycle .stamp { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fs-cycle .faint-stamp { opacity: .55; }
+.fs-cycle.small .stamp, .fs-cycle.small .pin, .fs-cycle.small .faint-tick { display: none; }
+/* a printed line that is a hand-off to another flow (3.7): the same grey serif, underlined like a link in the notebook's
+   seam colour; the tap target grows to a thumb's height without moving the rules */
+.fl-handoff { color: inherit; text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: .2em;
+  display: inline-block; padding: calc((var(--hit) - var(--lh-ink)) / 2) 0; margin: calc((var(--hit) - var(--lh-ink)) / -2) 0; }
+.fl-handoff:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+/* the link row a hand-off leaves at the top of the new page: one line, where the dot came from */
+.fl-from .fs-link { min-height: var(--lh-ink); }
+.fl-from { margin-top: 0; }

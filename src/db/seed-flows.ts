@@ -7,11 +7,17 @@
 // section 3) applied: the false-alarm frame in place of "It isn't", speech register ("it's", "you're"), no clinic words.
 // Nothing here is generated.
 //
-// Adding a flow (F3, F4): a new file under ./seed/ (F3: depress, energize, fight), its import, and one line in SEED_FLOWS.
+// Adding a flow (F3, F4): a new file under ./seed/ (F3: depress, energize, fight; F4: whatif, replay, night, shutdown,
+// shame), its import, and one line in SEED_FLOWS. A tip added to a flow already seeded goes in SEED_TIPS_LATER too.
 import type { Flow } from './schema';
 import { DEPRESS } from './seed/depress';
 import { ENERGIZE } from './seed/energize';
 import { FIGHT } from './seed/fight';
+import { WHATIF } from './seed/whatif';
+import { REPLAY } from './seed/replay';
+import { NIGHT } from './seed/night';
+import { SHUTDOWN } from './seed/shutdown';
+import { SHAME } from './seed/shame';
 
 /** A seed flow as written here: the row without its dates and first revision, which seedFlow adds. */
 export type FlowSeed = Omit<Flow, 'createdAt' | 'updatedAt' | 'revisions' | 'sealed'>;
@@ -78,6 +84,9 @@ export const PANIC: FlowSeed = {
         { id: 'panic-3-shake', text: 'Shake out your hands; drop your shoulders' },
         { id: 'panic-3-okay', text: "You're okay. It's passing.", wise: true },
         { id: 'panic-3-tea', text: 'Something small and ordinary: make tea', short: 'Make tea' },
+        // Avoidance, folded in (PLAN-FLOWS.md 3.5, F4): "do the small version". Leaving is what teaches the brain it
+        // would have kept rising, so the step after the peak says go back, for a minute, rather than not at all
+        { id: 'panic-3-avoid', text: 'If you left, go back for a minute: the small version', short: 'Go back, for a minute' },
       ],
     },
     {
@@ -95,6 +104,8 @@ export const PANIC: FlowSeed = {
         { id: 'panic-4-walk', text: 'A slow walk around the block' },
         { id: 'panic-4-pick', text: "Don't pick at it yet. It's draining.", wise: true },
         { id: 'panic-4-write', text: 'Write it down, later', helper: 'journal' },
+        // a hand-off (PLAN-FLOWS.md 3.7: Panic's tail into Depress)
+        { id: 'panic-4-depress', text: 'If it stays heavy for days: the Depress flow.', print: true, handoff: { flowId: 'depress', stepId: 'depress-1' } },
       ],
     },
   ],
@@ -106,6 +117,20 @@ export const SEED_FLOWS: FlowSeed[] = [
   DEPRESS,
   ENERGIZE,
   FIGHT,
+  WHATIF,
+  REPLAY,
+  NIGHT,
+  SHUTDOWN,
+  SHAME,
+];
+
+/**
+ * Tips added to a seed flow after it was first written (F4: the Avoidance tip on Panic and Depress, the hand-offs
+ * into Depress). A journal that already has the flow gets each once, in its seed place (seed.ts seedFlowsOnce), as
+ * a new revision; one Tommy has struck or deleted is never brought back.
+ */
+export const SEED_TIPS_LATER: string[] = [
+  'panic-3-avoid', 'panic-4-depress', 'depress-2-avoid', 'energize-5-depress', 'fight-1-depress',
 ];
 
 /** A seed as a flows row: dated, with its seed text as the first revision. */

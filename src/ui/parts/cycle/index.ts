@@ -6,12 +6,22 @@ import { ring } from './ring';
 import { valley } from './valley';
 import { arc } from './arc';
 import { mountain } from './mountain';
+import { curve } from './curve';
+import { coil } from './coil';
+import { clock } from './clock';
+import { stairs } from './stairs';
+import { fork } from './fork';
 
 export const SHAPES: Partial<Record<DiagramName, Shape>> = {
   ring,
   valley,
   arc,
   mountain,
+  curve,
+  coil,
+  clock,
+  stairs,
+  fork,
 };
 
 /** A flow's shape; a name with no module yet draws as the ring, so a flow is never without its drawing. */

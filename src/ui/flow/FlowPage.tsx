@@ -17,6 +17,7 @@ import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
 import { NewStep } from './NewStep';
 import { PrintLines } from './PrintLines';
+import { HandOff, followHandOff } from './HandOff';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
 import type { Episode, Flow } from '../../db/schema';
@@ -85,6 +86,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   return (
     <Page label={flow.name} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}>
       <div class="fs-sheetof fs-rules fs-flowpage" data-saved={writing ? 'false' : 'true'} data-showing={showing} data-door={doorOnly ? '' : undefined}>
+        {!doorOnly && <HandOff live={live} />}
         <Cycle diagram={flow.diagram} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
           disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => void move(v, to)} />
         {shown ? (
@@ -106,7 +108,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             )}
           </section>
         )}
-        {shown && <PrintLines step={shown} />}
+        {shown && <PrintLines step={shown} onHandOff={t => void followHandOff(t, shown.id, live, to => route(to), doorOnly)} />}
         {!shown && <NewStep flow={flow} onSaved={() => setVersion(v => v + 1)} />}
       </div>
     </Page>

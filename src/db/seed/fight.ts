@@ -22,6 +22,8 @@ export const FIGHT: FlowSeed = {
         { id: 'fight-1-fact', text: 'The fact in one line, the story in another', short: 'The fact, then the story' },
         { id: 'fight-1-always', text: 'Swap "always" and "never" for the one event', short: 'Just this one event' },
         { id: 'fight-1-mood', text: 'Is this the mood talking?', short: 'Is this the mood?' },
+        // a hand-off (PLAN-FLOWS.md 3.4 and 3.7: if the heat shows up most days, a line to the Depress flow)
+        { id: 'fight-1-depress', text: 'If the heat shows up most days: the Depress flow.', print: true, handoff: { flowId: 'depress', stepId: 'depress-1' } },
       ],
     },
     {

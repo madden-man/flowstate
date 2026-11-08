@@ -78,6 +78,8 @@ export const ENERGIZE: FlowSeed = {
         { id: 'energize-5-list', text: "Five minutes of tomorrow's list at bedtime", short: "Tomorrow's list", helper: 'journal' },
         { id: 'energize-5-night', text: 'Protect the night: sleep comes first', short: 'Sleep first' },
         { id: 'energize-5-crash', text: 'In the crash: something easy on, the usual coffee, and judge it after sleep', short: 'Something easy on', helper: 'music' },
+        // a hand-off (PLAN-FLOWS.md 3.7: Energize's crash into Depress; burnout is Energize leading into Depress, 3.5)
+        { id: 'energize-5-depress', text: 'If the crash runs on for days: the Depress flow.', print: true, handoff: { flowId: 'depress', stepId: 'depress-1' } },
       ],
     },
   ],

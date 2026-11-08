@@ -37,7 +37,8 @@ export function doorRead(flow: Read<Flow>): Read<Flow> {
         .filter(t => !t.struck)
         .map(t => s.tips.find(x => x.id === t.id))
         .filter((t): t is NonNullable<typeof t> => !!t)
-        .map(t => ({ id: t.id, text: t.text, short: t.short, helper: t.helper, wise: t.wise }));
+        // print and handoff (F3, F4) keep a printed line printed through the door, never a row
+        .map(t => ({ id: t.id, text: t.text, short: t.short, helper: t.helper, wise: t.wise, print: t.print, handoff: t.handoff }));
       return { ...s, tips, spanMin: st.spanMin, peak: st.peak };
     }),
   };

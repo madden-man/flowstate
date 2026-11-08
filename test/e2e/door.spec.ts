@@ -78,7 +78,9 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect(page).toHaveURL(/#\/flow\/now$/);
   await expect(keypad(page)).toHaveCount(0);
   const rows = page.locator('.fl-nowlist a.fl-flow');
-  await expect(rows).toHaveCount(4);
+  // every seeded step: the five with a line (Panic's four, Fight's "Slower now?"), the rest by name (F3, F4)
+  await expect(rows).toHaveCount(43);
+  await expect(page.locator('.fl-nowlist a.fl-flow.fl-now')).toHaveCount(5);
   await expect(rows.first().locator('.fs-list-line')).toHaveText('Too much coming in at once.');
   await expect(rows.first().locator('.fs-list-meta')).toHaveText('Panic · Overstimulated');
   const behindThePin = async () => {

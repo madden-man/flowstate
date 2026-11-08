@@ -152,3 +152,89 @@ export async function flowStates(): Promise<FlowState[]> {
   const fs = await flows();
   return Promise.all(fs.map(async flow => ({ flow, live: await liveEpisode(flow.id), last: await lastEnded(flow.id) })));
 }
+
+// ---------------------------------------------------------------- one episode, two flows (PLAN-FLOWS.md 3.7, F4)
+
+/**
+ * A printed line names another flow and is tapped: the episode here ends on the step the line is printed on (marked
+ * there first if the dot was elsewhere), and one starts on that flow
+ * with the dot on that step and `from` set to the one it left. With no episode open here (the page is only being
+ * read) nothing is written and undefined comes back: the line then only opens the other flow's step, which reads.
+ * If the other flow already has an episode open, the dot moves there instead and that episode keeps its own past.
+ */
+export async function handOff(
+  fromEpisodeId: string, to: { flowId: string; stepId: string }, fromStepId?: string, at = Date.now(),
+): Promise<Episode | undefined> {
+  const was = await store.get('episodes', fromEpisodeId);
+  if (!was || was.locked || was.endedAt !== undefined) return undefined;
+  const from = fromStepId && currentStepId(was) !== fromStepId ? { ...was, marks: [...was.marks, { stepId: fromStepId, at }] } : was;
+  const target = await store.get('flows', to.flowId);
+  if (!target || !target.steps.some(s => s.id === to.stepId)) return undefined;
+  const open = await liveEpisode(to.flowId);
+  if (open) {
+    await store.put('episodes', { ...from, endedAt: at });
+    return markSteps(open.id, [to.stepId], at);
+  }
+  const next: Episode = { id: crypto.randomUUID(), flowId: to.flowId, startedAt: at, marks: [{ stepId: to.stepId, at }], done: [], from: from.id };
+  await store.many({ episodes: [{ ...from, endedAt: at }, next] });
+  return next;
+}
+
+/** One flow's part of a hand-off chain: the flow, the step it was on when it handed off (none for the last), its times. */
+export type Leg = { episodeId: string; flowId: string; flow: string; step?: string; startedAt: number; endedAt?: number };
+/** A chain of episodes joined by `from`, oldest first; it began with the first and ends with the last (open: no end). */
+export type EpisodeSpan = { legs: Leg[]; startedAt: number; endedAt?: number };
+
+/**
+ * The whole span an episode belongs to: back along `from` to where it began, and on to any episode handed off from
+ * it, so the journal link of any leg reads the whole chain ("Shame, I'm worthless, then Fight, 15:02 to 16:10").
+ * A leg whose flow is gone or locked keeps no words.
+ * TODO(F2 integration): F2's flowLinkOf (model/tips.ts, the journal page's link row, ui/flow/JournalLink.tsx) was not
+ * on main when F4 was built. Its link text should read the whole span: spanText(await spanOfEpisode(episodeId), ...).
+ */
+export async function spanOfEpisode(episodeId: string): Promise<EpisodeSpan | undefined> {
+  const all = await store.all('episodes');
+  const byId = new Map(all.map(e => [e.id, e]));
+  let first = byId.get(episodeId);
+  if (!first) return undefined;
+  const back = new Set([first.id]);
+  while (first.from && byId.has(first.from) && !back.has(first.from)) { first = byId.get(first.from)!; back.add(first.id); }
+  const chain = [first];
+  const seen = new Set([first.id]);
+  for (;;) {
+    const last = chain.at(-1)!;
+    const next = all.find(e => e.from === last.id && !seen.has(e.id));
+    if (!next) break;
+    seen.add(next.id);
+    chain.push(next);
+  }
+  const fs = new Map((await store.all('flows')).map(f => [f.id, f]));
+  const legs = chain.map((e, i): Leg => {
+    const f = fs.get(e.flowId);
+    const words = f && !f.locked;
+    const step = i < chain.length - 1 && words ? f.steps.find(s => s.id === currentStepId(e))?.name : undefined;
+    return { episodeId: e.id, flowId: e.flowId, flow: words ? f.name : '', step, startedAt: e.startedAt, endedAt: e.endedAt };
+  });
+  return { legs, startedAt: chain[0].startedAt, endedAt: chain.at(-1)!.endedAt };
+}
+
+/** The span in words: "Shame, I'm worthless, then Fight, 15:02 to 16:10" (to the end only once it has one). The clock
+ *  times are the caller's (ui/date clockTime), so the model stays free of the page's formats. */
+export function spanText(span: EpisodeSpan, clock: (ms: number) => string): string {
+  const legs = span.legs.map(l => [l.flow, l.step].filter(Boolean).join(', ')).filter(Boolean).join(', then ');
+  const when = `${clock(span.startedAt)}${span.endedAt !== undefined ? ` to ${clock(span.endedAt)}` : ''}`;
+  return legs ? `${legs}, ${when}` : when;
+}
+
+/** Where a hand-off came from, for the link row at the top of the new page: the flow, the step it left, when. */
+export type HandOffFrom = { flowId: string; flow: string; step: string; place: number; at: number };
+
+export async function handedFrom(e: Pick<Episode, 'from'> | undefined): Promise<HandOffFrom | undefined> {
+  if (!e?.from) return undefined;
+  const prev = await store.get('episodes', e.from);
+  if (!prev) return undefined;
+  const f = await store.get('flows', prev.flowId);
+  if (!f || f.locked) return undefined;
+  const sid = currentStepId(prev), place = placeOf(f, sid);
+  return { flowId: f.id, flow: f.name, step: place ? f.steps[place - 1].name : '', place, at: prev.endedAt ?? lastTouch(prev) };
+}

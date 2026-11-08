@@ -64,6 +64,15 @@ describe('what the door shows', () => {
     expect(JSON.stringify(shown)).not.toMatch(/My own line|My said|Ring Ali|My panic/);
   });
 
+  it('locked, a printed line stays printed and a hand-off keeps its link (F4): never a row through the door', async () => {
+    await sealWith3569();
+    lock();
+    const shame = doorRead((await flowById('shame'))!);
+    const line = shame.steps[2].tips.find(t => t.handoff)!;
+    expect(line).toMatchObject({ text: "If it's hot: the Fight flow.", print: true, handoff: { flowId: 'fight', stepId: 'fight-1' } });
+    expect(doorRead((await flowById('depress'))!).steps[3].tips.at(-1)!.print).toBe(true);
+  });
+
   it('locked, a step or a flow he made has no words; the ring keeps its shape', async () => {
     const f = (await flowById('panic'))!;
     await store.put('flows', { ...f, steps: [...f.steps, { id: 'mine', name: 'After', line: 'Mine.', tips: [] }] });
