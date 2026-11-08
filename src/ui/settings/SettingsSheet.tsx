@@ -71,9 +71,9 @@ function PlaceRow() {
   );
 }
 
-function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
+function Toggle({ label, on, set, off }: { label: string; on: boolean; set: (v: boolean) => void; off?: boolean }) {
   return (
-    <button type="button" class="fs-row" role="switch" aria-checked={on} onClick={() => set(!on)}>
+    <button type="button" class={`fs-row${off ? ' fs-row-off' : ''}`} role="switch" aria-checked={on} disabled={off} onClick={() => set(!on)}>
       <span>{label}</span><small>{on ? 'On' : 'Off'}</small>
     </button>
   );
@@ -175,6 +175,8 @@ function SettingsBody() {
       <LightRow />
       <PlaceRow />
       <Toggle label="Sounds" on={s.sounds} set={v => void saveSettings({ sounds: v })} />
+      {/* F2: the breath tone while a finger holds a flow's ring; it follows Sounds (rule 21), so it rests under it */}
+      <Toggle label="Breath tone" on={s.sounds && !!s.breathTone} off={!s.sounds} set={v => void saveSettings({ breathTone: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
       <MusicRows />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>

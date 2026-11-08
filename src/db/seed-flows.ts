@@ -55,7 +55,9 @@ export const PANIC: FlowSeed = {
       // the audit's "The wave" (PLAN-FLOWS-WORDS.md, Panic the peak): "Panic" inside the Panic flow read twice
       name: 'The wave',
       line: 'The wave. Loud, fast, certain.',
-      said: "This is adrenaline, and it's already on its way out: it halves every few minutes. Peaks come inside ten minutes, and most of these are over in twenty.",
+      // F2: the numbers live once, in "Usually" (and the clock in the middle reads the minutes); the said line no longer
+      // repeats "inside ten minutes ... twenty" (the F1 review, PLAN-FLOWS-WORDS.md pattern 3: said lines that repeat)
+      said: "This is adrenaline, and it's already on its way out: it halves every few minutes.",
       usual: 'peaks inside ten minutes; most are done in twenty',
       usualShort: 'It peaks, and it passes.',
       spanMin: 60,

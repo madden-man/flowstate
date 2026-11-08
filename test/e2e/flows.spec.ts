@@ -92,7 +92,8 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(pageBody.locator('.fl-said')).toBeHidden();
-  await expect(pageBody.locator('.fs-stillonly')).toHaveText('It peaks, and it passes.');
+  await expect(pageBody.locator('.fl-usual.fs-stillonly')).toHaveText('It peaks, and it passes.');
+  await expect(pageBody.locator('.fl-mid .fs-stillonly')).toHaveText('a few minutes in');
   const shown = await pageBody.evaluate(el => {
     const out: string[] = [];
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -111,4 +112,106 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
   await expect(pageBody.locator('.fl-last')).toHaveText(/^Last time · \d+ \/ \d+/);
+});
+
+const episode = async (page: Page) => (await page.evaluate(() => new Promise<{ done: { tipId: string }[]; pageId?: string; endedAt?: number }[]>((resolve, reject) => {
+  const open = indexedDB.open('flowstate');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const r = open.result.transaction('episodes').objectStore('episodes').getAll();
+    r.onsuccess = () => { open.result.close(); resolve(r.result); };
+    r.onerror = () => reject(r.error);
+  };
+})))[0];
+
+test('what to do (F2): a tick persists offline, the Still row settles, the journal links both ways, the step sheet strikes', async ({ page }) => {
+  await page.goto('/#/flow/panic/1');
+  const t = page.locator('[data-threshold]');
+  await page.locator('.fs-flowpage').waitFor();
+  if (await t.count()) await t.click();
+  await expect(t).toHaveCount(0);
+  const dot = page.getByRole('slider', { name: 'Where you are' });
+
+  // at rest a tick only draws (walk it once): nothing is written
+  const cold = page.getByRole('checkbox', { name: /Cold water on your wrists/ });
+  await cold.click();
+  await expect(cold).toHaveAttribute('aria-checked', 'true');
+  expect(await episode(page)).toBeUndefined();
+  await cold.click();
+
+  // the dot onto Overstimulated: the clock in the middle, and a tick is written on the episode
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '1');
+  await expect(page.locator('.fl-mid .fs-notstill').first()).toHaveText(/minute in$/);
+  await cold.click();
+  await expect.poll(async () => (await episode(page))?.done.map(d => d.tipId)).toEqual(['panic-1-cold']);
+
+  // offline, a reload keeps the tick
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  if (await t.count()) await t.click();
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await page.context().setOffline(true);
+  await page.reload();
+  if (await t.count()) await t.click();
+  await expect(page.getByRole('checkbox', { name: /Cold water on your wrists/ })).toHaveAttribute('aria-checked', 'true');
+
+  // the Still row settles: Still comes on and the row is ticked
+  await page.getByRole('checkbox', { name: /^Less coming in/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
+  await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+
+  // the peak shows one thing at a time; Next brings the next
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '2');
+  await expect(page.locator('.fl-one [data-tip]')).toHaveCount(1);
+  await expect(page.locator('.fl-one [data-tip]')).toHaveAttribute('data-tip', 'panic-2-ring');
+  await page.getByRole('button', { name: 'Next ›' }).click();
+  await expect(page.locator('.fl-one [data-tip]')).toHaveAttribute('data-tip', 'panic-2-cold');
+  // a thumb held on the middle runs the breath
+  const mid = page.getByRole('button', { name: 'Hold to breathe' });
+  const b = (await mid.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await expect(page.locator('.fl-mid-breath')).toHaveText('in');
+  await expect(page.locator('.fs-cycle-halo.held')).toHaveCount(1);
+  await page.mouse.up();
+  await expect(page.locator('.fl-mid-breath')).toHaveCount(0);
+
+  // the journal row: today's page, linked; the page links back to the flow on its step
+  await page.keyboard.press('ArrowRight');
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '4');
+  await page.getByRole('checkbox', { name: /Write it down, later/ }).click();
+  await expect(page).toHaveURL(/#\/journal$/);
+  const link = page.locator('.fl-journal-link a');
+  await expect(link).toContainText('Flow · Panic');
+  await expect(link).toContainText('under the skin, now');
+  await expect.poll(async () => !!(await episode(page))?.pageId).toBe(true);
+  await link.click();
+  await expect(page).toHaveURL(/#\/flow\/panic\/4$/);
+
+  // back on rest: what helped, in one line
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
+  await expect.poll(async () => (await episode(page))?.endedAt ?? null).not.toBeNull();
+  await expect(page.locator('.fl-helped')).toContainText('Cold water on your wrists');
+  await expect(page.locator('.fl-helped')).toContainText('Less coming in');
+
+  // the step sheet: strike a tip; Earlier shows it struck, and the page no longer does
+  await page.getByRole('button', { name: 'Overstimulated' }).click();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  const sheet = page.locator('.fs-sheet');
+  await sheet.getByRole('button', { name: 'Strike Cold water on your wrists and face' }).click();
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: /Cold water on your wrists/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(sheet.locator('[aria-label="Earlier"] [data-struck]')).toContainText(['Cold water on your wrists and face']);
 });
