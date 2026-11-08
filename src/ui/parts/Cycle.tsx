@@ -19,6 +19,9 @@
 // on the nearest detent when let go. Arrow keys walk it a detent at a time. Reduced motion changes nothing here: the
 // dot never animates on its own (rule 18).
 //
+// The halo (F2): a ring round the dot on --t-breath (4s in, 6s out), the Ring helper's pacer. A finger held on the
+// middle of the drawing (src/ui/flow/Clock.tsx) restarts it on the in-breath, so the ticks at the turns land with it.
+//
 // Walk it once (PLAN-FLOWS.md 3.7): a tap on a step word reads that step, and the dot stays where it is; only a drag
 // (or a key) moves the dot. When an episode is live, a tap on a step word moves the walker there.
 import { useMemo, useRef, useState } from 'preact/hooks';
@@ -46,6 +49,11 @@ type Props = {
   disabled?: boolean;
   /** The words only small, the dot only drawn: the list's row. */
   small?: boolean;
+  /** The breathing halo on the dot (F2, the Ring helper): false for none, else a number. Held, the number is when the
+   *  finger landed, so the halo starts again on the in-breath with the ticks (PLAN-FLOWS.md 3.7, hold the ring). */
+  halo?: number | false;
+  /** A finger is holding the ring: the halo scales under it on the same breath. */
+  held?: boolean;
 };
 
 /** A side word longer than this wraps at its middle space, so it stays inside the page. */
@@ -76,7 +84,7 @@ export function Drawing({ drawn }: { drawn: Drawn[] }) {
   );
 }
 
-export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small }: Props) {
+export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small, halo = false, held }: Props) {
   const shape = shapeOf(diagram);
   const n = steps.length;
   const svg = useRef<SVGSVGElement>(null);
@@ -185,6 +193,9 @@ export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, d
             aria-disabled={disabled || undefined}
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel} onKeyDown={key}>
             {!small && <circle class="fs-cycle-grip" cx={dot.x} cy={dot.y} r={22} />}
+            {!small && halo !== false && at > 0 && dragT === null && (
+              <circle key={halo} class={`fs-cycle-halo${held ? ' held' : ''}`} cx={dot.x} cy={dot.y} r={14} />
+            )}
             <circle class="now" cx={dot.x} cy={dot.y} r={small ? 16 : 5} />
           </g>
         )}

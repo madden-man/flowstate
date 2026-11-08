@@ -49,6 +49,8 @@ export type Settings = {
   /** Not in PLAN-FLOWS.md section 5 (F1): the seed flows (db/seed-flows.ts) already written once, by id, so each
    *  is written only once: a flow Tommy deletes never comes back, and a flow a later package adds is written on the next open. */
   flowsSeeded?: string[];
+  /** PLAN-FLOWS.md section 5 (F2): the breath tone while a finger holds the ring; under Sounds, off by default (unset is off). */
+  breathTone?: boolean;
   sealed?: Sealed;
 };
 

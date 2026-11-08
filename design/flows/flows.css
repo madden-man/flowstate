@@ -73,8 +73,8 @@ details a{color:var(--accent)}
 .fl-step.s2{left:262px;top:50%;transform:translateY(-50%);text-align:left}
 .fl-step.s3{left:50%;bottom:0;transform:translateX(-50%)}
 .fl-step.s4{right:calc(100% - 66px);top:50%;transform:translateY(-50%);text-align:right}
-.fl-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;text-align:center;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:1.5}
-.fl-mid i{display:block;font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:0;font-size:var(--fs-chip)}
+.fl-ring .fl-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;text-align:center;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:1.5}
+.fl-ring .fl-mid i{display:block;font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:0;font-size:var(--fs-chip)}
 .fl-ring.empty .fl-step.cur{font-style:italic;color:var(--print)}
 /* the other diagrams: one drawn shape each, phase words in the serif, the walker where you are */
 .fl-diag{position:relative;width:100%;max-width:328px;height:calc(var(--lh-ink) * 8);margin:0 auto;flex:none}
@@ -93,7 +93,7 @@ details a{color:var(--accent)}
 .fl-caret{display:inline-block;width:1.5px;height:20px;background:var(--ink);vertical-align:-4px;animation:blink calc(var(--t-breath) / 9) steps(1) infinite;margin-left:1px}
 @keyframes blink{50%{opacity:0}}
 /* under the skin: a wash behind the ring that fades as it drains */
-.fl-wash{position:absolute;inset:40px 20px;border-radius:50%;background:var(--ink);opacity:.06;pointer-events:none}
+.fl-ring .fl-wash{position:absolute;inset:40px 20px;border-radius:50%;background:var(--ink);opacity:.06;pointer-events:none}
 /* the next visit: what helped as ticked rows (last time, the line, said and usual are the real ones in parts.css, F1) */
 .fl-helped h3{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);font-weight:400;margin:var(--lh-ink) 0 0;line-height:var(--lh-ink)}
 /* the sheet rows reused from Settings and the goal sheet */
@@ -125,3 +125,5 @@ details a{color:var(--accent)}
 /* a small badge beside a step title for a step that is still a question */
 .step>h2 .badge{display:inline-block;vertical-align:middle;margin-left:10px;font:500 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--muted)}
 .step p.line a{color:var(--accent)}
+/* F2: a phone scrolled down its page (the tips under a long said line, the step sheet's Earlier); static, the mock's own scroll */
+.screen [data-scroll] > :first-child{margin-top:calc(var(--scroll) * -1)}

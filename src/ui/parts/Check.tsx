@@ -11,10 +11,12 @@ type Props = {
   children?: ComponentChildren;
   /** A small printed word at the right ("daily"); a state, so it leaves in Still. */
   aside?: string;
+  /** A small printed word at the right that is not a state, so it stays in Still (a flow tip's helper: "Ring", F2). */
+  word?: string;
   disabled?: boolean;
 };
 
-export function Check({ checked, onChange, children, aside, disabled }: Props) {
+export function Check({ checked, onChange, children, aside, word, disabled }: Props) {
   return (
     <button type="button" role="checkbox" aria-checked={checked} class={`fs-check${checked ? ' done' : ''}`} disabled={disabled}
       onClick={() => { if (!checked) tick('check'); onChange(!checked); }}>
@@ -24,6 +26,7 @@ export function Check({ checked, onChange, children, aside, disabled }: Props) {
       </svg>
       <span class="fs-check-text">{children}</span>
       {aside && <small class="fs-state">{aside}</small>}
+      {word && <small>{word}</small>}
     </button>
   );
 }

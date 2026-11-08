@@ -14,18 +14,20 @@ function calls(kind: 'tick' | 'bell'): string[] {
   return code.flatMap(([f, text]) => [...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`));
 }
 
-// Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening.
+// Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening,
+// the ring's turn points while a thumb holds it (F2).
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   check: ['src/ui/parts/Check.tsx'],
-  drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx'],
+  drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
   detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
   sheet: ['src/ui/parts/Page.tsx', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
+  breath: ['src/ui/flow/breath.ts'],
 };
-// Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album.
+// Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2).
 const BELLS: Record<string, string[]> = {
   settle: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
@@ -33,6 +35,8 @@ const BELLS: Record<string, string[]> = {
   leanHigh: ['src/ui/parts/LeanSlider.tsx'],
   album: ['src/ui/music/'],
   unlock: ['src/ui/lock/Lock.tsx'],
+  breathIn: ['src/ui/flow/breath.ts'],
+  breathOut: ['src/ui/flow/breath.ts'],
 };
 
 const allowed = (table: Record<string, string[]>, line: string) => {
@@ -52,8 +56,8 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('the listed events that exist so far all fire somewhere', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
-    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet']) expect(ticks, t).toContain(t);
-    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album']) expect(bells, b).toContain(b);
+    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath']) expect(ticks, t).toContain(t);
+    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');
@@ -67,5 +71,9 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
     expect(sound.match(/\bctx\(\)/g)).toHaveLength(2); // its definition and the one call inside bell()
     expect(sound).toMatch(/export function bell[\s\S]*?const a = ctx\(\)/);
     expect(sound).toMatch(/if \(!settings\.value\.sounds\) return;/);
+  });
+  it('the breath tone has its own switch, off unless set, behind Sounds', () => {
+    const sound = fs.readFileSync('src/ui/parts/Sound.ts', 'utf8');
+    expect(sound).toMatch(/if \(BREATH\.includes\(name\) && !settings\.value\.breathTone\) return;/);
   });
 });
