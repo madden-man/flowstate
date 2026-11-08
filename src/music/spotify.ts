@@ -165,7 +165,9 @@ export async function readMyPlaylists(t: Tokens): Promise<MyPlaylist[]> {
     for (const p of (j.items ?? []) as (ListedPlaylist | null)[]) {
       if (!p?.id) continue;
       const at = order++;
-      if (p.owner?.id !== mine) continue;
+      // another account's playlist is left out; one with no owner field at all (a trimmed object) is kept, and
+      // a read of its items that Spotify refuses is noted for that playlist alone
+      if (p.owner?.id && p.owner.id !== mine) continue;
       const img = [...(p.images ?? [])].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)).find(i => (i.width ?? 300) >= 60) ?? p.images?.[0];
       out.push({
         id: p.id, name: p.name, uri: p.uri || `spotify:playlist:${p.id}`, order: at, snapshotId: p.snapshot_id ?? '',

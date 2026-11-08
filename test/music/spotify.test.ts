@@ -102,13 +102,14 @@ describe('your playlists (V7)', () => {
       urls.push(url);
       if (url === `${API}/me`) return Response.json({ id: 'tommy', display_name: 'Thomas Madden' });
       if (url === `${API}${MY_PLAYLISTS_PATH}`) return Response.json({ items: [pl('A', 'tommy', { items: { total: 3120 } }), pl('B', 'someone', { items: { total: 9 } })], next: `${API}/me/playlists?offset=50&limit=50` });
-      if (url === `${API}/me/playlists?offset=50&limit=50`) return Response.json({ items: [null, pl('C', 'tommy', { tracks: { total: 41 } })], next: null });
+      // D carries no owner field at all (a trimmed object): it is kept, only another account's playlist is left out
+      if (url === `${API}/me/playlists?offset=50&limit=50`) return Response.json({ items: [null, pl('C', 'tommy', { tracks: { total: 41 } }), { ...pl('D', 'tommy', { items: { total: 2 } }), owner: undefined }], next: null });
       return new Response(null, { status: 404 });
     });
     const mine = await readMyPlaylists(tokens);
-    expect(mine.map(p => p.id)).toEqual(['A', 'C']);
-    expect(mine.map(p => p.total)).toEqual([3120, 41]);
-    expect(mine.map(p => p.order)).toEqual([0, 2]);
+    expect(mine.map(p => p.id)).toEqual(['A', 'C', 'D']);
+    expect(mine.map(p => p.total)).toEqual([3120, 41, 2]);
+    expect(mine.map(p => p.order)).toEqual([0, 2, 3]);
     expect(mine[0]).toMatchObject({ name: 'name A', uri: 'spotify:playlist:A', snapshotId: 'snap-A', coverUrl: 'A-60' });
     expect(urls[1]).toContain('/me/playlists?limit=50');
     expect(urls[1]).toContain('items(total)');
