@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vi } from 'vitest';
-import { groupAlbums, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playFromAlbumWithWake, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
+import { groupAlbums, readMyPlaylists, readPlaylistItems, ApiError, MY_PLAYLISTS_PATH, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playFromAlbumWithWake, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
 
 const track = (uri: string, album: string, artist: string, images = [{ url: `${album}-640`, width: 640 }, { url: `${album}-300`, width: 300 }]) => ({
   track: { uri, album: { uri: `spotify:album:${album}`, name: album, images }, artists: [{ name: artist }] },
@@ -42,16 +42,17 @@ describe('play from an album', () => {
   const tokens = { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 60000 };
 
   it('plays the playlist itself, offset to the album\'s first song', () => {
-    expect(playBody('spotify:track:abc')).toEqual({ context_uri: PLAYLIST_URI, offset: { uri: 'spotify:track:abc' } });
+    expect(playBody(PLAYLIST_URI, 'spotify:track:abc')).toEqual({ context_uri: PLAYLIST_URI, offset: { uri: 'spotify:track:abc' } });
+    expect(playBody('spotify:playlist:M', 'spotify:track:abc').context_uri).toBe('spotify:playlist:M');
   });
 
   it('PUTs that body to the player and reads the device state from the status', async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     vi.stubGlobal('fetch', async (url: string, init: RequestInit) => { calls.push({ url, init }); return new Response(null, { status: 204 }); });
-    expect(await playFromAlbum(tokens, { firstTrackUri: 'spotify:track:abc' })).toBe('playing');
+    expect(await playFromAlbum(tokens, PLAYLIST_URI, { firstTrackUri: 'spotify:track:abc' })).toBe('playing');
     expect(calls[0].url).toBe('https://api.spotify.com/v1/me/player/play');
     expect(calls[0].init.method).toBe('PUT');
-    expect(JSON.parse(String(calls[0].init.body))).toEqual(playBody('spotify:track:abc'));
+    expect(JSON.parse(String(calls[0].init.body))).toEqual(playBody(PLAYLIST_URI, 'spotify:track:abc'));
     vi.unstubAllGlobals();
   });
 
@@ -59,7 +60,7 @@ describe('play from an album', () => {
     let n = 0;
     vi.stubGlobal('fetch', async () => new Response(null, { status: n++ === 0 ? 404 : 204 }));
     const opened: string[] = [];
-    expect(await playFromAlbumWithWake(tokens, { firstTrackUri: 'spotify:track:abc' }, h => opened.push(h), 0)).toBe('playing');
+    expect(await playFromAlbumWithWake(tokens, PLAYLIST_URI, { firstTrackUri: 'spotify:track:abc' }, h => opened.push(h), 0)).toBe('playing');
     expect(opened).toEqual([PLAYLIST_URI]);
     vi.unstubAllGlobals();
   });
@@ -83,6 +84,48 @@ describe('with no account', () => {
     vi.advanceTimersByTime(1200);
     expect(again).toEqual([PLAYLIST_URI]);
     vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('your playlists (V7)', () => {
+  const tokens = { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 60000 };
+  const API = 'https://api.spotify.com/v1';
+  const pl = (id: string, owner: string, count: Record<string, unknown>) => ({
+    id, name: `name ${id}`, uri: `spotify:playlist:${id}`, snapshot_id: `snap-${id}`, owner: { id: owner },
+    images: [{ url: `${id}-640`, width: 640 }, { url: `${id}-60`, width: 60 }], ...count,
+  });
+
+  it('pages /me/playlists, reads items(total) or tracks(total), and keeps only the account\'s own', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      urls.push(url);
+      if (url === `${API}/me`) return Response.json({ id: 'tommy', display_name: 'Thomas Madden' });
+      if (url === `${API}${MY_PLAYLISTS_PATH}`) return Response.json({ items: [pl('A', 'tommy', { items: { total: 3120 } }), pl('B', 'someone', { items: { total: 9 } })], next: `${API}/me/playlists?offset=50&limit=50` });
+      // D carries no owner field at all (a trimmed object): it is kept, only another account's playlist is left out
+      if (url === `${API}/me/playlists?offset=50&limit=50`) return Response.json({ items: [null, pl('C', 'tommy', { tracks: { total: 41 } }), { ...pl('D', 'tommy', { items: { total: 2 } }), owner: undefined }], next: null });
+      return new Response(null, { status: 404 });
+    });
+    const mine = await readMyPlaylists(tokens);
+    expect(mine.map(p => p.id)).toEqual(['A', 'C', 'D']);
+    expect(mine.map(p => p.total)).toEqual([3120, 41, 2]);
+    expect(mine.map(p => p.order)).toEqual([0, 2, 3]);
+    expect(mine[0]).toMatchObject({ name: 'name A', uri: 'spotify:playlist:A', snapshotId: 'snap-A', coverUrl: 'A-60' });
+    expect(urls[1]).toContain('/me/playlists?limit=50');
+    expect(urls[1]).toContain('items(total)');
+    expect(urls[1]).toContain('tracks(total)');
+    expect(urls[1]).toContain('owner(id)');
+    vi.unstubAllGlobals();
+  });
+
+  it('a 429 stops the read with Spotify\'s Retry-After, and nothing asks again', async () => {
+    let calls = 0;
+    vi.stubGlobal('fetch', async () => { calls++; return new Response(null, { status: 429, headers: { 'Retry-After': '240' } }); });
+    const e = await readPlaylistItems(tokens, 'A').catch(x => x);
+    expect(e).toBeInstanceOf(ApiError);
+    expect(e.status).toBe(429);
+    expect(e.retryAfter).toBe(240);
+    expect(calls).toBe(1);
     vi.unstubAllGlobals();
   });
 });

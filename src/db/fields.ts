@@ -5,7 +5,7 @@
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
-import type { Collection, Table } from 'dexie';
+import type { Collection, IndexableType, Table } from 'dexie';
 import { db as defaultDb, type FlowDB, type Settings, type TableName, type Tables, TABLES, type Sealed } from './schema';
 import { seal, unseal, makeVerifier, checkVerifier, isSealed } from './crypto';
 
@@ -128,8 +128,12 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-const pkOf = <K extends TableName>(t: K, row: Tables[K]): string =>
-  t === 'albums' ? (row as Tables['albums']).albumUri : (row as { id: string }).id;
+/** A row's primary key as one string (albums by uri; a shelf row by its playlist and album, V7). */
+export const pkOf = <K extends TableName>(t: K, row: Tables[K]): string => {
+  if (t === 'albums') return (row as Tables['albums']).albumUri;
+  if (t === 'shelves') { const s = row as Tables['shelves']; return `${s.playlistId} ${s.albumUri}`; }
+  return (row as { id: string }).id;
+};
 const aad = (t: TableName, pk: string) => `${t}:${pk}`;
 const table = <K extends TableName>(t: K) => database.table(t) as unknown as Table<Tables[K], string>;
 
@@ -221,6 +225,13 @@ export const store = {
     return serial(async () => {
       writable();
       await table(t).delete(id);
+    });
+  },
+  /** Deletes by primary key; a compound key (a shelf row, V7) is an array. */
+  bulkDelete(t: TableName, keys: IndexableType[]): Promise<void> {
+    return serial(async () => {
+      writable();
+      await (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys);
     });
   },
   /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction). */

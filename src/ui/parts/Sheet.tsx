@@ -16,9 +16,10 @@ function tokenMs(name: string): number {
 
 /** An optional word beside Done (a save that stays print-grey and inert until it can act). */
 export type SheetAction = { label: string; inert?: boolean; onPress: () => void };
-type Props = { open: boolean; onClose: () => void; title: string; action?: SheetAction; children?: ComponentChildren };
+/** back (V7): a word above the title that goes back a screen inside the same sheet ("Playlists"). */
+type Props = { open: boolean; onClose: () => void; title: string; action?: SheetAction; back?: SheetAction; children?: ComponentChildren };
 
-export function Sheet({ open, onClose, title, action, children }: Props) {
+export function Sheet({ open, onClose, title, action, back, children }: Props) {
   const [shown, setShown] = useState(open);
   const [leaving, setLeaving] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -77,6 +78,7 @@ export function Sheet({ open, onClose, title, action, children }: Props) {
       <section ref={sheet} class={`fs-sheet${leaving ? ' out' : ''}`} aria-label={title} tabIndex={-1} data-sheet={title}>
         <div class="fs-sheet-head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
           <div class="fs-grab" />
+          {back && <button type="button" class="fs-word fs-sheet-back" onClick={back.onPress}>{back.label}</button>}
           <div class="fs-sheet-title">
             <h2>{title}</h2>
             <span class="fs-sheet-words">

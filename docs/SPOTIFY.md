@@ -24,7 +24,7 @@ The FlowState app at https://developer.spotify.com/dashboard needs:
 
 1. Tap **Music: Connect Spotify**. The app makes a PKCE verifier and a random state, keeps them in `sessionStorage` (with a copy in `localStorage`, in case iOS hands the return to a fresh web view of the installed app), and goes to `accounts.spotify.com/authorize` with `response_type=code`, `code_challenge_method=S256`, the four scopes below and `redirect_uri` = the app's own origin plus `/`.
 2. Spotify sends the phone back to `https://flowstate-journal.netlify.app/?code=…&state=…`. On load the app reads the code, cleans the URL at once with `history.replaceState` (back to the screen Connect was tapped on), checks the state, and trades the code at `/api/token` with the verifier. No secret is sent.
-3. The tokens and the account name are written to `settings.spotify.tokens` through the store, so they are sealed with the PIN key like every other secret field. Settings opens again and reads "Connected as …"; the playlist is read straight away.
+3. The tokens and the account name are written to `settings.spotify.tokens` through the store, so they are sealed with the PIN key like every other secret field. Settings opens again and reads "Connected as …"; the playlists are read straight away (below).
 4. If something goes wrong, Settings shows one plain line under the row, never an alert:
    - declined on Spotify's page: "Not connected: the sign-in was declined";
    - a state that does not match, or a code Spotify will not trade: "Not connected: Spotify refused the sign-in";
@@ -40,19 +40,25 @@ The FlowState app at https://developer.spotify.com/dashboard needs:
 user-modify-playback-state   start an album on the phone
 user-read-playback-state     know which device is active
 user-read-currently-playing  the now-playing poll that writes page.music
-playlist-read-private        read the thinking playlist if it is ever made private
+playlist-read-private        /me/playlists, and a private playlist's items
 ```
 
-## The playlist and the covers ("Refresh playlist")
+V7 added no scope: `playlist-read-private` already covers `/me/playlists`, so nobody has to connect again.
 
-- Read on connect and again from the **Refresh playlist** row (shown only when connected): `GET /playlists/0T6Gzc2hN81u3vGC5IJZ9a/items`, 50 a page, following `next`. February 2026 renamed `/tracks` to `/items` (and each entry's `track` to `item`) and limits it to playlists the account owns or collaborates on; "For the Poems and the Prose" is Tommy's own. Episodes and removed tracks are skipped.
-- Tracks are grouped by album in the order each album first appears; each keeps its first track.
-- Each cover (the largest no wider than 640) is fetched once and kept as a Blob in the `albums` table, so the grid draws offline. An album that leaves the playlist is kept with `order -1`, never deleted. While it reads, the row says "reading the playlist".
+## Playlists (V7)
+
+- **The list.** On connect and from **Settings, Playlists, Read again**, the app reads `GET /me` (the account id) and then `GET /me/playlists?limit=50`, following `next`, asking for `id,name,uri,snapshot_id,images,owner(id)` and the count under both `items(total)` and `tracks(total)` (February 2026 renamed the key; whichever came is read). Unchanged by the February 2026 Development Mode migration. Each kept playlist is a row in the `playlists` table, in Spotify's order.
+- **Ownership.** Only playlists whose `owner.id` is the signed-in account's id are kept: since February 2026 the items of anyone else's playlist are refused anyway. Nothing is hardcoded; whatever a playlist is named on Spotify is what shows.
+- **Choosing.** The **Your playlists** sheet lists every owned playlist with a drawn check. The very first list ticks "For the Poems and the Prose", as the version 2 upgrade does for a journal that already had its covers, so nothing changes until Tommy ticks more. Ticking one reads it at once (the quiet line says "reading master (ii)"); unticking keeps its covers. ♪ opens on the list of the ticked ones.
+- **A playlist's shelf.** `GET /playlists/{id}/items`, 50 a page, following `next` (February 2026 renamed `/tracks` to `/items` and each entry's `track` to `item`; both are read). Episodes and removed tracks are skipped. Tracks are grouped by album in the order each album first appears, each keeping its first track; that is the `shelves` table, one row per album per playlist. One cover per album is kept as a Blob in the `albums` table however many playlists hold it, so the grids draw offline. An album that leaves a playlist leaves that playlist's shelf only; its cover stays.
+- **Snapshot skip.** A playlist is read again only when its `snapshot_id` in the list has moved since its shelf was read, or it was never read. Read again reads the list first, so an unchanged playlist costs one list entry, not forty pages.
+- **The throttle rule.** Playlists are read one after another, never in parallel. A `429` stops the read there and Settings says "Spotify asks for a pause, about 4 minutes" from its `Retry-After`; nothing asks again by itself, and a tap before the pause has passed only repeats the line (the TommysThoughts 24-hour throttle of 2026-11-05 came from a loop). A playlist Spotify refuses for another reason is one plain line and the next one is read.
+- **Covers for a big playlist.** A read fetches the first fifteen covers, four at a time (the list's strip of six and the grid's first screen). A tile below the fold fetches its own cover when it is scrolled near, never more than four at once, and keeps it.
 
 ## Playing
 
 - **No account:** the ♪ line in the page header opens `spotify:playlist:0T6Gzc2hN81u3vGC5IJZ9a`, which wakes the Spotify app on the playlist; if the page is still in front a moment later (no app), it opens `https://open.spotify.com/playlist/0T6Gzc2hN81u3vGC5IJZ9a`. Both are navigations, never fetches.
-- **Connected:** ♪ opens the sheet of covers. A tap sends `PUT /me/player/play` with `{ context_uri: "spotify:playlist:0T6Gzc2hN81u3vGC5IJZ9a", offset: { uri: <that album's first track> } }`, so the playlist runs on into the next album (Tommy, 2026-11-07). A short bell sounds. The phone's Spotify plays; FlowState only points it.
+- **Connected:** ♪ opens the list of ticked playlists; a name opens its grid of covers, the word Playlists at the head goes back. A tap sends `PUT /me/player/play` with `{ context_uri: <that playlist's uri>, offset: { uri: <that album's first track> } }`, so the playlist runs on into the next album (Tommy, 2026-11-07). A short bell sounds. The phone's Spotify plays; FlowState only points it.
 - **No active device** (404 `NO_ACTIVE_DEVICE`): the sheet says "Open Spotify on the phone first". The app does not leave to wake Spotify by itself.
 - Offline, a tap says "No connection to Spotify" and nothing breaks.
 

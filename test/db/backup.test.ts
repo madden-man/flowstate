@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, POEMS_ID } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
@@ -45,6 +45,52 @@ describe('round trip', () => {
     const cover = (await other.albums.get('spotify:album:1'))!.cover!;
     expect(cover.type).toBe('image/jpeg');
     expect([...new Uint8Array(await cover.arrayBuffer())]).toEqual([1, 2, 3, 250]);
+  });
+
+  it('playlists and their shelves round-trip, and merge keys a shelf row on its playlist and album (V7)', async () => {
+    await db.albums.put({ albumUri: 'spotify:album:1', album: 'Oneknowing', artist: 'Lena Raine', cover: new Blob([new Uint8Array([4, 5])], { type: 'image/jpeg' }) });
+    await db.playlists.bulkPut([
+      { id: 'M', name: 'master (ii)', uri: 'spotify:playlist:M', order: 0, snapshotId: 's1', total: 3120, chosen: true, readAt: 5 },
+      { id: POEMS_ID, name: 'Poems', uri: `spotify:playlist:${POEMS_ID}`, order: 1, snapshotId: '', total: 0, chosen: false },
+    ]);
+    await db.shelves.bulkPut([
+      { playlistId: 'M', albumUri: 'spotify:album:1', order: 0, firstTrackUri: 't1' },
+      { playlistId: POEMS_ID, albumUri: 'spotify:album:1', order: 4, firstTrackUri: 't9' },
+    ]);
+    const before = await exportData(db, 1000);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect((await exportData(other, 1000)).tables).toEqual(before.tables);
+    expect(await other.shelves.get(['M', 'spotify:album:1'])).toEqual({ playlistId: 'M', albumUri: 'spotify:album:1', order: 0, firstTrackUri: 't1' });
+    const cover = (await other.albums.get('spotify:album:1'))!.cover!;
+    expect([...new Uint8Array(await cover.arrayBuffer())]).toEqual([4, 5]);
+    // merge into a journal that has one of the two shelf rows: the other is added, the one there kept
+    const third = await freshDB();
+    await third.shelves.put({ playlistId: 'M', albumUri: 'spotify:album:1', order: 7, firstTrackUri: 'mine' });
+    const r = await importData(file, 'merge', third);
+    expect(await third.shelves.count()).toBe(2);
+    expect((await third.shelves.get(['M', 'spotify:album:1']))!.firstTrackUri).toBe('mine');
+    expect(r.added).toBeGreaterThan(0);
+  });
+
+  it('a version 1 file imports with its ordered albums as the Poems shelf, ticked (V7)', async () => {
+    const v1 = {
+      app: 'flowstate', schemaVersion: 1, exportedAt: 1,
+      tables: {
+        settings: [], voices: [], pages: [], messages: [], paradoxes: [], items: [], leans: [], backups: [],
+        albums: [
+          { albumUri: 'spotify:album:1', album: 'Oneknowing', artist: 'Lena Raine', order: 0, firstTrackUri: 't1', cover: { type: 'image/png', b64: 'AQI=' } },
+          { albumUri: 'spotify:album:2', album: 'Takk', artist: 'Sigur Rós', order: -1, firstTrackUri: '' },
+        ],
+      },
+    };
+    const file = parseBackup(JSON.stringify(v1));
+    expect(file.schemaVersion).toBe(SCHEMA_VERSION);
+    await importData(file, 'replace', db);
+    expect(await db.shelves.toArray()).toEqual([{ playlistId: POEMS_ID, albumUri: 'spotify:album:1', order: 0, firstTrackUri: 't1' }]);
+    expect((await db.playlists.get(POEMS_ID))?.chosen).toBe(true);
+    expect([...new Uint8Array(await (await db.albums.get('spotify:album:1'))!.cover!.arrayBuffer())]).toEqual([1, 2]);
   });
 
   it('replace makes the database the file', async () => {
