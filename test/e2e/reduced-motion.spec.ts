@@ -1,6 +1,6 @@
 // The reduced-motion pass (package 8, DESIGN.md rule 18): with prefers-reduced-motion: reduce, nothing on
 // any screen moves. Open the app (no threshold breath), enter Still (a static ring), open a sheet (it
-// appears without rising), check an item (the check draws at once), and at every step no element, nor its
+// appears without rising), check an item on Be (the check draws at once), and at every step no element, nor its
 // ::before or ::after, has a non-zero computed animation-duration or transition-duration.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -46,15 +46,16 @@ test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a che
   await expect(sheet).toHaveCount(0);
   await expect(page.locator('.fs-scrim')).toHaveCount(0);
 
-  // Flow, still in Still: a check draws at once, and the lean mark does not travel
-  await page.getByRole('link', { name: 'Flow' }).click();
+  // back in the day's light
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-light', 'still');
+  expect(await moving(page)).toEqual([]);
+
+  // Be, under a spread (the checks leave in Still): a check draws at once, and the lean mark does not travel
+  await page.getByRole('link', { name: 'Be' }).click();
+  await page.getByRole('button', { name: /selfless\s*selfish/ }).click();
   const item = page.getByRole('checkbox', { name: /write for its own sake/ });
   await item.click();
   await expect(item).toHaveAttribute('aria-checked', 'true');
-  expect(await moving(page)).toEqual([]);
-
-  // and back in the day's light
-  await page.getByRole('button', { name: 'Leave Still' }).click();
-  await expect(page.locator('html')).not.toHaveAttribute('data-light', 'still');
   expect(await moving(page)).toEqual([]);
 });

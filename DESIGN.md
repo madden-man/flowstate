@@ -8,7 +8,7 @@ The notebook names three needs. The app answers each with a light, and everythin
 
 | Need, in the notebook's words | Light | When | Character |
 |---|---|---|---|
-| "an enormous amount of potential energy... wish to use it in all seriousness" | **Day** | sunrise to sunset | cream page, blue rules, crisp ink; the Flow tab's checks |
+| "an enormous amount of potential energy... wish to use it in all seriousness" | **Day** | sunrise to sunset | cream page, blue rules, crisp ink; the checks under a spread on Be |
 | "my supreme duty to listen to the quiet voices within" | **Night** | sunset to sunrise | deep page, chalk ink, a lamp in the corner, voices glowing |
 | "boiling in my own soup... wait out the truly hard parts, they never last forever" | **Still** | chosen, never automatic | deepest page, soft contrast, slower, counts gone, one kept line |
 
@@ -23,7 +23,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 
 ## 3. The page (review)
 
-5. Every writing surface is a page: the notebook header ("No." and "DATE: 11 / 7 / 26" in grey sans, top right), rules the text sits on (line height equals rule spacing), ink in serif. Day 17 on 28; Still 18 on 33. A row that can wrap (a check, a question, a look-back line) ends on a blank rule however many lines its text took, so one line is text plus a blank rule and three lines is text plus a blank rule; dense indexes (Pages, councils) stay one line each, cut with an ellipsis.
+5. Every writing surface is a page: the notebook header ("No." and "DATE: 11 / 7 / 26" in grey sans, top right), rules the text sits on (line height equals rule spacing), ink in serif. Day 17 on 28; Still 18 on 33. A row that can wrap (a check, a question) ends on a blank rule however many lines its text took, so one line is text plus a blank rule and three lines is text plus a blank rule; dense indexes (Pages, councils) stay one line each, cut with an ellipsis.
 6. One primary act per screen, and it is the first thing under the thumb. Journal opens on a blank dated page with the caret ready. No save buttons; everything autosaves.
 7. Tabs are four words (Journal, Council, Be, Flow) and, third, the **?** mark for Questions (V2): a glyph in the serif a size up, like the header's ♪, not a fifth word. No icons anywhere except the moon, the ring, the drawn arrow and the drawn check. No icon libraries (lint).
 8. Sheets rise; nothing is a modal dialog (`<dialog>`, `role="dialog"`, `alert`, `confirm`, `prompt` are banned, lint). Back is a swipe. Long press means pick up, keep close or reply.
@@ -34,7 +34,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 ## 4. The lights (review)
 
 12. The light follows the sky: sunrise and sunset computed offline from a stored place (one-time in Settings; fallback 07:00 to 19:00); sunrise and sunset change the light in one `--t-light` breath, everything together (V5). Settings can pin Day or Night. The moon glows after sunset but never switches Still on by itself.
-13. Still is a tap on the moon, from anywhere (V6: pulling the page down shows earlier pages instead, and does nothing in Still). In Still: no counts, states, page numbers, look-back or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
+13. Still is a tap on the moon, from anywhere (V6: pulling the page down shows earlier pages instead, and does nothing in Still). In Still: no counts, states (the checks and the lean under a spread on Be), page numbers or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
 14. Still lowers luminance, not warmth: page #0F1016, ink #A19B8E (about 6.5:1), chroma × .4, cool-neutral. (Illuminance moves arousal; colour temperature barely does.)
 15. Nothing counts a streak. No badges, confetti, counts on tabs (lint on the words in `src/ui`).
 
