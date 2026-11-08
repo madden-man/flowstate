@@ -4,7 +4,7 @@
 // goes through the store. An album that leaves a playlist leaves that playlist's shelf only: its albums row
 // and cover stay, because another playlist or a page that heard it still shows the cover.
 import type { Album as Row, PageMusic, Playlist, Shelf } from '../db/schema';
-import { POEMS_ID } from './poems';
+import { NAMED_IDS } from './poems';
 import { store } from '../db/fields';
 import { ApiError, TokenError, fetchCover, groupAlbums, readMyPlaylists, readPlaylistItems, type Album, type MyPlaylist, type NowPlaying } from './spotify';
 import { NotConnected, withTokens, type Keep } from './connect';
@@ -155,20 +155,25 @@ export async function readChosen(keep: Keep, snapshots: Map<string, string>, hoo
 }
 
 /** /me/playlists read and written: every owned playlist in Spotify's order, a ticked one keeps its tick and
- *  its last-read snapshot. The very first list ticks the Poems playlist, as the upgrade does. A playlist gone
+ *  its last-read snapshot. A named playlist (poems.ts: Poems, master (ii), staging, candidate) is ticked the
+ *  first time a list holds it, once; an untick after that is kept (spotify.ticked remembers). A playlist gone
  *  from the list leaves it, unless it is ticked (its shelf still shows offline). Returns the list as read,
  *  with each playlist's snapshot now, for the snapshot skip. */
 export async function readMine(keep: Keep): Promise<MyPlaylist[]> {
   const list = await withTokens(keep, readMyPlaylists);
   const before = new Map((await store.all('playlists')).map(r => [r.id, r]));
-  const firstEver = before.size === 0;
+  const ticked = new Set(keep.read()?.ticked ?? []);
+  const named = new Set(NAMED_IDS.filter(id => !ticked.has(id)));
   const rows: Playlist[] = list.map(p => {
     const had = before.get(p.id);
     return {
       id: p.id, name: p.name, uri: p.uri, order: p.order, total: p.total, coverUrl: p.coverUrl,
-      chosen: had?.chosen ?? (firstEver && p.id === POEMS_ID), snapshotId: had?.snapshotId ?? '', readAt: had?.readAt,
+      chosen: (had?.chosen ?? false) || named.has(p.id), snapshotId: had?.snapshotId ?? '', readAt: had?.readAt,
     };
   });
+  const nowTicked = rows.filter(r => named.has(r.id)).map(r => r.id);
+  const state = keep.read();
+  if (nowTicked.length && state) await keep.write({ ...state, ticked: [...ticked, ...nowTicked] });
   const listed = new Set(list.map(p => p.id));
   const gone = [...before.values()].filter(r => !listed.has(r.id) && !r.chosen);
   await store.bulkPut('playlists', rows);

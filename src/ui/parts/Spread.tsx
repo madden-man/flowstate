@@ -183,7 +183,7 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
   const label = `${paradox.poleA.value} and ${paradox.poleB.value}`;
 
   return (
-    <article class={`fs-spread${paradox.status !== 'active' ? ' resting' : ''}`} id={`be-${paradox.id}`} aria-label={label} data-paradox={paradox.id}>
+    <article class={`fs-spread${paradox.status !== 'active' ? ' resting' : ''}`} aria-label={label} data-paradox={paradox.id}>
       <div ref={pagesRef} class="fs-spread-pages" style={{ height: H ? `${H}px` : undefined }} data-laid={layout ? 'true' : 'false'}>
         {layout && (
           <svg class="fs-spread-ink" width={width} height={H} viewBox={`0 0 ${width} ${H}`} aria-hidden="true">

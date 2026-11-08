@@ -66,23 +66,3 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(onLong: (targe
     },
   };
 }
-
-/** Lifts the composer above the iOS keyboard: visualViewport says how much of the screen it covers;
- *  the tab bar's own height is already below the page, so only the rest is padding. */
-export function useKeyboardInset(ref: { current: HTMLElement | null }) {
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const on = () => {
-      const el = ref.current;
-      if (!el) return;
-      const covered = window.innerHeight - vv.height - vv.offsetTop;
-      const tabs = (document.querySelector('.fs-tabs') as HTMLElement | null)?.offsetHeight ?? 0;
-      el.style.setProperty('--kb', `${Math.max(0, Math.round(covered - tabs))}px`);
-    };
-    on();
-    vv.addEventListener('resize', on);
-    vv.addEventListener('scroll', on);
-    return () => { vv.removeEventListener('resize', on); vv.removeEventListener('scroll', on); };
-  }, []);
-}

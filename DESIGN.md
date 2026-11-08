@@ -29,7 +29,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 8. Sheets rise; nothing is a modal dialog (`<dialog>`, `role="dialog"`, `alert`, `confirm`, `prompt` are banned, lint). Back is a swipe. Long press means pick up, keep close or reply.
 9. Messages spoken by a voice carry a 3px left rule in the voice colour and a 10% wash (0% in Still); deep twins carry a doubled rule. Chips: starred voices first, "+ voice" last.
 10. Revisions are shown struck through with a drawn stroke, never hidden; corner tags are a line across the corner with the value written along it; arrows between items are drawn paths.
-11. The spread is two facing pages: pole A's goals on the left, pole B's on the right, each at the height of its lean. A goal is normally added with the goal that balances it on the other pole; the pair is linked across the seam by a dotted path, and a missing balance is a dashed slot at the same height that stays until filled. Nothing is ever laid out while hidden: measure after display, and relayout on resize.
+11. The spread is two facing pages: pole A's goals on the left, pole B's on the right, each at the height of its lean. A goal is normally added with the goal that balances it on the other pole; the pair is linked across the seam by a dotted path, and a missing balance is a dashed slot at the same height that stays until filled. Nothing is ever laid out while hidden: measure after display, and relayout on resize. The Be tab is a list first (V8): a row per paradox, its two poles facing across a short seam, and a tap opens that paradox's spread under its row.
 
 ## 4. The lights (review)
 

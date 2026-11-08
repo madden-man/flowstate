@@ -41,7 +41,8 @@ export type Settings = {
   /** Not in PLAN.md section 4 (V5): one-time passes over old data already run, by name, so each runs once.
    *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go). */
   cleaned?: string[];
-  spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis };
+  /** ticked (V8): the named playlists (music/poems.ts NAMED_IDS) already ticked once, so each is ticked only once. */
+  spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;
   sealed?: Sealed;

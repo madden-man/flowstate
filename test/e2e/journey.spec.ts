@@ -102,6 +102,11 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   // ---- Be: a goal and its balance, daily ----
   await tab(page, 'Be').click();
   const card = page.locator('#be-px-selfless-selfish');
+  // V8: the tab is a list of pole pairs; a tap opens the spread under its row
+  const row = card.getByRole('button', { name: /selfless\s*selfish/ });
+  await expect(row).toHaveAttribute('aria-expanded', 'false');
+  await row.click();
+  await expect(row).toHaveAttribute('aria-expanded', 'true');
   await expect(card.locator('[data-laid="true"]')).toBeAttached();
   await card.getByRole('button', { name: '+ Goal' }).click();
   const giving = 'Chop vegetables at the Evergreen kitchen';
@@ -179,6 +184,7 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');
   await tab(page, 'Be').click();
+  await row.click();
   await expect(card.getByRole('button', { name: new RegExp(giving) })).toBeVisible();
   await tab(page, 'Flow').click();
   await expect(due).toHaveAttribute('aria-checked', 'true');
