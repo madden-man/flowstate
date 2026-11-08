@@ -3,7 +3,7 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1 } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -34,7 +34,12 @@ export class NeedsPinError extends BackupError {
   constructor() { super('This file is locked with a PIN'); this.name = 'NeedsPinError'; }
 }
 
-const pk = (t: TableName, row: Record<string, unknown>) => String(t === 'albums' ? row.albumUri : row.id);
+/** A row's key as one string: albums by uri, a shelf row by its playlist and album (V7), the rest by id. */
+const pk = (t: TableName, row: Record<string, unknown>) => {
+  if (t === 'albums') return String(row.albumUri);
+  if (t === 'shelves') return row.playlistId === undefined || row.albumUri === undefined ? 'undefined' : `${row.playlistId} ${row.albumUri}`;
+  return String(row.id);
+};
 
 /** Album covers are Blobs; the file carries them as base64 with their type. */
 type CoverJSON = { type: string; b64: string };
@@ -94,8 +99,17 @@ export function parseBackup(text: string): BackupFile {
   return migrate(f as BackupFile);
 }
 
-/** Older files are brought up to the current version here. Version 1 is the first, so nothing to do yet. */
+/** Older files are brought up to the current version here. A version 1 file (one playlist) gets what the
+ *  Dexie upgrade gives a version 1 database: its ordered albums as the Poems playlist's shelf, and that
+ *  playlist ticked. */
 function migrate(f: BackupFile): BackupFile {
+  if (f.schemaVersion < 2) {
+    const tables = { ...f.tables };
+    const albums = tables.albums as Tables['albums'][];
+    if (!tables.shelves.length) tables.shelves = shelvesFromV1(albums);
+    if (!(tables.playlists as Tables['playlists'][]).some(p => p.id === POEMS_ID)) tables.playlists = [...tables.playlists, poemsPlaylist()];
+    f = { ...f, tables };
+  }
   return { ...f, schemaVersion: SCHEMA_VERSION };
 }
 

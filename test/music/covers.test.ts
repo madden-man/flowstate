@@ -1,12 +1,15 @@
-// Package 7: the playlist read with paging, grouped by album, covers fetched once and kept as blobs;
-// now-playing written once onto a page; "Pages with this album".
+// Package 7 and V7: a playlist read with paging, grouped by album, covers fetched once and kept as blobs, one
+// shelf per playlist; /me/playlists and the guards for big playlists (snapshot skip, one at a time, the 429
+// stop); now-playing written once onto a page; "Pages with this album".
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { freshDB } from '../db/helpers';
 import { store } from '../../src/db/fields';
 import { defaultSettings } from '../../src/db/seed';
-import type { Settings } from '../../src/db/schema';
-import { readPlaylist, storeAlbums, shelf, keepCover, COVERS_AT_ONCE } from '../../src/music/covers';
-import { PLAYLIST_PATH, groupAlbums, type Album } from '../../src/music/spotify';
+import { POEMS_ID, type Playlist, type Settings } from '../../src/db/schema';
+import {
+  readPlaylist, storeShelf, shelf, keepCover, COVERS_AT_ONCE, COVERS_FIRST, coverWhenNear, readMine, readChosen, playlistRows, choosePlaylist,
+} from '../../src/music/covers';
+import { ApiError, MY_PLAYLISTS_PATH, playlistItemsPath, groupAlbums, type Album } from '../../src/music/spotify';
 import type { Keep } from '../../src/music/connect';
 import { noteMusic, pagesWithAlbum } from '../../src/model/music';
 import { newPage, writeLine } from '../../src/model/pages';
@@ -17,6 +20,9 @@ const entry = (uri: string, album: string, artist: string) => ({
 });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const blob = (s: string) => new Blob([s], { type: 'image/png' });
+const a = (album: string, order: number): Album => ({ albumUri: `spotify:album:${album}`, album, artist: 'A', order, firstTrackUri: `t-${album}`, coverUrl: `c-${album}` });
+const P = 'poems';
+const playlistRow = (id: string, chosen = true, snapshotId = ''): Playlist => ({ id, name: `name ${id}`, uri: `spotify:playlist:${id}`, order: 0, snapshotId, total: 0, chosen });
 
 const keep = (): Keep => {
   let row: Settings['spotify'] = { connectedAt: 1, tokens: { accessToken: 'A', refreshToken: 'R', expiresAt: Date.now() + 60_000 } };
@@ -26,55 +32,67 @@ const keep = (): Keep => {
 beforeEach(async () => { await freshDB(); await store.put('settings', defaultSettings(0)); });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('the playlist read', () => {
-  it('follows next across pages, reads the /items path, and groups albums in first-appearance order', async () => {
+describe('a playlist read', () => {
+  it('follows next across pages, reads that playlist\'s /items path, and groups albums in first-song order', async () => {
     const urls: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => {
       urls.push(url);
-      if (url === `${API}${PLAYLIST_PATH}`) return json({ items: [entry('t1', 'Oneknowing', 'Lena Raine'), entry('t2', 'Oneknowing', 'Lena Raine'), entry('t3', 'Pagan', 'CLANN')], next: `${API}/playlists/x/items?offset=50&limit=50` });
-      if (url === `${API}/playlists/x/items?offset=50&limit=50`) return json({ items: [entry('t4', 'Pagan', 'CLANN'), { item: null }, { track: entry('t5', 'Range of Light', 'S. Carey').item }], next: null });
+      if (url === `${API}${playlistItemsPath('M')}`) return json({ items: [entry('t1', 'Oneknowing', 'Lena Raine'), entry('t2', 'Oneknowing', 'Lena Raine'), entry('t3', 'Pagan', 'CLANN')], next: `${API}/playlists/M/items?offset=50&limit=50` });
+      if (url === `${API}/playlists/M/items?offset=50&limit=50`) return json({ items: [entry('t4', 'Pagan', 'CLANN'), { item: null }, { track: entry('t5', 'Range of Light', 'S. Carey').item }], next: null });
       if (url.startsWith('https://i.scdn.co/')) return new Response(blob(url));
       return json({}, 404);
     });
-    const rows = await readPlaylist(keep());
+    await store.put('playlists', playlistRow('M'));
+    const rows = await readPlaylist(keep(), { id: 'M' }, 'snap-2');
     expect(rows.map(r => r.album)).toEqual(['Oneknowing', 'Pagan', 'Range of Light']);
     expect(rows.map(r => r.firstTrackUri)).toEqual(['t1', 't3', 't5']);
-    expect(urls[0]).toContain('/playlists/0T6Gzc2hN81u3vGC5IJZ9a/items?limit=50');
+    expect(urls[0]).toContain('/playlists/M/items?limit=50');
     expect(urls.filter(u => u.startsWith('https://i.scdn.co/'))).toHaveLength(3);
-    const kept = await shelf();
+    const kept = await shelf('M');
     expect(kept.map(r => r.order)).toEqual([0, 1, 2]);
     expect(kept.every(r => r.cover instanceof Blob)).toBe(true);
     expect(await kept[0].cover!.text()).toBe('https://i.scdn.co/Oneknowing-300');
+    expect(await shelf('other')).toEqual([]);
+    // the snapshot it was read at is kept, for the skip
+    expect((await store.get('playlists', 'M'))?.snapshotId).toBe('snap-2');
   });
 
-  it('skips episodes and fetches a cover once: a refresh only fetches the new album', async () => {
+  it('skips episodes and fetches a cover once, across reads and across playlists', async () => {
     expect(groupAlbums([{ item: { ...entry('e1', 'Pod', 'X').item, type: 'episode' } }])).toEqual([]);
     const got: string[] = [];
     const getCover = async (u: string) => { got.push(u); return blob(u); };
-    const a = (album: string, order: number): Album => ({ albumUri: `spotify:album:${album}`, album, artist: 'A', order, firstTrackUri: `t-${album}`, coverUrl: `c-${album}` });
-    await storeAlbums([a('One', 0), a('Two', 1)], getCover);
-    await storeAlbums([a('Two', 0), a('Three', 1)], getCover);
+    await storeShelf(P, [a('One', 0), a('Two', 1)], getCover);
+    await storeShelf(P, [a('Two', 0), a('Three', 1)], getCover);
+    await storeShelf('master', [a('Three', 0), a('One', 1)], getCover);
     expect(got).toEqual(['c-One', 'c-Two', 'c-Three']);
-    expect((await shelf()).map(r => r.album)).toEqual(['Two', 'Three']);
-    // One left the playlist: kept off the shelf, never deleted, its cover still there
+    expect((await shelf(P)).map(r => r.album)).toEqual(['Two', 'Three']);
+    expect((await shelf('master')).map(r => r.album)).toEqual(['Three', 'One']);
+  });
+
+  it('an album gone from one playlist leaves that shelf only; its cover stays', async () => {
+    await storeShelf(P, [a('One', 0), a('Two', 1)], async u => blob(u));
+    await storeShelf('master', [a('One', 0)], async u => blob(u));
+    await storeShelf(P, [a('Two', 0)], async u => blob(u));
+    expect((await shelf(P)).map(r => r.album)).toEqual(['Two']);
+    expect((await shelf('master')).map(r => r.album)).toEqual(['One']);
+    await storeShelf('master', [], async u => blob(u));
+    expect(await shelf('master')).toEqual([]);
     const one = await store.get('albums', 'spotify:album:One');
-    expect(one?.order).toBe(-1);
     expect(one?.cover).toBeInstanceOf(Blob);
   });
 
   it('the shelf has every tile before a single cover arrives, and fills in as they land', async () => {
-    const a = (album: string, order: number): Album => ({ albumUri: `spotify:album:${album}`, album, artist: 'A', order, firstTrackUri: `t-${album}`, coverUrl: `c-${album}` });
     const list = [a('One', 0), a('Two', 1), a('Three', 2), a('Four', 3), a('Five', 4), a('Six', 5)];
     let release!: () => void;
     const gate = new Promise<void>(r => { release = r; });
     let started = 0;
     const getCover = async (u: string) => { started++; await gate; return blob(u); };
     const seen: number[] = [];
-    const onProgress = async () => { seen.push((await shelf()).filter(r => r.cover).length); };
-    const done = storeAlbums(list, getCover, onProgress);
+    const onProgress = async () => { seen.push((await shelf(P)).filter(r => r.cover).length); };
+    const done = storeShelf(P, list, getCover, onProgress);
     await vi.waitFor(() => expect(started).toBe(COVERS_AT_ONCE));
     // the rows are written and the shelf shows six tiles while every cover is still on its way
-    expect((await shelf()).map(r => r.album)).toEqual(['One', 'Two', 'Three', 'Four', 'Five', 'Six']);
+    expect((await shelf(P)).map(r => r.album)).toEqual(['One', 'Two', 'Three', 'Four', 'Five', 'Six']);
     expect(seen).toEqual([0]);
     release();
     const rows = await done;
@@ -84,11 +102,100 @@ describe('the playlist read', () => {
   });
 
   it('a cover that fails to arrive is tried again next time', async () => {
-    const a: Album = { albumUri: 'spotify:album:X', album: 'X', artist: 'A', order: 0, firstTrackUri: 't', coverUrl: 'c' };
-    await storeAlbums([a], async () => { throw new TypeError('offline'); });
-    expect((await shelf())[0].cover).toBeUndefined();
-    await storeAlbums([a], async () => blob('x'));
-    expect((await shelf())[0].cover).toBeInstanceOf(Blob);
+    await storeShelf(P, [a('X', 0)], async () => { throw new TypeError('offline'); });
+    expect((await shelf(P))[0].cover).toBeUndefined();
+    await storeShelf(P, [a('X', 0)], async () => blob('x'));
+    expect((await shelf(P))[0].cover).toBeInstanceOf(Blob);
+  });
+
+  it('a big playlist fetches the first screen of covers; a tile below the fold fetches its own when near', async () => {
+    const list = Array.from({ length: 40 }, (_, i) => a(`A${i}`, i));
+    const got: string[] = [];
+    await storeShelf('master', list, async u => { got.push(u); return blob(u); });
+    expect(got).toHaveLength(COVERS_FIRST);
+    expect((await shelf('master')).filter(r => r.cover)).toHaveLength(COVERS_FIRST);
+    // two tiles scrolled near at once ask once
+    const near = (u: string) => { got.push(u); return Promise.resolve(blob(u)); };
+    const [c1, c2] = await Promise.all([coverWhenNear('spotify:album:A30', near), coverWhenNear('spotify:album:A30', near)]);
+    expect(c1).toBeInstanceOf(Blob);
+    expect(c2).toBe(c1);
+    expect(got.filter(u => u === 'c-A30')).toHaveLength(1);
+    expect((await store.get('albums', 'spotify:album:A30'))?.cover).toBeInstanceOf(Blob);
+  });
+});
+
+describe('your playlists, and the guards for big ones (V7)', () => {
+  const listed = (id: string, owner = 'tommy', snap = `snap-${id}`) => ({ id, name: `name ${id}`, uri: `spotify:playlist:${id}`, snapshot_id: snap, owner: { id: owner }, images: [], items: { total: 3 } });
+
+  it('the first list ticks the Poems playlist; later lists keep the ticks and drop an unticked one that is gone', async () => {
+    let lists = [[listed('master'), listed(POEMS_ID), listed('theirs', 'someone')], [listed(POEMS_ID)]];
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url === `${API}/me`) return json({ id: 'tommy' });
+      if (url === `${API}${MY_PLAYLISTS_PATH}`) { const items = lists[0]; lists = lists.slice(1); return json({ items, next: null }); }
+      return json({}, 404);
+    });
+    const first = await readMine(keep());
+    expect(first.map(p => p.id)).toEqual(['master', POEMS_ID]);
+    expect((await playlistRows()).map(p => [p.id, p.chosen])).toEqual([['master', false], [POEMS_ID, true]]);
+    await choosePlaylist('master', true);
+    await readMine(keep());
+    // master is ticked, so it stays even though the list no longer has it
+    expect((await playlistRows()).map(p => [p.id, p.chosen])).toEqual([[POEMS_ID, true], ['master', true]]);
+  });
+
+  it('reads the chosen ones one after another, skips one whose snapshot has not moved, and reads it again when it has', async () => {
+    let inFlight = 0, most = 0;
+    const read: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const m = url.match(/\/playlists\/(\w+)\/items/);
+      if (m) {
+        read.push(m[1]);
+        inFlight++; most = Math.max(most, inFlight);
+        await new Promise(r => setTimeout(r, 5));
+        inFlight--;
+        return json({ items: [entry(`t-${m[1]}`, `Album${m[1]}`, 'X')], next: null });
+      }
+      if (url.startsWith('https://i.scdn.co/')) return new Response(blob(url));
+      return json({}, 404);
+    });
+    await store.bulkPut('playlists', [playlistRow('A'), { ...playlistRow('B'), order: 1 }, { ...playlistRow('C', false), order: 2 }]);
+    const snaps = new Map([['A', 's1'], ['B', 's1'], ['C', 's1']]);
+    const first = await readChosen(keep(), snaps);
+    expect(first.read).toEqual(['A', 'B']);
+    expect(most).toBe(1);
+    const again = await readChosen(keep(), snaps);
+    expect(again).toEqual({ read: [], skipped: ['A', 'B'], failed: [] });
+    expect(read).toEqual(['A', 'B']);
+    snaps.set('B', 's2');
+    expect((await readChosen(keep(), snaps)).read).toEqual(['B']);
+    expect(read).toEqual(['A', 'B', 'B']);
+  });
+
+  it('a 429 stops the read there, with Retry-After, and nothing is retried', async () => {
+    const read: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const m = url.match(/\/playlists\/(\w+)\/items/);
+      if (m) { read.push(m[1]); return new Response(null, { status: 429, headers: { 'Retry-After': '240' } }); }
+      return json({}, 404);
+    });
+    await store.bulkPut('playlists', [playlistRow('A'), { ...playlistRow('B'), order: 1 }]);
+    const e = await readChosen(keep(), new Map()).catch(x => x);
+    expect(e).toBeInstanceOf(ApiError);
+    expect(e.retryAfter).toBe(240);
+    expect(read).toEqual(['A']);
+    expect(await shelf('A')).toEqual([]);
+  });
+
+  it('a playlist Spotify refuses is noted and the next one is read', async () => {
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.includes('/playlists/A/items')) return json({}, 403);
+      if (url.includes('/playlists/B/items')) return json({ items: [entry('t1', 'Pagan', 'CLANN')], next: null });
+      return new Response(blob(url));
+    });
+    await store.bulkPut('playlists', [playlistRow('A'), { ...playlistRow('B'), order: 1 }]);
+    const out = await readChosen(keep(), new Map());
+    expect(out.read).toEqual(['B']);
+    expect(out.failed.map(f => f.id)).toEqual(['A']);
   });
 });
 
@@ -100,8 +207,8 @@ describe('now playing on a page', () => {
     const getCover = async (u: string) => { got.push(u); return blob(u); };
     const m = await keepCover(np('Takk'), getCover);
     expect(m).toEqual({ albumUri: 'spotify:album:Takk', album: 'Takk', artist: 'Sigur Rós', coverId: 'spotify:album:Takk' });
-    expect((await store.get('albums', 'spotify:album:Takk'))?.order).toBe(-1);
-    expect(await shelf()).toEqual([]);
+    expect((await store.get('albums', 'spotify:album:Takk'))?.cover).toBeInstanceOf(Blob);
+    expect(await shelf(POEMS_ID)).toEqual([]);
     await keepCover(np('Takk'), getCover);
     expect(got).toEqual(['c-Takk']);
   });

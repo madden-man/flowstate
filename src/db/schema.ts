@@ -1,8 +1,11 @@
-// Dexie tables, version 1 (PLAN.md section 4). UI code never imports this file: it reads and writes
+// Dexie tables, version 2 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
-import Dexie, { type EntityTable } from 'dexie';
+import Dexie, { type EntityTable, type Table } from 'dexie';
+import { POEMS_ID, POEMS_NAME } from '../music/poems';
 
-export const SCHEMA_VERSION = 1;
+export { POEMS_ID, POEMS_NAME };
+
+export const SCHEMA_VERSION = 2;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -150,9 +153,21 @@ export type Item = {
 
 export type Lean = { id: string; paradoxId: string; at: Millis; lean: number; note: string; sealed?: Sealed };
 export type Backup = { id: string; at: Millis; bytes: number; encrypted: boolean };
-/** order is the album's place in the playlist; -1 (package 7) keeps an album that is no longer on the playlist,
- *  or was never on it, so a page that heard it still shows its cover offline. Nothing is deleted. */
-export type Album = { albumUri: string; album: string; artist: string; order: number; firstTrackUri: string; cover?: Blob };
+/** One cover per album however many playlists hold it (V7). order and firstTrackUri are version 1's (its place
+ *  in the one playlist; -1 when off it): they stay on old rows and are no longer read, a playlist's order lives in
+ *  shelves. coverUrl (not in PLAN-V3.md 5.1) is where the cover can still be fetched, so a tile below the fold
+ *  fetches its own when it is scrolled near. Nothing is deleted: a page that heard an album keeps its cover. */
+export type Album = { albumUri: string; album: string; artist: string; cover?: Blob; coverUrl?: string; order?: number; firstTrackUri?: string };
+
+/** A playlist the account owns (V7, PLAN-V3.md 5.1). order is its place in /me/playlists; snapshotId is the
+ *  snapshot its shelf was last read at ('' before the first read), so an unchanged playlist is not read again.
+ *  chosen means it shows under the music line. */
+export type Playlist = {
+  id: string; name: string; uri: string; order: number; snapshotId: string; total: number; chosen: boolean;
+  readAt?: Millis; coverUrl?: string;
+};
+/** One album on one playlist's shelf, at its first song's place in that playlist (V7). */
+export type Shelf = { playlistId: string; albumUri: string; order: number; firstTrackUri: string };
 export type PageMusic = NonNullable<Page['music']>;
 
 export type Tables = {
@@ -165,12 +180,14 @@ export type Tables = {
   leans: Lean;
   backups: Backup;
   albums: Album;
+  playlists: Playlist;
+  shelves: Shelf;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -182,6 +199,24 @@ export const STORES: Record<TableName, string> = {
   albums: 'albumUri',
 };
 
+/** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V1,
+  playlists: 'id, order',
+  shelves: '[playlistId+albumUri], playlistId',
+};
+
+/** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
+export const poemsPlaylist = (): Playlist => ({
+  id: POEMS_ID, name: POEMS_NAME, uri: `spotify:playlist:${POEMS_ID}`, order: 0, snapshotId: '', total: 0, chosen: true,
+});
+
+/** Version 1's ordered albums as the Poems playlist's shelf. Used by the Dexie upgrade and by an imported version 1 file. */
+export function shelvesFromV1(albums: Pick<Album, 'albumUri' | 'order' | 'firstTrackUri'>[]): Shelf[] {
+  return albums
+    .filter(a => typeof a.order === 'number' && a.order >= 0)
+    .map(a => ({ playlistId: POEMS_ID, albumUri: a.albumUri, order: a.order!, firstTrackUri: a.firstTrackUri ?? '' }));
+}
 export type FlowDB = Dexie & {
   settings: EntityTable<Settings, 'id'>;
   voices: EntityTable<Voice, 'id'>;
@@ -192,11 +227,20 @@ export type FlowDB = Dexie & {
   leans: EntityTable<Lean, 'id'>;
   backups: EntityTable<Backup, 'id'>;
   albums: EntityTable<Album, 'albumUri'>;
+  playlists: EntityTable<Playlist, 'id'>;
+  shelves: Table<Shelf, [string, string]>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
   const db = new Dexie(name) as FlowDB;
-  db.version(SCHEMA_VERSION).stores(STORES);
+  db.version(1).stores(STORES_V1);
+  // Version 2: every ordered album becomes a shelf row of the Poems playlist, and the playlist itself is written
+  // ticked, so the music line has its shelf before the first read. The albums rows are not touched.
+  db.version(2).stores(STORES).upgrade(async tx => {
+    const albums = await tx.table<Album, string>('albums').toArray();
+    await tx.table('shelves').bulkPut(shelvesFromV1(albums));
+    await tx.table('playlists').put(poemsPlaylist());
+  });
   return db;
 }
 

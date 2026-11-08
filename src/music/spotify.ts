@@ -2,8 +2,11 @@
 // Authorization Code + PKCE on the phone; no client secret anywhere.
 // Setup and the reuse decision: docs/SPOTIFY.md.
 
+import { POEMS_ID } from './poems';
+
 export const CLIENT_ID = 'a4ee189148b042dc8bfda38b9aed4cd2'; // FlowState's own Spotify app (Tommy, 2026-11-07); a client id is public
-export const PLAYLIST_ID = '0T6Gzc2hN81u3vGC5IJZ9a'; // "For the Poems and the Prose; May They Dance Forever"
+/** "For the Poems and the Prose; May They Dance Forever": the music line deep-links to it with no account. */
+export const PLAYLIST_ID = POEMS_ID;
 export const SCOPES = [
   'user-modify-playback-state',
   'user-read-playback-state',
@@ -16,7 +19,8 @@ const API = 'https://api.spotify.com/v1';
 
 export type Tokens = { accessToken: string; refreshToken: string; expiresAt: number };
 export type Album = { albumUri: string; album: string; artist: string; order: number; firstTrackUri: string; coverUrl: string };
-export type NowPlaying = { albumUri: string; album: string; artist: string; coverUrl: string; isPlaying: boolean } | null;
+/** contextUri (V7) is what Spotify is playing from, so the playlists list can mark the one playing. */
+export type NowPlaying = { albumUri: string; album: string; artist: string; coverUrl: string; isPlaying: boolean; contextUri?: string } | null;
 
 // ---- PKCE -------------------------------------------------------------
 
@@ -95,10 +99,16 @@ export async function fresh(t: Tokens, save: (t: Tokens) => Promise<void>, force
 
 // ---- API --------------------------------------------------------------
 
-/** A Web API answer that was not ok. 401 means the access token has run out early: refresh and try once more. */
+/** A Web API answer that was not ok. 401 means the access token has run out early: refresh and try once more.
+ *  429 means Spotify asks for a pause: retryAfter is its Retry-After in seconds, and nothing asks again by itself. */
 export class ApiError extends Error {
-  constructor(what: string, readonly status: number) { super(`${what} ${status}`); this.name = 'ApiError'; }
+  constructor(what: string, readonly status: number, readonly retryAfter?: number) { super(`${what} ${status}`); this.name = 'ApiError'; }
 }
+
+const refused = (what: string, r: Response) => {
+  const after = Number(r.headers.get('Retry-After'));
+  return new ApiError(what, r.status, r.status === 429 && Number.isFinite(after) && after > 0 ? after : undefined);
+};
 
 async function api(t: Tokens, path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(`${API}${path}`, { ...init, headers: { Authorization: `Bearer ${t.accessToken}`, ...(init.headers ?? {}) } });
@@ -108,21 +118,63 @@ type PlaylistTrack = { type?: string; uri: string; album: { uri: string; name: s
 // Since February 2026 the entry's key is `item`; `track` is the deprecated old name, still read for safety.
 export type PlaylistItem = { item?: PlaylistTrack | null; track?: PlaylistTrack | null };
 
-/** The playlist's first page. February 2026: `/tracks` became `/items`, 50 a page at most, and only for a
- *  playlist the signed-in account owns or collaborates on (Tommy's own playlist is). */
-export const PLAYLIST_PATH = `/playlists/${PLAYLIST_ID}/items?limit=50&fields=next,items(item(type,uri,album(uri,name,images),artists(name)))`;
+/** A playlist's first page. February 2026: `/tracks` became `/items`, 50 a page at most, and only for a
+ *  playlist the signed-in account owns or collaborates on (only owned ones are ever read). */
+export const playlistItemsPath = (id: string) =>
+  `/playlists/${id}/items?limit=50&fields=next,items(item(type,uri,album(uri,name,images),artists(name)))`;
 
-export async function readPlaylistItems(t: Tokens): Promise<PlaylistItem[]> {
+/** Every page of a playlist, one after another. A refused page (a 429 included) stops the read there. */
+export async function readPlaylistItems(t: Tokens, id: string): Promise<PlaylistItem[]> {
   const items: PlaylistItem[] = [];
-  let url: string | null = PLAYLIST_PATH;
+  let url: string | null = playlistItemsPath(id);
   while (url) {
     const r = await api(t, url);
-    if (!r.ok) throw new ApiError('spotify playlist', r.status);
+    if (!r.ok) throw refused('spotify playlist', r);
     const j = await r.json();
     items.push(...j.items);
     url = j.next ? j.next.replace(API, '') : null;
   }
   return items;
+}
+
+/** A playlist the account owns, as /me/playlists lists it (V7). order is its place in that list; snapshotId
+ *  changes whenever the playlist does, so an unchanged one is never read again. */
+export type MyPlaylist = { id: string; name: string; uri: string; order: number; snapshotId: string; total: number; coverUrl: string };
+
+type ListedPlaylist = {
+  id: string; name: string; uri: string; snapshot_id: string;
+  images?: { url: string; width: number | null }[] | null;
+  owner?: { id: string } | null;
+  // February 2026 renamed the count's key from tracks to items; whichever came is read
+  items?: { total: number } | null; tracks?: { total: number } | null;
+};
+
+export const MY_PLAYLISTS_PATH = '/me/playlists?limit=50&fields=next,items(id,name,uri,snapshot_id,images,owner(id),items(total),tracks(total))';
+
+/** The playlists the signed-in account owns, in Spotify's order, every page followed. Another account's
+ *  playlists are left out: their items are refused since February 2026 anyway. */
+export async function readMyPlaylists(t: Tokens): Promise<MyPlaylist[]> {
+  const mine = (await account(t)).id;
+  const out: MyPlaylist[] = [];
+  let url: string | null = MY_PLAYLISTS_PATH;
+  let order = 0;
+  while (url) {
+    const r = await api(t, url);
+    if (!r.ok) throw refused('spotify playlists', r);
+    const j = await r.json();
+    for (const p of (j.items ?? []) as (ListedPlaylist | null)[]) {
+      if (!p?.id) continue;
+      const at = order++;
+      if (p.owner?.id !== mine) continue;
+      const img = [...(p.images ?? [])].sort((a, b) => (a.width ?? 0) - (b.width ?? 0)).find(i => (i.width ?? 300) >= 60) ?? p.images?.[0];
+      out.push({
+        id: p.id, name: p.name, uri: p.uri || `spotify:playlist:${p.id}`, order: at, snapshotId: p.snapshot_id ?? '',
+        total: (p.items ?? p.tracks)?.total ?? 0, coverUrl: img?.url ?? '',
+      });
+    }
+    url = j.next ? j.next.replace(API, '') : null;
+  }
+  return out;
 }
 
 // Pure: group tracks by album, keeping the order each album first appears in the playlist.
@@ -156,17 +208,17 @@ export async function fetchCover(url: string): Promise<Blob> {
 // link to wake the app, then retries.
 export const PLAYLIST_URI = `spotify:playlist:${PLAYLIST_ID}`;
 
-export function playBody(firstTrackUri: string) {
-  return { context_uri: PLAYLIST_URI, offset: { uri: firstTrackUri } };
+export function playBody(playlistUri: string, firstTrackUri: string) {
+  return { context_uri: playlistUri, offset: { uri: firstTrackUri } };
 }
 
 export type PlayResult = 'playing' | 'no-device' | 'not-premium';
 
-export async function playFromAlbum(t: Tokens, album: Pick<Album, 'firstTrackUri'>): Promise<PlayResult> {
+export async function playFromAlbum(t: Tokens, playlistUri: string, album: Pick<Album, 'firstTrackUri'>): Promise<PlayResult> {
   const r = await api(t, '/me/player/play', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(playBody(album.firstTrackUri)),
+    body: JSON.stringify(playBody(playlistUri, album.firstTrackUri)),
   });
   if (r.status === 204 || r.status === 200) return 'playing';
   if (r.status === 404) return 'no-device';
@@ -187,20 +239,25 @@ export function openPlaylist(go: (href: string) => void = h => location.assign(h
   setTimeout(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') go(PLAYLIST_WEB); }, waitMs);
 }
 
-/** The signed-in account's display name, for "Connected as". */
-export async function me(t: Tokens): Promise<string> {
+/** The signed-in account: its id (whose playlists are its own) and its display name. */
+export async function account(t: Tokens): Promise<{ id: string; name: string }> {
   const r = await api(t, '/me');
-  if (!r.ok) throw new ApiError('spotify me', r.status);
+  if (!r.ok) throw refused('spotify me', r);
   const j = await r.json();
-  return String(j.display_name ?? j.id ?? '');
+  return { id: String(j.id ?? ''), name: String(j.display_name ?? j.id ?? '') };
 }
 
-export async function playFromAlbumWithWake(t: Tokens, album: Pick<Album, 'firstTrackUri'>, open: (href: string) => void, waitMs = 2500) {
-  const first = await playFromAlbum(t, album);
+/** The signed-in account's display name, for "Connected as". */
+export async function me(t: Tokens): Promise<string> {
+  return (await account(t)).name;
+}
+
+export async function playFromAlbumWithWake(t: Tokens, playlistUri: string, album: Pick<Album, 'firstTrackUri'>, open: (href: string) => void, waitMs = 2500) {
+  const first = await playFromAlbum(t, playlistUri, album);
   if (first !== 'no-device') return first;
-  open(playlistLink());
+  open(playlistUri);
   await new Promise(r => setTimeout(r, waitMs));
-  return playFromAlbum(t, album);
+  return playFromAlbum(t, playlistUri, album);
 }
 
 export async function nowPlaying(t: Tokens): Promise<NowPlaying> {
@@ -217,5 +274,6 @@ export async function nowPlaying(t: Tokens): Promise<NowPlaying> {
     artist: item.artists.map((a: { name: string }) => a.name).join(', '),
     coverUrl: cover?.url ?? '',
     isPlaying: !!j.is_playing,
+    contextUri: typeof j.context?.uri === 'string' ? j.context.uri : undefined,
   };
 }
