@@ -46,22 +46,39 @@ export function AskNote({ flow, episode, onDone }: { flow: Read<Flow>; episode: 
   const had = noteOf(flow, episode.id);
   const [text, setText] = useState(had?.text ?? '');
   const [stepId, setStepId] = useState(had?.stepId ?? noteStepOf(flow, episode) ?? flow.steps[0]?.id);
+  const stepRef = useRef(stepId);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const area = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { area.current?.focus({ preventScroll: true }); }, []);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const swipe = useSwipe(() => { clearTimeout(timer.current); if (text.trim() && stepId) void writeNote(flow.id, episode.id, stepId, text); onDone(); });
+  // the rule grows with the words, a rule at a time, so nothing he wrote scrolls out of sight
+  const fit = () => { const el = area.current; if (!el) return; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; };
+  useEffect(() => { fit(); area.current?.focus({ preventScroll: true }); }, []);
+  // leaving the page with words still waiting writes them (rule 6: nothing is lost for want of a save)
+  const pending = useRef<string | null>(null);
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    if (pending.current !== null && stepRef.current) void writeNote(flow.id, episode.id, stepRef.current, pending.current);
+  }, []);
+  const swipe = useSwipe(() => { clearTimeout(timer.current); pending.current = null; if (text.trim() && stepRef.current) void writeNote(flow.id, episode.id, stepRef.current, text); onDone(); });
   if (!stepId) return null;
   const put = (v: string) => {
     setText(v);
+    fit();
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => { void writeNote(flow.id, episode.id, stepId, v); }, 300);
+    pending.current = v;
+    timer.current = setTimeout(() => { pending.current = null; void writeNote(flow.id, episode.id, stepRef.current!, v); }, 300);
   };
-  const pick = (id: string) => { setStepId(id); void moveNote(flow.id, episode.id, id); };
+  // a chip moves the note: the words pending are written with the new step at once, so a late write cannot undo it
+  const pick = (id: string) => {
+    setStepId(id);
+    stepRef.current = id;
+    clearTimeout(timer.current);
+    pending.current = null;
+    void (text.trim() ? writeNote(flow.id, episode.id, id, text) : moveNote(flow.id, episode.id, id));
+  };
   return (
     <div class="fl-ask fs-notstill" {...swipe}>
       <p class="fl-usual">Anything to tell the next one of you who's here?</p>
-      <textarea ref={area} class="fl-note-field" rows={2} value={text} aria-label="To the next one of you" spellcheck
+      <textarea ref={area} class="fl-note-field" rows={1} value={text} aria-label="To the next one of you" spellcheck
         onInput={e => put(e.currentTarget.value)} />
       <div class="fs-chips fl-note-steps" role="group" aria-label="Shows at">
         {flow.steps.map(s => (

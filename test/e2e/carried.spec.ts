@@ -57,10 +57,12 @@ test('carried forward: the note asked once and shown at its step offline, ghost 
   const field = page.getByRole('textbox', { name: 'To the next one of you' });
   await expect(field).toBeFocused();
   await field.pressSequentially('Leave the kitchen before anything else.', { delay: 2 });
-  await ask.getByRole('button', { name: 'Overstimulated' }).click();
+  // it lands on the step the episode spent longest on; a chip moves it
   await expect(ask.getByRole('button', { name: 'Overstimulated' })).toHaveAttribute('aria-pressed', 'true');
+  await ask.getByRole('button', { name: 'The wave' }).click();
+  await expect(ask.getByRole('button', { name: 'The wave' })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => ((await all(page, 'flows')).find(f => f.id === 'panic')!.notes as { stepId: string; text: string }[] | undefined)
-    ?.map(n => [n.stepId, n.text])).toEqual([['panic-1', 'Leave the kitchen before anything else.']]);
+    ?.map(n => [n.stepId, n.text])).toEqual([['panic-2', 'Leave the kitchen before anything else.']]);
 
   // offline, the question never comes back, and the note is at its step, his line above the said line
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -71,7 +73,7 @@ test('carried forward: the note asked once and shown at its step offline, ghost 
   await expect(page.locator('.fl-step-page')).toBeVisible();
   await expect(page.locator('.fl-ask')).toHaveCount(0);
   await expect(page.locator('.fl-carried .fl-line')).toHaveText('Leave the kitchen before anything else.');
-  await page.getByRole('button', { name: 'Overstimulated' }).click();
+  await page.getByRole('button', { name: 'The wave' }).click();
   const note = page.locator('.fl-step-page .fl-note');
   await expect(note.locator('.fl-line')).toHaveText('Leave the kitchen before anything else.');
   await expect(note.locator('.fl-usual')).toContainText(/^you · \d+ \/ \d+$/);
