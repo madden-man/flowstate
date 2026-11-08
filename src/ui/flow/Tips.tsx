@@ -9,8 +9,9 @@
 // Five opens five rules on the page, kept on the episode, never on the journal; Journal links today's page to the
 // episode and opens it; Timer sets a return time 20 minutes to 24 hours away. Helpers that only move you (Still, ♪,
 // Five's rules) work at rest too, so the flow can be rehearsed calm; the ones that write (Journal, Timer, Five's
-// lines) wait for a live episode. The person row is F6's and is not drawn yet. A print tip (F3, the 988 line) is never
-// a row: PrintLines prints it under these.
+// lines) wait for a live episode. A print tip (F3, the 988 line) is never a row: PrintLines prints it under these.
+// F6: the person row (./Person.tsx) opens Messages with his text, or the person sheet while it has no name; the
+// prediction row (./Stamps.tsx) opens one rule for the worry written as a prediction, kept on the episode.
 //
 // Through the door (F5, the journal locked, door true): a tick draws and writes nothing; the rows that write or leave
 // the page (Journal, Timer, ♪) and Five's rules stay behind the PIN, and so does the return line. Ring and the Still
@@ -21,6 +22,9 @@ import { Check } from '../parts/Check';
 import { settle } from '../still';
 import { tapMusic } from '../music/state';
 import { clockTime } from '../date';
+import { PersonRow, PersonSheet } from './Person';
+import { Prediction } from './Stamps';
+import { savePerson } from '../../model/carried';
 import type { Episode, Step, Tip, TipHelper } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import {
@@ -30,7 +34,7 @@ import {
 
 /** The helper's word at the row's end, as the flows proposal prints it. */
 export const HELPER_WORD: Record<TipHelper, string> = {
-  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person',
+  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person', prediction: 'Predict',
 };
 
 type Props = {
@@ -45,17 +49,19 @@ type Props = {
   onChanged: () => void;
   /** Through the door without the PIN (F5): draw, never write; the helpers that write or leave stay behind the PIN. */
   door?: boolean;
+  /** The flow the step is on (F6): an unnamed person row writes its person from the page. */
+  flowId?: string;
 };
 
 /** The helpers that stay behind the PIN: they write (Journal, Timer, Five's lines) or leave the page for an account (♪). */
-const BEHIND_PIN: TipHelper[] = ['journal', 'timer', 'music', 'five'];
+const BEHIND_PIN: TipHelper[] = ['journal', 'timer', 'music', 'five', 'person', 'prediction'];
 
 const SWIPE_SLOP_PX = 12;
 const SWIPE_PX = 60;
 
 /** A horizontal swipe (touch and pen; the Questions page's pattern): -1 back, 1 on. A drag that reads as vertical
  *  is left to the scroll. Nothing moves under the finger, so there is no motion to reduce. */
-function useSwipe(go: (dir: 1 | -1) => void) {
+export function useSwipe(go: (dir: 1 | -1) => void) {
   const s = useRef<{ x: number; y: number; id: number; dir?: 'x' | 'y' } | null>(null);
   return {
     onPointerDown: (e: PointerEvent) => { s.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY, id: e.pointerId }; },
@@ -76,7 +82,7 @@ function useSwipe(go: (dir: 1 | -1) => void) {
   };
 }
 
-export function Tips({ step, flowTips, live: stored, still, now, onChanged, door }: Props) {
+export function Tips({ step, flowTips, live: stored, still, now, onChanged, door, flowId }: Props) {
   const { route } = useLocation();
   // through the door the live episode is read for its ticks and never written
   const live = door ? undefined : stored;
@@ -85,7 +91,10 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
   const [drawn, setDrawn] = useState<Record<string, boolean>>({});
   const [fiveOpen, setFiveOpen] = useState(false);
   const [one, setOne] = useState(0);
-  useEffect(() => { setDrawn({}); setFiveOpen(false); setOne(0); }, [step.id, live?.id]);
+  const [predictOpen, setPredictOpen] = useState(false);
+  const [filling, setFilling] = useState<Tip | null>(null);
+  const [fillOpen, setFillOpen] = useState(false);
+  useEffect(() => { setDrawn({}); setFiveOpen(false); setPredictOpen(false); setOne(0); }, [step.id, live?.id]);
   const done = doneIds(stored);
   const isDone = (t: Tip) => drawn[t.id] ?? done.has(t.id);
   const swipe = useSwipe(dir => setOne(i => (i + dir + tips.length) % tips.length));
@@ -96,6 +105,7 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
       case 'still': settle(); break;
       case 'music': tapMusic(); break;
       case 'five': setFiveOpen(true); break;
+      case 'prediction': setPredictOpen(true); break;
       case 'journal':
         if (live && await linkToday(live.id)) route('/journal');
         break;
@@ -113,21 +123,38 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
 
   const row = (t: Tip) => (t.wise
     ? <p key={t.id} class="fl-wise" data-tip={t.id}>{tipText(t, still)}</p>
-    : (
+    : t.helper === 'person' ? (
+      <div key={t.id} class="fl-tip" data-tip={t.id}>
+        <PersonRow t={t} live={live} done={isDone(t)} now={now} onChanged={onChanged}
+          onDrawn={() => setDrawn(d => ({ ...d, [t.id]: true }))} onFill={() => { setFilling(t); setFillOpen(true); }} />
+      </div>
+    ) : (
       <div key={t.id} class="fl-tip" data-tip={t.id}>
         <Check checked={isDone(t)} onChange={on => void toggle(t, on)} word={t.helper ? HELPER_WORD[t.helper] : undefined}>
           {tipText(t, still)}
         </Check>
         {t.helper === 'five' && (fiveOpen || !!live?.lines?.length) && <Five live={live} onChanged={onChanged} />}
         {t.helper === 'timer' && live?.returnAt !== undefined && <Timer live={live} now={now} onChanged={onChanged} />}
+        {t.helper === 'prediction' && (predictOpen || !!live?.prediction) && <Prediction live={live} onChanged={onChanged} />}
       </div>
     ));
+
+  // the person sheet, from an unnamed person row: closing it writes the person on the tip
+  const fill = filling && flowId && (
+    <PersonSheet open={fillOpen} person={filling.person} onClose={p => {
+      if (!fillOpen) return;
+      const t = filling;
+      setFillOpen(false);
+      if (p.name) void savePerson(flowId, step.id, t.id, p).then(onChanged);
+    }} />
+  );
 
   const back = live?.returnAt !== undefined ? <Return live={live} returnAt={live.returnAt} now={now} still={still} tips={flowTips} /> : null;
 
   if (step.peak) {
     const i = Math.min(one, tips.length - 1);
     return (
+      <>
       <div class="fl-tips fl-one" aria-label="What to do" {...swipe}>
         {back}
         {row(tips[i])}
@@ -138,9 +165,11 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
           </div>
         )}
       </div>
+      {fill}
+      </>
     );
   }
-  return <div class="fl-tips" aria-label="What to do">{back}{tips.map(row)}</div>;
+  return <><div class="fl-tips" aria-label="What to do">{back}{tips.map(row)}</div>{fill}</>;
 }
 
 /** Five things you can see: five rules, the caret on the first; each line kept on the live episode (sealed). At rest

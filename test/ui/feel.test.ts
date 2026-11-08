@@ -18,12 +18,13 @@ function calls(kind: 'tick' | 'bell'): string[] {
 // the ring's turn points while a thumb holds it (F2).
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
-  check: ['src/ui/parts/Check.tsx'],
+  // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
+  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx'],
   drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
   detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx'],
+  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   breath: ['src/ui/flow/breath.ts'],
 };

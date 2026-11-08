@@ -36,7 +36,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 12. The light follows the sky: sunrise and sunset computed offline from a stored place (one-time in Settings; fallback 07:00 to 19:00); sunrise and sunset change the light in one `--t-light` breath, everything together (V5). Settings can pin Day or Night. The moon glows after sunset but never switches Still on by itself.
 13. Still is a tap on the moon, from anywhere (V6: pulling the page down shows earlier pages instead, and does nothing in Still). In Still: no counts, states (the checks and the lean under a spread on Be), page numbers or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
 14. Still lowers luminance, not warmth: page #0F1016, ink #A19B8E (about 6.5:1), chroma × .4, cool-neutral. (Illuminance moves arousal; colour temperature barely does.)
-15. Nothing counts a streak. No badges, confetti, counts on tabs (lint on the words in `src/ui`).
+15. Nothing counts a streak. No badges, confetti, counts on tabs (lint on the words in `src/ui`). A drawing of past episodes is not a count (F6): the ghost rings behind a flow's drawing and his own stamps on the What if curve print no number anywhere near them, are capped so the page never fills, and leave in Still.
 
 ## 5. Your own words (review)
 

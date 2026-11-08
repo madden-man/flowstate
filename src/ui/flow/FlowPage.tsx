@@ -31,6 +31,9 @@ import { Tips } from './Tips';
 import { Clock, Wash } from './Clock';
 import { StepSheet, AddStep, tickSheet } from './StepSheet';
 import { useBreath, useNow } from './breath';
+import { Ghosts } from './Ghosts';
+import { AskNote, NoteAtStep, RestCarried, useAsk } from './Notes';
+import { StampMarks } from './Stamps';
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -45,6 +48,10 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   const now = useNow();
   const breath = useBreath();
   const [editing, setEditing] = useState(false);
+  // F6: the question to the next one of you (asked once per ended episode), and whether his own stamps are drawn
+  const [asking, unask] = useAsk(data && data !== 'none' ? data.flow : undefined, data && data !== 'none' ? data.last : undefined,
+    !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
+  const [own, setOwn] = useState(false);
 
   useEffect(() => {
     let on = true;
@@ -105,8 +112,10 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   return (
     <Page label={flow.name} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}>
       <div class="fs-sheetof fs-rules fs-flowpage" data-saved={writing ? 'false' : 'true'} data-showing={showing} data-door={doorOnly ? '' : undefined}>
-        <div class="fl-drawing">
+        <div class="fl-drawing" data-own={own ? '' : undefined}>
           {wash > 0 && <Wash left={wash} />}
+          {!doorOnly && !flow.locked && <Ghosts flowId={flow.id} diagram={flow.diagram} n={n} version={version} />}
+          {!doorOnly && !flow.locked && <StampMarks flowId={flow.id} diagram={flow.diagram} n={n} version={version} onOwn={setOwn} />}
           <Cycle diagram={flow.diagram} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
             disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => void move(v, to)}
             halo={ringy && (onStep || breath.held) ? breath.since ?? 0 : false} held={breath.held} />
@@ -116,17 +125,19 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
         {shown ? (
           <section class="fl-step-page" aria-label={shown.name}>
             {shown.line && <p class="fl-line">{shown.line}</p>}
+            {!doorOnly && <NoteAtStep flow={flow} step={shown} />}
             {shown.said && <p class="fl-said fs-notstill">{shown.said}</p>}
             {shown.usual && <p class="fl-usual fs-notstill">Usually: {shown.usual}</p>}
             {shown.usualShort && <p class="fl-usual fs-stillonly">{shown.usualShort}</p>}
             {(doorOnly || !flow.locked) && (
-              <Tips step={shown} flowTips={flow.steps.flatMap(s => s.tips)} live={live} still={still} now={now} door={doorOnly}
+              <Tips step={shown} flowId={flow.id} flowTips={flow.steps.flatMap(s => s.tips)} live={live} still={still} now={now} door={doorOnly}
                 onChanged={() => setVersion(v => v + 1)} />
             )}
           </section>
         ) : (
           <section class="fl-step-page" aria-label="At rest">
             {flow.line && <p class="fl-line">{flow.line}</p>}
+            {asking && last?.id === asking && <AskNote flow={flow} episode={last} onDone={unask} />}
             {flow.restLine && <p class="fl-said fl-print">{flow.restLine}</p>}
             {lt && (
               <p class="fl-last fs-notstill">
@@ -135,6 +146,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
               </p>
             )}
             {helped.length > 0 && <p class="fl-helped fs-notstill"><small>What helped</small> {helped.join(', ')}</p>}
+            {!doorOnly && <RestCarried flow={flow} last={last} asking={!!asking} />}
           </section>
         )}
         {shown && <PrintLines step={shown} />}

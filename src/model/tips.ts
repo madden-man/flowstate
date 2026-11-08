@@ -125,9 +125,10 @@ export function washLeft(markedAt: number, spanMs: number, now: number): number 
 // ---------------------------------------------------------------- what the page shows
 
 /** The tip rows a step shows: struck ones never (they stay in the step sheet, rule 10), not a print line (F3's
- *  PrintLines prints those under the rows, never as a check), not yet a person row (F6's); at most six, three in Still. */
+ *  PrintLines prints those under the rows, never as a check); at most six, three in Still. A person row (F6) shows
+ *  like any other, named or not: an unnamed one reads as the slot to fill. */
 export function shownTips(step: Pick<Step, 'tips'>, still: boolean): Tip[] {
-  return step.tips.filter(t => !t.struck && !t.print && t.helper !== 'person').slice(0, still ? 3 : 6);
+  return step.tips.filter(t => !t.struck && !t.print).slice(0, still ? 3 : 6);
 }
 
 /** A tip's words: the short form in Still, where there is one. */
