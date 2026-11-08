@@ -1,6 +1,7 @@
-// Still (package 5), offline: pull the page down like a blind with a finger, past 80px, and Still settles
-// in: the ring breathes where the moon was, the "No." count is gone and a kept line sits at the top. Tap
-// the ring and the light comes back; reload and Still is still off, and nothing in the data has changed.
+// Still (package 5), offline: tap the moon and Still settles in (the only way in since V6; the pull shows
+// earlier pages, test/e2e/earlier.spec.ts): the ring breathes where the moon was, the "No." count is gone
+// and a kept line sits at the top. Tap the ring and the light comes back; a short pull changes nothing;
+// reload and Still is still off, and nothing in the data has changed.
 import { test, expect, type Page } from '@playwright/test';
 
 /** Every row of every table, as the database holds it: the export, read straight from IndexedDB. */
@@ -21,7 +22,7 @@ const dump = (page: Page) => page.evaluate(() => new Promise<string>((resolve, r
   };
 }));
 
-test('still: pull the page down, the ring, the kept line, and leaving changes nothing', async ({ page, context, baseURL }) => {
+test('still: tap the moon, the ring, the kept line, and leaving changes nothing', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
   context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
 
@@ -55,19 +56,8 @@ test('still: pull the page down, the ring, the kept line, and leaving changes no
   const lightBefore = await page.locator('html').getAttribute('data-light');
   const before = await dump(page);
 
-  // a finger on the page's ruled column, drawn down 150px (a few rules below the first, which is the
-  // editor's own: a touch beside it is taken by the field, and fields keep their gestures)
-  const col = (await page.locator('.fs-col').boundingBox())!;
-  const x = col.x + col.width / 2, y = col.y + 120;
-  const cdp = await context.newCDPSession(page);
-  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', ty?: number) =>
-    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: ty === undefined ? [] : [{ x, y: ty }] });
-  await touch('touchStart', y);
-  for (let dy = 10; dy <= 150; dy += 10) await touch('touchMove', y + dy);
-  // the page follows the finger, with Still waiting above it
-  await expect(page.locator('.fs-page')).toHaveAttribute('style', /translateY\(1[45]\dpx\)/);
-  await expect(page.locator('.fs-blind')).toHaveClass(/ready/);
-  await touch('touchEnd');
+  // the moon at the left of the header: one tap and Still settles in
+  await page.getByRole('button', { name: 'Still', exact: true }).click();
 
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.getByRole('button', { name: 'Leave Still' })).toBeVisible();
@@ -75,10 +65,16 @@ test('still: pull the page down, the ring, the kept line, and leaving changes no
   await expect(page.locator('[data-kept-line]')).toHaveText('Listen to the quiet voices within.');
   await expect(page.locator('.fs-page')).not.toHaveAttribute('style', /translateY\(\d/);
 
-  // short of the line, the page goes back up and nothing happens
+  // the ring brings the light back; a short pull (a finger on the page's ruled column, a few rules below
+  // the first, which is the editor's own) puts the page back up and nothing happens
   await page.getByRole('button', { name: 'Leave Still' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', lightBefore!);
   await expect(page.locator('.fs-count')).toBeVisible();
+  const col = (await page.locator('.fs-col').boundingBox())!;
+  const x = col.x + col.width / 2, y = col.y + 120;
+  const cdp = await context.newCDPSession(page);
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', ty?: number) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: ty === undefined ? [] : [{ x, y: ty }] });
   await touch('touchStart', y);
   for (let dy = 10; dy <= 50; dy += 10) await touch('touchMove', y + dy);
   await touch('touchEnd');

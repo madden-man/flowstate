@@ -1,25 +1,31 @@
-// The blind (DESIGN.md rules 13 and 20): on any page, pull the page down from the top and Still comes down
-// behind it like a blind. The page follows the finger with no transition while dragging; let go past 80px
-// and Still settles in (one tick, the long low tone); short of it, the page goes back up.
+// The pull (DESIGN.md rules 13 and 20; V6): on any page, pull the page down from the top and the rail of
+// earlier pages comes down above it. The page follows the finger with no transition while dragging; let go
+// past 80px and the rail stays open, the page held at the rail's height; short of it, the page goes back up.
+// Open, the rail closes on a row tap, a tap on the page beneath, an upward drag past 40px or a tab change.
+// It never changes the light: Still is the moon's (V6), and in Still the pull does nothing.
 // It only arms when the touch starts on a scroll area already at its top and the drag is downward, so
 // ordinary scrolling, the composer, the chip row, the sliders and the sheets keep their own gestures.
 // Touch events, not pointer events: Safari hands a vertical pan to the scroller and cancels the pointer,
 // so the only way to hold the page at scrollTop 0 is a non-passive touchmove. A mouse uses pointer events.
 import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact';
+import { effect } from '@preact/signals';
 import { still } from '../light';
-import { settle } from '../still';
-import { RingMark } from './Ring';
+import { earlierOpen } from './Earlier';
 
-export const BLIND_COMMIT_PX = 80;
+export const PULL_COMMIT_PX = 80;
+/** Open, an upward drag this far puts the rail back up. */
+export const PULL_CLOSE_PX = 40;
 /** How far the decision waits before calling a drag a pull, a scroll or a sideways swipe. */
 const DECIDE_PX = 8;
 /** A pull starts at once; a finger that rests first is a long press (pick up, keep close, reply). */
 const PROMPT_MS = 350;
 /** What keeps its own gesture: fields, the chip row, sliders, sheets, anything marked. */
-const OWN = 'textarea, input, select, [contenteditable], .fs-composer, .fs-composer-wrap, .fs-chips, [role="slider"], .fs-sheet, .fs-scrim, [data-noblind]';
+const OWN = 'textarea, input, select, [contenteditable], .fs-composer, .fs-composer-wrap, .fs-chips, [role="slider"], .fs-sheet, .fs-scrim, [data-nopull]';
+/** The rail itself: its rows are taps and it scrolls on its own; a drag that starts there is not the page's. */
+const RAIL = '.fs-earlier';
 
-/** The touch is free for the blind: every scroller between it and the page is at its top, and nothing on
+/** The touch is free for the pull: every scroller between it and the page is at its top, and nothing on
  *  the way has taken the touch for itself (touch-action: none, as the spread's goals do). */
 function free(target: Element, page: Element): boolean {
   if (target.closest(OWN)) return false;
@@ -29,23 +35,35 @@ function free(target: Element, page: Element): boolean {
   return true;
 }
 
-type Drag = { y0: number; x0: number; t0: number; dy: number; state: 'maybe' | 'pull' | 'no'; id?: number };
+type Drag = { y0: number; x0: number; t0: number; dy: number; from: number; state: 'maybe' | 'pull' | 'no'; id?: number };
 
-/** Wires the blind onto a page. The page element moves; the blind panel inside it hangs above its top. */
-export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HTMLElement>): void {
+/** Wires the pull onto a page. The page element moves; the rail inside it hangs above its top.
+ *  `onArm` runs as a pull may begin (the touch is down and free), so the rows are read before the finger
+ *  has moved far enough to decide. */
+export function usePull(pageRef: RefObject<HTMLElement>, railRef: RefObject<HTMLElement>, onArm: () => void): void {
   const drag = useRef<Drag | null>(null);
+  const arm = useRef(onArm);
+  arm.current = onArm;
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
+    const railHeight = () => railRef.current?.offsetHeight ?? 0;
     const set = (dy: number, moving: boolean) => {
       page.classList.toggle('fs-pulling', moving);
       page.style.transform = dy ? `translateY(${dy}px)` : '';
-      blindRef.current?.classList.toggle('ready', dy >= BLIND_COMMIT_PX);
+      railRef.current?.classList.toggle('ready', dy >= PULL_COMMIT_PX);
     };
+    // when the last pull ended: the click that follows it is swallowed, unless a new touch has begun since
+    let pulledAt = 0;
     const start = (x: number, y: number, target: EventTarget | null, id?: number) => {
       drag.current = null;
-      if (still.peek() || !(target instanceof Element) || !free(target, page)) return;
-      drag.current = { x0: x, y0: y, t0: Date.now(), dy: 0, state: 'maybe', id };
+      pulledAt = 0;
+      if (still.peek() || !(target instanceof Element)) return;
+      const open = earlierOpen.peek();
+      // open, the whole page beneath is the rail's handle (pull it up to close); closed, only a free touch arms
+      if (open ? !!target.closest(RAIL) : !free(target, page)) return;
+      drag.current = { x0: x, y0: y, t0: Date.now(), dy: 0, from: open ? railHeight() : 0, state: 'maybe', id };
+      if (!open) arm.current();
     };
     /** Returns true while the page is being pulled (the caller then stops the browser's own pan). */
     const move = (x: number, y: number): boolean => {
@@ -54,23 +72,31 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
       const dy = y - d.y0, dx = x - d.x0;
       if (d.state === 'maybe') {
         if (Math.abs(dy) < DECIDE_PX && Math.abs(dx) < DECIDE_PX) return false;
-        d.state = dy > 0 && dy > Math.abs(dx) * 1.2 && Date.now() - d.t0 < PROMPT_MS ? 'pull' : 'no';
+        const vertical = Math.abs(dy) > Math.abs(dx) * 1.2 && Date.now() - d.t0 < PROMPT_MS;
+        d.state = vertical && (d.from > 0 || dy > 0) ? 'pull' : 'no';
         if (d.state === 'no') return false;
       }
-      // the page follows the finger, up to about half the screen
-      d.dy = Math.max(0, Math.min(dy, page.clientHeight * 0.45));
-      set(d.dy, true);
+      // the page follows the finger, up to about half the screen (the rail's own cap)
+      d.dy = dy;
+      set(Math.max(0, Math.min(d.from + dy, page.clientHeight * 0.45)), true);
       return true;
     };
-    let pulledAt = 0;
     const end = () => {
       const d = drag.current;
       drag.current = null;
       if (!d || d.state !== 'pull') return;
       pulledAt = Date.now();
-      set(0, false);
-      if (d.dy >= BLIND_COMMIT_PX) settle();
+      const open = d.from > 0 ? d.dy > -PULL_CLOSE_PX : d.dy >= PULL_COMMIT_PX;
+      // no tick and no bell: opening a list is not one of rule 19's ticks
+      earlierOpen.value = open;
+      set(open ? railHeight() : 0, false);
     };
+    // the rail opens and closes from outside too (a row tap, a tab change, Still): the page follows the signal
+    const stop = effect(() => {
+      const open = earlierOpen.value;
+      if (still.value && open) { earlierOpen.value = false; return; }
+      if (!drag.current || drag.current.state !== 'pull') set(open ? railHeight() : 0, false);
+    });
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) { drag.current = null; return; }
@@ -88,8 +114,15 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
       if (move(e.clientX, e.clientY)) { e.preventDefault(); page.setPointerCapture?.(e.pointerId); }
     };
     const onPointerUp = (e: PointerEvent) => { if (e.pointerType === 'mouse' && drag.current?.id === e.pointerId) end(); };
-    // a pull is not a tap: the click that follows it lands nowhere
-    const onClick = (e: MouseEvent) => { if (Date.now() - pulledAt < 400) { e.preventDefault(); e.stopPropagation(); } };
+    const onClick = (e: MouseEvent) => {
+      // a pull is not a tap: the click that follows it lands nowhere
+      if (Date.now() - pulledAt < 400) { e.preventDefault(); e.stopPropagation(); return; }
+      if (!earlierOpen.peek()) return;
+      // open: a row (or All pages) goes where it links and the rail goes up; the page beneath only closes it
+      const onRail = e.target instanceof Element && !!e.target.closest(RAIL);
+      if (!onRail) { e.preventDefault(); e.stopPropagation(); }
+      earlierOpen.value = false;
+    };
 
     page.addEventListener('touchstart', onTouchStart, { passive: true });
     page.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -101,6 +134,9 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
     page.addEventListener('pointercancel', onPointerUp);
     page.addEventListener('click', onClick, true);
     return () => {
+      stop();
+      // the rail belongs to this page: a page that goes takes it up with it, before the next page mounts
+      earlierOpen.value = false;
       page.removeEventListener('click', onClick, true);
       page.removeEventListener('touchstart', onTouchStart);
       page.removeEventListener('touchmove', onTouchMove);
@@ -113,13 +149,4 @@ export function useBlind(pageRef: RefObject<HTMLElement>, blindRef: RefObject<HT
       set(0, false);
     };
   }, []);
-}
-
-/** Still, waiting above the page: the ring, held, in Still's own light. */
-export function BlindPanel({ panel }: { panel: RefObject<HTMLDivElement> }) {
-  return (
-    <div ref={panel} class="fs-blind" data-light="still" aria-hidden="true">
-      <RingMark still />
-    </div>
-  );
 }

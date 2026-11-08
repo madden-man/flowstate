@@ -8,7 +8,7 @@ import { ensureSeeded } from '../../src/db/seed';
 import {
   parseTags, tagsOf, firstSentence, firstLine, writeLine, messagesOf, setKept, speakAs, askThis, askQuestion,
   answerWith, walkOf, questions, linkPages, linksOf, takeToCouncil, entries, searchPages, keptLines, pickEcho, revise,
-  today, pageById, dayKey, findPages, chipVoices, voicesById, pagesList,
+  today, pageById, dayKey, findPages, chipVoices, voicesById, pagesList, earlierPages,
 } from '../../src/model/pages';
 import * as model from '../../src/model/pages';
 
@@ -321,6 +321,33 @@ describe('entries and search', () => {
     expect(r.map(x => x.line)).toEqual(['nothing here', 'How can I gauge my pleasure/pain barometer?']);
     expect(r[0].match).toBe('The BAROMETER again');
     expect(await searchPages('  ')).toEqual([]);
+  });
+});
+
+describe('earlier pages (V6: the rail above a pulled page)', () => {
+  const day = (n: number) => new Date(2026, 9, n, 9).getTime();
+  it('newest first, entries and councils, no questions', async () => {
+    await askQuestion('a question is not on the rail', day(3));
+    const e = await entryWith([{ text: 'the older entry' }], day(1));
+    const [m] = await messagesOf(e.id);
+    await takeToCouncil(e, m, day(2));
+    await entryWith([{ text: 'the newer entry' }], day(4));
+    const rail = await earlierPages();
+    expect(rail.map(x => [x.page.kind, x.line])).toEqual([['entry', 'the newer entry'], ['council', 'the older entry'], ['entry', 'the older entry']]);
+  });
+  it('leaves the open page out', async () => {
+    const a = await entryWith([{ text: 'a' }], day(1));
+    const b = await entryWith([{ text: 'b' }], day(2));
+    expect((await earlierPages(b.id)).map(x => x.page.id)).toEqual([a.id]);
+    expect((await earlierPages('not-a-page')).map(x => x.page.id)).toEqual([b.id, a.id]);
+  });
+  it('keeps six by default, or the limit given', async () => {
+    for (let n = 1; n <= 8; n++) await entryWith([{ text: `page ${n}` }], day(n));
+    expect((await earlierPages()).map(x => x.line)).toEqual(['page 8', 'page 7', 'page 6', 'page 5', 'page 4', 'page 3']);
+    expect((await earlierPages(undefined, 2)).map(x => x.line)).toEqual(['page 8', 'page 7']);
+    // the open page leaving does not shorten the rail: the next one comes up
+    const open = (await earlierPages())[0].page.id;
+    expect((await earlierPages(open)).map(x => x.line)).toEqual(['page 7', 'page 6', 'page 5', 'page 4', 'page 3', 'page 2']);
   });
 });
 

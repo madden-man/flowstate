@@ -3,10 +3,11 @@
 // The Journal's pages also carry the word Pages after the moon (v2): the list of entries and councils,
 // not offered in Still. A question page carries the word Questions there instead (V2): the way back to
 // its list, in place of Pages and Settings; its header right says where it sits among the open ones.
-// Every page carries the blind (pull it down for Still) and, in Still, the kept line at its top.
+// Every page carries the pull (pull it down for the rail of earlier pages, V6) and, in Still, the kept line at its top.
 import type { ComponentChildren, JSX } from 'preact';
 import { useRef } from 'preact/hooks';
-import { useBlind, BlindPanel } from './Blind';
+import { usePull } from './Pull';
+import { EarlierRail, readEarlier } from './Earlier';
 import { StillTop } from './StillTop';
 import { noteKeystroke } from '../still';
 import { Moon } from './Moon';
@@ -29,6 +30,8 @@ type Props = {
   back?: { word: string; href: string };
   /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
   count?: string;
+  /** The page open here, if it is one: the rail of earlier pages leaves it out (V6). */
+  pageId?: string;
   children?: ComponentChildren;
 };
 
@@ -62,13 +65,13 @@ const onInput = (e: JSX.TargetedEvent<HTMLElement>) => {
   if (t.tagName === 'TEXTAREA' && t.closest('.fs-composer, .fs-col')) noteKeystroke();
 };
 
-export function Page({ children, ...header }: Props) {
+export function Page({ children, pageId, ...header }: Props) {
   const page = useRef<HTMLElement>(null);
-  const blind = useRef<HTMLDivElement>(null);
-  useBlind(page, blind);
+  const rail = useRef<HTMLElement>(null);
+  usePull(page, rail, () => { readEarlier(pageId).catch(() => undefined); });
   return (
     <section ref={page} class="fs-page" onInput={onInput}>
-      <BlindPanel panel={blind} />
+      <EarlierRail rail={rail} except={pageId} />
       <PageHeader {...header} />
       <StillTop />
       {children}

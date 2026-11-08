@@ -537,7 +537,7 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
   const count = isQuestion && walk && page?.state === 'open' ? `${walk.at} of ${walk.of} open` : undefined;
 
   return (
-    <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count}
+    <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
       music={page ? {
         id: page.id, music: page.music,
