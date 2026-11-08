@@ -1,5 +1,5 @@
-// Long press a council message: Keep close, Speak as (another voice, or plain ink), move it up or down,
-// or link this council to a page (search by title or first line, the same pattern as the Journal's Link
+// Long press a council message: Edit it in place, Keep close, Speak as (another voice, or plain ink), move it
+// up or down, Delete it (a second tap on the same row, never a dialog: DESIGN.md rule 8), or link this council to a page (search by title or first line, the same pattern as the Journal's Link
 // a page). Reply is a tap on the message itself (V3), so it is not here.
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
@@ -10,24 +10,28 @@ import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
 import type { Read } from '../../db/fields';
 import type { Message } from '../../db/schema';
-import { keepClose, reorderMessage, linkCandidates, linkPages, firstLine, revoice, chipVoices, voiceLabel, type Linked } from '../../model/council';
+import { deleteMessage, keepClose, reorderMessage, linkCandidates, linkPages, firstLine, revoice, chipVoices, voiceLabel, type Linked } from '../../model/council';
 import { voiceList } from './state';
 import { light } from '../light';
 import { voiceColour } from '../voice';
 import { messagesOf } from '../../model/pages';
 
-type Props = { pageId: string; message: Read<Message> | null; onChanged: () => Promise<unknown> | void };
+/** onEdit: the line becomes editable where it stands (the council page owns that). */
+type Props = { pageId: string; message: Read<Message> | null; onChanged: () => Promise<unknown> | void; onEdit: (id: string) => void };
 
-export function MessageSheet({ pageId, message, onChanged }: Props) {
+export function MessageSheet({ pageId, message, onChanged, onEdit }: Props) {
   const open = openSheet.value === 'council-message';
   const [linking, setLinking] = useState(false);
   const [voicing, setVoicing] = useState(false);
+  // Delete asks once more on the same row, and lets go of the ask after a few seconds
+  const [arming, setArming] = useState(false);
+  useEffect(() => { if (!arming) return; const t = setTimeout(() => setArming(false), 4000); return () => clearTimeout(t); }, [arming]);
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Linked[]>([]);
   const [place, setPlace] = useState<{ i: number; n: number }>({ i: 0, n: 0 });
   const close = () => { openSheet.value = null; };
 
-  useEffect(() => { if (open) { setLinking(false); setVoicing(false); setQ(''); } }, [open, message?.id]);
+  useEffect(() => { if (open) { setLinking(false); setVoicing(false); setArming(false); setQ(''); } }, [open, message?.id]);
   useEffect(() => {
     if (!open || !message) return;
     messagesOf(pageId).then(ms => setPlace({ i: ms.findIndex(m => m.id === message.id), n: ms.length }));
@@ -57,6 +61,12 @@ export function MessageSheet({ pageId, message, onChanged }: Props) {
       {message && !linking && (
         <div class="fs-rows">
           <p class="fs-note fs-said">{firstLine(message.text)}</p>
+          <button type="button" class="fs-row" onClick={() => {
+            // the keyboard has to rise inside the tap (iOS): the composer takes it now, the line takes it once drawn
+            document.querySelector<HTMLTextAreaElement>('.fs-composer textarea')?.focus({ preventScroll: true });
+            close();
+            onEdit(message.id);
+          }}><span>Edit</span></button>
           <button type="button" class="fs-row" onClick={async () => {
             const next = !message.kept;
             await keepClose(message.id, next);
@@ -79,6 +89,12 @@ export function MessageSheet({ pageId, message, onChanged }: Props) {
           <button type="button" class="fs-row" disabled={place.i <= 0} onClick={() => void move(-1)}><span>Move up</span></button>
           <button type="button" class="fs-row" disabled={place.i < 0 || place.i >= place.n - 1} onClick={() => void move(1)}><span>Move down</span></button>
           <button type="button" class="fs-row" onClick={() => setLinking(true)}><span>Link a page</span><small>A question or an entry</small></button>
+          <button type="button" class={`fs-row fs-delete${arming ? ' armed' : ''}`} onClick={async () => {
+            if (!arming) { setArming(true); return; }
+            await deleteMessage(message.id);
+            await onChanged();
+            close();
+          }}><span>{arming ? 'Delete it' : 'Delete'}</span>{arming && <small>Tap again</small>}</button>
         </div>
       )}
       {linking && (

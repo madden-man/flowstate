@@ -106,3 +106,7 @@ V6 first (small, no schema change, removes a rule the walkthrough still shows), 
 ## 10. V10: names for the voices (2026-11-08)
 
 Tommy: "make room for me to name each of the voices (the roles, like architect, king, etc. should show on tap)". A voice keeps its role in `name` and gains an optional `given` name (clear, like the role, so chips draw before unlock). `voiceLabel` (the given name, else the role) is what every chip, speaker line, placeholder and list shows; the voice sheet has Name then Role; a tap on the name above a line (`parts/Speaker.tsx`) shows "GUS · ARCHITECT" without replying; the Voices screen shows the role beside the other words a voice goes by. A name change goes onto revisions like any rename.
+
+## 11. V11: council lines can be edited and deleted (2026-11-08)
+
+Long press a council line: **Edit** turns it into a field where it stands (Return or leaving keeps the words, Escape puts them back, an emptied line goes) and **Delete** asks on the same row with a second tap, never a dialog. `editMessage` keeps an earlier day's text as the Journal's `revise` does; `deleteMessage` leaves a reply its own words and drops the quote.

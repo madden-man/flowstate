@@ -80,6 +80,35 @@ describe('messages', () => {
     await expect(c.speak('nope', 'x')).rejects.toThrow();
   });
 
+  it('edits a line, keeping the old words when it is edited on a later day; an emptied line goes (V11)', async () => {
+    const p = await c.newCouncil({ now: T0 });
+    const a = await c.speak(p.id, 'Stand tall.', { voiceId: 'v-warrior', now: T0 });
+    expect(await c.editMessage(a.id, 'Stand tall.', T0 + 1)).toBe('same');
+    expect(await c.editMessage(a.id, 'Stand tall, young one.', T0 + 2)).toBe('edited');
+    let m = (await store.get('messages', a.id))!;
+    expect([m.text, m.revisions]).toEqual(['Stand tall, young one.', undefined]);
+    const nextDay = T0 + 26 * 60 * 60 * 1000;
+    await c.editMessage(a.id, 'Sit, then.', nextDay);
+    m = (await store.get('messages', a.id))!;
+    expect(m.text).toBe('Sit, then.');
+    expect(m.revisions).toEqual([{ at: nextDay, text: 'Stand tall, young one.' }]);
+    expect((await store.get('pages', p.id))!.updatedAt).toBe(nextDay);
+    expect(await c.editMessage(a.id, '   ', nextDay + 1)).toBe('deleted');
+    expect(await messagesOf(p.id)).toEqual([]);
+  });
+
+  it('deletes a line; a reply to it keeps its words and loses the quote (V11)', async () => {
+    const p = await c.newCouncil({ now: T0 });
+    const a = await c.speak(p.id, 'The mind is not pure.', { voiceId: 'v-skeptic', now: T0 });
+    const r = await c.reply(p.id, a.id, 'Neither is the heart.', { voiceId: 'v-warrior', now: T0 + 1 });
+    await c.deleteMessage(a.id, T0 + 2);
+    const ms = await messagesOf(p.id);
+    expect(ms.map(m => m.text)).toEqual(['Neither is the heart.']);
+    expect(ms[0].id).toBe(r.id);
+    expect(ms[0].replyTo).toBeUndefined();
+    await c.deleteMessage('gone');
+  });
+
   it('reorders a message, handing the page\'s moments out again', async () => {
     const p = await c.newCouncil({ now: T0 });
     const ids = [];

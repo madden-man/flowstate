@@ -3,7 +3,7 @@
 // a table. Nothing here writes a word for anyone: names in MORE_VOICES are labels to pick from.
 import type { Message, Page, Voice, VoiceColour } from '../db/schema';
 import { store, type Read } from '../db/fields';
-import { messagesOf } from './pages';
+import { messagesOf, revise } from './pages';
 
 const startOfDay = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
 const sameDay = (a: number, b: number) => startOfDay(a) === startOfDay(b);
@@ -159,6 +159,34 @@ export async function revoice(messageId: string, voiceId: string | undefined, no
   if (!m) throw new Error('No such message');
   const { voiceId: _, ...rest } = m;
   await store.put('messages', voiceId ? { ...rest, voiceId, updatedAt: now } : { ...rest, updatedAt: now });
+}
+
+/** Edit a line (V11). An edit on a later day than the line was spoken keeps the old text, as the Journal does
+ *  (`revise`); an emptied line is deleted. */
+export async function editMessage(messageId: string, text: string, now = Date.now()): Promise<'edited' | 'deleted' | 'same'> {
+  const m = await store.get('messages', messageId);
+  if (!m) throw new Error('No such message');
+  if (!text.trim()) { await deleteMessage(messageId, now); return 'deleted'; }
+  if (text === m.text) return 'same';
+  const revisions = revise(m, text, now);
+  await store.put('messages', { ...m, text, updatedAt: now, ...(revisions ? { revisions } : {}) });
+  const page = await store.get('pages', m.pageId);
+  if (page) await store.put('pages', { ...page, updatedAt: now });
+  return 'edited';
+}
+
+/** Delete a line (V11). A reply that quoted it keeps its own words and loses the quote. */
+export async function deleteMessage(messageId: string, now = Date.now()): Promise<void> {
+  const m = await store.get('messages', messageId);
+  if (!m) return;
+  const replies = (await messagesOf(m.pageId)).filter(x => x.replyTo === messageId).map(x => {
+    const { replyTo: _, ...rest } = x;
+    return { ...rest, updatedAt: now };
+  });
+  await store.delete('messages', messageId);
+  if (replies.length) await store.bulkPut('messages', replies);
+  const page = await store.get('pages', m.pageId);
+  if (page) await store.put('pages', { ...page, updatedAt: now });
 }
 
 export async function keepClose(messageId: string, kept = true, now = Date.now()): Promise<void> {

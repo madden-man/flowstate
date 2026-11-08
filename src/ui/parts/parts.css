@@ -224,6 +224,9 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-council { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fs-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s1) var(--gutter) var(--s2); }
 .fs-chat p { margin: 0; min-height: var(--lh-ink); }
+/* V11: a council line edited where it stands takes the caret and the selection back */
+.fs-council .fs-msg .fs-edit { -webkit-user-select: text; user-select: text; cursor: text; white-space: pre-wrap; }
+.fs-delete.armed span { color: var(--ink); font-weight: 500; }
 .fs-council .fs-msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: pointer; } /* a tap replies (V3) */
 .fs-council .fs-quote {
   display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
