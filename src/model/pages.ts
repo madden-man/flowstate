@@ -314,6 +314,12 @@ export async function pagesList(): Promise<Paged[]> {
     .reverse();
 }
 
+/** The rail of earlier pages above a pulled page (V6): the newest few rows of the Pages screen, the open
+ *  page left out. */
+export async function earlierPages(exceptId?: string, limit = 6): Promise<Paged[]> {
+  return (await pagesList()).filter(x => x.page.id !== exceptId).slice(0, limit);
+}
+
 /** Search, in memory over the opened rows: pages whose title or any line contains the text. */
 export async function searchPages(q: string): Promise<Listed[]> {
   const needle = q.trim().toLowerCase();

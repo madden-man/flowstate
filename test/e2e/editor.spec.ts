@@ -64,10 +64,10 @@ test('write, Return, reload; a paragraph in the middle; an earlier page; Pages',
   await page.getByRole('link', { name: 'Pages' }).click();
   await expect(page).toHaveURL(/#\/journal\/pages$/);
   await expect(page.locator('.fs-month').first()).toHaveText('November');
-  await expect(page.locator('.fs-list-row .fs-list-line')).toContainText(['All this, and I am reduced', 'Wait out the truly hard parts.']);
+  await expect(page.locator('.fs-pagelist .fs-list-row .fs-list-line')).toContainText(['All this, and I am reduced', 'Wait out the truly hard parts.']);
   await page.getByRole('searchbox', { name: 'Search the pages' }).fill('soup');
-  await expect(page.locator('.fs-list-row')).toHaveCount(1);
-  await page.locator('.fs-list-row', { hasText: 'Wait out' }).click();
+  await expect(page.locator('.fs-pagelist .fs-list-row')).toHaveCount(1);
+  await page.locator('.fs-pagelist .fs-list-row', { hasText: 'Wait out' }).click();
 
   const later = page.getByRole('textbox', { name: 'This page' });
   await expect(later).toBeFocused();

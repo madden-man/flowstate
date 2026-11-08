@@ -68,7 +68,7 @@ export async function loadKeptLine(): Promise<void> {
   keptLine.value = { since: s.since, text: k?.message.text ?? '' };
 }
 
-/** Entering Still, by the moon or the blind: one tick and the long low tone. */
+/** Entering Still, by the moon (the only way in since V6): one tick and the long low tone. */
 export function settle(): void {
   if (still.peek()) return;
   enterStill();

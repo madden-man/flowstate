@@ -2,7 +2,7 @@
 // breath; write a paragraph, give the next one the Mystic's voice from the margin dot, keep it close, ask
 // the first line (a new question page; the day stays whole), write under the question, take that line to
 // the council, speak there as two voices; find the entry on Pages; add a goal pair on Be, check it due on Flow,
-// drag the lean; pull the blind into Still and see the kept line, leave Still; set a PIN, reload, unlock
+// drag the lean; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
 // with the word, and everything is still there; export makes a file. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -131,18 +131,11 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(slider).toHaveAttribute('aria-valuenow', '1');
   await expect(page.locator('.fs-flow[data-saved="true"]')).toBeAttached();
 
-  // ---- the blind: pull the Journal page down into Still; a kept line at the top; the ring brings it back ----
+  // ---- Still: tap the moon on the Journal page; a kept line at the top; the ring brings it back ----
   await tab(page, 'Journal').click();
   await expect(today$(page)).toBeEnabled();
   const lightBefore = await page.locator('html').getAttribute('data-light');
-  const col = (await page.locator('.fs-col').boundingBox())!;
-  const x = col.x + col.width / 2, y = col.y + 40;
-  const cdp = await context.newCDPSession(page);
-  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', ty?: number) =>
-    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: ty === undefined ? [] : [{ x, y: ty }] });
-  await touch('touchStart', y);
-  for (let dy = 10; dy <= 150; dy += 10) await touch('touchMove', y + dy);
-  await touch('touchEnd');
+  await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.locator('[data-kept-line]')).toHaveText(/I determine my core\.|Listen to the quiet voices within\./);
   // nothing quiet waits under the page in Still: no count, no hint line
@@ -179,9 +172,9 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(page.locator('.fs-msg', { hasText: mystic }).locator('.fs-kept')).toBeVisible();
   await page.getByRole('link', { name: 'Pages' }).click();
   await expect(page).toHaveURL(/#\/journal\/pages$/);
-  await expect(page.locator('a.fs-list-row[href^="#/journal/"]', { hasText: first })).toBeVisible();
+  await expect(page.locator('.fs-pagelist a.fs-list-row[href^="#/journal/"]', { hasText: first })).toBeVisible();
   // the council is known by its question, and shows who spoke
-  await expect(page.locator('a.fs-list-row[href^="#/council/"]').locator('.fs-spoke')).toHaveAttribute('aria-label', 'Skeptic, Warrior');
+  await expect(page.locator('.fs-pagelist a.fs-list-row[href^="#/council/"]').locator('.fs-spoke')).toHaveAttribute('aria-label', 'Skeptic, Warrior');
   await page.goto(councilUrl);
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');

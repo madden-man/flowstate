@@ -2,7 +2,7 @@
 // stored place, offline, with no library; with no place the day runs 07:00 to 19:00. Sunrise and sunset
 // change the light in one --t-light breath, the token's own duration, so the page, chips, rules and
 // sheets turn together (V5, 2026-11-08: the 40-minute stretch left them in two lights at once). Still is
-// a light the user chooses; package 5 adds the blind gesture and the ring, this file holds the state.
+// a light the user chooses, by the moon (package 5; the pull shows earlier pages since V6); this file holds the state.
 import { signal, computed, effect } from '@preact/signals';
 import type { LightPin, Place } from '../db/schema';
 import { settings } from './settings';

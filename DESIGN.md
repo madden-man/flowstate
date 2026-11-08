@@ -34,7 +34,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 ## 4. The lights (review)
 
 12. The light follows the sky: sunrise and sunset computed offline from a stored place (one-time in Settings; fallback 07:00 to 19:00); sunrise and sunset change the light in one `--t-light` breath, everything together (V5). Settings can pin Day or Night. The moon glows after sunset but never switches Still on by itself.
-13. Still is one gesture from anywhere: pull the page down (commit past 80px) or tap the moon. In Still: no counts, states, page numbers, look-back or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
+13. Still is a tap on the moon, from anywhere (V6: pulling the page down shows earlier pages instead, and does nothing in Still). In Still: no counts, states, page numbers, look-back or page list (today only); deep twins leave the chip row; a breathing ring (4s in, 6s out) replaces the moon and is the exit; one kept line sits at the top; after twelve minutes of typing the ring asks once, "Enough for now?". Leaving Still (ring, or the next sunrise) changes no data.
 14. Still lowers luminance, not warmth: page #0F1016, ink #A19B8E (about 6.5:1), chroma × .4, cool-neutral. (Illuminance moves arousal; colour temperature barely does.)
 15. Nothing counts a streak. No badges, confetti, counts on tabs (lint on the words in `src/ui`).
 
@@ -47,7 +47,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 
 18. Durations: `--t-ui` 180ms, `--t-page` 400ms, `--t-light` 1200ms, `--t-breath` 10s. Easing `--ease`, never a bounce or spring. Any file with `animation:` contains a `prefers-reduced-motion` rule (lint); all durations drop to zero there.
 19. Haptics only through `parts/Haptic` (the hidden `<input type="checkbox" switch>` trick; `navigator.vibrate` is banned, lint). Ticks on: unlock, tab change, a check, an item dropped, a lean detent, entering Still, keep close, a sheet opening. Nowhere else. Silent mode may mute them; the app degrades to nothing.
-20. Tactility without haptics: goals slide up and down their page under the finger, the lean slider clicks into three detents, the blind follows the drag, long press lifts an item 2px. Drag feedback is immediate (no transition while dragging).
+20. Tactility without haptics: goals slide up and down their page under the finger, the lean slider clicks into three detents, the rail of earlier pages follows the drag, long press lifts an item 2px. Drag feedback is immediate (no transition while dragging).
 21. Sound only through `parts/Sound` (Web Audio synthesis, no files; `new AudioContext` elsewhere is banned, lint): a bell on unlock, a long low tone on settling, a soft bell on keep close, the lean's two ends, a short bell on choosing an album. Never uninvited; a Settings switch; follows the ring switch.
 
 ## 7. Network (lint)

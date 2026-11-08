@@ -634,26 +634,17 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 .fs-pin { display: grid; justify-items: center; gap: var(--s1); padding: var(--s1) 0 var(--s2); }
 .fs-pin > .fs-note { text-align: center; padding: 0; }
 .fs-pin-busy { text-align: center; padding: var(--s4) 0; }
-/* ---- package 5: Still. The blind, the ring, the kept line, "Enough for now?", the threshold ---- */
-/* the page rides the blind: it follows the finger with no transition, and goes back up on --t-page */
+/* ---- package 5: Still. The ring, the kept line, "Enough for now?", the threshold (the pull is V6's, below) ---- */
+/* the page rides the pull: it follows the finger with no transition, and goes back up on --t-page */
 .fs-page { transition: transform var(--t-page) var(--ease); }
 .fs-page.fs-pulling { transition: none; }
 .fs-sheetof, .fs-chat { overscroll-behavior-y: contain; }
-/* Still, waiting above the page in its own light (data-light="still" on the panel) */
-.fs-blind {
-  position: absolute; left: 0; right: 0; bottom: 100%; height: 100vh; pointer-events: none;
-  display: grid; align-content: end; justify-items: center; padding-bottom: var(--s3);
-  background: var(--page); color: var(--print); border-bottom: 1px solid var(--rule);
-}
-.fs-blind .fs-ring-mark { transition: transform var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease); }
-.fs-blind.ready .fs-ring-mark { transform: scale(1); border-color: var(--ink); }
 
 /* the ring: 4s in, 6s out, on --t-breath; it takes the moon's place in Still and is the exit */
 .fs-ring-mark {
   display: block; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--print);
   animation: fs-breathe var(--t-breath) var(--ease) infinite;
 }
-.fs-ring-mark.hold { animation: none; transform: scale(.8); }
 @keyframes fs-breathe {
   0%   { transform: scale(.7); opacity: .55; }
   40%  { transform: scale(1);  opacity: 1; }
@@ -693,7 +684,7 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 
 @media (prefers-reduced-motion: reduce) {
   .fs-ring-mark, .fs-threshold .fs-ring-mark { animation: none; }
-  .fs-page, .fs-blind .fs-ring-mark, .fs-threshold { transition: none; }
+  .fs-page, .fs-threshold { transition: none; }
 }
 
 /* ==== package 8: polish ==== */
@@ -709,3 +700,26 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 .fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
 /* the lean before the first drag: the mark waits at the middle in print grey */
 .fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
+
+/* ---- V6: the pull shows earlier pages ---- */
+/* the rail hangs above the page in the page's own light: the rows of the Pages screen on ruled paper, as
+   tall as its rows up to 45% of the page (the drag's cap), scrolling inside past that; All pages last */
+.fs-earlier {
+  position: absolute; left: 0; right: 0; bottom: 100%; max-height: 45%; overflow-y: auto; overscroll-behavior-y: contain;
+  padding: calc(var(--safe-top) + var(--s1)) var(--gutter) 0; background-color: var(--page); color: var(--ink);
+  background-position: 0 calc(var(--safe-top) + var(--s1)); /* the rows clear the status bar, the rules stay under them */
+  border-bottom: 1px solid var(--rule); transition: border-color var(--t-ui) var(--ease);
+}
+/* past the line the rail's edge darkens: let go and it stays */
+.fs-earlier.ready { border-bottom-color: var(--print); }
+/* All pages stays at the rail's foot while the rows scroll above it (six rows run past the 45% cap on a phone) */
+.fs-earlier-all {
+  position: sticky; bottom: 0; display: flex; align-items: center; background-color: var(--page);
+  margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter); border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print);
+}
+/* Still is today only: no rail */
+[data-light="still"] .fs-earlier { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-earlier { transition: none; }
+}

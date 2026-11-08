@@ -296,7 +296,7 @@ function CouncilPage({ id }: { id: string }) {
   const made = async (vid: string) => { await seat(id, vid); await load(); };
 
   return (
-    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined}
+    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined} pageId={id}
       music={data ? { id: data.page.id, music: data.page.music, onMusic: music => setData(d => (d && d !== 'missing' ? { ...d, page: { ...d.page, music } } : d)) } : undefined}>
       <CouncilSeg />
       <div ref={root} class="fs-council" data-council={id}>

@@ -14,6 +14,7 @@ import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
+import { earlierOpen } from './ui/parts/Earlier';
 import { cleanSeedPages } from './db/seed';
 import { loadSettings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
@@ -49,8 +50,8 @@ function Tabs() {
 
 function Frame() {
   const { path } = useLocation();
-  // A tab change (or any route change) puts the sheet away.
-  useEffect(() => { openSheet.value = null; }, [path]);
+  // A tab change (or any route change) puts the sheet away, and the rail of earlier pages back up (V6).
+  useEffect(() => { openSheet.value = null; earlierOpen.value = false; }, [path]);
   return (
     <div class="fs-app">
       <main class="fs-main">
