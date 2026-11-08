@@ -8,7 +8,7 @@ import { ensureSeeded } from '../../src/db/seed';
 import { loadSettings, saveSettings } from '../../src/ui/settings';
 import { POEMS_ID } from '../../src/db/schema';
 import { MY_PLAYLISTS_PATH } from '../../src/music/spotify';
-import { choose, pauseLine, playlists, readNote, readPlaylists, reading, shelfOf } from '../../src/ui/music/state';
+import { choose, pauseLine, play, playNote, playPending, playingFrom, playlists, readNote, readPlaylists, reading, shelfOf, wake } from '../../src/ui/music/state';
 
 const API = 'https://api.spotify.com/v1';
 const listed = (id: string, name: string) => ({ id, name, uri: `spotify:playlist:${id}`, snapshot_id: `s-${id}`, owner: { id: 'tommy' }, images: [], items: { total: 2 } });
@@ -65,5 +65,41 @@ describe('the music state (V7)', () => {
     await readPlaylists();
     expect(asked).toBe(before);
     expect(readNote.value).toMatch(/^Spotify asks for a pause, about [34] minutes$/);
+  });
+});
+
+describe('a tile tapped (V9)', () => {
+  const tapped = { playlist: { id: 'M', uri: 'spotify:playlist:M' }, row: { albumUri: 'spotify:album:Takk', album: 'Takk', artist: 'Sigur Rós', firstTrackUri: 'spotify:track:t2', firstTrackAt: 0 } };
+
+  it('with Spotify not running, opens it, and the tap plays on coming back', async () => {
+    let devicesNow: object[] = [];
+    const plays: string[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
+      if (url.includes('/me/player/play')) {
+        plays.push(url);
+        return url.includes('device_id') ? new Response(null, { status: 204 }) : Response.json({ error: { status: 404, reason: 'NO_ACTIVE_DEVICE' } }, { status: 404 });
+      }
+      if (url.endsWith('/me/player/devices')) return Response.json({ devices: devicesNow });
+      if (init.method === 'PUT') return new Response(null, { status: 204 });
+      return new Response(null, { status: 404 });
+    });
+    const opened: string[] = [];
+    const was = wake.open;
+    wake.open = h => { opened.push(h); };
+    try {
+      await play(tapped.playlist, tapped.row);
+      expect(opened).toEqual(['spotify:playlist:M']);
+      expect(playNote.value).toBe('Opening Spotify: come back and it plays');
+      // Spotify is now running on the phone; back in FlowState, the waiting tap plays there, once
+      devicesNow = [{ id: 'c7f4', name: 'iPhone', type: 'Smartphone', is_active: false, is_restricted: false }];
+      playPending();
+      await vi.waitFor(() => expect(playingFrom.value).toBe('M'));
+      expect(plays.at(-1)).toContain('device_id=c7f4');
+      expect(playNote.value).toBeNull();
+      playPending();
+      expect(opened).toHaveLength(1);
+    } finally {
+      wake.open = was;
+    }
   });
 });

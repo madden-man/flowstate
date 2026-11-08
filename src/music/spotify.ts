@@ -18,7 +18,8 @@ const ACCOUNTS = 'https://accounts.spotify.com';
 const API = 'https://api.spotify.com/v1';
 
 export type Tokens = { accessToken: string; refreshToken: string; expiresAt: number };
-export type Album = { albumUri: string; album: string; artist: string; order: number; firstTrackUri: string; coverUrl: string };
+/** firstTrackAt (V9) is that first song's place in the playlist, counted the way Spotify's play offset counts. */
+export type Album = { albumUri: string; album: string; artist: string; order: number; firstTrackUri: string; firstTrackAt?: number; coverUrl: string };
 /** contextUri (V7) is what Spotify is playing from, so the playlists list can mark the one playing. */
 export type NowPlaying = { albumUri: string; album: string; artist: string; coverUrl: string; isPlaying: boolean; contextUri?: string } | null;
 
@@ -182,7 +183,7 @@ export async function readMyPlaylists(t: Tokens): Promise<MyPlaylist[]> {
 // Pure: group tracks by album, keeping the order each album first appears in the playlist.
 export function groupAlbums(items: PlaylistItem[]): Album[] {
   const seen = new Map<string, Album>();
-  for (const it of items) {
+  for (const [at, it] of items.entries()) {
     const tr = it.item ?? it.track;
     if (!tr || (tr.type && tr.type !== 'track') || !tr.album?.uri || seen.has(tr.album.uri)) continue;
     // the 300px cover: a tile is about a third of the phone, and the 640px one is four times the bytes
@@ -193,6 +194,7 @@ export function groupAlbums(items: PlaylistItem[]): Album[] {
       artist: tr.artists.map(a => a.name).join(', '),
       order: seen.size,
       firstTrackUri: tr.uri,
+      firstTrackAt: at,
       coverUrl: cover?.url ?? '',
     });
   }
@@ -210,22 +212,67 @@ export async function fetchCover(url: string): Promise<Blob> {
 // link to wake the app, then retries.
 export const PLAYLIST_URI = `spotify:playlist:${PLAYLIST_ID}`;
 
-export function playBody(playlistUri: string, firstTrackUri: string) {
-  return { context_uri: playlistUri, offset: { uri: firstTrackUri } };
+export function playBody(playlistUri: string, firstTrackUri: string, firstTrackAt?: number) {
+  return { context_uri: playlistUri, offset: firstTrackAt === undefined ? { uri: firstTrackUri } : { position: firstTrackAt } };
 }
 
-export type PlayResult = 'playing' | 'no-device' | 'not-premium';
+/** not-found (V9): Spotify had the device but would not start at that song (a stale or unplayable offset). */
+export type PlayResult = 'playing' | 'no-device' | 'not-premium' | 'not-found';
+type PlayAlbum = Pick<Album, 'firstTrackUri' | 'firstTrackAt'>;
 
-export async function playFromAlbum(t: Tokens, playlistUri: string, album: Pick<Album, 'firstTrackUri'>): Promise<PlayResult> {
-  const r = await api(t, '/me/player/play', {
+const reasonOf = async (r: Response): Promise<string> => {
+  try { const j = await r.json(); return `${j?.error?.reason ?? ''} ${j?.error?.message ?? ''}`; } catch { return ''; }
+};
+
+/** One play call: the playlist from the album's first song (by its uri, or by its place), on a device when one is named. */
+export async function playFromAlbum(t: Tokens, playlistUri: string, album: PlayAlbum, deviceId?: string, byPlace = false): Promise<PlayResult> {
+  const r = await api(t, `/me/player/play${deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : ''}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(playBody(playlistUri, album.firstTrackUri)),
+    body: JSON.stringify(playBody(playlistUri, album.firstTrackUri, byPlace ? album.firstTrackAt : undefined)),
   });
-  if (r.status === 204 || r.status === 200) return 'playing';
-  if (r.status === 404) return 'no-device';
-  if (r.status === 403) return 'not-premium';
-  throw new ApiError('spotify play', r.status);
+  if (r.status === 204 || r.status === 200 || r.status === 202) return 'playing';
+  const why = await reasonOf(r);
+  if (r.status === 404) return !why.trim() || /device/i.test(why) ? 'no-device' : 'not-found';
+  if (r.status === 403 && (!why.trim() || /premium/i.test(why))) return 'not-premium';
+  if (r.status === 400 && /offset|track|uri|position/i.test(why)) return 'not-found';
+  throw refused('spotify play', r);
+}
+
+/** A device Spotify knows the account by (Connect): the phone's app, a speaker, a computer. */
+export type Device = { id: string; name: string; type: string; isActive: boolean; isRestricted: boolean };
+
+export async function devices(t: Tokens): Promise<Device[]> {
+  const r = await api(t, '/me/player/devices');
+  if (!r.ok) throw refused('spotify devices', r);
+  const j = await r.json();
+  return ((j.devices ?? []) as Record<string, unknown>[]).filter(d => d?.id).map(d => ({
+    id: String(d.id), name: String(d.name ?? ''), type: String(d.type ?? ''), isActive: !!d.is_active, isRestricted: !!d.is_restricted,
+  }));
+}
+
+/** Where a tap should play: the active device, else the phone, else any that takes commands. */
+export function pickDevice(ds: Device[]): Device | undefined {
+  const ok = ds.filter(d => !d.isRestricted);
+  return ok.find(d => d.isActive) ?? ok.find(d => d.type === 'Smartphone') ?? ok[0];
+}
+
+/** A tile tapped (V9). Plays the playlist from the album's first song: on the active device; with none active
+ *  (Spotify on the phone idle in the background), on the phone's Spotify by its device id; a song Spotify will
+ *  not start by uri is tried by its place in the playlist. Shuffle goes off, so the albums run in order.
+ *  'no-device' only when Spotify knows no device at all (its app is not running). */
+export async function playAlbum(t: Tokens, playlistUri: string, album: PlayAlbum): Promise<PlayResult> {
+  let device: string | undefined;
+  let r = await playFromAlbum(t, playlistUri, album);
+  if (r === 'no-device') {
+    device = pickDevice(await devices(t))?.id;
+    if (device) r = await playFromAlbum(t, playlistUri, album, device);
+  }
+  if (r === 'not-found' && album.firstTrackAt !== undefined) r = await playFromAlbum(t, playlistUri, album, device, true);
+  if (r === 'playing') {
+    await api(t, `/me/player/shuffle?state=false${device ? `&device_id=${encodeURIComponent(device)}` : ''}`, { method: 'PUT' }).catch(() => undefined);
+  }
+  return r;
 }
 
 export function playlistLink(): string {
@@ -252,14 +299,6 @@ export async function account(t: Tokens): Promise<{ id: string; name: string }> 
 /** The signed-in account's display name, for "Connected as". */
 export async function me(t: Tokens): Promise<string> {
   return (await account(t)).name;
-}
-
-export async function playFromAlbumWithWake(t: Tokens, playlistUri: string, album: Pick<Album, 'firstTrackUri'>, open: (href: string) => void, waitMs = 2500) {
-  const first = await playFromAlbum(t, playlistUri, album);
-  if (first !== 'no-device') return first;
-  open(playlistUri);
-  await new Promise(r => setTimeout(r, waitMs));
-  return playFromAlbum(t, playlistUri, album);
 }
 
 export async function nowPlaying(t: Tokens): Promise<NowPlaying> {

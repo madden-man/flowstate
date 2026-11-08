@@ -16,7 +16,7 @@ import {
   readOne as readOnePlaylist, readChosen, readMine, playlistRows, choosePlaylist, shelf, albumRow, keepCover, coverWhenNear,
   type ReadHooks, type ShelfAlbum,
 } from '../../music/covers';
-import { ApiError, nowPlaying, openPlaylist as openInSpotify, playFromAlbum, TokenError, redirectUri } from '../../music/spotify';
+import { ApiError, nowPlaying, openPlaylist as openInSpotify, playAlbum, TokenError, redirectUri } from '../../music/spotify';
 import { noteMusic } from '../../model/music';
 
 /** The Spotify settings, kept in the settings row through saveSettings, so the signal never goes stale. */
@@ -63,16 +63,20 @@ export const OUTCOME_LINES: Record<Outcome, string> = {
 export const outcomeLine = (o: Outcome | null) =>
   !o ? '' : o === 'no-return' ? `Spotify did not send you back: add ${redirectUri()} to the app's redirect URIs` : OUTCOME_LINES[o];
 
-// ---- covers: object URLs made once per album, for the life of the app ----
-const urls = new Map<string, string>();
-export const urlOf = (row: Pick<Album, 'albumUri' | 'cover'>) => {
+// ---- covers: object URLs made once per kept cover (an album fetched again after a month gets a new one) ----
+const urls = new Map<string, { at?: number; url: string }>();
+export const urlOf = (row: Pick<Album, 'albumUri' | 'cover' | 'coverType' | 'coverAt'>) => {
   if (!row.cover) return undefined;
-  let u = urls.get(row.albumUri);
-  if (!u) { u = URL.createObjectURL(row.cover); urls.set(row.albumUri, u); }
-  return u;
+  const had = urls.get(row.albumUri);
+  if (had && had.at === row.coverAt) return had.url;
+  if (had) URL.revokeObjectURL(had.url);
+  const blob = row.cover instanceof Blob ? row.cover : new Blob([row.cover], { type: row.coverType ?? 'image/jpeg' });
+  const url = URL.createObjectURL(blob);
+  urls.set(row.albumUri, { at: row.coverAt, url });
+  return url;
 };
 export async function coverUrl(albumUri: string): Promise<string | undefined> {
-  if (urls.has(albumUri)) return urls.get(albumUri);
+  if (urls.has(albumUri)) return urls.get(albumUri)!.url;
   const row = await albumRow(albumUri);
   return row ? urlOf(row) : undefined;
 }
@@ -221,13 +225,14 @@ export async function choose(id: string, on: boolean) {
   });
 }
 
-/** A tile below the fold, scrolled near: its cover fetched and the shelf shown again. */
+/** A tile scrolled near with no cover, or one past the month: its cover fetched and the shelf shown again. */
 export async function nearTile(playlistId: string, albumUri: string): Promise<string | undefined> {
-  const cover = await coverWhenNear(albumUri);
-  if (!cover) return undefined;
+  const row = await coverWhenNear(albumUri);
+  if (!row?.cover) return undefined;
+  const { cover, coverType, coverAt } = row;
   const list = shelves.peek()[playlistId];
-  if (list) shelves.value = { ...shelves.peek(), [playlistId]: list.map(a => (a.albumUri === albumUri ? { ...a, cover } : a)) };
-  return urlOf({ albumUri, cover });
+  if (list) shelves.value = { ...shelves.peek(), [playlistId]: list.map(a => (a.albumUri === albumUri ? { ...a, cover, coverType, coverAt } : a)) };
+  return urlOf(row);
 }
 
 export async function connectSpotify() {
@@ -255,22 +260,53 @@ export function tapMusic() {
   void loadMusic().then(() => { if (!latest.size && !reading.peek() && !paused()) void readPlaylists(); });
 }
 
-/** A cover tapped: that playlist plays from the album's first song on the phone's Spotify, and runs on. */
-export async function play(playlist: Pick<Playlist, 'id' | 'uri'>, row: Pick<ShelfAlbum, 'albumUri' | 'album' | 'artist' | 'cover' | 'firstTrackUri'>) {
-  bell('album');
+type Tapped = { playlist: Pick<Playlist, 'id' | 'uri'>; row: Pick<ShelfAlbum, 'albumUri' | 'album' | 'artist' | 'cover' | 'firstTrackUri' | 'firstTrackAt'> };
+/** A tap made while Spotify was not running: it is opened to wake it, and the tap plays on coming back here. */
+let pending: (Tapped & { at: number }) | null = null;
+/** How long a waiting tap still plays on coming back. */
+export const PENDING_MS = 3 * 60_000;
+/** How the app leaves to wake Spotify (a navigation to its spotify: URI; tests swap it). */
+export const wake = { open: (href: string) => { location.assign(href); } };
+
+/** A cover tapped: that playlist plays from the album's first song on the phone's Spotify, and runs on into the
+ *  next album. Spotify idle in the background is found by its device and played on; Spotify not running at all is
+ *  opened, and the tap plays when you come back. A refusal is one plain line with Spotify's own status. */
+export async function play(playlist: Tapped['playlist'], row: Tapped['row'], again = false) {
+  if (!again) bell('album');
   playNote.value = null;
+  if (!row.firstTrackUri && row.firstTrackAt === undefined) { playNote.value = 'Read again in Settings, then tap'; return; }
   try {
-    const r = await withTokens(keep, t => playFromAlbum(t, playlist.uri, row));
+    const r = await withTokens(keep, t => playAlbum(t, playlist.uri, row));
     if (r === 'playing') {
+      pending = null;
       playingFrom.value = playlist.id;
       playing.value = { albumUri: row.albumUri, album: row.album, artist: row.artist, coverId: row.cover ? row.albumUri : undefined };
+    } else if (r === 'no-device' && !again) {
+      pending = { playlist, row, at: Date.now() };
+      playNote.value = 'Opening Spotify: come back and it plays';
+      wake.open(playlist.uri);
     } else {
-      playNote.value = r === 'no-device' ? 'Open Spotify on the phone first' : 'Playing from here needs Spotify Premium';
+      pending = null;
+      playNote.value = r === 'no-device' ? 'Open Spotify on the phone, then tap again'
+        : r === 'not-found' ? 'Spotify would not start that song: Read again in Settings'
+        : 'Playing from here needs Spotify Premium';
     }
   } catch (e) {
     failed(e);
-    playNote.value = e instanceof NotConnected ? 'Connect Spotify in Settings' : offline(e) ? 'No connection to Spotify' : 'Spotify did not answer';
+    pending = null;
+    playNote.value = e instanceof NotConnected ? 'Connect Spotify in Settings'
+      : offline(e) ? 'No connection to Spotify'
+      : e instanceof ApiError ? `Spotify did not play it (${e.status})` : 'Spotify did not answer';
   }
+}
+
+/** Back from waking Spotify: the waiting tap plays, once. */
+export function playPending() {
+  const p = pending;
+  if (!p || document.visibilityState !== 'visible') return;
+  if (Date.now() - p.at > PENDING_MS) { pending = null; return; }
+  pending = null;
+  void play(p.playlist, p.row, true);
 }
 
 /** One look at what is playing. The first album heard on an open page is written onto it, once. */
@@ -307,7 +343,7 @@ export function bootMusic() {
   } else {
     noticeEmptyReturn();
   }
-  const again = () => { if (document.visibilityState === 'visible') noticeEmptyReturn(); };
+  const again = () => { if (document.visibilityState === 'visible') { noticeEmptyReturn(); playPending(); } };
   document.addEventListener('visibilitychange', again);
   addEventListener('pageshow', again);
 }

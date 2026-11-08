@@ -9,6 +9,18 @@ import { store } from '../db/fields';
 import { ApiError, TokenError, fetchCover, groupAlbums, readMyPlaylists, readPlaylistItems, type Album, type MyPlaylist, type NowPlaying } from './spotify';
 import { NotConnected, withTokens, type Keep } from './connect';
 
+/** How long a kept cover stands before it is fetched again (V9: "a cache that expires every month or so").
+ *  A stale cover still shows until its fresh one has landed; one that fails to arrive keeps the old. */
+export const COVER_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+/** A cover kept within the month: never fetched again. A row from before V9 (no coverAt) is not fresh, so
+ *  it is fetched once more and kept as bytes. */
+export const isFresh = (row: Pick<Row, 'cover' | 'coverAt'>, now = Date.now()) =>
+  !!row.cover && !!row.coverAt && now - row.coverAt < COVER_MAX_AGE;
+/** A fetched cover as it is kept: plain bytes, its type, and when (iOS Safari can lose a Blob kept in IndexedDB). */
+async function kept(b: Blob): Promise<Pick<Row, 'cover' | 'coverType' | 'coverAt'>> {
+  return { cover: await b.arrayBuffer(), coverType: b.type || 'image/jpeg', coverAt: Date.now() };
+}
+
 /** How many covers are fetched at once. */
 export const COVERS_AT_ONCE = 4;
 /** How many covers a read fetches straight away: the list's strip of six and the grid's first screen (five
@@ -34,7 +46,7 @@ export async function storeShelf(
     const had = before.get(a.albumUri);
     return { ...had, albumUri: a.albumUri, album: a.album, artist: a.artist, coverUrl: a.coverUrl || had?.coverUrl, cover: had?.cover };
   });
-  const shelf: Shelf[] = list.map(a => ({ playlistId, albumUri: a.albumUri, order: a.order, firstTrackUri: a.firstTrackUri }));
+  const shelf: Shelf[] = list.map(a => ({ playlistId, albumUri: a.albumUri, order: a.order, firstTrackUri: a.firstTrackUri, firstTrackAt: a.firstTrackAt }));
   const listed = new Set(uris);
   const gone = (await store.query('shelves', tb => tb.where('playlistId').equals(playlistId)))
     .filter(r => !listed.has(r.albumUri)).map(r => [r.playlistId, r.albumUri]);
@@ -45,16 +57,16 @@ export async function storeShelf(
   return albums.map((a, i) => ({ ...a, ...shelf[i] }));
 }
 
-/** The covers still missing among these rows, four at a time, each written as it lands. */
+/** The covers missing or past the month among these rows, four at a time, each written as it lands. */
 async function fillCovers(rows: Row[], getCover: (url: string) => Promise<Blob>, onProgress?: Progress) {
-  const todo = rows.filter(r => !r.cover && r.coverUrl);
+  const todo = rows.filter(r => !isFresh(r) && r.coverUrl);
   let next = 0;
   const worker = async () => {
     while (next < todo.length) {
       const row = todo[next++];
       const cover = await getCover(row.coverUrl!).catch(() => undefined);
       if (!cover) continue;
-      row.cover = cover;
+      Object.assign(row, await kept(cover));
       await store.put('albums', row);
       await onProgress?.();
     }
@@ -71,22 +83,25 @@ export async function fillFirstCovers(playlistId: string, getCover: (url: string
 // ---- a tile below the fold: its cover is fetched when it is scrolled near, never more than four at once ----
 let running = 0;
 const waiting: (() => void)[] = [];
-const asking = new Map<string, Promise<Blob | undefined>>();
+const asking = new Map<string, Promise<Row | undefined>>();
 
-/** The cover of a kept album that has none yet, fetched once from where Spotify keeps it and written to its
- *  row. A tile asks when it comes near the screen; undefined when there is nothing to fetch or it fails. */
-export function coverWhenNear(albumUri: string, getCover: (url: string) => Promise<Blob> = fetchCover): Promise<Blob | undefined> {
+/** The cover of a kept album with none yet, or one past the month, fetched from where Spotify keeps it and
+ *  written to its row. A tile asks when it comes near the screen. Gives the row as it now stands (the old
+ *  cover when the fetch fails); undefined when there is no such album. */
+export function coverWhenNear(albumUri: string, getCover: (url: string) => Promise<Blob> = fetchCover): Promise<Row | undefined> {
   const had = asking.get(albumUri);
   if (had) return had;
   const p = (async () => {
     const row = await store.get('albums', albumUri);
-    if (!row || row.cover || !row.coverUrl) return row?.cover;
+    if (!row || isFresh(row) || !row.coverUrl) return row;
     while (running >= COVERS_AT_ONCE) await new Promise<void>(r => waiting.push(r));
     running++;
     try {
       const cover = await getCover(row.coverUrl).catch(() => undefined);
-      if (cover) await store.put('albums', { ...row, cover });
-      return cover;
+      if (!cover) return row;
+      const next = { ...row, ...(await kept(cover)) };
+      await store.put('albums', next);
+      return next;
     } finally {
       running--;
       waiting.shift()?.();
@@ -218,9 +233,9 @@ export async function albumRow(albumUri: string): Promise<Row | undefined> {
 export async function keepCover(np: NonNullable<NowPlaying>, getCover: (url: string) => Promise<Blob> = fetchCover): Promise<PageMusic> {
   const music: PageMusic = { albumUri: np.albumUri, album: np.album, artist: np.artist };
   const row = await store.get('albums', np.albumUri);
-  if (row?.cover) return { ...music, coverId: row.albumUri };
+  if (row && isFresh(row)) return { ...music, coverId: row.albumUri };
   const cover = np.coverUrl ? await getCover(np.coverUrl).catch(() => undefined) : undefined;
-  if (!cover) return music;
-  await store.put('albums', row ? { ...row, cover } : { ...music, coverUrl: np.coverUrl, cover });
+  if (!cover) return row?.cover ? { ...music, coverId: row.albumUri } : music;
+  await store.put('albums', { ...(row ?? music), coverUrl: np.coverUrl || row?.coverUrl, ...(await kept(cover)) });
   return { ...music, coverId: np.albumUri };
 }

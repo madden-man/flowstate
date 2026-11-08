@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vi } from 'vitest';
-import { groupAlbums, readMyPlaylists, readPlaylistItems, ApiError, MY_PLAYLISTS_PATH, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playFromAlbumWithWake, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
+import { groupAlbums, readMyPlaylists, readPlaylistItems, ApiError, MY_PLAYLISTS_PATH, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playAlbum, pickDevice, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
 
 const track = (uri: string, album: string, artist: string, images = [{ url: `${album}-640`, width: 640 }, { url: `${album}-300`, width: 300 }]) => ({
   track: { uri, album: { uri: `spotify:album:${album}`, name: album, images }, artists: [{ name: artist }] },
@@ -56,13 +56,57 @@ describe('play from an album', () => {
     vi.unstubAllGlobals();
   });
 
-  it('wakes the Spotify app on the playlist when no device is active, then retries', async () => {
-    let n = 0;
-    vi.stubGlobal('fetch', async () => new Response(null, { status: n++ === 0 ? 404 : 204 }));
-    const opened: string[] = [];
-    expect(await playFromAlbumWithWake(tokens, PLAYLIST_URI, { firstTrackUri: 'spotify:track:abc' }, h => opened.push(h), 0)).toBe('playing');
-    expect(opened).toEqual([PLAYLIST_URI]);
+  // V9: what a tile tap does against the Spotify a phone really has
+  type Call = { url: string; method: string; body?: unknown };
+  const player = (answer: (c: Call, n: number) => Response) => {
+    const calls: Call[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
+      const c = { url: url.replace('https://api.spotify.com/v1', ''), method: init.method ?? 'GET', body: init.body ? JSON.parse(String(init.body)) : undefined };
+      calls.push(c);
+      return answer(c, calls.length - 1);
+    });
+    return calls;
+  };
+  const noDevice = () => Response.json({ error: { status: 404, message: 'Player command failed: No active device found', reason: 'NO_ACTIVE_DEVICE' } }, { status: 404 });
+  const phone = { id: 'c7f4', is_active: false, is_restricted: false, name: 'iPhone', type: 'Smartphone' };
+  const mac = { id: 'df43', is_active: false, is_restricted: false, name: 'MacBook Air', type: 'Computer' };
+  const album = { firstTrackUri: 'spotify:track:abc', firstTrackAt: 41 };
+
+  it('with Spotify idle in the background, finds the phone by its device and plays there, then turns shuffle off', async () => {
+    const calls = player(c => (c.url === '/me/player/play' ? noDevice()
+      : c.url === '/me/player/devices' ? Response.json({ devices: [mac, phone] })
+      : new Response(null, { status: 204 })));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('playing');
+    expect(calls.map(c => `${c.method} ${c.url}`)).toEqual([
+      'PUT /me/player/play', 'GET /me/player/devices', 'PUT /me/player/play?device_id=c7f4', 'PUT /me/player/shuffle?state=false&device_id=c7f4',
+    ]);
+    expect(calls[2].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { uri: 'spotify:track:abc' } });
     vi.unstubAllGlobals();
+  });
+
+  it('a song Spotify will not start by uri is started by its place in the playlist', async () => {
+    const calls = player((_c, n) => (n === 0 ? Response.json({ error: { status: 400, message: 'Invalid offset' } }, { status: 400 }) : new Response(null, { status: 204 })));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('playing');
+    expect(calls[1].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { position: 41 } });
+    vi.unstubAllGlobals();
+  });
+
+  it('says no-device only when Spotify knows none, not-premium on a Premium refusal, and throws the rest with its status', async () => {
+    player(c => (c.url === '/me/player/devices' ? Response.json({ devices: [] }) : noDevice()));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('no-device');
+    player(() => Response.json({ error: { status: 403, message: 'Premium required', reason: 'PREMIUM_REQUIRED' } }, { status: 403 }));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('not-premium');
+    player(() => Response.json({ error: { status: 403, message: 'Restriction violated', reason: 'UNKNOWN' } }, { status: 403 }));
+    expect((await playAlbum(tokens, 'spotify:playlist:M', album).catch(e => e)).status).toBe(403);
+    vi.unstubAllGlobals();
+  });
+
+  it('picks the active device, else the phone, else any that takes commands', () => {
+    const d = (id: string, type: string, isActive = false, isRestricted = false) => ({ id, name: id, type, isActive, isRestricted });
+    expect(pickDevice([d('mac', 'Computer'), d('ph', 'Smartphone')])?.id).toBe('ph');
+    expect(pickDevice([d('mac', 'Computer', true), d('ph', 'Smartphone')])?.id).toBe('mac');
+    expect(pickDevice([d('tv', 'TV', false, true), d('mac', 'Computer')])?.id).toBe('mac');
+    expect(pickDevice([])).toBeUndefined();
   });
 });
 
