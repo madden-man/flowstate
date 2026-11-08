@@ -243,14 +243,16 @@ export async function disconnectSpotify() {
   outcome.value = null;
 }
 
-/** The ♪ line: with no account, open the Poems playlist in Spotify; connected, the music sheet on its list. */
+/** The ♪ line: with no account, open the Poems playlist in Spotify; connected, the music sheet on its list.
+ *  The first ♪ of a session reads the list too (and any chosen playlist whose snapshot has moved), so a
+ *  playlist ticked by name, or changed in Spotify, comes without a trip to Settings. */
 export function tapMusic() {
   if (!connected.peek()) { openInSpotify(); return; }
   playNote.value = null;
   openPlaylist.value = null;
   openSheet.value = 'music';
   tick('sheet');
-  void loadMusic();
+  void loadMusic().then(() => { if (!latest.size && !reading.peek() && !paused()) void readPlaylists(); });
 }
 
 /** A cover tapped: that playlist plays from the album's first song on the phone's Spotify, and runs on. */

@@ -23,7 +23,8 @@ import {
   seatedVoices, isSeated, toggleSeat, seat,
   type CouncilRow, type CouncilPage as CouncilData,
 } from '../../model/council';
-import { voiceList, reloadVoices, speaker, editing, useLongPress, useKeyboardInset } from './state';
+import { voiceList, reloadVoices, speaker, editing, useLongPress } from './state';
+import { useKeyboardFit } from '../parts/Keyboard';
 import { VoiceSheet } from './VoiceSheet';
 import { hrefOf } from '../journal/href';
 import { MessageSheet } from './MessageSheet';
@@ -231,7 +232,6 @@ function CouncilPage({ id }: { id: string }) {
   const root = useRef<HTMLDivElement>(null);
   const chat = useRef<HTMLDivElement>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  useKeyboardInset(root);
 
   const load = () => councilById(id).then(d => setData(d ?? 'missing'));
   useEffect(() => { void load(); setBegun(false); setSeating(false); setReplyTo(null); speaker.value = undefined; }, [id]);
@@ -257,9 +257,22 @@ function CouncilPage({ id }: { id: string }) {
 
   // the newest line stays in view
   useLayoutEffect(() => { const c = chat.current; if (c) c.scrollTop = c.scrollHeight; }, [msgs.length, seatsScreen]);
-  // a quote or the seat row rising under the column keeps the newest line in view, if it was in view
+  // The column keeps its newest lines in view whenever it shrinks under them, if they were in view: the
+  // keyboard rising (the app takes the visible height, as on the Journal), a quote or the seat row rising,
+  // the field growing. Scrolled back to read, it stays where it was.
   const pinned = useRef(true);
-  useLayoutEffect(() => { const c = chat.current; if (c && pinned.current) c.scrollTop = c.scrollHeight; }, [replyTo, seating]);
+  const toEnd = () => { const c = chat.current; if (c && pinned.current) c.scrollTop = c.scrollHeight; };
+  useKeyboardFit(toEnd);
+  useLayoutEffect(toEnd, [replyTo, seating]);
+  useEffect(() => {
+    const c = chat.current;
+    if (!c) return;
+    const note = () => { pinned.current = c.scrollHeight - c.scrollTop - c.clientHeight < 4; };
+    c.addEventListener('scroll', note, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(toEnd) : null;
+    ro?.observe(c);
+    return () => { c.removeEventListener('scroll', note); ro?.disconnect(); };
+  }, [seatsScreen, !!data]);
   const notePlace = () => { const c = chat.current; pinned.current = !c || c.scrollHeight - c.scrollTop - c.clientHeight < 4; };
 
   const press = useLongPress<HTMLDivElement>(el => {

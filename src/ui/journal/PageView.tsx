@@ -16,6 +16,7 @@ import { Page } from '../parts/Page';
 import { Chip } from '../parts/Chip';
 import { Echo } from '../parts/Echo';
 import { useHold } from '../parts/Hold';
+import { useKeyboardFit } from '../parts/Keyboard';
 import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
 import { Redirect } from '../route';
@@ -91,33 +92,6 @@ function useSwipe(walk: Walk | undefined, go: (id: string) => void) {
 function keepInView() {
   const a = document.activeElement;
   if (a instanceof HTMLElement && a.closest('.fs-col') && !a.classList.contains('fs-proxy')) a.scrollIntoView({ block: 'nearest' });
-}
-
-/** Keeps the page above the iOS keyboard: the app takes the visual viewport's height while it is up, and
- *  the block you are writing in is scrolled back into view once the keyboard has risen. */
-function useKeyboardFit() {
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const app = document.querySelector<HTMLElement>('.fs-app');
-    if (!vv || !app) return;
-    const fit = () => {
-      const up = window.innerHeight - vv.height > 120;
-      app.style.height = up ? `${vv.height}px` : '';
-      app.style.transform = up && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : '';
-      if (up) app.style.setProperty('--safe-bottom', '0px');
-      else app.style.removeProperty('--safe-bottom');
-      if (up) requestAnimationFrame(keepInView);
-    };
-    vv.addEventListener('resize', fit);
-    vv.addEventListener('scroll', fit);
-    return () => {
-      vv.removeEventListener('resize', fit);
-      vv.removeEventListener('scroll', fit);
-      app.style.height = '';
-      app.style.transform = '';
-      app.style.removeProperty('--safe-bottom');
-    };
-  }, []);
 }
 
 function grow(el: HTMLTextAreaElement | null) {
@@ -247,7 +221,7 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
   const want = useRef<{ id: string; at: number | 'end' } | null>(null);
   const curRef = useRef<string | null>(null);
   const column = useRef<HTMLDivElement>(null);
-  useKeyboardFit();
+  useKeyboardFit(keepInView);
 
   const page = data?.page;
   const kind = page?.kind ?? 'entry';

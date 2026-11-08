@@ -91,3 +91,9 @@ V6 first (small, no schema change, removes a rule the walkthrough still shows), 
 1. Chosen playlists in Settings, or every playlist the account owns under ♪ with no choosing?
 2. ♪ opens on the list every time, or on the last playlist played with Playlists one tap back?
 3. The pull leaves a six-page rail open, or lands on the full Pages screen?
+
+## 8. V8 fixes (2026-11-08, from Tommy's use on the phone)
+
+- **Council and the keyboard.** The composer was lifted by padding, so iOS scrolled the page up and the conversation left the screen. The Council now uses the Journal's fit (`src/ui/parts/Keyboard.ts`, shared): the app takes the visible height above the keyboard, and the chat column stays pinned to its newest line whenever it shrinks, unless scrolled back to read.
+- **master (ii) under ♪.** The API reads it fine (122 pages, 879 albums, about 32 seconds). It never showed because only Poems was ever ticked, and the playlist list was only read from Settings. Now the playlists Tommy named (Poems, master (ii), staging, candidate; ids in `src/music/poems.ts`) are ticked once each, and an untick stays (`spotify.ticked`). The first ♪ of a session also reads the list and any chosen playlist whose snapshot moved. This answers 7.1: chosen playlists, with his named ones chosen for him.
+- **Be is a list.** A row per paradox, its two poles facing across a short seam; a tap opens the spread under its row, a second tap closes it; `#/be/:id` opens that one. DESIGN.md rule 11 says so.

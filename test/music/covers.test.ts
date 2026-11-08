@@ -143,6 +143,26 @@ describe('your playlists, and the guards for big ones (V7)', () => {
     expect((await playlistRows()).map(p => [p.id, p.chosen])).toEqual([[POEMS_ID, true], ['master', true]]);
   });
 
+  it('ticks the named playlists (master (ii), staging, candidate) once; an untick after that stays (V8)', async () => {
+    const MASTER = '1QDPVDJSXB9bIrfRg0V36q', STAGING = '7p9SkKTAcwlS8y5Gw8mv2w';
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url === `${API}/me`) return json({ id: 'tommy' });
+      if (url === `${API}${MY_PLAYLISTS_PATH}`) return json({ items: [listed('other'), listed(MASTER), listed(STAGING)], next: null });
+      return json({}, 404);
+    });
+    // an install from before V8: the Poems row from the upgrade, master already listed and never ticked
+    await store.put('playlists', playlistRow(POEMS_ID));
+    await store.put('playlists', playlistRow(MASTER, false));
+    const k = keep();
+    await readMine(k);
+    expect((await playlistRows()).filter(p => p.chosen).map(p => p.id).sort()).toEqual([POEMS_ID, MASTER, STAGING].sort());
+    expect(k.read()?.ticked?.sort()).toEqual([MASTER, STAGING].sort());
+    await choosePlaylist(MASTER, false);
+    await readMine(k);
+    expect((await playlistRows()).find(p => p.id === MASTER)?.chosen).toBe(false);
+    expect((await playlistRows()).find(p => p.id === 'other')?.chosen).toBe(false);
+  });
+
   it('reads the chosen ones one after another, skips one whose snapshot has not moved, and reads it again when it has', async () => {
     let inFlight = 0, most = 0;
     const read: string[] = [];
