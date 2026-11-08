@@ -1,6 +1,6 @@
 // Pages and their messages (PLAN.md section 4). Package 0 needs today's entry, a page by id, the
 // questions list and the voices; package 1 grows this into the full Journal (below the line).
-import type { EchoState, Message, Page, Paradox, Item, Voice } from '../db/schema';
+import { byParadoxOrder, type EchoState, type Message, type Page, type Paradox, type Item, type Voice } from '../db/schema';
 import { store, type Read } from '../db/fields';
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -82,7 +82,7 @@ export async function voices(): Promise<Read<Voice>[]> {
 }
 
 export async function paradoxes(): Promise<{ paradox: Read<Paradox>; items: Read<Item>[] }[]> {
-  const all = (await store.all('paradoxes')).filter(p => p.status === 'active').sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  const all = (await store.all('paradoxes')).filter(p => p.status === 'active').sort(byParadoxOrder);
   return Promise.all(all.map(async paradox => ({
     paradox,
     items: (await store.query('items', t => t.where('paradoxId').equals(paradox.id))).sort((a, b) => a.order - b.order),

@@ -114,9 +114,10 @@ test('a + after Pages starts another entry today; nothing is made until its firs
   await cross(page);
   await expect(lines(page)).toHaveText(['Evening, after it.']);
   await expect(no).toHaveText(String(first + 1));
-  // both are in Pages, the morning one too
+  // both are in Pages, the morning one too (the list itself: the pull's rail shares its row class)
   await page.getByRole('link', { name: 'Pages', exact: true }).click();
-  await expect(page.locator('.fs-list-row', { hasText: 'Morning, before the move.' })).toHaveCount(1);
-  await expect(page.locator('.fs-list-row', { hasText: 'Evening, after it.' })).toHaveCount(1);
+  const listed = page.locator('.fs-pagelist .fs-list-row');
+  await expect(listed.filter({ hasText: 'Morning, before the move.' })).toHaveCount(1);
+  await expect(listed.filter({ hasText: 'Evening, after it.' })).toHaveCount(1);
 });
 
