@@ -804,6 +804,76 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-stillonly { display: none; }
 [data-light="still"] .fs-stillonly { display: block; }
 
+/* ==== What to do (F2, PLAN-FLOWS.md 3.7 and 6): the middle of the drawing, the tips, the step sheet ==== */
+/* the drawing and what sits over it: the wash behind, parts/Cycle, the clock in the middle a thumb can hold */
+.fl-drawing { position: relative; }
+.fl-wash {
+  position: absolute; left: 50%; top: 50%; width: calc(var(--lh-ink) * 7); aspect-ratio: 1; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--ink); opacity: calc(var(--wash, 0) * .06); pointer-events: none;
+  transition: opacity var(--t-light) var(--ease);
+}
+.fl-mid {
+  position: absolute; left: 50%; top: 50%; width: calc(var(--lh-ink) * 3.4); aspect-ratio: 1; border-radius: 50%;
+  transform: translate(-50%, -50%); display: grid; place-content: center; justify-items: center; gap: 2px; text-align: center;
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none;
+}
+.fl-mid.holdable { pointer-events: auto; cursor: pointer; }
+.fl-mid > * { width: calc(var(--lh-ink) * 4.2); }
+.fl-mid > .fl-breath { width: auto; }
+.fl-mid-min { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
+[data-light="still"] .fl-mid-min { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: var(--fs-chip); }
+.fl-mid-under { font-size: var(--fs-chip); color: var(--print); line-height: 1.3; }
+.fl-mid-breath { font-size: var(--fs-title); color: var(--ink); line-height: 1; position: relative; }
+/* the breath under the thumb: 4s in, 6s out, the Still ring's own breath */
+.fl-breath {
+  position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--ink);
+  animation: fs-breathe var(--t-breath) var(--ease) infinite;
+}
+/* the halo round the dot (the Ring helper), on the same breath */
+.fs-cycle-halo {
+  fill: none; stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none;
+  transform-box: fill-box; transform-origin: center; animation: fs-breathe var(--t-breath) var(--ease) infinite;
+}
+.fs-cycle-halo.held { stroke-width: 2; }
+/* the tips: drawn checks, the helper's word in print at the end; a wise line is italic print, not a check */
+.fl-tip .fs-check small { padding-left: var(--s1); }
+.fl-wise { margin: 0; font-style: italic; color: var(--print); line-height: var(--lh-ink); min-height: calc(var(--lh-ink) * 2); padding-bottom: var(--lh-ink); }
+.fl-return { color: var(--ink); }
+/* one thing at a time at the peak: full width, the title size, the next by a swipe or "Next" */
+.fl-one { touch-action: pan-y; }
+.fl-one .fs-check, .fl-one .fl-wise { font-size: var(--fs-title); }
+.fl-next { display: flex; justify-content: space-between; align-items: center; min-height: var(--lh-ink); margin-top: calc(var(--lh-ink) * -1); }
+.fl-next .fs-word { margin-right: calc(var(--s1) * -1); }
+/* Five things you can see: five rules under the row, one thing each, the caret the only prompt */
+.fl-five { display: grid; margin: calc(var(--lh-ink) * -1) 0 var(--lh-ink) calc(20px + var(--s1)); }
+.fl-five-line { border: 0; border-radius: 0; background: transparent; outline: none; padding: 0; font: inherit; color: var(--ink); line-height: var(--lh-ink); height: var(--lh-ink); }
+/* the return time: a clock time and the least it can be, in print */
+.fl-timer { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1); margin: calc(var(--lh-ink) * -1) 0 var(--lh-ink) calc(20px + var(--s1)); }
+.fl-timer .fs-input { width: auto; font-family: var(--serif); }
+/* at rest: what helped last time, one line in print */
+.fl-helped { margin: 0; color: var(--print); line-height: var(--lh-ink); }
+.fl-helped small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; }
+.fl-edit { margin: 0; min-height: var(--lh-ink); }
+.fl-edit .fs-word { margin-left: calc(var(--s1) * -1); }
+/* the journal page's link back to the episode it was written about: the first thing on the page */
+.fl-journal-link { margin-top: 0; }
+.fl-journal-link small b { font-weight: inherit; }
+[data-light="still"] .fl-journal-link small b { display: none; }
+/* the step sheet: the things to do, each its words, its helper chip and Strike; a long press lifts one */
+.fl-line-field { font-style: italic; }
+.fl-said-field { color: var(--print); }
+.fl-tiplist { display: grid; }
+.fl-tiprow { position: relative; display: grid; gap: var(--s1); padding: var(--s1) 0; border-top: 1px solid var(--seam); background: var(--page); }
+.fl-tiprow:first-child { border-top: 0; }
+.fl-tiprow.lift { z-index: 2; box-shadow: var(--shadow-tile); }
+.fl-tiptext { margin: 0; line-height: var(--lh-ink); cursor: text; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.fl-tipacts { display: flex; justify-content: space-between; align-items: center; }
+.fl-tipacts .fs-chip { min-height: 32px; padding: 0 10px; font-size: var(--fs-chip); }
+.fs-row-off { color: var(--print); cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .fl-breath, .fs-cycle-halo { animation: none; }
+  .fl-wash { display: none; }
+}
 /* ==== Flows (F3): the valley, the arc and the mountain; printed lines; your own flows ==== */
 /* words in the drawing: the hand (italic, print grey) and the print (the time lines across the mountain) */
 .fs-cycle text.hand { font-style: italic; fill: var(--print); }

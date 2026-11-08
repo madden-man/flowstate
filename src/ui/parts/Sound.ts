@@ -3,7 +3,7 @@
 // Web Audio already follows the ring/silent switch on iPhone.
 import { settings } from '../settings';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut';
 
 let ac: AudioContext | null = null;
 function ctx(): AudioContext | null {
@@ -55,6 +55,25 @@ function settleTone(a: AudioContext) {
   o.stop(t + 3.3);
 }
 
+/** The breath tone (F2, PLAN-FLOWS.md 3.7 "Breathe with eyes shut"): a soft sine that rises through the in-breath and
+ *  falls through the out-breath, so the phone can go face down and the breath still has a pacer. Quiet, no attack. */
+function breathTone(a: AudioContext, from: number, to: number, seconds: number) {
+  const t = a.currentTime;
+  const o = a.createOscillator();
+  const v = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(from, t);
+  o.frequency.exponentialRampToValueAtTime(to, t + seconds);
+  o.connect(v);
+  v.connect(a.destination);
+  v.gain.setValueAtTime(0, t);
+  v.gain.linearRampToValueAtTime(0.05, t + 0.6);
+  v.gain.setValueAtTime(0.05, t + seconds - 0.8);
+  v.gain.linearRampToValueAtTime(0, t + seconds - 0.05);
+  o.start(t);
+  o.stop(t + seconds);
+}
+
 const BELLS: Record<BellName, (a: AudioContext) => void> = {
   unlock: a => strike(a, 880, 1.8, 0.16),
   settle: settleTone,
@@ -62,10 +81,16 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   leanLow: a => strike(a, 440, 0.5, 0.05),
   leanHigh: a => strike(a, 587, 0.5, 0.05),
   album: a => strike(a, 660, 0.6, 0.06),
+  breathIn: a => breathTone(a, 196, 294, 4),
+  breathOut: a => breathTone(a, 294, 196, 6),
 };
+
+/** The breath tone has its own switch under Sounds, off by default, and follows it (rule 21). */
+const BREATH: BellName[] = ['breathIn', 'breathOut'];
 
 export function bell(name: BellName): void {
   if (!settings.value.sounds) return;
+  if (BREATH.includes(name) && !settings.value.breathTone) return;
   const a = ctx();
   if (a) BELLS[name](a);
 }

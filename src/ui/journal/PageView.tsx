@@ -29,6 +29,7 @@ import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
 import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
+import { JournalLink } from '../flow/JournalLink';
 import {
   today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
@@ -544,6 +545,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
             pageRef.current = np;
           })} />
         )}
+        {/* F2: a page written about a flow episode links back to it (page.flow, like page.music) */}
+        {page?.flow && <JournalLink episodeId={page.flow.episodeId} />}
         {data && blocks.map(b => {
           const m = b.m;
           const dated = m && prevAt !== undefined && dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;

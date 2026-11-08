@@ -78,7 +78,8 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect(page).toHaveURL(/#\/flow\/now$/);
   await expect(keypad(page)).toHaveCount(0);
   const rows = page.locator('.fl-nowlist a.fl-flow');
-  await expect(rows).toHaveCount(4);
+  // every flow's lines, in flow order: Panic's four first (F3's seed flows follow them)
+  await expect(rows.nth(3).locator('.fs-list-meta')).toHaveText('Panic · Under the skin');
   await expect(rows.first().locator('.fs-list-line')).toHaveText('Too much coming in at once.');
   await expect(rows.first().locator('.fs-list-meta')).toHaveText('Panic · Overstimulated');
   const behindThePin = async () => {
@@ -103,6 +104,27 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect(page.locator('.fs-flowpage .fl-said')).toContainText("it's already on its way out");
   await behindThePin();
   expect((await episodes(page)).filter(e => e.endedAt === undefined)).toEqual([]);
+
+  // F2's rows through the door: the ring can still be held; a tick draws and writes nothing; the rows that write or
+  // leave (Journal, Timer, ♪, Five), what helped, Edit and the step sheet stay behind the PIN
+  await expect(page.getByRole('button', { name: 'Hold to breathe' })).toBeVisible();
+  await page.goto('/#/flow/panic/4');
+  await expect(keypad(page)).toHaveCount(0);
+  await expect(page.locator('.fs-flowpage[data-door]')).toBeVisible();
+  const water = page.locator('[data-tip="panic-4-water"] [role="checkbox"]');
+  await water.click();
+  await expect(water).toHaveAttribute('aria-checked', 'true');
+  for (const id of ['panic-4-album', 'panic-4-write']) await expect(page.locator(`[data-tip="${id}"]`)).toHaveCount(0);
+  await expect(page.locator('.fl-helped, .fl-edit, .fl-timer, .fl-return, .fl-five, .fs-sheet, .fl-add')).toHaveCount(0);
+  await page.goto('/#/flow/panic/3');
+  await expect(page.locator('[data-tip="panic-3-window"]')).toBeVisible();
+  await expect(page.locator('[data-tip="panic-3-five"]')).toHaveCount(0);
+  await page.goto('/#/flow/panic/1');
+  await expect(page.locator('[data-tip="panic-1-album"]')).toHaveCount(0);
+  await expect(page.locator('[data-tip="panic-1-less"]')).toBeVisible();
+  await behindThePin();
+  expect((await episodes(page)).filter(e => e.endedAt === undefined)).toEqual([]);
+  expect((await episodes(page)).flatMap(e => (e as { done?: unknown[] }).done ?? [])).toEqual([]);
 
   // any other hash is the keypad again, and back
   await page.goto('/#/flow/panic');
