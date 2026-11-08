@@ -49,6 +49,10 @@ export type Settings = {
   /** Not in PLAN-FLOWS.md section 5 (F1): the seed flows (db/seed-flows.ts) already written once, by id, so each
    *  is written only once: a flow Tommy deletes never comes back, and a flow a later package adds is written on the next open. */
   flowsSeeded?: string[];
+  /** The door without the PIN (PLAN-FLOWS.md 3.7 and section 5, F5): "the ring" under the lock's keypad opens Right
+   *  now and the flow pages read-only. Off by default (absent is off). Clear, like the rest of settings, so the
+   *  locked gate can read it. */
+  flowDoor?: boolean;
   sealed?: Sealed;
 };
 

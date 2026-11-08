@@ -22,7 +22,11 @@ export function Flow() {
   return (
     <Page label="Flow">
       <div class="fs-sheetof fs-rules fs-flows">
-        {/* Right now (F5, #/flow/now) takes the first row here: his own step lines across every flow. */}
+        {/* Right now (F5): his own step lines across every flow, the door's page */}
+        <a class="fs-row fs-list-row fl-flow fl-now" href="#/flow/now">
+          <span class="fs-list-line">Right now</span>
+          <small class="fs-list-meta">Your lines; tap the one that fits</small>
+        </a>
         {rows?.map(({ flow, live, last }) => (
           <a key={flow.id} class="fs-row fs-list-row fl-flow" href={`#/flow/${flow.id}`} data-live={live ? 'true' : undefined}>
             <span class="fs-list-line">{flow.name}</span>

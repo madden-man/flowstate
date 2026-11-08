@@ -16,6 +16,7 @@ import { isStandalone, storageHealth, bytes, backupDue, backupDueLine, type Stor
 import { persistNow } from '../../pwa/persist';
 import type { LightPin } from '../../db/schema';
 import { MusicRows } from '../music/MusicRows';
+import { DoorRows } from '../flow/DoorRows';
 
 const PINS: [LightPin, string][] = [['sky', 'Follow the sky'], ['day', 'Day'], ['night', 'Night']];
 
@@ -178,6 +179,7 @@ function SettingsBody() {
       <MusicRows />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>
       <PinRows />
+      <DoorRows />
       <ExportRow />
       <ImportRow />
       <StorageRow />

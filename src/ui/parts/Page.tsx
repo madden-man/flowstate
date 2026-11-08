@@ -11,6 +11,8 @@ import { EarlierRail, readEarlier } from './Earlier';
 import { StillTop } from './StillTop';
 import { noteKeystroke } from '../still';
 import { Moon } from './Moon';
+import { Ring } from './Ring';
+import { light } from '../light';
 import { openSheet } from '../sheets';
 import { notebookDate } from '../date';
 import { tick } from './Haptic';
@@ -34,10 +36,28 @@ type Props = {
   count?: string;
   /** The page open here, if it is one: the rail of earlier pages leaves it out (V6). */
   pageId?: string;
+  /** Through the door without the PIN (F5, PLAN-FLOWS.md 3.7): the moon and the way back ask for the PIN, and the
+   *  header carries nothing else: no Settings, no ♪ line, no kept line in Still, no rail of earlier pages. */
+  door?: { ask: (then: 'still' | 'flow') => void };
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count, door }: Omit<Props, 'children'>) {
+  if (door) return (
+    <header class="fs-hdr">
+      <div class="fs-hdr-l">
+        {/* in Still the ring stays the exit (leaving Still writes nothing); otherwise the moon asks first */}
+        {light.value === 'still' ? <Ring /> : (
+          <button type="button" class="fs-moon" aria-label="Still" aria-pressed="false" onClick={() => door.ask('still')}><i /></button>
+        )}
+        {back && <button type="button" class="fs-word" onClick={() => door.ask('flow')}>{back.word}</button>}
+      </div>
+      <div class="fs-hdr-r">
+        {label && <span>{label}</span>}
+        <span>Date: <b>{notebookDate(date)}</b></span>
+      </div>
+    </header>
+  );
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -70,7 +90,15 @@ const onInput = (e: JSX.TargetedEvent<HTMLElement>) => {
 export function Page({ children, pageId, ...header }: Props) {
   const page = useRef<HTMLElement>(null);
   const rail = useRef<HTMLElement>(null);
-  usePull(page, rail, () => { readEarlier(pageId).catch(() => undefined); });
+  const none = useRef<HTMLElement>(null);
+  // through the door the pull is not attached: earlier pages are behind the PIN
+  usePull(header.door ? none : page, rail, () => { readEarlier(pageId).catch(() => undefined); });
+  if (header.door) return (
+    <section ref={page} class="fs-page" data-door>
+      <PageHeader {...header} />
+      {children}
+    </section>
+  );
   return (
     <section ref={page} class="fs-page" onInput={onInput}>
       <EarlierRail rail={rail} except={pageId} />
