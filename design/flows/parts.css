@@ -30,8 +30,6 @@
 /* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
 .fs-hdr-r > span { white-space: nowrap; }
 .fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
-/* V12: the + after Pages (another entry today): the serif a size up, like ♪, not a word */
-.fs-hdr-l > .fs-plus { font-family: var(--serif); font-size: var(--fs-fill); letter-spacing: 0; min-width: var(--hit); justify-content: center; }
 .fs-hdr-r b {
   font-family: var(--serif); font-weight: 400; font-size: var(--fs-fill);
   text-transform: none; letter-spacing: 0; color: var(--ink);
@@ -503,13 +501,18 @@ a.fs-word { text-decoration: none; }
 .fs-links { margin-top: var(--lh-ink); }
 .fs-link, .fs-list-row, .fs-qrow { display: block; color: inherit; text-decoration: none; min-height: calc(var(--lh-ink) * 2); }
 .fs-link { color: var(--print); }
+/* V15: the + under the newest entry on Pages (another entry today): one rule high, in print grey, no word */
+.fs-another { appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer; display: block; height: var(--lh-ink); min-width: var(--hit); text-align: left; font-family: var(--serif); font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--print); }
+.fs-another:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .fs-link small, .fs-list-meta { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span { font-style: italic; }
-/* the Questions list (V2): open questions as serif titles, whole, a rule a line; the answered ones in print grey */
+/* the Questions list (V2): open questions as serif titles, whole, a rule a line; the answered ones in print grey.
+   A question ends on a blank rule however many lines its title took (the Pages and councils lists stay dense: one line each, cut with an ellipsis). */
+.fs-qrow { padding-bottom: var(--lh-ink); }
 .fs-qrow .fs-list-line { white-space: normal; font-size: var(--fs-title); }
 .fs-qrow.done .fs-list-line { font-size: inherit; color: var(--print); font-style: italic; }
-.fs-month.fs-answered { margin-top: var(--lh-ink); }
+.fs-month.fs-answered { margin-top: 0; } /* the open question above already ends on a blank rule */
 /* the Pages screen: search on the first rule, a small month word, who spoke on a council */
 .fs-search {
   appearance: none; display: block; width: 100%; height: var(--lh-ink); margin: 0; padding: 0; border: 0; outline: none;
@@ -544,6 +547,7 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-check {
   appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; cursor: pointer; text-align: left;
   display: flex; align-items: flex-start; gap: var(--s1); min-height: calc(var(--lh-ink) * 2); /* two rule lines a row: a 44px target that keeps the rules */
+  padding-bottom: var(--lh-ink); /* a row ends on a blank rule however many lines its text took (Tommy, 2026-11-08): one line is text + blank, three lines is text + blank */
   font: inherit; line-height: var(--lh-ink); color: var(--ink); -webkit-tap-highlight-color: transparent;
 }
 .fs-check:disabled { cursor: default; }
@@ -587,6 +591,7 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-back-link {
   appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; text-align: left; cursor: pointer;
   display: block; min-height: calc(var(--lh-ink) * 2); font: inherit; line-height: var(--lh-ink); color: var(--ink); text-decoration: none;
+  padding-bottom: var(--lh-ink); /* ends on a blank rule, like a check, so a wrapped list of names or a goal with its slot line still breathes */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 button.fs-back-link { display: flex; align-items: flex-start; }
@@ -773,6 +778,7 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 [data-light="still"] .fs-strip img, [data-light="still"] .fs-playlist-now { opacity: .62; }
 /* Settings, Your playlists: a drawn check per playlist, Read again at the bottom */
 .fs-mylists { display: grid; padding-top: var(--s1); }
+.fs-mylists .fs-check { padding-bottom: 0; } /* a sheet list with no rules under it: the blank rule would be air with nothing to sit on */
 .fs-readagain { display: flex; justify-content: flex-start; padding-top: var(--s2); border-top: 1px solid var(--seam); }
 .fs-readagain .fs-word { margin-left: calc(var(--s1) * -1); }
 .fs-readagain .fs-word:disabled { color: var(--print); cursor: default; }
