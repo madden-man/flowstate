@@ -33,7 +33,12 @@ export interface Shape {
   /** F4: where the middle of the page (F2's clock, "hold") sits on this drawing, if not its centre: an open shape whose
    *  centre is drawn on puts it in a clear place. */
   mid?: Pt;
+  /** F4/F6: the same shape with his outcomes drawn on it (the curve's stamps); a shape without it draws none itself. */
+  withStamps?(outcomes: Stamp[]): Shape;
 }
+
+/** An outcome stamped on a drawing (episodes.prediction): a check for "didn't happen", a cross for "happened". */
+export type Stamp = 'didnt' | 'happened';
 
 /** Where the middle sits, as fractions of the drawing (the centre unless the shape says otherwise). */
 export const midOf = (s: Shape) => ({ x: (s.mid?.x ?? s.w / 2) / s.w, y: (s.mid?.y ?? s.h / 2) / s.h });

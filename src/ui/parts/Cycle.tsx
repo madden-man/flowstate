@@ -21,6 +21,8 @@
 //
 // The halo (F2): a ring round the dot on --t-breath (4s in, 6s out), the Ring helper's pacer. A finger held on the
 // middle of the drawing (src/ui/flow/Clock.tsx) restarts it on the in-breath, so the ticks at the turns land with it.
+// It is drawn beneath the step words (F6), and the words carry a page-coloured edge, so the step's number and name
+// stay readable while the halo breathes across them.
 //
 // Walk it once (PLAN-FLOWS.md 3.7): a tap on a step word reads that step, and the dot stays where it is; only a drag
 // (or a key) moves the dot. When an episode is live, a tap on a step word moves the walker there.
@@ -28,7 +30,7 @@ import { useMemo, useRef, useState } from 'preact/hooks';
 import type { DiagramName } from '../../db/schema';
 import { tick } from './Haptic';
 import { shapeOf } from './cycle/index';
-import { nearestT, slotPoint, walkDistance, type Drawn, type Shape } from './cycle/shape';
+import { nearestT, slotPoint, walkDistance, type Drawn, type Shape, type Stamp } from './cycle/shape';
 
 export type CycleStep = { id: string; name: string };
 
@@ -49,6 +51,8 @@ type Props = {
   disabled?: boolean;
   /** The words only small, the dot only drawn: the list's row. */
   small?: boolean;
+  /** His outcomes (F6's stamps, episodes.prediction): a shape that draws them itself (the curve) draws them; others ignore them. */
+  stamps?: Stamp[];
   /** The breathing halo on the dot (F2, the Ring helper): false for none, else a number. Held, the number is when the
    *  finger landed, so the halo starts again on the in-breath with the ticks (PLAN-FLOWS.md 3.7, hold the ring). */
   halo?: number | false;
@@ -84,8 +88,9 @@ export function Drawing({ drawn }: { drawn: Drawn[] }) {
   );
 }
 
-export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small, halo = false, held }: Props) {
-  const shape = shapeOf(diagram);
+export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small, halo = false, held, stamps }: Props) {
+  const stampKey = stamps?.join(',') ?? '';
+  const shape = useMemo(() => shapeOf(diagram, stamps), [diagram, stampKey]);
   const n = steps.length;
   const svg = useRef<SVGSVGElement>(null);
   const stops = useMemo(() => detents(shape, n), [shape, n]);
@@ -167,6 +172,11 @@ export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, d
           const p = slotPoint(shape, i, n);
           return <circle key={s.id} class="mark" cx={p.x} cy={p.y} r={3} />;
         })}
+        {/* the halo sits under the step words (F6, the F2 review): at the peak it must not hide "The wave"; the words
+            carry a page-coloured edge (parts.css) so the ring passing behind them never cuts a letter */}
+        {!small && halo !== false && at > 0 && dragT === null && (
+          <circle key={halo} class={`fs-cycle-halo${held ? ' held' : ''}`} cx={dot.x} cy={dot.y} r={14} />
+        )}
         {!small && words.map(w => {
           const ls = lines(w.name, w.label.hang);
           // the block: the step's number in print, then its name in the serif, a line or two
@@ -193,9 +203,6 @@ export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, d
             aria-disabled={disabled || undefined}
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel} onKeyDown={key}>
             {!small && <circle class="fs-cycle-grip" cx={dot.x} cy={dot.y} r={22} />}
-            {!small && halo !== false && at > 0 && dragT === null && (
-              <circle key={halo} class={`fs-cycle-halo${held ? ' held' : ''}`} cx={dot.x} cy={dot.y} r={14} />
-            )}
             <circle class="now" cx={dot.x} cy={dot.y} r={small ? 16 : 5} />
           </g>
         )}

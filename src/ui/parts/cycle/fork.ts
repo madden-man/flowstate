@@ -31,15 +31,15 @@ export const fork: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
-  // the page's middle (F2's clock and hold), over the drop, clear of the fork
-  mid: { x: 146, y: 34 },
+  // the page's middle (F2's clock and hold), low on the right, under the road back (its word sits under the road, left of it)
+  mid: { x: 278, y: 196 },
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(hide), cls: hide.cls }, { kind: 'path', d: pieceD(hitBack), cls: hitBack.cls });
     out.push({ kind: 'path', d: arrowHead(END, tangentAt(fork, 0.999), 6), cls: 'arrow' });
     out.push({ kind: 'text', x: 40, y: 206, text: 'hide', anchor: 'middle', cls: 'hand' });
-    out.push({ kind: 'text', x: 204, y: 214, text: 'hit back', anchor: 'start', cls: 'hand' });
-    out.push({ kind: 'text', x: 236, y: 166, text: 'I can fix it', anchor: 'middle', cls: 'hand' });
+    out.push({ kind: 'text', x: 188, y: 222, text: 'hit back', anchor: 'end', cls: 'hand' });
+    out.push({ kind: 'text', x: 178, y: 177, text: 'I can fix it', anchor: 'middle', cls: 'hand' });
     return out;
   },
   label(i, n): Label {
@@ -47,7 +47,7 @@ export const fork: Shape = {
     // the ground's word stands above it; the drop's sits to its right, clear of the two that lead away; the fork's
     // to its left, above "hide"; the road back's above it, to the left
     if (p.y < GROUND + 4) return { x: p.x, y: p.y - 8, anchor: 'middle', hang: 'above' };
-    if (p.x < FORK.x - 2) return { x: p.x + 12, y: p.y - 8, anchor: 'start', hang: 'centre' };
+    if (p.x < FORK.x - 2) return { x: p.x + 20, y: p.y - 8, anchor: 'start', hang: 'centre' };
     if (Math.abs(p.x - FORK.x) < 3) return { x: p.x - 12, y: p.y - 14, anchor: 'end', hang: 'centre' };
     return { x: p.x - 6, y: p.y - 10, anchor: 'end', hang: 'above' };
   },

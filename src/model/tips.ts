@@ -125,11 +125,15 @@ export function washLeft(markedAt: number, spanMs: number, now: number): number 
 // ---------------------------------------------------------------- what the page shows
 
 /** The tip rows a step shows: struck ones never (they stay in the step sheet, rule 10), not a print line (F3's
- *  PrintLines prints those under the rows, never as a check), not yet a person row (F6's); at most six, three in Still. */
+ *  PrintLines prints those under the rows, never as a check); at most six, three in Still. A person row (F6) shows
+ *  named or not (an unnamed one reads as the slot to fill), and always: past the cap it is added at the end. */
 export function shownTips(step: Pick<Step, 'tips'>, still: boolean): Tip[] {
   // F4: in Still the Still row has nothing left to do, so it goes (the 3 a.m. mock: "already in Still, which is why
   // it is absent"); on Shutdown and 3 a.m. it is the first row in Day and Night
-  return step.tips.filter(t => !t.struck && !t.print && t.helper !== 'person' && !(still && t.helper === 'still')).slice(0, still ? 3 : 6);
+  const rows = step.tips.filter(t => !t.struck && !t.print && !(still && t.helper === 'still'));
+  const shown = rows.slice(0, still ? 3 : 6);
+  // Still hides the person's number, never the row (PLAN-FLOWS.md 3.7): a person row past the cap still shows
+  return [...shown, ...rows.filter(t => t.helper === 'person' && !shown.includes(t))];
 }
 
 /** A tip's words: the short form in Still, where there is one. */

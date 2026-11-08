@@ -41,8 +41,8 @@ export const clock: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
-  // the page's middle (F2's clock and hold), the middle of the face
-  mid: C,
+  // the page's middle (F2's clock and hold), high inside the face, above the awake arc's words
+  mid: { x: C.x, y: C.y - 30 },
   paths(): Drawn[] {
     const out: Drawn[] = [
       // the day side of the face, faint: not part of the night
@@ -58,9 +58,13 @@ export const clock: Shape = {
     for (let h = 0; h < 12; h++) { const a = at(h, R - 4), b = at(h, R - 9); out.push({ kind: 'path', d: `M${a.x.toFixed(1)} ${a.y.toFixed(1)} L${b.x.toFixed(1)} ${b.y.toFixed(1)}`, cls: 'arc faint-tick' }); }
     const twelve = at(0, R - 22);
     out.push({ kind: 'text', x: twelve.x, y: twelve.y + 4, text: '12', anchor: 'middle', cls: 'print num' });
-    // 7, pinned: a filled dot on the face (a circle as two half arcs)
-    const p = at(ALARM);
-    out.push({ kind: 'path', d: `M${(p.x - 4.5).toFixed(1)} ${p.y.toFixed(1)} a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0`, cls: 'pin' });
+    // 7, pinned: a drawn pin through the face at seven (a stake out from the rim, a filled head), and "7" in the hand
+    // inside the rim (num: Still drops the digit and keeps the pin). The step's own mark sits on the rim, so the pin
+    // stands just outside it and is never covered.
+    const rim = at(ALARM, R + 3), head = at(ALARM, R + 15), seven = at(ALARM, R - 18);
+    out.push({ kind: 'path', d: `M${rim.x.toFixed(1)} ${rim.y.toFixed(1)} L${head.x.toFixed(1)} ${head.y.toFixed(1)}`, cls: 'arc pin-stake' });
+    out.push({ kind: 'path', d: `M${(head.x - 4).toFixed(1)} ${head.y.toFixed(1)} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0`, cls: 'pin' });
+    out.push({ kind: 'text', x: seven.x, y: seven.y + 5, text: '7', anchor: 'middle', cls: 'hand num' });
     out.push({ kind: 'text', x: (upTo.x + at(BACK).x) / 2 - 8, y: 222, text: 'back when sleepy', anchor: 'middle', cls: 'hand' });
     return out;
   },
@@ -73,9 +77,9 @@ export const clock: Shape = {
       return [
         { x: p.x + 8, y: p.y - 8, anchor: 'start', hang: 'above' },
         { x: p.x + 12, y: p.y, anchor: 'start', hang: 'centre' },
-        { x: p.x - 12, y: p.y - 2, anchor: 'end', hang: 'centre' },
+        { x: p.x - 21, y: p.y - 2, anchor: 'end', hang: 'centre' },
         { x: p.x + 12, y: p.y - 4, anchor: 'start', hang: 'centre' },
-        { x: p.x - 12, y: p.y + 4, anchor: 'end', hang: 'centre' },
+        { x: p.x - 18, y: p.y - 4, anchor: 'end', hang: 'centre' },
       ][i] as Label;
     }
     // any other count: the words alternate outside and inside the face so they never sit on each other

@@ -140,7 +140,13 @@ describe('the truths', () => {
     expect(texts(c, n)).toHaveLength(0);
     // the walk is the same curve
     expect(c.at(0.5)).toEqual(SHAPES.curve!.at(0.5));
-    expect(curveWith(Array(14).fill('didnt')).paths(n).filter(d => d.kind === 'path' && /stamp/.test(d.cls))).toHaveLength(10);
+    expect(curveWith(Array(14).fill('didnt')).paths(n).filter(d => d.kind === 'path' && /stamp/.test(d.cls))).toHaveLength(12);
+    // his marks are 'own' (Still hides them); the seeded record is 'seedstamp' (F6's CSS hides it once he has any)
+    expect(marks.every(m => /\bown\b/.test(m.cls))).toBe(true);
+    expect(paths(SHAPES.curve!, n, /\bseedstamp\b/)).toHaveLength(10);
+    // the curve gives its stamped self through shapeOf, which Cycle uses
+    expect(shapeOf('curve', ['happened']).paths(n).filter(d => d.kind === 'path' && /\bown\b/.test(d.cls))).toHaveLength(1);
+    expect(shapeOf('valley', ['happened'])).toBe(SHAPES.valley);
   });
 
   it('the coil: each step is tighter in than the last, and one straight exit leaves at how', () => {
@@ -170,7 +176,10 @@ describe('the truths', () => {
     // the alarm at seven: on the face, at seven o'clock, and pinned
     const seven = { x: centre.x + R * Math.cos((120 * Math.PI) / 180), y: centre.y + R * Math.sin((120 * Math.PI) / 180) };
     expect(dist(pts[n - 1], seven)).toBeLessThan(1);
-    expect(paths(c, n, /\bpin\b/)).toHaveLength(1);
+    expect(paths(c, n, /(^| )pin( |$)/)).toHaveLength(1);
+    expect(paths(c, n, /pin-stake/)).toHaveLength(1);
+    // "7" in the hand beside the pin, a num so Still drops the digit and keeps the pin
+    expect(texts(c, n).find(t => t.text === '7')!.cls).toMatch(/\bhand\b.*\bnum\b/);
     expect(paths(c, n, /\bthick\b/)).toHaveLength(1);
     // the dot rests asleep, before three
     expect(restPoint(c, n).y).toBeLessThan(centre.y);

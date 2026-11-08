@@ -89,6 +89,8 @@ export const PANIC: FlowSeed = {
         // Avoidance, folded in (PLAN-FLOWS.md 3.5, F4): "do the small version". Leaving is what teaches the brain it
         // would have kept rising, so the step after the peak says go back, for a minute, rather than not at all
         { id: 'panic-3-avoid', text: 'If you left, go back for a minute: the small version', short: 'Go back, for a minute' },
+        // F6, one person written when calm (3.7): no name in the seed, so the row reads as the slot to fill
+        { id: 'panic-3-person', text: 'One person, written when calm', short: 'One person', helper: 'person' },
       ],
     },
     {

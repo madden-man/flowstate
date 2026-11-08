@@ -17,6 +17,8 @@ export const NIGHT: FlowSeed = {
   name: '3 a.m.',
   order: 7,
   diagram: 'clock',
+  // the clock in the middle reads in words in every light and the screen is not held awake (F4; Tommy may overturn)
+  quietClock: true,
   restLine: "If you've had highs that needed no sleep, talk to your doctor before cutting back time in bed.",
   steps: [
     {

@@ -9,6 +9,8 @@
 // --t-breath, the word reads "in" or "out", and it stops when the finger lifts. Reduced motion stops the scaling;
 // the words still turn (rule 18).
 // Keep the screen awake (3.7): while the dot is on the peak step and the page is seen (./breath.ts useWakeLock).
+// A quiet clock (F4, Flow.quietClock, the 3 a.m. flow) reads in words in every light and is never held awake: the
+// flow's own advice is the clock turned away and the bed for sleeping.
 import type { JSX } from 'preact';
 import { useWakeLock, type Breath } from './breath';
 import { clockMinutes, clockStill, clockWords } from '../../model/tips';
@@ -24,13 +26,15 @@ type Props = {
   breath: Breath;
   /** The dot is on the peak in a live episode: the screen stays awake while the page is seen (3.7). */
   awake: boolean;
+  /** F4, Flow.quietClock (3 a.m.): the minutes read in words in every light, never a digit; the page passes awake false. */
+  quiet?: boolean;
 };
 
 export function Wash({ left }: { left: number }) {
   return <div class="fl-wash" aria-hidden="true" style={{ '--wash': String(left) } as JSX.CSSProperties} />;
 }
 
-export function Clock({ from, now, under, holdable, breath, awake }: Props) {
+export function Clock({ from, now, under, holdable, breath, awake, quiet }: Props) {
   useWakeLock(awake);
   if (from === undefined && !holdable) return null;
   const m = from === undefined ? undefined : clockMinutes(from, now);
@@ -50,8 +54,8 @@ export function Clock({ from, now, under, holdable, breath, awake }: Props) {
         <i class="fl-mid-breath" aria-live="polite">{breath.phase}</i>
       ) : (
         <>
-          {m !== undefined && <span class="fl-mid-min fs-notstill">{clockWords(m)}</span>}
-          {m !== undefined && <span class="fl-mid-min fs-stillonly">{clockStill(m)}</span>}
+          {m !== undefined && !quiet && <span class="fl-mid-min fs-notstill">{clockWords(m)}</span>}
+          {m !== undefined && <span class={`fl-mid-min${quiet ? ' fl-quiet' : ' fs-stillonly'}`}>{clockStill(m)}</span>}
           {m !== undefined && under && <i class="fl-mid-under fs-notstill">{under}</i>}
           {m === undefined && <span class="fl-mid-min">hold</span>}
         </>

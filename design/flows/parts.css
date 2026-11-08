@@ -820,6 +820,10 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fl-mid.holdable { pointer-events: auto; cursor: pointer; }
 /* F4: an open shape may put the middle somewhere clear of its lines (Shape.mid); the ring and the rest keep the centre */
 .fl-drawing .fl-mid { left: var(--mid-x, 50%); top: var(--mid-y, 50%); }
+/* a quiet clock (3 a.m.): the minutes in words, set like Still's in every light */
+.fl-mid-min.fl-quiet { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: var(--fs-chip); }
+/* his own stamps on the curve are past episodes: Still hides them, like the ghost rings */
+[data-light="still"] .fs-cycle .stamp.own { display: none; }
 .fl-mid > * { width: calc(var(--lh-ink) * 4.2); }
 .fl-mid > .fl-breath { width: auto; }
 .fl-mid-min { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
@@ -924,3 +928,30 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 /* the link row a hand-off leaves at the top of the new page: one line, where the dot came from */
 .fl-from .fs-link { min-height: var(--lh-ink); }
 .fl-from { margin-top: 0; }
+/* ==== Carried forward (F6, PLAN-FLOWS.md 3.7): notes, ghost rings, one person, your own stamps ==== */
+/* the step words keep a page-coloured edge, so the halo (drawn under them now) and the ghost rings never cut a letter */
+.fs-cycle-word text { paint-order: stroke; stroke: var(--page); stroke-width: 4px; stroke-linejoin: round; }
+/* ghost rings and his stamps: drawn on the drawing's own grid, behind parts/Cycle, at 30% of print; no number near */
+.fl-ghosts, .fl-stamps { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--lh-ink) * 8); pointer-events: none; }
+.fl-ghosts svg, .fl-stamps svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fl-ghosts .ghost path { fill: none; stroke: var(--print); stroke-width: 1; opacity: .3; vector-effect: non-scaling-stroke; }
+.fl-stamps .stamp { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+/* his marks give way for the seeded "nine in ten" (the shape draws those with class seedstamp) */
+.fl-drawing[data-own] .fs-cycle .seedstamp { display: none; }
+/* the question to the next one of you: in print, a rule for his words (italic: his line), the step chips under */
+.fl-ask { margin: 0; touch-action: pan-y; }
+.fl-note-field { display: block; width: 100%; border: 0; border-radius: 0; background: transparent; outline: none; padding: 0; margin: 0;
+  resize: none; overflow: hidden; font: inherit; font-style: italic; color: var(--ink); line-height: var(--lh-ink); min-height: calc(var(--lh-ink) * 2); }
+.fl-note-steps, .fl-stampchips { padding: 0; margin-bottom: var(--lh-ink); min-height: var(--lh-ink); align-items: center; }
+/* his note above the said line, "you · 11 / 9" in print under it */
+.fl-note { margin: 0; }
+.fl-carried { margin-top: var(--lh-ink); }
+.fl-carried .fs-links { margin-top: 0; }
+.fl-note-was { margin: 0 0 var(--s1); }
+/* the person row: a drawn check that is a link to Messages; the empty one in print, the slot to fill */
+a.fs-check.fl-person { color: inherit; text-decoration: none; }
+.fl-person-empty .fs-check-text { font-style: italic; color: var(--print); }
+.fl-who { margin-left: auto; margin-right: var(--s1); }
+.fl-person-then { margin-top: var(--s1); }
+/* the morning after a worry: the prediction in his words and two chips, at the top of the list */
+.fl-stampask { margin: 0; }

@@ -8,7 +8,7 @@
 // Your own stamps (F6, PLAN-FLOWS.md 3.7): curveWith(outcomes) is the same curve with his marks on the flat in place
 // of the seeded ten, oldest leftmost, a check for "didn't happen" and a cross for "happened". The seeded marks are
 // print (a fact from a study), never a count of his, and they carry no digit.
-import { arrowHead, type Drawn, type Label, type Shape } from './shape';
+import { arrowHead, type Drawn, type Label, type Shape, type Stamp } from './shape';
 import { pieceD, slotsT, walkOf, type Piece } from './walk';
 
 const W = 328, H = 224;
@@ -31,15 +31,16 @@ const walk = walkOf(pieces);
 const SLOTS = [{ x: 64, y: BASE - 2 }, { x: 140, y: 120 }, { x: PEAK.x - 6, y: PEAK.y + 2 }, { x: 207, y: 88 }, { x: 278, y: BASE }].map(walk.tNear);
 const REST = walk.tNear({ x: 22, y: BASE });
 
-/** An outcome stamped on the flat: a check for "didn't happen", a cross for "happened" (episodes.prediction). */
-export type Stamp = 'didnt' | 'happened';
-/** Where the stamps sit: two rows of five on the flat after the thing, oldest leftmost, top row first. */
-export const STAMPS = { x0: 228, dx: 18, rows: [154, 168], perRow: 5, max: 10 } as const;
+export type { Stamp };
+/** Where the stamps sit: two rows of six on the flat after the thing, oldest leftmost, top row first; twelve at most,
+ *  like F6's STAMPS_MAX (the oldest beyond are not drawn). */
+export const STAMPS = { x0: 222, dx: 15, rows: [154, 168], perRow: 6, max: 12 } as const;
 /** The record the seed carries: nine in ten logged worries didn't happen. */
 export const SEEDED: Stamp[] = ['didnt', 'didnt', 'didnt', 'didnt', 'didnt', 'didnt', 'happened', 'didnt', 'didnt', 'didnt'];
 
-/** The marks for these outcomes (the newest ten), drawn in print; `cls` adds 'faint' for the seeded record. */
-export function stampMarks(outcomes: Stamp[], cls = 'stamp'): Drawn[] {
+/** The marks for these outcomes (the newest twelve); `cls` is 'stamp own' for his, 'stamp faint-stamp seedstamp' for the
+ *  seeded record (F6's CSS hides seedstamp once he has any, and Still hides his, like the ghost rings). */
+export function stampMarks(outcomes: Stamp[], cls = 'stamp own'): Drawn[] {
   return outcomes.slice(-STAMPS.max).map((o, i) => {
     const x = STAMPS.x0 + (i % STAMPS.perRow) * STAMPS.dx, y = STAMPS.rows[Math.floor(i / STAMPS.perRow)];
     const d = o === 'didnt' ? `M${x} ${y} L${x + 3.5} ${y + 4} L${x + 10.5} ${y - 5}` : `M${x} ${y - 5} L${x + 9} ${y + 4} M${x + 9} ${y - 5} L${x} ${y + 4}`;
@@ -58,6 +59,7 @@ export function curveWith(outcomes: Stamp[] = []): Shape {
     at: walk.at,
     slotT: (i, n) => slotsT(SLOTS, i, n),
     restT: () => REST,
+    withStamps: curveWith,
   // the page's middle (F2's clock and hold), above the climb, clear of it
   mid: { x: 80, y: 70 },
     paths(): Drawn[] {
@@ -65,10 +67,10 @@ export function curveWith(outcomes: Stamp[] = []): Shape {
       out.push(...pieces.map((p): Drawn => ({ kind: 'path', d: pieceD(p), cls: p.cls })));
       // the drop's direction, drawn once at its foot: straight down, the moment the thing starts
       out.push({ kind: 'path', d: arrowHead({ x: FOOT.x - 0.3, y: FOOT.y - 18 }, 92, 5), cls: 'arrow' });
-      out.push(...stampMarks(own ? outcomes : SEEDED, own ? 'stamp' : 'stamp faint-stamp'));
+      out.push(...stampMarks(own ? outcomes : SEEDED, own ? 'stamp own' : 'stamp faint-stamp seedstamp'));
       if (!own) {
-        out.push({ kind: 'text', x: 264, y: 124, text: "didn't happen,", anchor: 'middle', cls: 'hand' });
-        out.push({ kind: 'text', x: 264, y: 140, text: 'nine in ten', anchor: 'middle', cls: 'hand' });
+        out.push({ kind: 'text', x: 264, y: 124, text: "didn't happen,", anchor: 'middle', cls: 'hand seedstamp' });
+        out.push({ kind: 'text', x: 264, y: 140, text: 'nine in ten', anchor: 'middle', cls: 'hand seedstamp' });
       }
       return out;
     },

@@ -211,11 +211,15 @@ export type PageMusic = NonNullable<Page['music']>;
 
 /** The drawn shape of a flow, one module each under src/ui/parts/cycle/. */
 export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'coil' | 'clock' | 'stairs' | 'fork';
-export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person';
+/** prediction (F6, not in PLAN-FLOWS.md section 5): one rule under the row for the worry written as a prediction,
+ *  kept on the episode (episodes.prediction), so the morning after can ask for its outcome. */
+export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction';
 /** A thing to do at a step. text is the row; short the Still row; wise sets it in italic as the wiser second person
  *  (DESIGN.md rule 17); struck stays struck (rule 10), never deleted. */
 export type Tip = {
   id: string; text: string; short?: string; helper?: TipHelper;
+  /** The person helper (F6): who, their number (optional), what the text says. The text may hold {time}, filled
+   *  from the episode's return time ("I'm going. Back at {time}."). Sealed with the step. */
   person?: { name: string; tel?: string; text: string };
   wise?: boolean; struck?: boolean;
   /** Not in PLAN-FLOWS.md section 5 (F3): a line the page prints under the rows, never a row with a check: nothing
@@ -236,8 +240,9 @@ export type Step = {
   /** Not in PLAN-FLOWS.md section 5 (F1): the peak, where "last time" counts from ("48 minutes from the peak to clear"). */
   peak?: boolean;
 };
-/** A note to the next one of you (PLAN-FLOWS.md 3.7, F6): Tommy's line, the step it shows at, sealed. */
-export type FlowNote = { id: string; stepId: string; text: string; at: Millis; episodeId: string };
+/** A note to the next one of you (PLAN-FLOWS.md 3.7, F6): Tommy's line, the step it shows at, sealed. struck (F6, not
+ *  in section 5) is when he struck it in the step sheet's Earlier (rule 10: struck, never deleted). */
+export type FlowNote = { id: string; stepId: string; text: string; at: Millis; episodeId: string; struck?: Millis };
 export type Flow = {
   id: string; name: string; order: number; createdAt: Millis; updatedAt: Millis;
   /** The flow's own line, shown at rest (Panic: "Wait out the truly hard parts."). */
@@ -245,6 +250,9 @@ export type Flow = {
   /** Not in PLAN-FLOWS.md section 5 (F3): one gentle line the page prints at rest, under the flow's line, in every
    *  light; not a step (Energize's boundary: "Highs most days for a week without needing sleep: talk to your doctor."). */
   restLine?: string;
+  /** Not in PLAN-FLOWS.md section 5 (F4): the clock in the middle reads in words in every light and the screen is
+   *  not held awake (3 a.m.: the clock is turned away, the bed is for sleeping). A flag, in the clear like diagram. */
+  quietClock?: boolean;
   diagram: DiagramName;
   steps: Step[];
   /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */
@@ -266,6 +274,9 @@ export type Episode = {
   /** The episode this one was handed off from (PLAN-FLOWS.md 3.7, F4): the other flow's, ended the moment this began. */
   from?: string;
   prediction?: { text: string; outcome?: 'didnt' | 'happened'; at: Millis };
+  /** Not in PLAN-FLOWS.md section 5 (F6): when the page asked "Anything to tell the next one of you who's here?" for
+   *  this episode. It asks once per episode, so set the first time it shows, and a swipe only hides it. */
+  asked?: Millis;
   sealed?: Sealed;
 };
 

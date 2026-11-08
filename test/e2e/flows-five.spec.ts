@@ -91,7 +91,19 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   const body = page.locator('.fs-flowpage');
   await expect(page.locator('.fs-cycle[data-diagram="clock"]')).toBeVisible();
   await expect(page.locator('.fs-flowpage .fl-usual.fs-notstill')).toContainText('twenty minutes');
-  await expect(page.locator('.fs-cycle text.num')).toHaveText('12');
+  await expect(page.locator('.fs-cycle text.num')).toHaveText(['12', '7']);
+  // the quiet clock (F4): on a live episode the middle reads in words in Day too, never minutes in digits
+  await page.goto('/#/flow/night');
+  const dot = page.getByRole('slider', { name: 'Where you are' });
+  for (let k = 1; k <= 3; k++) {
+    await dot.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(dot).toHaveAttribute('aria-valuenow', String(k));
+    await expect(body).toHaveAttribute('data-saved', 'true');
+    await expect.poll(async () => (await episodes(page)).flatMap(e => e.marks).length).toBe(k);
+  }
+  await expect(page.locator('.fl-mid .fl-quiet')).toHaveText(/minute|minutes in|a few|under/i);
+  await expect.poll(() => page.locator('.fl-mid').evaluate(el => (el as HTMLElement).innerText)).not.toMatch(/\d/);
   // Still by the moon (rule 13): the drawing's numeral and the step numbers go, the words-only line comes
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');

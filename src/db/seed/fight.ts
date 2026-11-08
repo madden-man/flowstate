@@ -53,6 +53,8 @@ export const FIGHT: FlowSeed = {
         { id: 'fight-3-going', text: `Say "I'm going, back at 7:40"`, short: "Say you're going, and when", helper: 'timer' },
         { id: 'fight-3-none', text: 'No texts, no venting, not yet.' },
         { id: 'fight-3-walk', text: 'Walk, music, a shower, slow breathing', short: 'Walk, or music', helper: 'ring' },
+        // F6 (3.7): the "I'm going" line may go as a text to the person it is for; {time} is the return time
+        { id: 'fight-3-tell', text: 'Tell them, written when calm', short: 'Tell them', helper: 'person', person: { name: '', text: "I'm going. Back at {time}." } },
         { id: 'fight-3-hot', text: 'Hot. Leave now.', wise: true },
       ],
     },

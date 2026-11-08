@@ -89,6 +89,13 @@ describe('the five as the plan has them', () => {
     expect(WHATIF.steps[1].said).toMatch(/^Nine in ten/);
     expect(JSON.stringify(WHATIF)).not.toMatch(/9 in 10|91|%/);
   });
+  it('3 a.m. has the quiet clock (words only, no wake lock); no other flow does', () => {
+    expect(SEED_FLOWS.filter(f => f.quietClock).map(f => f.id)).toEqual(['night']);
+  });
+  it('What if\'s first step writes the worry as a prediction (F6\'s helper), not to the journal', () => {
+    expect(WHATIF.steps[0].tips[0]).toMatchObject({ id: 'whatif-1-predict', helper: 'prediction' });
+    expect(WHATIF.steps.flatMap(s => s.tips).filter(t => /prediction/.test(t.text) && t.helper === 'journal')).toEqual([]);
+  });
   it('3 a.m. carries the sleep caution as its line at rest, gently, never a step', () => {
     expect(NIGHT.restLine).toMatch(/talk to your doctor/);
     expect(JSON.stringify(NIGHT.steps)).not.toMatch(/doctor/);
@@ -103,8 +110,8 @@ describe('Avoidance and the hand-offs', () => {
     const small = all.filter(x => /small version/.test(x.tip.text));
     expect(small.map(x => [x.flow, x.step])).toEqual([['panic', 'panic-3'], ['depress', 'depress-2']]);
     expect(SEED_FLOWS.map(f => f.name)).not.toContain('Avoidance');
-    // F2 shows at most six rows: the tip is among them
-    for (const x of small) expect(SEED_FLOWS.find(f => f.id === x.flow)!.steps.find(s => s.id === x.step)!.tips.filter(t => !t.print).length).toBeLessThanOrEqual(6);
+    // F2 shows at most six rows (F6's person row comes on top): the tip is among them
+    for (const x of small) expect(shownTips(SEED_FLOWS.find(f => f.id === x.flow)!.steps.find(s => s.id === x.step)!, false).map(t => t.id)).toContain(x.tip.id);
   });
   it('the five seeded hand-offs, each a printed line naming a real step of another flow', () => {
     const hand = all.filter(x => x.tip.handoff);

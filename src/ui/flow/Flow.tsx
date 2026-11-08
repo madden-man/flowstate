@@ -6,6 +6,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
 import { NewFlow } from './NewFlow';
+import { StampAsk } from './Stamps';
 import { shapeOf } from '../parts/cycle/index';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
@@ -22,6 +23,8 @@ export function Flow() {
   return (
     <Page label="Flow">
       <div class="fs-sheetof fs-rules fs-flows">
+        {/* the morning after a worry (F6): the prediction and two chips, once */}
+        <StampAsk />
         {/* Right now (F5): his own step lines across every flow, the door's page */}
         <a class="fs-row fs-list-row fl-flow fl-now" href="#/flow/now">
           <span class="fs-list-line">Right now</span>

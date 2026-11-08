@@ -24,7 +24,7 @@ export const WHATIF: FlowSeed = {
       usualShort: 'It climbs, then it drops.',
       spanMin: 3 * DAY,
       tips: [
-        { id: 'whatif-1-predict', text: 'Write the worry down as a prediction, to check after', short: 'Write it as a prediction', helper: 'journal' },
+        { id: 'whatif-1-predict', text: 'Write the worry down as a prediction, to check after', short: 'Write it as a prediction', helper: 'prediction' },
         { id: 'whatif-1-later', text: 'Put the worry off to a set time today', short: 'A set time for it' },
       ],
     },
@@ -71,7 +71,7 @@ export const WHATIF: FlowSeed = {
       usualShort: 'Mark it, and let it go.',
       spanMin: DAY,
       tips: [
-        { id: 'whatif-5-mark', text: 'Mark it against the prediction: happened, or didn\'t', short: 'Mark how it went', helper: 'journal' },
+        { id: 'whatif-5-mark', text: 'Mark it against the prediction: happened, or didn\'t', short: 'Mark how it went' },
       ],
     },
   ],

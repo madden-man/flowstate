@@ -2,7 +2,7 @@
 // Shape (./shape.ts), and one line here.
 import type { DiagramName } from '../../../db/schema';
 import type { JSX } from 'preact';
-import { midOf, type Shape } from './shape';
+import { midOf, type Shape, type Stamp } from './shape';
 import { ring } from './ring';
 import { valley } from './valley';
 import { arc } from './arc';
@@ -25,8 +25,12 @@ export const SHAPES: Partial<Record<DiagramName, Shape>> = {
   fork,
 };
 
-/** A flow's shape; a name with no module yet draws as the ring, so a flow is never without its drawing. */
-export const shapeOf = (name: DiagramName): Shape => SHAPES[name] ?? ring;
+/** A flow's shape; a name with no module yet draws as the ring, so a flow is never without its drawing. With his
+ *  outcomes (F6's stamps), a shape that draws them itself (the curve) comes back with them on it. */
+export function shapeOf(name: DiagramName, stamps?: Stamp[]): Shape {
+  const s = SHAPES[name] ?? ring;
+  return stamps?.length && s.withStamps ? s.withStamps(stamps) : s;
+}
 
 /** Where the page's middle (F2's clock and hold) sits over a flow's drawing, as CSS variables for .fl-drawing (F4). */
 export function midStyle(name: DiagramName): JSX.CSSProperties {
