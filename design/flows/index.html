@@ -55,6 +55,7 @@ details a{color:var(--accent)}
 @keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
 .screen .fs-hdr-l .fs-word{padding-inline:var(--s1)}
 .screen .fs-sheetof{overflow:hidden}
+.screen .fs-sheetof.more{mask-image:linear-gradient(to bottom,black calc(100% - var(--s4)),transparent)} /* design-lint: allow: mock fade, no colour */
 .screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
 .screen .fs-list-row{min-height:calc(var(--lh-ink) * 2)}
 
@@ -87,16 +88,18 @@ details a{color:var(--accent)}
 .fl-mid i{display:block;font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:0;font-size:var(--fs-chip)}
 .fl-ring.empty .fl-step.cur{font-style:italic;color:var(--print)}
 /* the other diagrams: one drawn shape each, phase words in the serif, the walker where you are */
-.fl-diag{position:relative;width:100%;max-width:328px;height:220px;margin:0 auto;flex:none}
+.fl-diag{position:relative;width:100%;max-width:328px;height:calc(var(--lh-ink) * 8);margin:0 auto;flex:none}
+.fl-diag text.ph{cursor:pointer}
 .fl-diag text{font-family:var(--serif);font-size:var(--fs-chip);fill:var(--ink)}
 .fl-diag text.cur{font-weight:600}
 .fl-diag text.print{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);fill:var(--print);text-transform:uppercase}
 .fl-diag text.hand{font-style:italic;fill:var(--print)}
 .fl-diag .tick{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round}
-/* the step's own line under the diagram, what the page says, and what usually happens in print */
-.fl-line{font-style:italic;text-align:center;margin:0;min-height:var(--lh-ink)}
-.fl-said{font-family:var(--sans);font-size:var(--fs-fill);line-height:calc(var(--lh-ink) * .8);color:var(--print);text-align:center;margin:0 0 var(--s1);text-wrap:balance}
-.fl-usual{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);text-align:center;margin:0 0 var(--s1);line-height:var(--lh-ink)}
+/* the step's own line under the diagram (your ink, italic), what the page says (the same serif in print grey, so it is
+   plainly the page's and not yours), and what usually happens in print. All of it sits on the rules, left, like a page. */
+.fl-line{font-style:italic;margin:0;min-height:var(--lh-ink)}
+.fl-said{color:var(--print);margin:0;line-height:var(--lh-ink)}
+.fl-usual{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:var(--lh-ink)}
 .screen[data-light="still"] .fl-usual{text-transform:none;letter-spacing:0;font-family:var(--serif);font-style:italic;font-size:var(--fs-chip)}
 /* things to do: drawn checks, the helper named in print at the end of the row */
 .fl-tips .fs-check{width:100%}
@@ -109,8 +112,8 @@ details a{color:var(--accent)}
 /* under the skin: a wash behind the ring that fades as it drains */
 .fl-wash{position:absolute;inset:40px 20px;border-radius:50%;background:var(--ink);opacity:.06;pointer-events:none}
 /* the next visit: last time in print, what helped as ticked rows */
-.fl-last{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);text-align:center;margin:0;line-height:var(--lh-ink)}
-.fl-helped h3{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);font-weight:400;margin:var(--s2) 0 0;line-height:var(--lh-ink)}
+.fl-last{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:var(--lh-ink)}
+.fl-helped h3{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);font-weight:400;margin:var(--lh-ink) 0 0;line-height:var(--lh-ink)}
 /* the sheet rows reused from Settings and the goal sheet */
 .fl-field{display:grid;gap:2px;margin:var(--s1) 0}
 .fl-field small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print)}
@@ -133,7 +136,7 @@ details a{color:var(--accent)}
 <!-- 1 -->
 <section class="step" id="flows" data-name="Flow is your flows">
   <h2>Flow is your flows</h2>
-  <p class="line">Your cycles, one row each.</p>
+  <p class="line">One row per cycle; tap to open.</p>
   <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
     <div class="status"><span>08:20</span><span>Flow</span></div>
     <div class="fs-app"><main class="fs-main"><section class="fs-page">
@@ -193,8 +196,8 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-ring" data-ring="1"></div>
         <p class="fl-line">Too much coming in at once.</p>
-        <p class="fl-said">Too much is coming in and your body is reading it as danger. It isn't. Less in and a slower breath out, and this can settle before it tips.</p>
-        <p class="fl-usual">Builds over minutes; can settle here, or tip</p>
+        <p class="fl-said">Too much is coming in, and your body is reading it as danger. It isn't. Less coming in, a slower breath out, and this can still settle.</p>
+        <p class="fl-usual">Builds over minutes; often settles here</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Less coming in: leave the room, or dim it</span><small>Still</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Earplugs, or one quiet album</span><small>♪</small></button>
@@ -249,13 +252,13 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-ring" data-ring="2" data-mid="6 minutes in|most are done by 20"></div>
         <p class="fl-line">The wave. Loud, fast, certain.</p>
-        <p class="fl-said">This is adrenaline, and adrenaline is already on its way out: it halves every few minutes. Peaks come inside ten minutes. Most of these are over in twenty.</p>
+        <p class="fl-said">This is adrenaline, and it is already on its way out. It halves every few minutes, and you don't have to do anything for that to happen.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Breathe with the ring: in four, out six</span><small>Ring</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Cold water on your face</span></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Let it crest. Stay where you are.</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Let it crest. You don't have to go anywhere.</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Tense, then let go on the out-breath</span></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">Adrenaline, already halving. Wait with it.</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">It's adrenaline, and it's already halving. Wait with it.</span></button>
         </div>
       </div>
     </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
@@ -278,7 +281,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-ring" data-ring="3"></div>
         <p class="fl-line">Back to discomfort. Shaky, but here.</p>
-        <p class="fl-said">The worst is behind you. Your heart has already slowed; the slower hormone peaks around half an hour in and drains for an hour after, so shaky is on schedule, not a relapse.</p>
+        <p class="fl-said">The worst is behind you. Your heart has already slowed. Shaky is what draining feels like, and it takes about an hour: on schedule, not a relapse.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Five things you can see</span><small>Five</small></button>
           <div class="fl-five"><p>the lamp, still on</p><p>Nala's water bowl</p><p><span class="fl-caret"></span></p><p></p><p></p></div>
@@ -306,7 +309,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-ring" data-ring="4" data-wash data-mid="40 minutes here|it drains, it does not snap off"></div>
         <p class="fl-line">Gross. Lingering. Under the skin.</p>
-        <p class="fl-said">Tired and gross is what afterwards feels like, and it is the last part. It drains over hours, not minutes. Nothing is needed from you but water, food and something easy.</p>
+        <p class="fl-said">Tired and gross is what afterwards feels like, and it is the last part. It drains over hours, not minutes. Nothing is asked of you but water, food and something easy.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Water, then something to eat</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">An album, or the TV</span><small>♪</small></button>
@@ -385,12 +388,12 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="valley" data-at="2"></div>
         <p class="fl-line">Cancelling things. Curtains shut.</p>
-        <p class="fl-said">Pulling in is the dip doing its work, not you failing. The way out runs backwards: one small thing before you feel like it. People who did that felt the first lift inside three weeks.</p>
-        <p class="fl-usual">Days; half of all dips are over in three months</p>
+        <p class="fl-said">Pulling in is the dip doing its work, not you failing. The way out is back to front: one small thing before you feel like it. Most people who tried that felt a first lift inside three weeks.</p>
+        <p class="fl-usual">Days, sometimes weeks; it has a far side</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">The act before the feeling: one small thing, scheduled</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Message one person</span></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Up, not in bed by day</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out of bed by day, even to the sofa</span></button>
         </div>
       </div>
     </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
@@ -413,21 +416,21 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="valley" data-at="4"></div>
         <p class="fl-line">Heavy. Nothing tastes of anything.</p>
-        <p class="fl-said">This is the floor, and floors are where it turns. Half of all dips are over inside three months, most sooner, and nothing big is asked of you here: water, food, one tiny thing at your better time of day.</p>
+        <p class="fl-said">This is the floor, and the floor is where it turns. Half of all dips are over inside three months, many well before. Nothing big is asked of you here: water, food, one tiny thing.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">One tiny thing, at your better time of day</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Eat something, drink water</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Music you choose</span><small>♪</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">No big decisions now.</span></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">If you're thinking of harming yourself: 111, or 988</span></button>
         </div>
+        <p class="fl-said">If you're thinking of hurting yourself, call or text 988. Any hour.</p>
       </div>
     </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
   </div></div>
   <details><summary>How this is built</summary><table>
     <tr><td>Arrow</td><td>The dotted arrow from the floor up the far slope is labelled with the next small thing: the activity-reward-mood loop runs outward from one action as surely as inward (Lewinsohn; Dimidjian 2011).</td></tr>
     <tr><td>Better time</td><td>Never "mornings are worst": in STAR*D 32% were worse mornings, 49% evenings (Morris 2007). The page asks nothing; the tip says "your better time".</td></tr>
-    <tr><td>Safety line</td><td>The NHS's own line, seeded; open question 4 in PLAN-FLOWS.md asks whether to keep it.</td></tr>
+    <tr><td>Safety line</td><td>A print line under the rows, not a check (nothing to tick), with the US Lifeline (988) since that is where Tommy is; open question 4 in PLAN-FLOWS.md asks whether to keep it.</td></tr>
   </table></details>
 </section>
 
@@ -443,10 +446,10 @@ details a{color:var(--accent)}
         <div class="fl-diag" data-diag="arc" data-at="3"></div>
         <p class="fl-line">Locked in. Time's gone somewhere.</p>
         <p class="fl-said">This is the sweet spot. It lasts about an hour at a stretch and a few hours a day, and a timer protects it better than willpower does.</p>
-        <p class="fl-usual">An hour to ninety minutes; about four hours a day</p>
+        <p class="fl-usual">An hour at a go; a few hours a day</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">A timer: 45 minutes, extend once</span><small>Timer · 31:20</small></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Park new ideas with a when</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Park new ideas on the page, dated for later</span><small>Journal</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Phone face down, notifications off</span></button>
         </div>
       </div>
@@ -470,7 +473,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="arc" data-at="4"></div>
         <p class="fl-line">Wired. One more thing, then one more.</p>
-        <p class="fl-said">Wired and scattered means you passed the top; from here more is not better. Park the ideas, double the estimate, and hold the big messages until after sleep. Flat tomorrow is the sleep, not you.</p>
+        <p class="fl-said">Wired and scattered means you are past the top, and from here more is not better. Park the ideas, assume everything takes twice as long, and hold the big messages until after sleep. If tomorrow is flat, that is the sleep, not you.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Stop while ahead, mid-sentence</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Write tomorrow's list, five minutes, then bed</span><small>Journal</small></button>
@@ -502,7 +505,7 @@ details a{color:var(--accent)}
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">"I'm going. Back at 7:40."</span><small>Timer · 7:40</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Walk, music, a shower, slow breathing</span><small>Ring</small></button>
-          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">No texting them, no venting to anyone</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Don't text them, and don't vent to anyone yet</span></button>
         </div>
       </div>
     </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
@@ -525,7 +528,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="mountain" data-at="5"></div>
         <p class="fl-line">Still replaying the line I should have said.</p>
-        <p class="fl-said">The spike cleared in minutes; the slower hormone takes the hour. Replaying it is the one thing that keeps it up, so the walk is doing more than the argument would.</p>
+        <p class="fl-said">The spike cleared in minutes; the rest takes about an hour. Replaying it is the one thing that keeps it up, so the walk is doing more than the argument would.</p>
         <p class="fl-usual">Twenty minutes at least; about an hour</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">What did Tommy want, in there?</span></button>
@@ -580,7 +583,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="coil" data-at="2"></div>
         <p class="fl-line">That look at dinner. Again.</p>
-        <p class="fl-said">Every "why" tightens the coil. Swap it for "how did it unfold, moment by moment": that swap, in the lab, is the one that loosens it. Eight minutes of something absorbing beat eight minutes of replaying.</p>
+        <p class="fl-said">Every "why" tightens the coil. Swap it for "how did it unfold, moment by moment": that is the swap that loosens it. Eight minutes of something absorbing beats eight minutes of replaying.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">"How", not "why": moment by moment</span><small>Journal</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Eight minutes of something absorbing</span><small>♪</small></button>
@@ -606,7 +609,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="clock" data-at="3"></div>
         <p class="fl-line">Awake. Trying harder.</p>
-        <p class="fl-said">Trying harder is the problem. Awake a while, and the bed is for sleeping: get up, dim light, something dull, back when sleepy. The morning is pinned whatever the night does.</p>
+        <p class="fl-said">Trying harder is what keeps you awake. Up for a while: dim light, something dull, back to bed when sleepy. The morning is pinned whatever the night does.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Clock turned away</span></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Up; something dull in dim light</span></button>
@@ -658,7 +661,7 @@ details a{color:var(--accent)}
       <div class="fs-sheetof fs-rules">
         <div class="fl-diag" data-diag="fork" data-at="2"></div>
         <p class="fl-line">Everyone saw. I'm useless.</p>
-        <p class="fl-said">"I am bad" is the whole-self verdict, and it is the one that feeds depression. "I did a bad thing" is the version with a door. One specific repair, and done.</p>
+        <p class="fl-said">"I am bad" is a verdict on the whole of you, and it is the one that drags everything down. "I did a bad thing" is the version with a door. One specific repair, and done.</p>
         <div class="fl-tips">
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Reword it: "I did a thing", not "I am"</span><small>Journal</small></button>
           <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Notice the urge to hide or blame before replying</span></button>
@@ -707,7 +710,7 @@ details a{color:var(--accent)}
     </section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="This step"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Overstimulated</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body">
       <div class="fl-field"><small>Name</small><p class="fs-held">Overstimulated</p></div>
       <div class="fl-field"><small>Your line</small><p class="fs-held">Too much coming in at once.</p></div>
-      <div class="fl-field"><small>What the page says</small><p class="fs-held print">Too much is coming in and your body is reading it as danger. It isn't. Less in and a slower breath out, and this can settle before it tips.</p></div>
+      <div class="fl-field"><small>What the page says</small><p class="fs-held print">Too much is coming in, and your body is reading it as danger. It isn't. Less coming in, a slower breath out, and this can still settle.</p></div>
       <div class="fl-field"><small>Things to do</small>
         <div class="tip"><span>Less coming in: leave the room, or dim it</span><small>Still</small></div>
         <div class="tip"><span>Earplugs, or one quiet album</span><small>♪</small></div>
@@ -771,21 +774,25 @@ details a{color:var(--accent)}
     fork:{paths:['<path class="arc" d="M40 30 C70 40 95 90 120 120"/>','<path class="arc pass" d="M120 120 C100 150 70 180 40 200"/>','<path class="arc pass" d="M120 120 C150 150 190 185 230 205"/>','<path class="arc" d="M120 120 C170 110 230 60 300 40"/>'+head(300,40,-20),'<text class="hand" x="40" y="214" text-anchor="middle">hide</text>','<text class="hand" x="232" y="218" text-anchor="middle">hit back</text>'],
       phases:[{n:'Seen',x:40,y:30,lx:54,ly:26,a:'start'},{n:"I'm worthless",x:120,y:120,lx:132,ly:140,a:'start'},{n:'Hide, or hit back',x:160,y:160,lx:0,ly:0,a:'none'},{n:'I did a thing, I can fix it',x:300,y:40,lx:296,ly:28,a:'end'}]}
   };
-  document.querySelectorAll('.fl-diag').forEach(function(d){
+  function drawDiag(d){
     var D=DIAGS[d.dataset.diag],at=+d.dataset.at;if(!D)return;
     var s='<svg viewBox="0 0 328 220" aria-hidden="true">'+D.paths.join('');
     D.phases.forEach(function(p,i){var n=i+1;if(n!==at)s+='<circle class="mark" cx="'+p.x+'" cy="'+p.y+'" r="3"/>';
-      if(p.a!=='none')s+='<text class="'+(n===at?'cur':'')+'" x="'+p.lx+'" y="'+p.ly+'" text-anchor="'+p.a+'">'+p.n+'</text>';});
+      if(p.a!=='none')s+='<text class="ph'+(n===at?' cur':'')+'" data-n="'+n+'" x="'+p.lx+'" y="'+p.ly+'" text-anchor="'+p.a+'">'+p.n+'</text>';});
     var w=D.phases[at-1];s+='<circle class="now" cx="'+w.x+'" cy="'+w.y+'" r="5"/></svg>';
     d.innerHTML=s;
-  });
+  }
+  document.querySelectorAll('.fl-diag').forEach(drawDiag);
 
   // ---- the drawn check, once per row
   var MARK='<svg class="fs-check-mark" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path class="fs-check-box" d="M3.2 3.6 C7 3.1 13 3.3 16.6 3.4 C16.9 7.5 16.8 12.6 16.5 16.5 C12.4 16.9 7.6 16.8 3.4 16.6 C3.1 12.4 3 8 3.2 3.6 Z"></path><path class="fs-check-ink" pathLength="1" d="M5.2 10.6 L8.6 14 L17.6 2.6"></path></svg>';
   document.querySelectorAll('.fs-check').forEach(function(b){if(!b.querySelector('svg'))b.insertAdjacentHTML('afterbegin',MARK);});
-  // a tap on a ring step word moves the dot in that mock; a tap on a tip ticks it
+  // a tap on a ring step word turns to that step's page (the page follows the dot); on a drawing it moves the walker; a tap on a tip ticks it
+  var PAGE={'1':'overstimulated','2':'peak','3':'settling','4':'skin'};
   document.addEventListener('click',function(e){
+    var ph=e.target.closest('.fl-diag text.ph');if(ph){var dg=ph.closest('.fl-diag');dg.dataset.at=ph.dataset.n;drawDiag(dg);return;}
     var s=e.target.closest('.fl-step');if(s&&!s.classList.contains('cur')){var ring=s.closest('.fl-ring'),n=s.querySelector('small').textContent,d=pt(AT[n]);
+      var k=steps.findIndex(function(x){return x.id===PAGE[n];});if(k>=0&&!s.closest('.fs-sheet')&&steps[k]!==s.closest('.step')){go(k);return;}
       ring.querySelectorAll('.fl-step').forEach(function(x){x.setAttribute('aria-pressed',String(x===s));});
       var now=ring.querySelector('.now'),halo=ring.querySelector('.halo');now.setAttribute('cx',d[0]);now.setAttribute('cy',d[1]);
       if(halo)halo.remove();if(n==='2'){var h=document.createElementNS(NS,'circle');h.setAttribute('class','halo');h.setAttribute('cx',d[0]);h.setAttribute('cy',d[1]);h.setAttribute('r','16');now.parentNode.insertBefore(h,now);}}
@@ -796,10 +803,11 @@ details a{color:var(--accent)}
   steps.forEach(function(s,j){var li=document.createElement('li'),a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(j+1)+'</span><span class="t"></span>';a.querySelector('.t').textContent=s.dataset.name;a.addEventListener('click',function(e){e.preventDefault();go(j);});li.appendChild(a);rail.appendChild(li);
     var c=document.createElement('div');c.className='ctl';c.innerHTML='<button type="button" data-prev>Previous</button><button type="button" data-next>Next</button>';s.appendChild(c);
     s.querySelectorAll('.screen').forEach(function(sc){sc.dataset.lightDefault=sc.dataset.light;});});
-  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});more();[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
   document.addEventListener('click',function(e){if(e.target.closest('[data-prev]'))go(i-1);if(e.target.closest('[data-next]'))go(i+1);var m=e.target.closest('.screen .fs-moon');if(m){var sc=m.closest('.screen');sc.dataset.light=sc.dataset.light==='still'?(GLOBAL==='design'||GLOBAL==='still'?(sc.dataset.lightDefault==='still'?'night':sc.dataset.lightDefault):GLOBAL):'still';}});
   document.addEventListener('keydown',function(e){if(e.target.closest&&e.target.closest('input,textarea'))return;if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
   document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){GLOBAL=b.dataset.light;document.querySelectorAll('.lights [data-light]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});document.querySelectorAll('.screen').forEach(function(s){s.dataset.light=GLOBAL==='design'?s.dataset.lightDefault:GLOBAL;});});});
+  function more(){document.querySelectorAll('.screen .fs-sheetof').forEach(function(x){x.classList.toggle('more',x.scrollHeight>x.clientHeight+4);});}
   function fromHash(){var h=(location.hash||'').replace('#','');var k=steps.findIndex(function(s){return s.id===h;});go(k>=0?k:0);}
   window.addEventListener('hashchange',fromHash);fromHash();
 })();
