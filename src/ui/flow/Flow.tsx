@@ -1,139 +1,41 @@
-// Flow (PLAN.md section 5 item 4): today's page. The items due by cadence, grouped by paradox, each a
-// drawn check; one lean slider per active paradox under its items; and below, the look back: short
-// lists of what is still open, in print grey with ink links, and the lean line per paradox. Still shows
-// today's items and the sliders only. Nothing counts a run of days; there are no totals.
-import type { ComponentChildren } from 'preact';
+// Flow is your flows (PLAN-FLOWS.md sections 4 and 6, F1): one row per flow in its order, the name on the rule, its
+// drawn shape small in print at the right, and under the name the shape's name and "last time" in print. A flow
+// with an episode open carries the dot on its little drawing. No counts anywhere (DESIGN.md rule 15); Still keeps
+// the rows and drops "last time" (rule 13).
 import { useEffect, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
-import { Check } from '../parts/Check';
-import { LeanSlider } from '../parts/LeanSlider';
-import { LeanLine } from '../parts/LeanLine';
+import { Cycle } from '../parts/Cycle';
+import { shapeOf } from '../parts/cycle/index';
 import { dataVersion } from '../sheets';
-import { now } from '../light';
-import { dayKey } from '../../model/pages';
-import { today, lookBack, setDone, addLean, setLeanNote, doneOn, type TodayGroup, type LookBack } from '../../model/flow';
-import { voiceLabel } from '../../model/council';
+import { shortDate } from '../date';
+import { flowStates, placeOf, currentStepId, type FlowState } from '../../model/flows';
 
 export function Flow() {
-  const t = now.value;
-  const day = dayKey(t);
-  const [groups, setGroups] = useState<TodayGroup[] | null>(null);
-  const [back, setBack] = useState<LookBack | null>(null);
-  const [version, setVersion] = useState(0);
-
+  const [rows, setRows] = useState<FlowState[] | null>(null);
   useEffect(() => {
     let live = true;
-    const at = Date.now();
-    today(at).then(g => { if (live) setGroups(g); });
-    lookBack(at).then(b => { if (live) setBack(b); });
+    flowStates().then(r => { if (live) setRows(r); });
     return () => { live = false; };
-  }, [day, version, dataVersion.value]);
-
-  const reread = () => setVersion(v => v + 1);
-  // writes in flight: the page says so (data-saved), the way the Journal's page does
-  const [writing, setWriting] = useState(0);
-  const saving = async (w: () => Promise<unknown>) => {
-    setWriting(n => n + 1);
-    try { await w(); } finally { setWriting(n => n - 1); reread(); }
-  };
-
-  const check = async (id: string, done: boolean) => {
-    // the check is drawn at once; the write follows
-    const at = Date.now();
-    setGroups(gs => gs && gs.map(g => ({ ...g, items: g.items.map(i => (i.id !== id ? i : { ...i, doneLog: done ? [...i.doneLog, { at }] : i.doneLog.filter(e => dayKey(e.at) !== dayKey(at)) })) })));
-    await saving(() => setDone(id, done, at));
-  };
-
-  const lean = async (paradoxId: string, value: number) => {
-    await saving(async () => {
-      const row = await addLean(paradoxId, value);
-      setGroups(gs => gs && gs.map(g => (g.paradox.id !== paradoxId ? g : { ...g, lean: row })));
-    });
-  };
-
-  const note = async (leanId: string, text: string) => {
-    await saving(() => setLeanNote(leanId, text));
-  };
-
-  const toSlider = (id: string) => {
-    const el = document.getElementById(`flow-${id}`);
-    el?.scrollIntoView({ block: 'center' });
-    el?.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
-  };
+  }, [dataVersion.value]);
 
   return (
-    <Page label="Today">
-      <div class="fs-sheetof fs-rules fs-flow" data-saved={writing ? 'false' : 'true'}>
-        {groups?.map(g => (
-          <section key={g.paradox.id} id={`flow-${g.paradox.id}`} class="fs-flow-group" aria-label={`${g.paradox.poleA.value} and ${g.paradox.poleB.value}`}>
-            {/* the slider's two pole words name a paradox with nothing due today; the heading would repeat them */}
-            {g.items.length > 0 && <h2 class="fs-print fs-flow-head">{g.paradox.poleA.value} · {g.paradox.poleB.value}</h2>}
-            {g.items.map(i => (
-              <Check key={i.id} checked={doneOn(i, t)} aside={i.cadence} disabled={!!i.locked}
-                onChange={done => void check(i.id, done)}>{i.locked ? '' : i.text}</Check>
-            ))}
-            <LeanSlider a={g.paradox.poleA.value} b={g.paradox.poleB.value} lean={g.lean?.lean} note={g.lean?.note}
-              disabled={!!g.paradox.locked}
-              onLean={v => void lean(g.paradox.id, v)}
-              onNote={g.lean ? text => void note(g.lean!.id, text) : undefined} />
-          </section>
+    <Page label="Flow">
+      <div class="fs-sheetof fs-rules fs-flows">
+        {/* Right now (F5, #/flow/now) takes the first row here: his own step lines across every flow. */}
+        {rows?.map(({ flow, live, last }) => (
+          <a key={flow.id} class="fs-row fs-list-row fl-flow" href={`#/flow/${flow.id}`} data-live={live ? 'true' : undefined}>
+            <span class="fs-list-line">{flow.name}</span>
+            <small class="fs-list-meta">
+              {shapeOf(flow.diagram).title}
+              {last && <span class="fs-notstill"> · last time {shortDate(new Date(last.startedAt))}</span>}
+            </small>
+            <span class="fl-mini" aria-hidden="true">
+              <Cycle small diagram={flow.diagram} steps={flow.steps} at={live ? placeOf(flow, currentStepId(live)) : 0} />
+            </span>
+          </a>
         ))}
-        {groups && !groups.length && <p class="fs-quiet">Fill both.</p>}
-        {back && <Back back={back} now={t} toSlider={toSlider} />}
+        {/* "+ flow" comes last (F3). */}
       </div>
     </Page>
-  );
-}
-
-function Back({ back, now: t, toSlider }: { back: LookBack; now: number; toSlider: (id: string) => void }) {
-  const { open, quiet, voices, balances, lines } = back;
-  if (![open, quiet, voices, balances, lines].some(l => l.length)) return null;
-  return (
-    <section class="fs-back fs-notstill" aria-label="Look back">
-      <h2 class="fs-print fs-back-title">Look back</h2>
-      {open.length > 0 && (
-        <List title="Still open">
-          {open.map(q => <a key={q.id} class="fs-back-link" href={`#/questions/${q.id}`}>{q.title}</a>)}
-        </List>
-      )}
-      {quiet.length > 0 && (
-        <List title="No lean this month">
-          {quiet.map(p => <button key={p.id} type="button" class="fs-back-link" onClick={() => toSlider(p.id)}>{p.label}</button>)}
-        </List>
-      )}
-      {voices.length > 0 && (
-        <List title="Quiet a while">
-          <a class="fs-back-link fs-back-names" href="#/voices">{voices.map(voiceLabel).join(', ')}</a>
-        </List>
-      )}
-      {balances.length > 0 && (
-        <List title="Open balance">
-          {balances.map(s => (
-            <a key={s.forId} class="fs-back-link" href={`#/be/${s.paradoxId}`}>
-              {s.goal}<span class="fs-back-slot">{s.line}</span>
-            </a>
-          ))}
-        </List>
-      )}
-      {lines.length > 0 && (
-        <List title="The lean over time">
-          {lines.map(l => (
-            <div key={l.paradox.id} class="fs-back-line">
-              <span class="fs-back-poles" aria-hidden="true"><span>{l.paradox.poleA.value}</span><span>{l.paradox.poleB.value}</span></span>
-              <LeanLine points={l.points} now={t} label={`The lean between ${l.paradox.poleA.value} and ${l.paradox.poleB.value} over time`} />
-            </div>
-          ))}
-        </List>
-      )}
-    </section>
-  );
-}
-
-function List({ title, children }: { title: string; children: ComponentChildren }) {
-  return (
-    <div class="fs-back-list">
-      <h3 class="fs-print">{title}</h3>
-      {children}
-    </div>
   );
 }

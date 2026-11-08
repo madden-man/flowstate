@@ -46,7 +46,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 ## 6. Motion, touch, sound (lint where marked)
 
 18. Durations: `--t-ui` 180ms, `--t-page` 400ms, `--t-light` 1200ms, `--t-breath` 10s. Easing `--ease`, never a bounce or spring. Any file with `animation:` contains a `prefers-reduced-motion` rule (lint); all durations drop to zero there.
-19. Haptics only through `parts/Haptic` (the hidden `<input type="checkbox" switch>` trick; `navigator.vibrate` is banned, lint). Ticks on: unlock, tab change, a check, an item dropped, a lean detent, entering Still, keep close, a sheet opening. Nowhere else. Silent mode may mute them; the app degrades to nothing.
+19. Haptics only through `parts/Haptic` (the hidden `<input type="checkbox" switch>` trick; `navigator.vibrate` is banned, lint). Ticks on: unlock, tab change, a check, an item dropped, a lean detent, the dot's detent at a flow's step (`parts/Cycle`, F1), entering Still, keep close, a sheet opening. Nowhere else. Silent mode may mute them; the app degrades to nothing.
 20. Tactility without haptics: goals slide up and down their page under the finger, the lean slider clicks into three detents, the rail of earlier pages follows the drag, long press lifts an item 2px. Drag feedback is immediate (no transition while dragging).
 21. Sound only through `parts/Sound` (Web Audio synthesis, no files; `new AudioContext` elsewhere is banned, lint): a bell on unlock, a long low tone on settling, a soft bell on keep close, the lean's two ends, a short bell on choosing an album. Never uninvited; a Settings switch; follows the ring switch.
 

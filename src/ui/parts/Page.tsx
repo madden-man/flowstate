@@ -28,6 +28,8 @@ type Props = {
   pages?: 'link' | 'here';
   /** The way back from a section's page, in the place of Pages and Settings (V2: Questions on a question page). */
   back?: { word: string; href: string };
+  /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). */
+  keepSettings?: boolean;
   /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
   count?: string;
   /** The page open here, if it is one: the rail of earlier pages leaves it out (V6). */
@@ -35,7 +37,7 @@ type Props = {
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, count }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count }: Omit<Props, 'children'>) {
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -46,7 +48,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, c
         {back && <a class="fs-word" href={back.href}>{back.word}</a>}
         {/* the way back takes Settings' place as well (V2, as the proposal draws it), so "2 of 3 open" and the
             date keep one line on a 375pt phone; Settings is one tap away on every other page */}
-        {!back && <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>}
+        {(!back || keepSettings) && <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>}
         <MusicLine page={music} />
       </div>
       <div class="fs-hdr-r">

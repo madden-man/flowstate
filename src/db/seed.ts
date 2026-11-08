@@ -3,7 +3,8 @@
 // manifesto is the threshold's copy (MANIFESTO below), not a journal entry.
 // Every line here is the notebook's own; nothing is generated.
 import type { Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
-import { store } from './fields';
+import { store, keyState } from './fields';
+import { SEED_FLOWS, seedFlow } from './seed-flows';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -110,6 +111,7 @@ export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
     lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
+    flowsSeeded: SEED_FLOWS.map(f => f.id),
   };
 }
 
@@ -118,8 +120,35 @@ export function defaultSettings(now = Date.now()): Settings {
 export async function ensureSeeded(now = Date.now()): Promise<boolean> {
   if (await store.get('settings', 'app')) return false;
   const { paradoxes, items } = seedParadoxes();
-  await store.many({ voices: seedVoices(), paradoxes, items, settings: [defaultSettings(now)] });
+  await store.many({ voices: seedVoices(), paradoxes, items, flows: SEED_FLOWS.map(f => seedFlow(f)), settings: [defaultSettings(now)] });
   return true;
+}
+
+// ---- the seed flows (F1, PLAN-FLOWS.md section 5) ----
+
+let flowsPass: Promise<string[] | null> | null = null;
+
+/**
+ * Once per seed flow, for a journal seeded before it existed (schema version 3 and every later flow): writes each
+ * seed flow not yet in settings.flowsSeeded, unless a flow with its id is already there (an import), and marks it.
+ * A flow written once is never written again, so deleting it keeps it gone. Needs the journal open (the seed is
+ * sealed like any flow), so it runs at boot when there is no lock and again once the PIN opens it; a locked journal
+ * returns null and tries on the next open. Returns the ids written.
+ */
+export function seedFlowsOnce(): Promise<string[] | null> {
+  flowsPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    const done = new Set(s.flowsSeeded ?? []);
+    const todo = SEED_FLOWS.filter(f => !done.has(f.id));
+    if (!todo.length) return [];
+    const have = new Set((await store.all('flows')).map(f => f.id));
+    const write = todo.filter(f => !have.has(f.id)).map(f => seedFlow(f));
+    await store.many({ flows: write, settings: [{ ...s, flowsSeeded: [...done, ...todo.map(f => f.id)] }] });
+    return write.map(f => f.id);
+  })().finally(() => { flowsPass = null; });
+  return flowsPass;
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----

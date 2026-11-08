@@ -785,3 +785,40 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 @media (prefers-reduced-motion: reduce) {
   .fs-music-screen { animation: none; }
 }
+
+/* ==== Flows (F1, PLAN-FLOWS.md): the list, parts/Cycle, a flow's page ==== */
+/* the list: a flow's name on the rule in the title size, its shape's name and last time in print under it, its
+   drawing small in print at the right (with the dot on it while an episode is open) */
+.fs-row.fl-flow { position: relative; padding-right: calc(var(--lh-ink) * 3); }
+.fl-flow .fs-list-line { font-size: var(--fs-title); }
+.fl-flow .fs-list-meta { color: var(--print); text-align: left; }
+.fl-mini { position: absolute; right: 0; top: calc(var(--lh-ink) * .25); width: calc(var(--lh-ink) * 2.5); height: calc(var(--lh-ink) * 1.5); }
+/* the drawing: eight rules tall so the page's grid holds under it; the shape in print, the dot in ink */
+.fs-cycle { position: relative; width: 100%; height: calc(var(--lh-ink) * 8); margin: 0 auto; flex: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+.fs-cycle.small { height: 100%; }
+.fs-cycle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fs-cycle .arc { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fs-cycle .pass { stroke-dasharray: 1 7; }
+.fs-cycle.small .pass { stroke-dasharray: 1 3; }
+.fs-cycle .arrow { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fs-cycle .mark { fill: var(--page); stroke: var(--print); stroke-width: 1; }
+.fs-cycle .now { fill: var(--ink); }
+.fs-cycle text { font-family: var(--serif); font-size: var(--fs-chip); fill: var(--ink); }
+.fs-cycle .fs-cycle-n { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); fill: var(--print); }
+.fs-cycle-word { cursor: pointer; outline: none; }
+.fs-cycle-word[aria-pressed="true"] .fs-cycle-name { font-weight: 600; }
+.fs-cycle-word:focus-visible .fs-cycle-hit { stroke: var(--ink); stroke-width: 1; }
+.fs-cycle-hit { fill: transparent; stroke: none; rx: 8; }
+.fs-cycle-dot { cursor: grab; outline: none; }
+.fs-cycle.drag .fs-cycle-dot { cursor: grabbing; }
+.fs-cycle-grip { fill: transparent; }
+.fs-cycle-dot:focus-visible .fs-cycle-grip { stroke: var(--ink); stroke-width: 1; }
+[data-light="still"] .fs-cycle .fs-cycle-n { display: none; }
+/* a flow's page: the step's own line (your ink, italic), what the page says (the same serif in print grey, so it is
+   plainly the page's and not yours), and what usually happens in print. All of it on the rules, left, like a page. */
+.fl-line { font-style: italic; margin: 0; min-height: var(--lh-ink); }
+.fl-said { color: var(--print); margin: 0; line-height: var(--lh-ink); }
+.fl-usual, .fl-last { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); margin: 0; line-height: var(--lh-ink); }
+[data-light="still"] .fl-usual { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); }
+.fs-stillonly { display: none; }
+[data-light="still"] .fs-stillonly { display: block; }

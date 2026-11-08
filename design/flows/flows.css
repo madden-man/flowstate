@@ -50,9 +50,7 @@ details a{color:var(--accent)}
 .screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
 .screen .fs-list-row{min-height:calc(var(--lh-ink) * 2)}
 
-/* ---------- the pieces that do not exist yet (the proposal) ---------- */
-/* a flow on the list: its name on the rule, its diagram's name in print under it */
-.fl-flow .fs-list-line{font-size:var(--fs-title)}
+/* the list rows, parts/Cycle and a flow page's line, said, usual and last time are real since F1: parts.css (copied here) */
 .fl-flow .fs-list-meta{color:var(--print)}
 .fl-add{margin-top:var(--s2)}
 /* the ring: four steps around a drawn circle, the way back dotted; the dot is where you are */
@@ -86,12 +84,6 @@ details a{color:var(--accent)}
 .fl-diag text.print{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);fill:var(--print);text-transform:uppercase}
 .fl-diag text.hand{font-style:italic;fill:var(--print)}
 .fl-diag .tick{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round}
-/* the step's own line under the diagram (your ink, italic), what the page says (the same serif in print grey, so it is
-   plainly the page's and not yours), and what usually happens in print. All of it sits on the rules, left, like a page. */
-.fl-line{font-style:italic;margin:0;min-height:var(--lh-ink)}
-.fl-said{color:var(--print);margin:0;line-height:var(--lh-ink)}
-.fl-usual{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:var(--lh-ink)}
-.screen[data-light="still"] .fl-usual{text-transform:none;letter-spacing:0;font-family:var(--serif);font-style:italic;font-size:var(--fs-chip)}
 /* things to do: drawn checks, the helper named in print at the end of the row */
 .fl-tips .fs-check{width:100%}
 .fl-tips .fs-check small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);flex:none}
@@ -102,8 +94,7 @@ details a{color:var(--accent)}
 @keyframes blink{50%{opacity:0}}
 /* under the skin: a wash behind the ring that fades as it drains */
 .fl-wash{position:absolute;inset:40px 20px;border-radius:50%;background:var(--ink);opacity:.06;pointer-events:none}
-/* the next visit: last time in print, what helped as ticked rows */
-.fl-last{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:var(--lh-ink)}
+/* the next visit: what helped as ticked rows (last time, the line, said and usual are the real ones in parts.css, F1) */
 .fl-helped h3{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);font-weight:400;margin:var(--lh-ink) 0 0;line-height:var(--lh-ink)}
 /* the sheet rows reused from Settings and the goal sheet */
 .fl-field{display:grid;gap:2px;margin:var(--s1) 0}
