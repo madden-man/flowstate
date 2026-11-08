@@ -1,5 +1,5 @@
 // V13: the paradoxes on Be are reordered by a long press and a drag, as the voices are; the order holds
-// across a reload and on Flow.
+// across a reload.
 import { test, expect } from '@playwright/test';
 
 test('a long press lifts a paradox and a drag puts it in a new place (V13)', async ({ page }) => {
@@ -28,7 +28,4 @@ test('a long press lifts a paradox and a drag puts it in a new place (V13)', asy
   await page.reload();
   if (await t.count()) await t.click();
   await expect(rows).toHaveText(['thoughtful', 'selfless']);
-  await page.getByRole('link', { name: 'Flow', exact: true }).click();
-  // Flow keeps the same order (a paradox with nothing due today still has its section)
-  await expect(page.locator('.fs-flow-group').first()).toHaveAttribute('aria-label', 'thoughtful and reactive');
 });

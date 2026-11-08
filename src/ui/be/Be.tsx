@@ -2,18 +2,23 @@
 // a short seam ("selfless | selfish"). A tap opens that paradox's spread under its row, drawn like the
 // notebook, and a second tap closes it; "+ Goal" on an open spread is its primary act. "New paradox" is a
 // secondary word at the top; "Resting" reveals the paradoxes set aside. Long press a row to lift it and drag it
-// to a new place (V13, as the Voices screen does); the order holds on Flow too. #/be/:id opens that one and scrolls
-// to it once it is laid out.
+// to a new place (V13, as the Voices screen does). #/be/:id opens that one and scrolls
+// to it once it is laid out. Under an active paradox's spread sit its checks due today and its lean (F0, moved
+// from Flow; see Due.tsx), in Day and Night.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Spread } from '../parts/Spread';
 import { dataVersion } from '../sheets';
 import { dropGoal, moveParadox, spreads, type SpreadData } from '../../model/paradox';
+import { today, type TodayGroup } from '../../model/flow';
+import { dayKey } from '../../model/pages';
+import { now } from '../light';
 import { useLongPress } from '../council/state';
 import { tick } from '../parts/Haptic';
 import { beData, beVersion, openGoal, openParadox, changed } from './state';
 import { GoalSheet } from './GoalSheet';
 import { ParadoxSheet } from './ParadoxSheet';
+import { Due } from './Due';
 
 export function Be({ id }: { id?: string }) {
   const [list, setList] = useState<SpreadData[] | null>(null);
@@ -28,6 +33,17 @@ export function Be({ id }: { id?: string }) {
     spreads().then(s => { if (live) { beData.value = s; setList(s); } });
     return () => { live = false; };
   }, [beVersion.value, dataVersion.value]);
+
+  // what is due today and the latest lean, per active paradox (F0: moved here from Flow); a new day reads again
+  const t = now.value;
+  const day = dayKey(t);
+  const [due, setDue] = useState<Map<string, TodayGroup>>(new Map());
+  const [dueVersion, setDueVersion] = useState(0);
+  useEffect(() => {
+    let live = true;
+    today(Date.now()).then(gs => { if (live) setDue(new Map(gs.map(g => [g.paradox.id, g]))); });
+    return () => { live = false; };
+  }, [day, dueVersion, beVersion.value, dataVersion.value]);
 
   // the deep link opens its paradox
   useEffect(() => { if (id) setOpen(prev => (prev.has(id) ? prev : new Set([...prev, id]))); }, [id]);
@@ -128,7 +144,12 @@ export function Be({ id }: { id?: string }) {
           <i aria-hidden="true" />
           <span class="b">{s.paradox.poleB.value}</span>
         </button>
-        {shown && <div id={`spread-${pid}`}>{spread(s)}</div>}
+        {shown && (
+          <div id={`spread-${pid}`}>
+            {spread(s)}
+            {due.has(pid) && <Due key={`${pid} ${day}`} group={due.get(pid)!} now={t} onWritten={() => setDueVersion(v => v + 1)} />}
+          </div>
+        )}
       </section>
     );
   };

@@ -1,8 +1,8 @@
 // The seams pass (package 8): the whole journey end to end, offline, in one go. Cold load and the threshold
 // breath; write a paragraph, give the next one the Mystic's voice from the margin dot, keep it close, ask
 // the first line (a new question page; the day stays whole), write under the question, take that line to
-// the council, speak there as two voices; find the entry on Pages; add a goal pair on Be, check it due on Flow,
-// drag the lean; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
+// the council, speak there as two voices; find the entry on Pages; add a goal pair on Be, check it due under the
+// spread, drag the lean; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
 // with the word, and everything is still there; export makes a file. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -118,9 +118,8 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(card.getByRole('button', { name: new RegExp(giving) })).toBeVisible();
   await expect(card.getByRole('button', { name: new RegExp(keeping) })).toBeVisible();
 
-  // ---- Flow: the new goal is due today; check it, drag the lean ----
-  await tab(page, 'Flow').click();
-  const group = page.getByRole('region', { name: 'selfless and selfish' });
+  // ---- under the spread: the new goal is due today; check it, drag the lean (F0, moved from Flow) ----
+  const group = card.getByRole('region', { name: 'Today, selfless and selfish' });
   const due = group.getByRole('checkbox', { name: new RegExp(giving) });
   await expect(due).toHaveAttribute('aria-checked', 'false');
   await due.click();
@@ -134,7 +133,7 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.mouse.move(sb.x + sb.width - 2, sy, { steps: 4 });
   await page.mouse.up();
   await expect(slider).toHaveAttribute('aria-valuenow', '1');
-  await expect(page.locator('.fs-flow[data-saved="true"]')).toBeAttached();
+  await expect(group).toHaveAttribute('data-saved', 'true');
 
   // ---- Still: tap the moon on the Journal page; a kept line at the top; the ring brings it back ----
   await tab(page, 'Journal').click();
@@ -186,7 +185,6 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await tab(page, 'Be').click();
   await row.click();
   await expect(card.getByRole('button', { name: new RegExp(giving) })).toBeVisible();
-  await tab(page, 'Flow').click();
   await expect(due).toHaveAttribute('aria-checked', 'true');
   await expect(slider).toHaveAttribute('aria-valuenow', '1');
 

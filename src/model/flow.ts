@@ -1,13 +1,11 @@
-// Flow (PLAN.md section 5 item 4): what is due today by cadence, the done log, the lean between the
-// poles, and the look back. Every read and write goes through store, so sealing works. Every date is the
-// phone's own local calendar: a day starts at local midnight, a week on Monday (ISO), a month on the 1st.
+// Today's goals (PLAN.md section 5 item 4; read by Be since PLAN-FLOWS.md F0): what is due today by cadence,
+// the done log, and the lean between the poles. The look back went with F0. Every read and write goes
+// through store, so sealing works. Every date is the phone's own local calendar: a day starts at local
+// midnight, a week on Monday (ISO), a month on the 1st.
 // Nothing here counts a run of days; there are no totals.
-import { byParadoxOrder, type Cadence, type Item, type Lean, type Paradox, type Voice } from '../db/schema';
+import { byParadoxOrder, type Cadence, type Item, type Lean, type Paradox } from '../db/schema';
 import { store, type Read } from '../db/fields';
-import { questions } from './pages';
-import { goalsOf, openSlots, slotLine, clampLean } from './paradox';
-
-const DAY_MS = 86_400_000;
+import { goalsOf, clampLean } from './paradox';
 
 // ---------------------------------------------------------------- calendar
 
@@ -136,89 +134,3 @@ export const SNAP = 0.08;
 export const detentOf = (lean: number): number | undefined => DETENTS.find(d => Math.abs(lean - d) <= SNAP);
 /** A raw lean from the finger, clicked onto a detent when it is close to one. */
 export const snapLean = (raw: number): number => { const l = clampLean(raw); return detentOf(l) ?? l; };
-
-// ---------------------------------------------------------------- look back
-
-export type OpenQuestion = { id: string; title: string };
-export async function openQuestions(limit = 5): Promise<OpenQuestion[]> {
-  return (await questions())
-    .filter(q => q.state === 'open' && q.title?.trim())
-    .slice(0, limit)
-    .map(q => ({ id: q.id, title: q.title!.trim() }));
-}
-
-export type QuietParadox = { id: string; label: string };
-/** Active paradoxes with no lean in the calendar month of now. */
-export async function quietParadoxes(now = Date.now()): Promise<QuietParadox[]> {
-  const from = startOfMonth(now);
-  const ps = await activeParadoxes();
-  const quiet = await Promise.all(ps.map(async p => ((await leansOf(p.id)).some(l => l.at >= from) ? null : p)));
-  return quiet.filter((p): p is Read<Paradox> => !!p).map(p => ({ id: p.id, label: `${p.poleA.value} · ${p.poleB.value}` }));
-}
-
-export const QUIET_DAYS = 30;
-/** Light voices (not archived) that have not spoken in thirty days, or ever, in pantheon order. Deep twins
- *  are left out so the list stays short; each sits beside its light voice on the Voices screen. */
-export async function quietVoices(now = Date.now(), days = QUIET_DAYS): Promise<Read<Voice>[]> {
-  const since = now - days * DAY_MS;
-  const [vs, ms] = await Promise.all([store.all('voices'), store.all('messages')]);
-  const last = new Map<string, number>();
-  for (const m of ms) if (m.voiceId) last.set(m.voiceId, Math.max(last.get(m.voiceId) ?? -Infinity, m.at));
-  return vs.filter(v => !v.archived && v.shade === 'light' && (last.get(v.id) ?? -Infinity) < since).sort((a, b) => a.order - b.order);
-}
-
-export type OpenBalance = { paradoxId: string; forId: string; goal: string; line: string };
-/** The spread's open balance slots: a goal whose balance on the other pole is still missing. */
-export async function openBalances(): Promise<OpenBalance[]> {
-  const ps = await activeParadoxes();
-  const rows = await Promise.all(ps.map(async p => {
-    const items = await goalsOf(p.id);
-    return openSlots(items).map(s => ({
-      paradoxId: p.id,
-      forId: s.forId,
-      goal: items.find(i => i.id === s.forId)?.text ?? '',
-      line: slotLine(s.pole === 'a' ? p.poleA.value : p.poleB.value),
-    }));
-  }));
-  return rows.flat();
-}
-
-export type LeanLineData = { paradox: Read<Paradox>; points: { at: number; lean: number }[] };
-/** Each active paradox that has been leaned, with its leans oldest first. */
-export async function leanLines(): Promise<LeanLineData[]> {
-  const ps = await activeParadoxes();
-  const rows = await Promise.all(ps.map(async paradox => ({ paradox, points: (await leansOf(paradox.id)).map(l => ({ at: l.at, lean: l.lean })) })));
-  return rows.filter(r => r.points.length > 0);
-}
-
-/** The look back. Entries have no state since V1, so nothing lists them as still raw (V2 took that list out). */
-export type LookBack = {
-  open: OpenQuestion[];
-  quiet: QuietParadox[];
-  voices: Read<Voice>[];
-  balances: OpenBalance[];
-  lines: LeanLineData[];
-};
-export async function lookBack(now = Date.now()): Promise<LookBack> {
-  const [open, quiet, voices, balances, lines] = await Promise.all([
-    openQuestions(), quietParadoxes(now), quietVoices(now), openBalances(), leanLines(),
-  ]);
-  return { open, quiet, voices, balances, lines };
-}
-
-// ---------------------------------------------------------------- the lean line's path
-
-/** An SVG path for a lean line in a w by h box: time left to right (first lean to now), lean top (-1) to
- *  bottom (+1). It holds its last height out to now, since that is where you still are. */
-export function leanPath(points: { at: number; lean: number }[], now: number, w: number, h: number, pad = 2): string {
-  if (!points.length) return '';
-  const t0 = points[0].at;
-  const t1 = Math.max(now, points[points.length - 1].at, t0 + 1);
-  const x = (t: number) => pad + ((t - t0) / (t1 - t0)) * (w - pad * 2);
-  const y = (l: number) => pad + ((clampLean(l) + 1) / 2) * (h - pad * 2);
-  const r = (n: number) => Math.round(n * 10) / 10;
-  const d = points.map((p, i) => `${i ? 'L' : 'M'}${r(x(p.at))} ${r(y(p.lean))}`);
-  const last = points[points.length - 1];
-  d.push(`L${r(x(t1))} ${r(y(last.lean))}`);
-  return d.join(' ');
-}
