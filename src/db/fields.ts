@@ -2,7 +2,7 @@
 // here, so no UI code ever touches a stored string:
 //   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
-//   flows: name, line, every step's name, line, said, usual, usualShort and tips (text, short, person), the revisions'
+//   flows: name, line, restLine, every step's name, line, said, usual, usualShort and tips (text, short, person), the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines and the prediction's text.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
@@ -106,24 +106,24 @@ const leanSpec: Spec<Tables['leans']> = {
 
 /** A flow seals every word it holds; the clear copy keeps the shape (ids, the diagram, helpers, spans, which step is
  *  the peak), so a list can draw the flow before unlock. Opened, the sealed words come back whole. */
-type FSecret = { name: string; line?: string; steps: Tables['flows']['steps']; revisions: Tables['flows']['revisions']; notes?: string[] };
+type FSecret = { name: string; line?: string; restLine?: string; steps: Tables['flows']['steps']; revisions: Tables['flows']['revisions']; notes?: string[] };
 const blankSteps = (steps: Tables['flows']['steps']) => steps.map(st => ({
-  id: st.id, name: '', tips: st.tips.map(t => ({ id: t.id, text: '', helper: t.helper, wise: t.wise, struck: t.struck })),
+  id: st.id, name: '', tips: st.tips.map(t => ({ id: t.id, text: '', helper: t.helper, wise: t.wise, struck: t.struck, print: t.print })),
   spanMin: st.spanMin, peak: st.peak,
 }));
 const flowSpec: Spec<Tables['flows']> = {
   take: row => ({
     clear: {
-      ...row, name: '', line: undefined, steps: blankSteps(row.steps),
+      ...row, name: '', line: undefined, restLine: undefined, steps: blankSteps(row.steps),
       revisions: row.revisions.map(r => ({ at: r.at, name: '', steps: [] })),
       notes: row.notes?.map(n => ({ ...n, text: '' })),
     },
-    secret: { name: row.name, line: row.line, steps: row.steps, revisions: row.revisions, notes: row.notes?.map(n => n.text) } satisfies FSecret,
+    secret: { name: row.name, line: row.line, restLine: row.restLine, steps: row.steps, revisions: row.revisions, notes: row.notes?.map(n => n.text) } satisfies FSecret,
   }),
   give: (clear, raw) => {
     const s = raw as FSecret;
     return {
-      ...clear, name: s.name, line: s.line, steps: s.steps, revisions: s.revisions,
+      ...clear, name: s.name, line: s.line, restLine: s.restLine, steps: s.steps, revisions: s.revisions,
       notes: clear.notes?.map((n, i) => ({ ...n, text: s.notes?.[i] ?? '' })),
     };
   },
