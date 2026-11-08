@@ -123,10 +123,10 @@ describe('the clock', () => {
 });
 
 describe('what the page shows', () => {
-  it('at most six rows, three in Still with the short words; struck and person rows never', () => {
+  it('at most six rows, three in Still with the short words; struck rows never; a person row always (F6)', () => {
     const step = { tips: [...PANIC.steps[0].tips, { id: 'x', text: 'struck', struck: true }, { id: 'p', text: 'Text Ali', helper: 'person' as const }] };
-    expect(shownTips(step, false).map(t => t.id)).toEqual(PANIC.steps[0].tips.map(t => t.id));
-    expect(shownTips(step, true)).toHaveLength(3);
+    expect(shownTips(step, false).map(t => t.id)).toEqual([...PANIC.steps[0].tips.map(t => t.id), 'p']);
+    expect(shownTips(step, true).map(t => t.id)).toEqual([...PANIC.steps[0].tips.slice(0, 3).map(t => t.id), 'p']);
     expect(tipText(PANIC.steps[0].tips[0], true)).toBe('Less coming in');
     expect(tipText(PANIC.steps[0].tips[0], false)).toMatch(/^Less coming in: leave the room/);
   });

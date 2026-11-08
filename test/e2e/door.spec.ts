@@ -33,6 +33,7 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
 
   // a line on today's page, and an ended Panic episode, so there is a page and a "last time" to keep behind the PIN
   const line = 'Something only I should read.';
+  const note = 'A note only I should read.';
   const today = page.getByRole('textbox', { name: "Today's page" });
   await today.click();
   await today.pressSequentially(line, { delay: 2 });
@@ -47,6 +48,24 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
   await expect(page.locator('.fl-last')).toBeVisible();
+  // F6: a note to the next one of you at the wave, and the ended episode is a ghost ring; both stay behind the PIN
+  await page.evaluate(([text]) => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open('flowstate');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const st = open.result.transaction('flows', 'readwrite').objectStore('flows');
+      const g = st.get('panic');
+      g.onsuccess = () => {
+        const f = g.result;
+        f.notes = [{ id: 'n-door', stepId: 'panic-2', text, at: Date.now(), episodeId: 'e-door' }];
+        const w = st.put(f);
+        w.onsuccess = () => { open.result.close(); resolve(); };
+        w.onerror = () => reject(w.error);
+      };
+    };
+  }), [note] as const);
+  await page.reload();
+  await expect(page.locator('.fl-ghosts [data-ghost]')).toHaveCount(1);
 
   // Settings: no door switch until there is a PIN; the Shortcut row is there either way
   await page.getByRole('button', { name: 'Settings' }).click();
@@ -93,6 +112,9 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
     const words = await visibleText(page);
     expect(words).not.toContain(line);
     expect(words).not.toMatch(/Last time|last time/);
+    // F6: notes, the question, ghost rings, his stamps and the person row are behind the PIN
+    await expect(page.locator('.fl-note, .fl-ask, .fl-ghosts, .fl-stamps, .fl-person, .fl-carried')).toHaveCount(0);
+    expect(words).not.toContain(note);
   };
   await behindThePin();
 

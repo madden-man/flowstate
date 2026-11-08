@@ -16,6 +16,9 @@ import { useHold } from '../parts/Hold';
 import { tick } from '../parts/Haptic';
 import { shortDate } from '../date';
 import { HELPER_WORD } from './Tips';
+import { PersonSheet } from './Person';
+import { EarlierNotes } from './Notes';
+import { personRowText } from '../../model/carried';
 import type { Flow, Step, Tip, TipHelper } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import { earlierOf, moveTip, newTip, saveStep, type StepDraft } from '../../model/tips';
@@ -41,8 +44,9 @@ export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => vo
   );
 }
 
-/** The helpers a tip can carry from this sheet (the person row is F6's and has its own sheet). */
-const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer'];
+/** The helpers a tip can carry from this sheet. Person (F6) opens the person sheet over this one: who, the number,
+ *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode. */
+const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction'];
 
 /** step: the step to edit; none to add one (first: it names the flow's unnamed step). */
 type Props = { flow: Read<Flow>; step?: Step; first?: boolean; open: boolean; onClose: () => void; onSaved: () => void };
@@ -129,10 +133,17 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
   }, [lifted]);
   const lift = (id: string, y: number) => { drag.current = { id, y, dy: 0 }; setLifted(id); };
 
+  // the person sheet (F6), over this one, for one tip: closing it keeps the person on the draft (saved with the step)
+  const [personFor, setPersonFor] = useState<string | null>(null);
+  const [personOpen, setPersonOpen] = useState(false);
+  const personTip = d.tips.find(t => t.id === personFor);
+  const askPerson = (id: string) => { tick('sheet'); setPersonFor(id); setPersonOpen(true); };
+
   const earlier = step ? earlierOf({ revisions: flow.revisions, steps: flow.steps.map(s => (s.id === step.id ? { ...s, ...d } : s)) }, step.id) : [];
   const tips = d.tips.filter(t => !t.struck);
 
   return (
+    <>
     <Sheet open={open} onClose={onClose} title={step ? d.name.trim() || step.name : first ? 'The first step' : 'New step'}
       action={step ? undefined : { label: 'Save', inert: !d.name.trim(), onPress: onClose }}>
       <div class="fs-rows fl-stepsheet">
@@ -158,31 +169,43 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
           <div ref={list} class="fl-tiplist" role="list" aria-label="Things to do">
             {tips.map(t => (
               <TipRow key={t.id} t={t} lifted={lifted === t.id} onLift={y => lift(t.id, y)}
-                onText={text => setTip(t.id, { text })} onHelper={helper => setTip(t.id, { helper })} onStrike={() => setTip(t.id, { struck: true })} />
+                onText={text => setTip(t.id, { text })} onStrike={() => setTip(t.id, { struck: true })}
+                onHelper={helper => { setTip(t.id, { helper }); if (helper === 'person') askPerson(t.id); }} onPerson={() => askPerson(t.id)} />
             ))}
           </div>
           <div class="fs-opts">
             <button type="button" class="fs-chip add" onClick={() => setD(p => ({ ...p, tips: [...p.tips, newTip()] }))}>+ thing</button>
           </div>
         </div>
-        {earlier.length > 0 && (
+        {step && (earlier.length > 0 || flow.notes?.some(n => n.stepId === step.id && n.text.trim())) && (
           <div class="fs-row stack" aria-label="Earlier">
             <span class="fs-print">Earlier</span>
+            <EarlierNotes flow={flow} stepId={step.id} />
             {earlier.map((w, k) => <p key={k} class="fs-was"><Strike>{w.text}</Strike> <small class="fs-print">· {shortDate(new Date(w.at))}</small></p>)}
           </div>
         )}
       </div>
     </Sheet>
+      {personTip && (
+        <PersonSheet open={personOpen} person={personTip.person} onClose={p => {
+          if (!personOpen) return;
+          setPersonOpen(false);
+          setTip(personTip.id, { person: p.name ? p : undefined, text: personTip.text.trim() || (p.name ? personRowText({ person: p }) : 'One person, written when calm') });
+        }} />
+      )}
+    </>
   );
 }
 
 type RowProps = {
   t: Tip; lifted: boolean; onLift: (y: number) => void;
   onText: (text: string) => void; onHelper: (h: TipHelper | undefined) => void; onStrike: () => void;
+  /** A person tip (F6): open its sheet again. */
+  onPerson: () => void;
 };
 
 /** One thing to do: its words (a tap writes in them), its helper chip, Strike. A long press on the words lifts it. */
-function TipRow({ t, lifted, onLift, onText, onHelper, onStrike }: RowProps) {
+function TipRow({ t, lifted, onLift, onText, onHelper, onStrike, onPerson }: RowProps) {
   const [edit, setEdit] = useState(!t.text);
   const [helpers, setHelpers] = useState(false);
   const y = useRef(0);
@@ -206,6 +229,9 @@ function TipRow({ t, lifted, onLift, onText, onHelper, onStrike }: RowProps) {
             {t.helper ? HELPER_WORD[t.helper] : 'helper'}
           </button>
         ) : <span />}
+        {t.helper === 'person' && (
+          <button type="button" class="fs-word fl-who" onClick={onPerson}>{personRowText(t)}</button>
+        )}
         <button type="button" class="fs-word" onClick={onStrike} aria-label={`Strike ${t.text}`}>Strike</button>
       </div>
       {helpers && (

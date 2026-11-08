@@ -80,6 +80,8 @@ export const PANIC: FlowSeed = {
         { id: 'panic-3-shake', text: 'Shake out your hands; drop your shoulders' },
         { id: 'panic-3-okay', text: "You're okay. It's passing.", wise: true },
         { id: 'panic-3-tea', text: 'Something small and ordinary: make tea', short: 'Make tea' },
+        // F6, one person written when calm (3.7): no name in the seed, so the row reads as the slot to fill
+        { id: 'panic-3-person', text: 'One person, written when calm', short: 'One person', helper: 'person' },
       ],
     },
     {

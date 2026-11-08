@@ -162,8 +162,7 @@
     <div class="fs-app"><main class="fs-main"><section class="fs-page">
 <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 21 / 26</b></span></div></header>
       <div class="fs-sheetof fs-rules fs-pagelist">
-        <div class="fl-note" style="margin-top:0"><p class="fl-usual">Yesterday's worry</p><p class="fl-line">Tomorrow's call. Every version of it.</p>
-          <div class="fs-chips" role="group" aria-label="Did it happen"><button type="button" class="fs-chip" aria-pressed="true">Didn't happen</button><button type="button" class="fs-chip" aria-pressed="false">Happened</button></div></div>
+        <div class="fl-stampask fs-notstill" data-episode="w3"><p class="fl-usual">Yesterday's worry</p><p class="fl-line">Tomorrow's call. Every version of it.</p><div class="fs-chips fl-stampchips" role="group" aria-label="Did it happen"><button type="button" class="fs-chip">Didn't happen</button><button type="button" class="fs-chip">Happened</button></div></div>
         <div class="fl-diag" data-diag="stamps" data-at="5"></div>
         <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a>
         <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Panic</span><small class="fs-list-meta">The ring <span class="fs-notstill">· last 11 / 8</span></small></a>
@@ -173,7 +172,7 @@
   </div></div>
   <details><summary>How this is built</summary><table>
     <tr><td>Ask</td><td>The day after a What if episode with a written prediction, the Flow list opens with the prediction and two chips. One tap, then the block goes; no reminder, no second ask.</td></tr>
-    <tr><td>Marks</td><td><code>episodes.prediction = { text, outcome?: 'didnt' | 'happened', at }</code>. Each outcome is a drawn check or cross on the curve's flat, his, oldest leftmost; the seeded "9 in 10" line gives way to his own marks once there are any. No number is printed (rule 15).</td></tr>
+    <tr><td>Marks</td><td><code>episodes.prediction = { text, outcome?: 'didnt' | 'happened', at }</code>, written by the Predict helper on Something's coming (one rule, like Five; <code>flow/Stamps.tsx</code>). Each outcome is a drawn check or cross on the curve's flat, his, oldest leftmost; the seeded "9 in 10" line gives way to his own marks once there are any. No number is printed (rule 15).</td></tr>
     <tr><td>Why</td><td>Marking the outcome is the part that teaches (LaFreniere and Newman 2020, PLAN-FLOWS.md 3.5); 91% of logged worries did not come true, and his own record will say so in his own hand.</td></tr>
   </table></details>
 </section>
