@@ -63,6 +63,7 @@ V7 added no scope: `playlist-read-private` already covers `/me/playlists`, so no
 - **Spotify idle** (404 `NO_ACTIVE_DEVICE`, V9): the app reads `GET /me/player/devices` and plays again with `?device_id=` on the active device, else the phone (`Smartphone`), else any device that takes commands. This is the usual case: Spotify open in the background but not playing.
 - **Spotify not running** (no device at all, V9): the app opens `spotify:playlist:<id>` to wake it and says "Opening Spotify: come back and it plays"; coming back to FlowState within three minutes plays the tap, once.
 - **A song Spotify will not start by uri** (V9): the play is sent again with `offset: { position }`, the song's place in the playlist, kept on the shelf as `firstTrackAt`.
+- **A 5xx from the player** (V14; Tommy saw "Spotify did not play it (502)" on master (ii), 6,095 songs): Spotify's player timed out, most likely finding a song by uri in so long a playlist. The app waits 0.9 s and looks at `currently-playing`; if that playlist is playing at that album, the tap counts. Otherwise it plays once more by the song's place (`offset.position`). A second 5xx is the plain line; nothing loops. A shelf read before V9 has no places, so it is read once more on the next list read even with its snapshot unmoved.
 - Any other refusal is one plain line with Spotify's status, "Spotify did not play it (403)", so the reason can be read off the phone.
 - Offline, a tap says "No connection to Spotify" and nothing breaks.
 

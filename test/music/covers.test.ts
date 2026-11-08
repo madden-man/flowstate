@@ -7,7 +7,7 @@ import { store } from '../../src/db/fields';
 import { defaultSettings } from '../../src/db/seed';
 import { POEMS_ID, coverBytes, type Playlist, type Settings } from '../../src/db/schema';
 import {
-  readPlaylist, storeShelf, shelf, keepCover, COVERS_AT_ONCE, COVERS_FIRST, COVER_MAX_AGE, isFresh, coverWhenNear, readMine, readChosen, playlistRows, choosePlaylist,
+  readPlaylist, storeShelf, shelf, keepCover, COVERS_AT_ONCE, COVERS_FIRST, COVER_MAX_AGE, isFresh, coverWhenNear, readOne, readMine, readChosen, playlistRows, choosePlaylist,
 } from '../../src/music/covers';
 import { ApiError, MY_PLAYLISTS_PATH, playlistItemsPath, groupAlbums, type Album } from '../../src/music/spotify';
 import type { Keep } from '../../src/music/connect';
@@ -182,6 +182,20 @@ describe('your playlists, and the guards for big ones (V7)', () => {
     await readMine(keep());
     // master is ticked, so it stays even though the list no longer has it
     expect((await playlistRows()).map(p => [p.id, p.chosen])).toEqual([[POEMS_ID, true], ['master', true]]);
+  });
+
+  it('a shelf from before V9, with no song places, is read once more even with its snapshot unmoved (V14)', async () => {
+    let reads = 0;
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.includes('/playlists/M/items')) { reads++; return json({ items: [entry('t1', 'Pagan', 'CLANN')], next: null }); }
+      return json({}, 404);
+    });
+    await store.put('playlists', playlistRow('M', true, 'snap-1'));
+    await store.put('shelves', { playlistId: 'M', albumUri: 'spotify:album:Pagan', order: 0, firstTrackUri: 't1' });
+    expect(await readOne(keep(), (await store.get('playlists', 'M'))!, 'snap-1')).toBe('read');
+    expect((await shelf('M'))[0].firstTrackAt).toBe(0);
+    expect(await readOne(keep(), (await store.get('playlists', 'M'))!, 'snap-1')).toBe('skipped');
+    expect(reads).toBe(1);
   });
 
   it('ticks the named playlists (master (ii), staging, candidate) once; an untick after that stays (V8)', async () => {

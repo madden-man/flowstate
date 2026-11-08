@@ -101,6 +101,39 @@ describe('play from an album', () => {
     vi.unstubAllGlobals();
   });
 
+  // V14: Tommy's tap on master (ii) came back "Spotify did not play it (502)"
+  const gateway = () => Response.json({ error: { status: 502, message: 'Bad gateway.' } }, { status: 502 });
+  const nowAt = (context: string, album: string) => Response.json({ is_playing: true, context: { uri: context }, item: { album: { uri: album, name: 'X', images: [] }, artists: [] } });
+
+  it('a 502 that landed anyway counts as playing, after one look and no second play', async () => {
+    const calls = player(c => (c.url === '/me/player/play' ? gateway()
+      : c.url === '/me/player/currently-playing' ? nowAt('spotify:playlist:M', 'spotify:album:A')
+      : new Response(null, { status: 204 })));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', { ...album, albumUri: 'spotify:album:A' }, 0)).toBe('playing');
+    expect(calls.filter(c => c.url.startsWith('/me/player/play'))).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('a 502 that did not land is tried once more by the song\'s place in the playlist', async () => {
+    const calls = player((c, n) => (c.url === '/me/player/play' && n === 0 ? gateway()
+      : c.url === '/me/player/currently-playing' ? new Response(null, { status: 204 })
+      : new Response(null, { status: 204 })));
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album, 0)).toBe('playing');
+    const plays = calls.filter(c => c.url.startsWith('/me/player/play'));
+    expect(plays.map(c => c.body)).toEqual([
+      { context_uri: 'spotify:playlist:M', offset: { uri: 'spotify:track:abc' } },
+      { context_uri: 'spotify:playlist:M', offset: { position: 41 } },
+    ]);
+    vi.unstubAllGlobals();
+  });
+
+  it('two 502s in a row are one refusal with its status, never a loop', async () => {
+    const calls = player(c => (c.url === '/me/player/play' ? gateway() : new Response(null, { status: 204 })));
+    expect((await playAlbum(tokens, 'spotify:playlist:M', album, 0).catch(e => e)).status).toBe(502);
+    expect(calls.filter(c => c.url.startsWith('/me/player/play'))).toHaveLength(2);
+    vi.unstubAllGlobals();
+  });
+
   it('picks the active device, else the phone, else any that takes commands', () => {
     const d = (id: string, type: string, isActive = false, isRestricted = false) => ({ id, name: id, type, isActive, isRestricted });
     expect(pickDevice([d('mac', 'Computer'), d('ph', 'Smartphone')])?.id).toBe('ph');
