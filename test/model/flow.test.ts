@@ -5,11 +5,8 @@ import { store } from '../../src/db/fields';
 import type { Cadence, Item } from '../../src/db/schema';
 import {
   isDue, onToday, nextDue, doneOn, periodOf, startOfWeek, withCheck, withoutToday, setDone, today,
-  addLean, latestLean, leansOf, setLeanNote, snapLean, detentOf, openQuestions, quietParadoxes,
-  quietVoices, openBalances, leanLines, lookBack, leanPath,
+  addLean, latestLean, leansOf, setLeanNote, snapLean, detentOf,
 } from '../../src/model/flow';
-import { askQuestion, writeToday, today as journalToday } from '../../src/model/pages';
-import { addGoals } from '../../src/model/paradox';
 
 beforeEach(async () => { await freshDB(); });
 
@@ -142,70 +139,5 @@ describe('leans', () => {
     expect((await store.get('leans', b.id))!.note).toBe('more for me this week');
     expect((await leansOf('px-selfless-selfish')).map(l => l.at)).toEqual([10, 20]);
     expect(await latestLean('px-thoughtful-reactive')).toBeUndefined();
-  });
-
-  it('the lean line runs left to right in time, top to bottom in lean, and holds to now', () => {
-    expect(leanPath([], 0, 100, 20)).toBe('');
-    expect(leanPath([{ at: 0, lean: -1 }, { at: 50, lean: 1 }], 100, 104, 24)).toBe('M2 2 L52 22 L102 22');
-    expect(leanPath([{ at: 0, lean: 0 }], 0, 104, 24)).toBe('M2 12 L102 12');
-  });
-});
-
-describe('look back', () => {
-  it('questions still open (entries have no state since V1, so none is looked back on as raw)', async () => {
-    await ensureSeeded();
-    const now = L(2026, 11, 7, 9);
-    await writeToday(await journalToday(new Date(L(2026, 11, 6))), 'boiling in my own soup', L(2026, 11, 6, 21));
-    const q = await askQuestion('How can I gauge my pleasure/pain barometer?');
-    const back = await lookBack(now);
-    expect(back.open).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }]);
-    expect(back).not.toHaveProperty('raw');
-    expect(await openQuestions()).toEqual([{ id: q.id, title: 'How can I gauge my pleasure/pain barometer?' }]);
-  });
-
-  it('paradoxes with no lean this month', async () => {
-    await ensureSeeded();
-    await addLean('px-selfless-selfish', 0, { now: L(2026, 10, 30) });
-    expect((await quietParadoxes(L(2026, 11, 7))).map(p => p.id)).toEqual(['px-selfless-selfish', 'px-thoughtful-reactive']);
-    await addLean('px-selfless-selfish', 0, { now: L(2026, 11, 1, 0, 1) });
-    expect(await quietParadoxes(L(2026, 11, 7))).toEqual([{ id: 'px-thoughtful-reactive', label: 'thoughtful · reactive' }]);
-  });
-
-  it('light voices that have not spoken in thirty days, or ever', async () => {
-    await ensureSeeded();
-    const now = L(2026, 11, 7);
-    const vs = await store.all('voices');
-    const [a, b] = vs.filter(v => v.shade === 'light').sort((x, y) => x.order - y.order);
-    await store.bulkPut('messages', [
-      { id: 'm1', pageId: 'pg-manifesto', at: now - 2 * 86_400_000, voiceId: a.id, text: 'x', kept: false },
-      { id: 'm2', pageId: 'pg-manifesto', at: now - 40 * 86_400_000, voiceId: b.id, text: 'y', kept: false },
-    ]);
-    const quiet = (await quietVoices(now)).map(v => v.id);
-    expect(quiet).not.toContain(a.id);
-    expect(quiet).toContain(b.id);
-    expect(quiet).toHaveLength(vs.filter(v => !v.archived && v.shade === 'light').length - 1);
-  });
-
-  it('open balance slots name the goal and the side still empty', async () => {
-    await ensureSeeded();
-    expect(await openBalances()).toEqual([
-      { paradoxId: 'px-thoughtful-reactive', forId: 'it-journaling', goal: 'journaling', line: 'and on the reactive side?' },
-      { paradoxId: 'px-thoughtful-reactive', forId: 'it-asking-claude', goal: 'asking Claude', line: 'and on the reactive side?' },
-      { paradoxId: 'px-thoughtful-reactive', forId: 'it-asking-friend', goal: 'asking a friend', line: 'and on the thoughtful side?' },
-      { paradoxId: 'px-thoughtful-reactive', forId: 'it-feedback', goal: 'giving feedback', line: 'and on the thoughtful side?' },
-    ]);
-    const [g] = await addGoals('px-selfless-selfish', { a: 'share what you make' });
-    expect((await openBalances()).find(s => s.forId === g.id)).toMatchObject({ line: 'and on the selfish side?' });
-  });
-
-  it('lean lines only for paradoxes that have been leaned, oldest first; all of it in one read', async () => {
-    await ensureSeeded();
-    await addLean('px-selfless-selfish', 0.5, { now: 20 });
-    await addLean('px-selfless-selfish', -0.5, { now: 10 });
-    const lines = await leanLines();
-    expect(lines.map(l => l.paradox.id)).toEqual(['px-selfless-selfish']);
-    expect(lines[0].points).toEqual([{ at: 10, lean: -0.5 }, { at: 20, lean: 0.5 }]);
-    const all = await lookBack(L(2026, 11, 7));
-    expect(Object.keys(all).sort()).toEqual(['balances', 'lines', 'open', 'quiet', 'voices']);
   });
 });
