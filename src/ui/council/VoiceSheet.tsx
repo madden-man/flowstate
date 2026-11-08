@@ -1,4 +1,5 @@
-// "+ voice" (PLAN.md section 4, "Add from where you write"): name, aka words, a colour wheel, light or
+// "+ voice" (PLAN.md section 4, "Add from where you write"): the name you give it and its role (V10: "Gus",
+// the Architect; the name shows where it speaks, the role a tap away), aka words, a colour wheel, light or
 // deep, an optional twin from the other shade, and a line when the hue sits close to another voice's.
 // The same sheet edits a voice from the Voices screen; every edit pushes a revision (model/council.ts).
 // No save button (DESIGN.md rule 6): putting the sheet away (Done, a swipe, the scrim) keeps what is
@@ -10,7 +11,7 @@ import { HueWheel } from '../parts/HueWheel';
 import { openSheet } from '../sheets';
 import { voiceColour } from '../voice';
 import type { VoiceColour } from '../../db/schema';
-import { addVoice, editVoice, setTwin, starVoice, archiveVoice, akaWords, closeWarning, suggestHue } from '../../model/council';
+import { addVoice, editVoice, setTwin, starVoice, archiveVoice, akaWords, closeWarning, suggestHue, voiceLabel } from '../../model/council';
 import { voiceList, reloadVoices, speaker, editing, draft } from './state';
 
 type Shade = 'light' | 'deep';
@@ -23,6 +24,7 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
   const v = id ? all.find(x => x.id === id) : undefined;
 
   const [name, setName] = useState('');
+  const [given, setGiven] = useState('');
   const [aka, setAka] = useState('');
   const [colour, setColour] = useState<VoiceColour>({ hue: 250 });
   const [shade, setShade] = useState<Shade>('light');
@@ -35,6 +37,7 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
     const d = draft.value;
     draft.value = null;
     setName(v?.name ?? '');
+    setGiven(v?.given ?? '');
     setAka(v?.aka.join(', ') ?? '');
     setColour(v?.colour ?? (d?.colour ?? { hue: suggestHue(all) }));
     setShade(v?.shade ?? d?.shade ?? 'light');
@@ -55,14 +58,16 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
 
   const save = async () => {
     if (busy) return;
-    if (!name.trim()) { shut(); return; }
+    // a voice needs a role or a name; with only a name, the name is its role too
+    const role = name.trim() || given.trim();
+    if (!role) { shut(); return; }
     setBusy(true);
     try {
       if (v) {
-        await editVoice(v.id, { name, aka: akaWords(aka), colour, shade });
+        await editVoice(v.id, { name: role, given, aka: akaWords(aka), colour, shade });
         if ((twin ?? null) !== (v.twinId ?? null) || (shade !== v.shade && twin)) await setTwin(v.id, twin ?? null);
       } else {
-        const made = await addVoice({ name, aka: akaWords(aka), colour, shade, twinId: twin });
+        const made = await addVoice({ name: role, given: name.trim() ? given : '', aka: akaWords(aka), colour, shade, twinId: twin });
         speaker.value = made.id; // the new voice speaks on the very next message
         onMade?.(made.id);
       }
@@ -73,11 +78,16 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
 
   const shown = voiceColour(colour, shade);
   return (
-    <Sheet open={open} onClose={() => void save()} title={v ? v.name : 'A new voice'}>
+    <Sheet open={open} onClose={() => void save()} title={v ? voiceLabel(v) : 'A new voice'}>
       <div class="fs-rows">
         <label class="fs-row stack">
           <span>Name</span>
-          <input class="fs-input" value={name} placeholder="a name" autocomplete="off" enterKeyHint="done" aria-label="Name"
+          <input class="fs-input" value={given} placeholder={name.trim() ? `your name for the ${name.trim()}` : 'a name of your own'} autocomplete="off" enterKeyHint="next" aria-label="Name"
+            onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setGiven(e.currentTarget.value)} />
+        </label>
+        <label class="fs-row stack">
+          <span>Role</span>
+          <input class="fs-input" value={name} placeholder="Architect, King, Mystic" autocomplete="off" enterKeyHint="done" aria-label="Role"
             onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setName(e.currentTarget.value)} />
         </label>
         <label class="fs-row stack">
@@ -87,7 +97,7 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
         </label>
         <div class="fs-row stack">
           <span>Colour</span>
-          <HueWheel hue={colour.hue ?? 0} deep={shade === 'deep'} colour={shown} label={name.trim() || undefined}
+          <HueWheel hue={colour.hue ?? 0} deep={shade === 'deep'} colour={shown} label={given.trim() || name.trim() || undefined}
             onHue={h => setColour(c => ({ hue: h, chroma: c.hue === null ? undefined : c.chroma }))} />
           <div class="fs-opts" role="group" aria-label="Ink black">
             <button type="button" class="fs-opt" aria-pressed={colour.hue === null} onClick={() => setColour(c => (c.hue === null ? { hue: suggestHue(all) } : { hue: null }))}>Black</button>
@@ -108,7 +118,7 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
               <button type="button" class="fs-opt" aria-pressed={!twin} onClick={() => pickTwin(undefined)}>None</button>
               {others.map(o => (
                 <button key={o.id} type="button" class="fs-opt fs-opt-v" aria-pressed={twin === o.id}
-                  style={{ '--vc': voiceColour(o.colour, o.shade) } as JSX.CSSProperties} onClick={() => pickTwin(o.id)}><i />{o.name}</button>
+                  style={{ '--vc': voiceColour(o.colour, o.shade) } as JSX.CSSProperties} onClick={() => pickTwin(o.id)}><i />{voiceLabel(o)}</button>
               ))}
             </div>
           </div>

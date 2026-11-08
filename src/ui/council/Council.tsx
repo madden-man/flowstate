@@ -20,9 +20,10 @@ import type { Read } from '../../db/fields';
 import type { Message, Voice } from '../../db/schema';
 import {
   councilPages, councilById, newCouncil, speak, chipVoices, nextSpeaker, lastSpeaker, startsRun, firstLine,
-  seatedVoices, isSeated, toggleSeat, seat,
+  seatedVoices, isSeated, toggleSeat, seat, voiceLabel,
   type CouncilRow, type CouncilPage as CouncilData,
 } from '../../model/council';
+import { Speaker } from '../parts/Speaker';
 import { voiceList, reloadVoices, speaker, editing, useLongPress } from './state';
 import { useKeyboardFit } from '../parts/Keyboard';
 import { VoiceSheet } from './VoiceSheet';
@@ -59,7 +60,7 @@ function SeatChips({ seats, onToggle }: { seats?: string[]; onToggle: (id: strin
   return (
     <div class="fs-seats" role="group" aria-label="Who sits">
       {row.map(v => (
-        <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+        <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
           pressed={!!seats?.includes(v.id)} onPress={() => onToggle(v.id)} />
       ))}
       <Chip label="+ voice" add onPress={() => { editing.value = null; openSheet.value = 'voice'; tick('sheet'); }} />
@@ -81,7 +82,7 @@ export function ChipRow({ turns, onSeat }: { turns: Turns; onSeat?: () => void }
     <div class="fs-chips" role="group" aria-label="Who speaks next" {...press}>
       <Chip label="Ink" ariaLabel="Plain ink" pressed={!current} onPress={() => { speaker.value = null; }} />
       {row.map(v => (
-        <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+        <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
           pressed={current === v.id} onPress={() => { speaker.value = v.id; }} />
       ))}
       {seated && onSeat
@@ -128,7 +129,7 @@ export function Composer({ next, chips, onSend, replying, onCancelReply, focus }
       {chips}
       <div class="fs-composer">
         <textarea ref={area} rows={1} aria-label="Message" value={text} enterkeyhint="send"
-          placeholder={who ? `${who.name} speaks…` : 'A line in ink…'}
+          placeholder={who ? `${voiceLabel(who)} speaks…` : 'A line in ink…'}
           style={who ? vcOf(who) : undefined}
           onInput={(e: JSX.TargetedEvent<HTMLTextAreaElement>) => setText(e.currentTarget.value)}
           onKeyDown={(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void send(); } }} />
@@ -142,7 +143,7 @@ export function Composer({ next, chips, onSend, replying, onCancelReply, focus }
 function SpokeRules({ ids }: { ids: string[] }) {
   const vs = ids.map(id => voiceList.value.find(v => v.id === id)).filter((v): v is Read<Voice> => !!v);
   if (!vs.length) return null;
-  return <span class="fs-spoke" aria-label={vs.map(v => v.name).join(', ')}>{vs.map(v => <i key={v.id} class={v.shade === 'deep' ? 'deep' : undefined} style={vcOf(v)} />)}</span>;
+  return <span class="fs-spoke" aria-label={vs.map(voiceLabel).join(', ')}>{vs.map(v => <i key={v.id} class={v.shade === 'deep' ? 'deep' : undefined} style={vcOf(v)} />)}</span>;
 }
 
 function CouncilList() {
@@ -197,7 +198,7 @@ function Line({ m, voice, run, quoted, press, onTap }: { m: Read<Message>; voice
   if (!voice) return <div class={`fs-msg${m.kept ? ' kept' : ''}`} data-id={m.id} {...press} onClick={onTap}>{body}</div>;
   return (
     <div class={`fs-msg fs-v${voice.shade === 'deep' ? ' deep' : ''}${m.kept ? ' kept' : ''}`} style={vcOf(voice)} data-id={m.id} data-voice={voice.name} {...press} onClick={onTap}>
-      {run && <span class="fs-sp">{voice.name}</span>}
+      {run && <Speaker v={voice} />}
       {body}
     </div>
   );
@@ -286,7 +287,7 @@ function CouncilPage({ id }: { id: string }) {
     const q = mid ? msgs.find(x => x.id === mid) : undefined;
     if (!q) return undefined;
     const v = byId(q.voiceId);
-    return { who: v?.name ?? 'Ink', text: firstLine(q.text), vc: v ? voiceColour(v.colour, v.shade) : undefined };
+    return { who: v ? voiceLabel(v) : 'Ink', text: firstLine(q.text), vc: v ? voiceColour(v.colour, v.shade) : undefined };
   };
   const next = nextSpeaker(speaker.value, vs, still, turns);
   // Lines go down one at a time, each reading the page fresh, so two quick Returns still take two turns.

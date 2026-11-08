@@ -12,6 +12,7 @@ import { dataVersion } from '../sheets';
 import { now } from '../light';
 import { dayKey } from '../../model/pages';
 import { today, lookBack, setDone, addLean, setLeanNote, doneOn, type TodayGroup, type LookBack } from '../../model/flow';
+import { voiceLabel } from '../../model/council';
 
 export function Flow() {
   const t = now.value;
@@ -102,7 +103,7 @@ function Back({ back, now: t, toSlider }: { back: LookBack; now: number; toSlide
       )}
       {voices.length > 0 && (
         <List title="Quiet a while">
-          <a class="fs-back-link fs-back-names" href="#/voices">{voices.map(v => v.name).join(', ')}</a>
+          <a class="fs-back-link fs-back-names" href="#/voices">{voices.map(voiceLabel).join(', ')}</a>
         </List>
       )}
       {balances.length > 0 && (

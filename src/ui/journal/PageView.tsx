@@ -17,6 +17,8 @@ import { Chip } from '../parts/Chip';
 import { Echo } from '../parts/Echo';
 import { useHold } from '../parts/Hold';
 import { useKeyboardFit } from '../parts/Keyboard';
+import { Speaker } from '../parts/Speaker';
+import { voiceLabel } from '../../model/council';
 import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
 import { Redirect } from '../route';
@@ -167,7 +169,7 @@ function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chip
           <button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded={dotOpen}
             onMouseDown={e => e.preventDefault()} onPointerDown={e => e.preventDefault()} onClick={onDot} />
         )}
-        {voice && <span class="fs-sp">{voice.name}</span>}
+        {voice && <Speaker v={voice} />}
         {quoted && <span class="fs-quote">{quoted.text}</span>}
         {m?.kept && <small class="fs-kept">kept</small>}
         {edit ? (
@@ -553,7 +555,7 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
                   <div class="fs-chips" role="group" aria-label="Who speaks this line">
                     <Chip label="Ink" ariaLabel="Plain ink" pressed={!vid} onPress={() => pick(b.id, undefined)} />
                     {starred.map(v => (
-                      <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+                      <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
                         pressed={vid === v.id} onPress={() => pick(b.id, v.id)} />
                     ))}
                     <Chip label="more" add onPress={() => { setDotFor(null); openSheet.value = 'speak'; tick('sheet'); }} />

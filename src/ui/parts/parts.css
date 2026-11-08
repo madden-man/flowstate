@@ -94,6 +94,10 @@
 }
 .fs-v.deep { border-left-style: double; border-left-width: 5px; }
 .fs-sp { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--vc); font-style: normal; }
+/* V10: a given name is a button: a tap shows the role beside it, in print grey */
+.fs-sp-tap { appearance: none; border: 0; background: transparent; margin: 0; padding: 0; text-align: left; cursor: pointer; line-height: inherit; min-height: 0; }
+.fs-sp-role { color: var(--print); }
+.fs-sp-tap:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .fs-aka { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: none; color: var(--print); }
 /* Still: deep twins leave the chip row; their written lines stay (DESIGN.md rule 13) */
 [data-light="still"] .fs-chip.deep { display: none; }

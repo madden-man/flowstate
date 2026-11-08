@@ -12,6 +12,7 @@ import { voiceColour } from '../voice';
 import { findPages, type Listed, type LinkKind } from '../../model/pages';
 import type { Read } from '../../db/fields';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
+import { voiceLabel } from '../../model/council';
 
 type Acts = {
   keep: () => void; speak: (voiceId: string | undefined) => void; ask: () => void;
@@ -64,13 +65,13 @@ export function LineSheet({ held, page, question, voices, byId, acts, onClose }:
               <span>Keep close</span><small>{held.kept ? 'Kept' : 'Echo · Still'}</small>
             </button>
             <button type="button" class="fs-row" aria-expanded={more === 'speak'} onClick={() => setMore(more === 'speak' ? null : 'speak')}>
-              <span>Speak as…</span><small>{voice?.name ?? 'Ink'}</small>
+              <span>Speak as…</span><small>{voice ? voiceLabel(voice) : 'Ink'}</small>
             </button>
             {more === 'speak' && (
               <div class="fs-chips" role="group" aria-label="Speak as">
                 <Chip label="Ink" ariaLabel="Plain ink" pressed={!held.voiceId} onPress={() => acts.speak(undefined)} />
                 {voices.map(v => (
-                  <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+                  <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
                     pressed={held.voiceId === v.id} onPress={() => acts.speak(v.id)} />
                 ))}
               </div>
@@ -101,7 +102,7 @@ export function SpeakSheet({ voices, current, onPick, onClose }: {
       <div class="fs-chips fs-chips-wrap" role="group" aria-label="Every voice">
         <Chip label="Ink" ariaLabel="Plain ink" pressed={!current} onPress={() => onPick(undefined)} />
         {voices.map(v => (
-          <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+          <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
             pressed={current === v.id} onPress={() => onPick(v.id)} />
         ))}
       </div>

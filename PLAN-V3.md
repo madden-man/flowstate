@@ -102,3 +102,7 @@ V6 first (small, no schema change, removes a rule the walkthrough still shows), 
 
 - **Covers** are kept as bytes with a fetch date, and fetched again only after 30 days; a stale one shows until its fresh one lands (`src/music/covers.ts` `COVER_MAX_AGE`, `isFresh`). Blobs in IndexedDB are not trusted on iOS.
 - **A tile plays** the album's first song within the chosen playlist even when Spotify is idle (found by `/me/player/devices` and played by `device_id`) or not running (opened, then played on coming back); shuffle goes off; a song refused by uri is tried by its place. docs/SPOTIFY.md, Playing.
+
+## 10. V10: names for the voices (2026-11-08)
+
+Tommy: "make room for me to name each of the voices (the roles, like architect, king, etc. should show on tap)". A voice keeps its role in `name` and gains an optional `given` name (clear, like the role, so chips draw before unlock). `voiceLabel` (the given name, else the role) is what every chip, speaker line, placeholder and list shows; the voice sheet has Name then Role; a tap on the name above a line (`parts/Speaker.tsx`) shows "GUS · ARCHITECT" without replying; the Voices screen shows the role beside the other words a voice goes by. A name change goes onto revisions like any rename.
