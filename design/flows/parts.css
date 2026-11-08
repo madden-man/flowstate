@@ -539,9 +539,9 @@ a.fs-word { text-decoration: none; }
 .fs-picker { border-top: 0; }
 a.fs-row { color: var(--ink); text-decoration: none; }
 
-/* ==== Flow (package 4): today's checks, the lean slider, the look back, the lean line ==== */
-.fs-flow-group { padding-bottom: var(--lh-ink); }
-.fs-flow-head, .fs-back-list h3, .fs-back-title { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+/* ==== Today's checks and the lean slider (package 4; under a paradox's spread on Be since F0) ==== */
+.fs-due { padding: var(--s1) 0 var(--lh-ink); }
+.fs-due-head { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
 
 /* the drawn check: a row on the rules, a box in print grey, the check stroked in ink over --t-ui */
 .fs-check {
@@ -562,10 +562,10 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-check.done .fs-check-ink { stroke-dashoffset: 0; }
 .fs-check-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .fs-check small { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
-.fs-check:focus-visible, .fs-lean-rule:focus-visible, .fs-back-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+.fs-check:focus-visible, .fs-lean-rule:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 
 /* the lean slider: pole A at the left, pole B at the right, a rule, three detents, the drawn mark */
-.fs-lean-poles, .fs-back-poles {
+.fs-lean-poles {
   display: flex; justify-content: space-between; gap: var(--s2);
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink);
 }
@@ -584,25 +584,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-lean-noteword::before { content: ""; position: absolute; inset: calc((var(--lh-ink) - var(--hit)) / 2) 0; } /* a 44px target on one rule line */
 .fs-lean-notetext { display: block; font-family: var(--serif); font-size: var(--fs-fill); font-style: italic; letter-spacing: 0; text-transform: none; color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-lean-note { display: block; font-size: var(--fs-fill); font-style: italic; height: var(--lh-ink); }
-
-/* the look back: short lists in print grey with ink links (gone in Still, with .fs-notstill) */
-.fs-back { padding-top: var(--lh-ink); }
-.fs-back-list { padding-bottom: var(--lh-ink); }
-.fs-back-link {
-  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; text-align: left; cursor: pointer;
-  display: block; min-height: calc(var(--lh-ink) * 2); font: inherit; line-height: var(--lh-ink); color: var(--ink); text-decoration: none;
-  padding-bottom: var(--lh-ink); /* ends on a blank rule, like a check, so a wrapped list of names or a goal with its slot line still breathes */
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-button.fs-back-link { display: flex; align-items: flex-start; }
-.fs-back-names { white-space: normal; }
-.fs-back-slot { display: block; font-style: italic; color: var(--print); font-size: var(--fs-fill); line-height: var(--lh-ink); }
-.fs-back-line { padding-bottom: var(--s1); }
-
-/* the lean line: one ink path on the rule, no axes, no numbers */
-.fs-leanline { display: block; width: 100%; height: calc(var(--lh-ink) * 2); overflow: visible; }
-.fs-leanline-mid { stroke: var(--rule); stroke-width: 1; }
-.fs-leanline-ink { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 
 /* ==== package 7: music. The ♪ word, the small cover beside it, the album grid, the Settings rows ==== */
 .fs-musicword { font-size: var(--fs-fill); letter-spacing: 0; text-transform: none; padding: 0 var(--s1); }
@@ -822,3 +803,34 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 [data-light="still"] .fl-usual { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); }
 .fs-stillonly { display: none; }
 [data-light="still"] .fs-stillonly { display: block; }
+
+/* ==== Flows (F3): the valley, the arc and the mountain; printed lines; your own flows ==== */
+/* words in the drawing: the hand (italic, print grey) and the print (the time lines across the mountain) */
+.fs-cycle text.hand { font-style: italic; fill: var(--print); }
+.fs-cycle text.print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); fill: var(--print); }
+.fs-cycle .faint { stroke-dasharray: 2 5; opacity: .6; }
+.fs-cycle.small .faint, .fs-cycle.small text { display: none; }
+/* Still has no numbers (rule 13): "20 min" goes, "about an hour" stays */
+[data-light="still"] .fs-cycle text.num { display: none; }
+/* a line the page prints (the safety line, Energize's boundary): the page's grey serif, a blank rule above it,
+   in every light */
+.fl-print { margin-top: var(--lh-ink); }
+.fl-prints .fl-print + .fl-print { margin-top: 0; }
+/* "+ flow" at the end of the list, "+ step" under a flow at rest */
+.fl-add { display: flex; min-height: var(--lh-ink); align-items: center; margin-top: var(--lh-ink); }
+.fl-add .fs-chip { min-height: var(--hit); padding: 0 var(--s2); font-family: var(--sans); font-size: var(--fs-chip); }
+/* a flow made from nothing: "name the first step" in the hand, with the caret waiting */
+.fl-name-first { display: block; min-height: var(--hit); margin: 0; padding: 0; border: 0; background: none; font: inherit;
+  font-style: italic; line-height: var(--lh-ink); color: var(--print); text-align: left; cursor: pointer; }
+.fl-caret { display: inline-block; width: 1.5px; height: 1.1em; margin-left: 1px; vertical-align: -.15em; background: var(--ink);
+  animation: fl-blink calc(var(--t-breath) / 9) steps(1) infinite; }
+@keyframes fl-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fl-caret { animation: none; } }
+/* the sheet's nine drawings, small in print, each with its name; the chosen one in ink */
+.fl-shapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); }
+.fl-shape { display: grid; gap: 4px; justify-items: center; min-height: var(--hit); padding: var(--s1) 4px; border: 1px solid transparent;
+  border-radius: 8px; background: none; color: var(--print); font-family: var(--sans); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); cursor: pointer; }
+.fl-shape[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
+.fl-shape-draw { display: block; width: 100%; height: calc(var(--lh-ink) * 1.5); }
+.fl-shape[aria-pressed="true"] .fs-cycle .arc, .fl-shape[aria-pressed="true"] .fs-cycle .arrow { stroke: var(--ink); }

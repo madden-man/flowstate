@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
+import { NewFlow } from './NewFlow';
 import { shapeOf } from '../parts/cycle/index';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
@@ -39,6 +40,7 @@ export function Flow() {
           </a>
         ))}
         {/* "+ flow" comes last (F3). */}
+        <NewFlow />
       </div>
     </Page>
   );

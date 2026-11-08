@@ -22,7 +22,7 @@ const TICKS: Record<string, string[]> = {
   detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx'],
+  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/NewStep.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
 };
 // Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album.

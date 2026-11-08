@@ -3,9 +3,15 @@
 import type { DiagramName } from '../../../db/schema';
 import type { Shape } from './shape';
 import { ring } from './ring';
+import { valley } from './valley';
+import { arc } from './arc';
+import { mountain } from './mountain';
 
 export const SHAPES: Partial<Record<DiagramName, Shape>> = {
   ring,
+  valley,
+  arc,
+  mountain,
 };
 
 /** A flow's shape; a name with no module yet draws as the ring, so a flow is never without its drawing. */

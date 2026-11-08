@@ -216,6 +216,9 @@ export type Tip = {
   id: string; text: string; short?: string; helper?: TipHelper;
   person?: { name: string; tel?: string; text: string };
   wise?: boolean; struck?: boolean;
+  /** Not in PLAN-FLOWS.md section 5 (F3): a line the page prints under the rows, never a row with a check: nothing
+   *  to tick, nothing done (Depress's safety line at the bottom). Shown in every light, Still too; it has no short. */
+  print?: boolean;
 };
 /** A step of a flow. line is Tommy's own words (italic serif); said is what the page says (print, with its data);
  *  usual the typical span in words, usualShort the same in words only for Still (no numbers, rule 15). */
@@ -233,6 +236,9 @@ export type Flow = {
   id: string; name: string; order: number; createdAt: Millis; updatedAt: Millis;
   /** The flow's own line, shown at rest (Panic: "Wait out the truly hard parts."). */
   line?: string;
+  /** Not in PLAN-FLOWS.md section 5 (F3): one gentle line the page prints at rest, under the flow's line, in every
+   *  light; not a step (Energize's boundary: "Highs most days for a week without needing sleep: talk to your doctor."). */
+  restLine?: string;
   diagram: DiagramName;
   steps: Step[];
   /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */

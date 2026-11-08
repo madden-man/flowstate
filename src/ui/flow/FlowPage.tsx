@@ -15,6 +15,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
+import { NewStep } from './NewStep';
+import { PrintLines } from './PrintLines';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
 import type { Episode, Flow } from '../../db/schema';
@@ -95,6 +97,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
         ) : (
           <section class="fl-step-page" aria-label="At rest">
             {flow.line && <p class="fl-line">{flow.line}</p>}
+            {flow.restLine && <p class="fl-said fl-print">{flow.restLine}</p>}
             {lt && (
               <p class="fl-last fs-notstill">
                 Last time · {shortDate(new Date(lt.at))}
@@ -103,6 +106,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             )}
           </section>
         )}
+        {shown && <PrintLines step={shown} />}
+        {!shown && <NewStep flow={flow} onSaved={() => setVersion(v => v + 1)} />}
       </div>
     </Page>
   );
