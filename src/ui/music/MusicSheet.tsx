@@ -13,7 +13,7 @@ import { notebookDate } from '../date';
 import { hrefOf } from '../journal/href';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Playlist } from '../../db/schema';
-import type { ShelfAlbum } from '../../music/covers';
+import { isFresh, type ShelfAlbum } from '../../music/covers';
 import { pagesWithAlbum, type AlbumPage } from '../../model/music';
 import { Cover } from './MusicLine';
 import { albumFor, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf } from './state';
@@ -84,8 +84,9 @@ function Grid({ playlist }: { playlist: Playlist }) {
 function Tile({ playlist, album, pressed }: { playlist: Playlist; album: ShelfAlbum; pressed: boolean }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [late, setLate] = useState<string | undefined>();
-  const src = urlOf(album) ?? late;
-  const wants = !src && !!album.coverUrl;
+  // a cover past the month still shows while its fresh one is fetched
+  const src = late ?? urlOf(album);
+  const wants = !late && !isFresh(album) && !!album.coverUrl;
   useEffect(() => {
     const el = ref.current;
     if (!wants || !el || typeof IntersectionObserver === 'undefined') return;

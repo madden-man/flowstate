@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION, POEMS_ID } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
@@ -42,9 +42,11 @@ describe('round trip', () => {
     await importData(file, 'replace', other);
     const after = await exportData(other, 1000);
     expect(after.tables).toEqual(before.tables);
-    const cover = (await other.albums.get('spotify:album:1'))!.cover!;
-    expect(cover.type).toBe('image/jpeg');
-    expect([...new Uint8Array(await cover.arrayBuffer())]).toEqual([1, 2, 3, 250]);
+    // V9: an imported cover is kept as bytes with its type
+    const row = (await other.albums.get('spotify:album:1'))!;
+    expect(row.cover).toBeInstanceOf(ArrayBuffer);
+    expect(row.coverType).toBe('image/jpeg');
+    expect([...await coverBytes(row.cover!)]).toEqual([1, 2, 3, 250]);
   });
 
   it('playlists and their shelves round-trip, and merge keys a shelf row on its playlist and album (V7)', async () => {
@@ -64,7 +66,7 @@ describe('round trip', () => {
     expect((await exportData(other, 1000)).tables).toEqual(before.tables);
     expect(await other.shelves.get(['M', 'spotify:album:1'])).toEqual({ playlistId: 'M', albumUri: 'spotify:album:1', order: 0, firstTrackUri: 't1' });
     const cover = (await other.albums.get('spotify:album:1'))!.cover!;
-    expect([...new Uint8Array(await cover.arrayBuffer())]).toEqual([4, 5]);
+    expect([...await coverBytes(cover)]).toEqual([4, 5]);
     // merge into a journal that has one of the two shelf rows: the other is added, the one there kept
     const third = await freshDB();
     await third.shelves.put({ playlistId: 'M', albumUri: 'spotify:album:1', order: 7, firstTrackUri: 'mine' });
@@ -90,7 +92,7 @@ describe('round trip', () => {
     await importData(file, 'replace', db);
     expect(await db.shelves.toArray()).toEqual([{ playlistId: POEMS_ID, albumUri: 'spotify:album:1', order: 0, firstTrackUri: 't1' }]);
     expect((await db.playlists.get(POEMS_ID))?.chosen).toBe(true);
-    expect([...new Uint8Array(await (await db.albums.get('spotify:album:1'))!.cover!.arrayBuffer())]).toEqual([1, 2]);
+    expect([...await coverBytes((await db.albums.get('spotify:album:1'))!.cover!)]).toEqual([1, 2]);
   });
 
   it('replace makes the database the file', async () => {

@@ -158,7 +158,19 @@ export type Backup = { id: string; at: Millis; bytes: number; encrypted: boolean
  *  in the one playlist; -1 when off it): they stay on old rows and are no longer read, a playlist's order lives in
  *  shelves. coverUrl (not in PLAN-V3.md 5.1) is where the cover can still be fetched, so a tile below the fold
  *  fetches its own when it is scrolled near. Nothing is deleted: a page that heard an album keeps its cover. */
-export type Album = { albumUri: string; album: string; artist: string; cover?: Blob; coverUrl?: string; order?: number; firstTrackUri?: string };
+export type Album = {
+  albumUri: string; album: string; artist: string;
+  /** The kept cover. Plain bytes from V9 on (iOS Safari can lose a Blob kept in IndexedDB); a Blob in older rows. */
+  cover?: Blob | ArrayBuffer;
+  /** V9: the cover's image type, and when it was fetched; one older than COVER_MAX_AGE (src/music/covers.ts) is fetched again. */
+  coverType?: string; coverAt?: Millis;
+  coverUrl?: string; order?: number; firstTrackUri?: string;
+};
+
+/** A kept cover's bytes, whichever way it was kept. */
+export async function coverBytes(c: Blob | ArrayBuffer): Promise<Uint8Array> {
+  return new Uint8Array(c instanceof ArrayBuffer ? c : await c.arrayBuffer());
+}
 
 /** A playlist the account owns (V7, PLAN-V3.md 5.1). order is its place in /me/playlists; snapshotId is the
  *  snapshot its shelf was last read at ('' before the first read), so an unchanged playlist is not read again.
@@ -168,7 +180,8 @@ export type Playlist = {
   readAt?: Millis; coverUrl?: string;
 };
 /** One album on one playlist's shelf, at its first song's place in that playlist (V7). */
-export type Shelf = { playlistId: string; albumUri: string; order: number; firstTrackUri: string };
+/** firstTrackAt (V9): the first song's place in the playlist, for a play Spotify will not start by uri. */
+export type Shelf = { playlistId: string; albumUri: string; order: number; firstTrackUri: string; firstTrackAt?: number };
 export type PageMusic = NonNullable<Page['music']>;
 
 export type Tables = {

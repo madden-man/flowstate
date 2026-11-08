@@ -1,13 +1,13 @@
-// Package 7 and V7: a playlist read with paging, grouped by album, covers fetched once and kept as blobs, one
+// Package 7 and V7: a playlist read with paging, grouped by album, covers fetched once and kept as bytes (V9) for a month, one
 // shelf per playlist; /me/playlists and the guards for big playlists (snapshot skip, one at a time, the 429
 // stop); now-playing written once onto a page; "Pages with this album".
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { freshDB } from '../db/helpers';
 import { store } from '../../src/db/fields';
 import { defaultSettings } from '../../src/db/seed';
-import { POEMS_ID, type Playlist, type Settings } from '../../src/db/schema';
+import { POEMS_ID, coverBytes, type Playlist, type Settings } from '../../src/db/schema';
 import {
-  readPlaylist, storeShelf, shelf, keepCover, COVERS_AT_ONCE, COVERS_FIRST, coverWhenNear, readMine, readChosen, playlistRows, choosePlaylist,
+  readPlaylist, storeShelf, shelf, keepCover, COVERS_AT_ONCE, COVERS_FIRST, COVER_MAX_AGE, isFresh, coverWhenNear, readMine, readChosen, playlistRows, choosePlaylist,
 } from '../../src/music/covers';
 import { ApiError, MY_PLAYLISTS_PATH, playlistItemsPath, groupAlbums, type Album } from '../../src/music/spotify';
 import type { Keep } from '../../src/music/connect';
@@ -46,12 +46,14 @@ describe('a playlist read', () => {
     const rows = await readPlaylist(keep(), { id: 'M' }, 'snap-2');
     expect(rows.map(r => r.album)).toEqual(['Oneknowing', 'Pagan', 'Range of Light']);
     expect(rows.map(r => r.firstTrackUri)).toEqual(['t1', 't3', 't5']);
+    // V9: and each first song's place in the playlist, for a play Spotify will not start by uri
+    expect((await shelf('M')).map(r => r.firstTrackAt)).toEqual([0, 2, 5]); // the removed track at 4 still counts
     expect(urls[0]).toContain('/playlists/M/items?limit=50');
     expect(urls.filter(u => u.startsWith('https://i.scdn.co/'))).toHaveLength(3);
     const kept = await shelf('M');
     expect(kept.map(r => r.order)).toEqual([0, 1, 2]);
-    expect(kept.every(r => r.cover instanceof Blob)).toBe(true);
-    expect(await kept[0].cover!.text()).toBe('https://i.scdn.co/Oneknowing-300');
+    expect(kept.every(r => r.cover instanceof ArrayBuffer && r.coverType === 'image/png' && isFresh(r))).toBe(true);
+    expect(new TextDecoder().decode(await coverBytes(kept[0].cover!))).toBe('https://i.scdn.co/Oneknowing-300');
     expect(await shelf('other')).toEqual([]);
     // the snapshot it was read at is kept, for the skip
     expect((await store.get('playlists', 'M'))?.snapshotId).toBe('snap-2');
@@ -78,7 +80,7 @@ describe('a playlist read', () => {
     await storeShelf('master', [], async u => blob(u));
     expect(await shelf('master')).toEqual([]);
     const one = await store.get('albums', 'spotify:album:One');
-    expect(one?.cover).toBeInstanceOf(Blob);
+    expect(one?.cover).toBeInstanceOf(ArrayBuffer);
   });
 
   it('the shelf has every tile before a single cover arrives, and fills in as they land', async () => {
@@ -96,7 +98,7 @@ describe('a playlist read', () => {
     expect(seen).toEqual([0]);
     release();
     const rows = await done;
-    expect(rows.every(r => r.cover instanceof Blob)).toBe(true);
+    expect(rows.every(r => r.cover instanceof ArrayBuffer)).toBe(true);
     expect(seen[seen.length - 1]).toBe(6);
     expect(seen.length).toBe(7);
   });
@@ -105,7 +107,7 @@ describe('a playlist read', () => {
     await storeShelf(P, [a('X', 0)], async () => { throw new TypeError('offline'); });
     expect((await shelf(P))[0].cover).toBeUndefined();
     await storeShelf(P, [a('X', 0)], async () => blob('x'));
-    expect((await shelf(P))[0].cover).toBeInstanceOf(Blob);
+    expect((await shelf(P))[0].cover).toBeInstanceOf(ArrayBuffer);
   });
 
   it('a big playlist fetches the first screen of covers; a tile below the fold fetches its own when near', async () => {
@@ -117,10 +119,49 @@ describe('a playlist read', () => {
     // two tiles scrolled near at once ask once
     const near = (u: string) => { got.push(u); return Promise.resolve(blob(u)); };
     const [c1, c2] = await Promise.all([coverWhenNear('spotify:album:A30', near), coverWhenNear('spotify:album:A30', near)]);
-    expect(c1).toBeInstanceOf(Blob);
+    expect(c1?.cover).toBeInstanceOf(ArrayBuffer);
     expect(c2).toBe(c1);
     expect(got.filter(u => u === 'c-A30')).toHaveLength(1);
-    expect((await store.get('albums', 'spotify:album:A30'))?.cover).toBeInstanceOf(Blob);
+    expect((await store.get('albums', 'spotify:album:A30'))?.cover).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('a kept cover is not fetched again within the month; past it, it is fetched again and the old one shows until then (V9)', async () => {
+    const got: string[] = [];
+    const getCover = async (u: string) => { got.push(u); return blob(`${u}@${got.length}`); };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-08T12:00:00Z'));
+      await storeShelf(P, [a('One', 0)], getCover);
+      // a day on, a read again and a tile near ask nothing
+      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000);
+      await storeShelf(P, [a('One', 0)], getCover);
+      await coverWhenNear('spotify:album:One', getCover);
+      await keepCover({ albumUri: 'spotify:album:One', album: 'One', artist: 'A', coverUrl: 'c-One', isPlaying: true }, getCover);
+      expect(got).toEqual(['c-One']);
+      // past the month: stale, still shown, fetched again once and dated now
+      vi.setSystemTime(Date.now() + COVER_MAX_AGE);
+      const stale = (await shelf(P))[0];
+      expect(stale.cover).toBeTruthy();
+      expect(isFresh(stale)).toBe(false);
+      const fresh = await coverWhenNear('spotify:album:One', getCover);
+      expect(got).toEqual(['c-One', 'c-One']);
+      expect(fresh?.coverAt).toBe(Date.now());
+      expect(new TextDecoder().decode(await coverBytes(fresh!.cover!))).toBe('c-One@2');
+      // a stale cover whose fetch fails keeps the old one
+      vi.setSystemTime(Date.now() + COVER_MAX_AGE);
+      const kept = await coverWhenNear('spotify:album:One', async () => { throw new TypeError('offline'); });
+      expect(new TextDecoder().decode(await coverBytes(kept!.cover!))).toBe('c-One@2');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a cover kept as a Blob before V9 counts as stale, so it is fetched once more and kept as bytes', async () => {
+    await store.put('albums', { albumUri: 'spotify:album:Old', album: 'Old', artist: 'A', coverUrl: 'c-Old', cover: blob('old') });
+    expect(isFresh((await store.get('albums', 'spotify:album:Old'))!)).toBe(false);
+    const row = await coverWhenNear('spotify:album:Old', async u => blob(u));
+    expect(row?.cover).toBeInstanceOf(ArrayBuffer);
+    expect(isFresh(row!)).toBe(true);
   });
 });
 
@@ -227,7 +268,7 @@ describe('now playing on a page', () => {
     const getCover = async (u: string) => { got.push(u); return blob(u); };
     const m = await keepCover(np('Takk'), getCover);
     expect(m).toEqual({ albumUri: 'spotify:album:Takk', album: 'Takk', artist: 'Sigur Rós', coverId: 'spotify:album:Takk' });
-    expect((await store.get('albums', 'spotify:album:Takk'))?.cover).toBeInstanceOf(Blob);
+    expect((await store.get('albums', 'spotify:album:Takk'))?.cover).toBeInstanceOf(ArrayBuffer);
     expect(await shelf(POEMS_ID)).toEqual([]);
     await keepCover(np('Takk'), getCover);
     expect(got).toEqual(['c-Takk']);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB } from './helpers';
-import { openDB, SCHEMA_VERSION, STORES_V1, TABLES, POEMS_ID, POEMS_NAME } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
 describe('schema, version 2', () => {
   it('has every table from PLAN.md section 4, and V7\'s playlists and shelves', async () => {
@@ -56,7 +56,7 @@ describe('the upgrade from version 1 (V7)', () => {
     // the albums and their covers are untouched, the one off the playlist included; other tables too
     expect(await db.albums.count()).toBe(3);
     const kept = (await db.albums.get('spotify:album:Takk'))!.cover!;
-    expect([...new Uint8Array(await kept.arrayBuffer())]).toEqual([9, 8, 7]);
+    expect([...await coverBytes(kept)]).toEqual([9, 8, 7]);
     expect(await db.pages.get('p1')).toBeTruthy();
     db.close();
   });

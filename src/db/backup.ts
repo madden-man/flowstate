@@ -3,7 +3,7 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1 } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -41,12 +41,12 @@ const pk = (t: TableName, row: Record<string, unknown>) => {
   return String(row.id);
 };
 
-/** Album covers are Blobs; the file carries them as base64 with their type. */
+/** Album covers are bytes (a Blob in rows from before V9); the file carries them as base64 with their type. */
 type CoverJSON = { type: string; b64: string };
-async function coverOut(b: Blob): Promise<CoverJSON> {
-  return { type: b.type, b64: toB64(new Uint8Array(await b.arrayBuffer())) };
+async function coverOut(c: Blob | ArrayBuffer, type?: string): Promise<CoverJSON> {
+  return { type: type ?? (c instanceof Blob ? c.type : '') ?? '', b64: toB64(await coverBytes(c)) };
 }
-const coverIn = (c: CoverJSON) => new Blob([fromB64(c.b64)], { type: c.type });
+const coverIn = (c: CoverJSON) => { const b = fromB64(c.b64); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer; };
 
 export async function exportData(database: FlowDB = defaultDb, now = Date.now()): Promise<BackupFile> {
   const tables = {} as BackupFile['tables'];
@@ -54,7 +54,7 @@ export async function exportData(database: FlowDB = defaultDb, now = Date.now())
     for (const t of TABLES) tables[t] = await database.table(t).toArray();
   });
   tables.albums = await Promise.all(
-    (tables.albums as Tables['albums'][]).map(async a => (a.cover ? { ...a, cover: await coverOut(a.cover) } : a)),
+    (tables.albums as Tables['albums'][]).map(async a => (a.cover ? { ...a, cover: await coverOut(a.cover, a.coverType), coverType: undefined } : a)),
   );
   const lock = (tables.settings as Settings[]).find(r => r.id === 'app')?.lock;
   const sealedRows = TABLES.some(t => (tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
@@ -145,7 +145,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
   for (const t of TABLES) {
     const rows: Record<string, unknown>[] = [];
     for (const r of file.tables[t] as Record<string, unknown>[]) {
-      let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON) } : r;
+      let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON), coverType: (r.cover as CoverJSON).type || undefined } : r;
       // open with the file's key (a wrong one throws before anything is written), then store as this journal stores rows
       let opened = (await openRow(t, row as never, fileKey ?? null)) as Record<string, unknown>;
       if (t === 'settings') {
