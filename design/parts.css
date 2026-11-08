@@ -30,6 +30,8 @@
 /* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
 .fs-hdr-r > span { white-space: nowrap; }
 .fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
+/* V12: the + after Pages (another entry today): the serif a size up, like ♪, not a word */
+.fs-hdr-l > .fs-plus { font-family: var(--serif); font-size: var(--fs-fill); letter-spacing: 0; min-width: var(--hit); justify-content: center; }
 .fs-hdr-r b {
   font-family: var(--serif); font-weight: 400; font-size: var(--fs-fill);
   text-transform: none; letter-spacing: 0; color: var(--ink);

@@ -15,6 +15,11 @@ export function JournalToday() {
   return <PageView />;
 }
 
+/** #/journal/new/:n (V12): a fresh page today, from the header's +. Nothing is made until the first word. */
+export function JournalNew({ n }: { n: string }) {
+  return <PageView key={n} fresh />;
+}
+
 /** #/journal/:id, a page read back. Today's entry redirects to #/journal; a council page to its tab. */
 export function JournalPage({ id }: { id: string }) {
   return <PageView key={id} id={id} />;

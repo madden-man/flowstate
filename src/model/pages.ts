@@ -27,6 +27,11 @@ export async function today(now = new Date()): Promise<Today> {
   return { page, message, no: list.indexOf(page) + 1 };
 }
 
+/** How many entries there are: a fresh page today (V12, the header's +) is the next number. */
+export async function entryCount(): Promise<number> {
+  return (await pagesInOrder()).filter(p => p.kind === 'entry').length;
+}
+
 /** Writes today's text: the first keystroke makes the page and its message, later ones update them. */
 export async function writeToday(current: Today, text: string, now = Date.now()): Promise<Today> {
   if (!current.page || !current.message) {
