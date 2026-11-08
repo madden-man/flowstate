@@ -44,9 +44,9 @@ describe.each(THREE.map(f => [f.name, f] as const))('%s', (_, flow) => {
 });
 
 describe('the three as the plan has them', () => {
-  it('the list order is Panic, Depress, Energize, Fight', () => {
-    expect(SEED_FLOWS.map(f => f.name)).toEqual(['Panic', 'Depress', 'Energize', 'Fight']);
-    expect(SEED_FLOWS.map(f => f.order)).toEqual([1, 2, 3, 4]);
+  it('the list order is Panic, Depress, Energize, Fight, then F4\'s five', () => {
+    expect(SEED_FLOWS.map(f => f.name)).toEqual(['Panic', 'Depress', 'Energize', 'Fight', 'What if', 'Replay', '3 a.m.', 'Shutdown', 'Shame']);
+    expect(SEED_FLOWS.map(f => f.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(THREE.map(f => f.diagram)).toEqual(['valley', 'arc', 'mountain']);
   });
   it('the peaks: Depress at the bottom, Energize at the tip, Fight flooded', () => {
@@ -78,9 +78,9 @@ describe('the three as the plan has them', () => {
 describe('seeded and sealed', () => {
   let db: FlowDB;
   beforeEach(async () => { db = await freshDB(); });
-  it('a fresh journal has all four; with a PIN the new lines are sealed too', async () => {
+  it('a fresh journal has all nine; with a PIN the new lines are sealed too', async () => {
     await ensureSeeded();
-    expect((await flows()).map(f => f.id)).toEqual(['panic', 'depress', 'energize', 'fight']);
+    expect((await flows()).map(f => f.id)).toEqual(['panic', 'depress', 'energize', 'fight', 'whatif', 'replay', 'night', 'shutdown', 'shame']);
     const salt = randomSalt();
     await setKey(await deriveKey('3569', salt, 1000), { salt, iterations: 1000 });
     const raw = JSON.stringify(await db.flows.get('energize')) + JSON.stringify(await db.flows.get('depress'));

@@ -107,6 +107,12 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   await page.getByRole('button', { name: 'Leave Still' }).click();
   await dot.focus();
   await page.keyboard.press('ArrowLeft');
+  // F4: one left arrow from the wave is Overstimulated, not rest; the episode stays open
+  await expect(dot).toHaveAttribute('aria-valuenow', '1');
+  await expect(dot).toHaveAttribute('aria-valuetext', 'Overstimulated');
+  await expect(pageBody).toHaveAttribute('data-saved', 'true');
+  expect((await episodes(page))[0].endedAt ?? null).toBeNull();
+  await dot.focus();
   await page.keyboard.press('ArrowLeft');
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
@@ -157,11 +163,12 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   if (await t.count()) await t.click();
   await expect(page.getByRole('checkbox', { name: /Cold water on your wrists/ })).toHaveAttribute('aria-checked', 'true');
 
-  // the Still row settles: Still comes on and the row is ticked
+  // the Still row settles: Still comes on, where the row has nothing left to do and goes (F4); out of Still it is ticked
   await page.getByRole('checkbox', { name: /^Less coming in/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('checkbox', { name: /^Less coming in|^Less coming/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
 
   // the peak shows one thing at a time; Next brings the next
   await dot.focus();
@@ -214,4 +221,28 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   await expect(page.getByRole('checkbox', { name: /Cold water on your wrists/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(sheet.locator('[aria-label="Earlier"] [data-struck]')).toContainText(['Cold water on your wrists and face']);
+});
+
+test('the ring by keys (F4): right walks the steps, and right from Under the skin wraps to rest and ends it', async ({ page }) => {
+  await page.goto('/#/flow/panic');
+  const t = page.locator('[data-threshold]');
+  await page.locator('.fs-flowpage').waitFor();
+  if (await t.count()) await t.click();
+  await expect(t).toHaveCount(0);
+  const body = page.locator('.fs-flowpage');
+  const dot = page.getByRole('slider', { name: 'Where you are' });
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
+  for (const [k, name] of [[1, 'Overstimulated'], [2, 'The wave'], [3, 'Settling'], [4, 'Under the skin']] as const) {
+    await dot.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(dot).toHaveAttribute('aria-valuenow', String(k));
+    await expect(dot).toHaveAttribute('aria-valuetext', name);
+    await expect(body).toHaveAttribute('data-saved', 'true');
+  }
+  await expect.poll(async () => (await episodes(page)).map(e => e.marks.map(m => m.stepId))).toEqual([['panic-1', 'panic-2', 'panic-3', 'panic-4']]);
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
+  await expect(dot).toHaveAttribute('aria-valuetext', 'At rest');
+  await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
 });

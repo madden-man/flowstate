@@ -30,7 +30,7 @@ import { useMemo, useRef, useState } from 'preact/hooks';
 import type { DiagramName } from '../../db/schema';
 import { tick } from './Haptic';
 import { shapeOf } from './cycle/index';
-import { nearestT, slotPoint, walkDistance, type Drawn, type Shape } from './cycle/shape';
+import { nearestT, slotPoint, walkDistance, type Drawn, type Shape, type Stamp } from './cycle/shape';
 
 export type CycleStep = { id: string; name: string };
 
@@ -51,6 +51,8 @@ type Props = {
   disabled?: boolean;
   /** The words only small, the dot only drawn: the list's row. */
   small?: boolean;
+  /** His outcomes (F6's stamps, episodes.prediction): a shape that draws them itself (the curve) draws them; others ignore them. */
+  stamps?: Stamp[];
   /** The breathing halo on the dot (F2, the Ring helper): false for none, else a number. Held, the number is when the
    *  finger landed, so the halo starts again on the in-breath with the ticks (PLAN-FLOWS.md 3.7, hold the ring). */
   halo?: number | false;
@@ -86,8 +88,9 @@ export function Drawing({ drawn }: { drawn: Drawn[] }) {
   );
 }
 
-export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small, halo = false, held }: Props) {
-  const shape = shapeOf(diagram);
+export function Cycle({ diagram, steps, at, showing = 0, live, onRead, onMove, disabled, small, halo = false, held, stamps }: Props) {
+  const stampKey = stamps?.join(',') ?? '';
+  const shape = useMemo(() => shapeOf(diagram, stamps), [diagram, stampKey]);
   const n = steps.length;
   const svg = useRef<SVGSVGElement>(null);
   const stops = useMemo(() => detents(shape, n), [shape, n]);

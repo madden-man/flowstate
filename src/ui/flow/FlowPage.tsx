@@ -11,11 +11,13 @@
 // written until the PIN; "last time" stays behind the PIN, and the header's moon and Flow word ask for it. Anything
 // added under the step (F2's tip rows, the clock, the journal link; F6's notes and ghost rings) reads doorOnly too:
 // behind the PIN go kept lines, notes, "last time", ghost rings, the journal link, the Edit word and every write.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
+import { midStyle } from '../parts/cycle/index';
 import { PrintLines } from './PrintLines';
+import { HandOff, followHandOff } from './HandOff';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
 import type { Episode, Flow } from '../../db/schema';
@@ -44,6 +46,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   // the dot drawn at once where it was let go; the write follows (rule 20)
   const [moved, setMoved] = useState<number | null>(null);
   const [writing, setWriting] = useState(0);
+  /** Moves whose write has not landed yet (a ref, so a read resolving mid-write sees it at once). */
+  const inFlight = useRef(0);
   // F2: the minute the clock redraws on, the breath a held thumb runs, the step sheet
   const now = useNow();
   const breath = useBreath();
@@ -51,7 +55,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   // F6: the question to the next one of you (asked once per ended episode), and whether his own stamps are drawn
   const [asking, unask] = useAsk(data && data !== 'none' ? data.flow : undefined, data && data !== 'none' ? data.last : undefined,
     !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
-  const [own, setOwn] = useState(false);
+  const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
+  const own = marks.length > 0;
 
   useEffect(() => {
     let on = true;
@@ -60,7 +65,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
       if (!stored) return on && setData('none');
       const flow = doorOnly ? doorRead(stored) : stored;
       const [live, last] = await Promise.all([liveEpisode(id), doorOnly ? undefined : lastEnded(id)]);
-      if (on) { setData({ flow, live, last }); setMoved(null); }
+      // F4: a read that began before a move's write must not put the dot back where it was; the write's own read follows
+      if (on && !inFlight.current) { setData({ flow, live, last }); setMoved(null); }
     })();
     return () => { on = false; };
   }, [id, version, dataVersion.value]);
@@ -89,9 +95,11 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
     setMoved(to);
     route(to ? `/flow/${flow.id}/${to}` : `/flow/${flow.id}`, true);
     setWriting(w => w + 1);
+    inFlight.current++;
     try {
       await moveDot(flow.id, visits.map(k => flow.steps[k - 1].id), to ? flow.steps[to - 1].id : 'rest');
     } finally {
+      inFlight.current--;
       setWriting(w => w - 1);
       setVersion(v => v + 1);
     }
@@ -112,15 +120,16 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   return (
     <Page label={flow.name} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}>
       <div class="fs-sheetof fs-rules fs-flowpage" data-saved={writing ? 'false' : 'true'} data-showing={showing} data-door={doorOnly ? '' : undefined}>
-        <div class="fl-drawing" data-own={own ? '' : undefined}>
+        {!doorOnly && <HandOff live={live} />}
+        <div class="fl-drawing" style={midStyle(flow.diagram)} data-own={own ? '' : undefined}>
           {wash > 0 && <Wash left={wash} />}
           {!doorOnly && !flow.locked && <Ghosts flowId={flow.id} diagram={flow.diagram} n={n} version={version} />}
-          {!doorOnly && !flow.locked && <StampMarks flowId={flow.id} diagram={flow.diagram} n={n} version={version} onOwn={setOwn} />}
-          <Cycle diagram={flow.diagram} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
+          {!doorOnly && !flow.locked && <StampMarks flowId={flow.id} diagram={flow.diagram} n={n} version={version} onMarks={setMarks} />}
+          <Cycle diagram={flow.diagram} stamps={marks} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
             disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => void move(v, to)}
             halo={ringy && (onStep || breath.held) ? breath.since ?? 0 : false} held={breath.held} />
           <Clock from={onStep ? clockFrom(flow, live) : undefined} now={now} under={shown?.usualShort} holdable={ringy} breath={breath}
-            awake={onStep && !!shown?.peak} />
+            awake={onStep && !!shown?.peak && !flow.quietClock} quiet={!!flow.quietClock} />
         </div>
         {shown ? (
           <section class="fl-step-page" aria-label={shown.name}>
@@ -149,7 +158,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             {!doorOnly && <RestCarried flow={flow} last={last} asking={!!asking} />}
           </section>
         )}
-        {shown && <PrintLines step={shown} />}
+        {shown && <PrintLines step={shown} onHandOff={t => void followHandOff(t, shown.id, live, to => route(to), doorOnly)} />}
         {shown && sheets && !live && <p class="fl-edit fs-notstill"><button type="button" class="fs-word" onClick={() => { tickSheet(); setEditing(true); }}>Edit</button></p>}
         {!shown && sheets && <AddStep flow={flow} onSaved={() => setVersion(v => v + 1)} />}
       </div>

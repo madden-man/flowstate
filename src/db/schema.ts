@@ -225,6 +225,10 @@ export type Tip = {
   /** Not in PLAN-FLOWS.md section 5 (F3): a line the page prints under the rows, never a row with a check: nothing
    *  to tick, nothing done (Depress's safety line at the bottom). Shown in every light, Still too; it has no short. */
   print?: boolean;
+  /** PLAN-FLOWS.md 3.7, one episode, two flows (F4): this line names another flow, and a tap moves the dot there:
+   *  the episode here ends, one starts on that flow at that step with `from` set to it. Always a printed line (print),
+   *  never a row to tick. Ids only, so it stays in the clear copy like `print`. */
+  handoff?: { flowId: string; stepId: string };
 };
 /** A step of a flow. line is Tommy's own words (italic serif); said is what the page says (print, with its data);
  *  usual the typical span in words, usualShort the same in words only for Still (no numbers, rule 15). */
@@ -246,6 +250,9 @@ export type Flow = {
   /** Not in PLAN-FLOWS.md section 5 (F3): one gentle line the page prints at rest, under the flow's line, in every
    *  light; not a step (Energize's boundary: "Highs most days for a week without needing sleep: talk to your doctor."). */
   restLine?: string;
+  /** Not in PLAN-FLOWS.md section 5 (F4): the clock in the middle reads in words in every light and the screen is
+   *  not held awake (3 a.m.: the clock is turned away, the bed is for sleeping). A flag, in the clear like diagram. */
+  quietClock?: boolean;
   diagram: DiagramName;
   steps: Step[];
   /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */
@@ -264,6 +271,7 @@ export type Episode = {
   /** The Five helper's lines (F2), sealed. */
   lines?: string[];
   returnAt?: Millis;
+  /** The episode this one was handed off from (PLAN-FLOWS.md 3.7, F4): the other flow's, ended the moment this began. */
   from?: string;
   prediction?: { text: string; outcome?: 'didnt' | 'happened'; at: Millis };
   /** Not in PLAN-FLOWS.md section 5 (F6): when the page asked "Anything to tell the next one of you who's here?" for

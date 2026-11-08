@@ -818,6 +818,12 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none;
 }
 .fl-mid.holdable { pointer-events: auto; cursor: pointer; }
+/* F4: an open shape may put the middle somewhere clear of its lines (Shape.mid); the ring and the rest keep the centre */
+.fl-drawing .fl-mid { left: var(--mid-x, 50%); top: var(--mid-y, 50%); }
+/* a quiet clock (3 a.m.): the minutes in words, set like Still's in every light */
+.fl-mid-min.fl-quiet { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: var(--fs-chip); }
+/* his own stamps on the curve are past episodes: Still hides them, like the ghost rings */
+[data-light="still"] .fs-cycle .stamp.own { display: none; }
 .fl-mid > * { width: calc(var(--lh-ink) * 4.2); }
 .fl-mid > .fl-breath { width: auto; }
 .fl-mid-min { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
@@ -904,6 +910,24 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fl-shape[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
 .fl-shape-draw { display: block; width: 100%; height: calc(var(--lh-ink) * 1.5); }
 .fl-shape[aria-pressed="true"] .fs-cycle .arc, .fl-shape[aria-pressed="true"] .fs-cycle .arrow { stroke: var(--ink); }
+
+/* ==== Flows (F4): the curve, the coil, the clock, the stairs, the fork ==== */
+/* the clock's awake stretch, thick in ink; its hour ticks, faint; 7 a pinned dot */
+.fs-cycle .thick { stroke: var(--ink); stroke-width: 3.5; }
+.fs-cycle .faint-tick { stroke-dasharray: none; opacity: .5; }
+.fs-cycle .pin { fill: var(--ink); stroke: none; }
+/* the curve's stamps: a drawn check or cross on the flat; the seeded record is faint, his own marks are not */
+.fs-cycle .stamp { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fs-cycle .faint-stamp { opacity: .55; }
+.fs-cycle.small .stamp, .fs-cycle.small .pin, .fs-cycle.small .faint-tick { display: none; }
+/* a printed line that is a hand-off to another flow (3.7): the same grey serif, underlined like a link in the notebook's
+   seam colour; the tap target grows to a thumb's height without moving the rules */
+.fl-handoff { color: inherit; text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: .2em;
+  display: inline-block; padding: calc((var(--hit) - var(--lh-ink)) / 2) 0; margin: calc((var(--hit) - var(--lh-ink)) / -2) 0; }
+.fl-handoff:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+/* the link row a hand-off leaves at the top of the new page: one line, where the dot came from */
+.fl-from .fs-link { min-height: var(--lh-ink); }
+.fl-from { margin-top: 0; }
 /* ==== Carried forward (F6, PLAN-FLOWS.md 3.7): notes, ghost rings, one person, your own stamps ==== */
 /* the step words keep a page-coloured edge, so the halo (drawn under them now) and the ghost rings never cut a letter */
 .fs-cycle-word text { paint-order: stroke; stroke: var(--page); stroke-width: 4px; stroke-linejoin: round; }

@@ -5,7 +5,7 @@
 import type { Episode, Flow, Page, Step, Tip } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { newPage, today } from './pages';
-import { currentStepId } from './flows';
+import { currentStepId, spanOfEpisode } from './flows';
 
 const MIN = 60_000;
 
@@ -128,7 +128,9 @@ export function washLeft(markedAt: number, spanMs: number, now: number): number 
  *  PrintLines prints those under the rows, never as a check); at most six, three in Still. A person row (F6) shows
  *  named or not (an unnamed one reads as the slot to fill), and always: past the cap it is added at the end. */
 export function shownTips(step: Pick<Step, 'tips'>, still: boolean): Tip[] {
-  const rows = step.tips.filter(t => !t.struck && !t.print);
+  // F4: in Still the Still row has nothing left to do, so it goes (the 3 a.m. mock: "already in Still, which is why
+  // it is absent"); on Shutdown and 3 a.m. it is the first row in Day and Night
+  const rows = step.tips.filter(t => !t.struck && !t.print && !(still && t.helper === 'still'));
   const shown = rows.slice(0, still ? 3 : 6);
   // Still hides the person's number, never the row (PLAN-FLOWS.md 3.7): a person row past the cap still shows
   return [...shown, ...rows.filter(t => t.helper === 'person' && !shown.includes(t))];
@@ -166,16 +168,20 @@ export type FlowLinkRow = { href: string; flow: string; startedAt: number; ended
 
 export async function flowLinkOf(page: Pick<Page, 'flow'>): Promise<FlowLinkRow | undefined> {
   if (!page.flow) return undefined;
-  const e = await store.get('episodes', page.flow.episodeId);
-  if (!e) return undefined;
+  // F4 (one episode, two flows, 3.7): the link reads the whole hand-off chain the episode belongs to, "Shame, I'm
+  // worthless, then Fight", from its first start to its last end, and leads to where the chain is now
+  const span = await spanOfEpisode(page.flow.episodeId);
+  const e = span && await store.get('episodes', span.legs.at(-1)!.episodeId);
+  if (!span || !e) return undefined;
   const flow = await store.get('flows', e.flowId);
   if (!flow || flow.locked) return undefined;
   const sid = currentStepId(e);
   const n = flow.steps.findIndex(s => s.id === sid) + 1;
   const live = e.endedAt === undefined;
+  const legs = span.legs.map(l => [l.flow, l.step].filter(Boolean).join(', ')).filter(Boolean).join(', then ');
   return {
     href: live && n ? `#/flow/${flow.id}/${n}` : `#/flow/${flow.id}`,
-    flow: flow.name, startedAt: e.startedAt, endedAt: e.endedAt, step: n ? flow.steps[n - 1].name : '', live,
+    flow: legs || flow.name, startedAt: span.startedAt, endedAt: span.endedAt, step: n ? flow.steps[n - 1].name : '', live,
   };
 }
 

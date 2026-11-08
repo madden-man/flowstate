@@ -10,7 +10,8 @@
 // "Didn't happen" and "Happened". One tap and the block goes; there is no second ask and no reminder (rule 22: nothing
 // nudges). Not in Still (Still never asks, rule 13), not through the door (the list is behind the PIN anyway).
 //
-// The marks: each outcome is a drawn check (didn't happen) or cross (happened) on the curve's flat after the drop,
+// The marks (F4): the curve draws them itself, in place of its seeded record (cycle/curve.ts curveWith, through
+// Cycle's stamps); StampMarks below draws them over any other shape that carries a prediction row. Each outcome is a drawn check (didn't happen) or cross (happened) on the curve's flat after the drop,
 // his, oldest leftmost, at most STAMPS_MAX (the oldest beyond are not drawn). Once there are any, the seeded "nine in
 // ten" marks give way to his (the page sets data-own on the drawing, and the shape's seeded stamps hide under it). No
 // number is printed (rule 15). Hidden in Still, like the ghost rings: they are past episodes.
@@ -86,15 +87,18 @@ export function stampTs(lastSlotT: number, k: number): number[] {
 }
 
 /** His marks on the flow's drawing, from the shape's own at(): a check or a cross a little above the line. */
-export function StampMarks({ flowId, diagram, n, version, onOwn }: { flowId: string; diagram: DiagramName; n: number; version: number; onOwn?: (own: boolean) => void }) {
+export function StampMarks({ flowId, diagram, n, version, onMarks }: { flowId: string; diagram: DiagramName; n: number; version: number; onMarks?: (marks: ('didnt' | 'happened')[]) => void }) {
   const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
   useEffect(() => {
     let on = true;
-    void stampsOf(flowId).then(m => { if (on) { setMarks(m); onOwn?.(m.length > 0); } });
+    void stampsOf(flowId).then(m => { if (on) { setMarks(m); onMarks?.(m); } });
     return () => { on = false; };
   }, [flowId, version, dataVersion.value]);
   if (!marks.length || n < 1) return null;
   const shape = shapeOf(diagram);
+  // F4: the curve draws his marks itself, on its flat (Cycle's stamps, cycle/curve.ts curveWith); this overlay is for
+  // a shape that does not
+  if (shape.withStamps) return null;
   const shown = marks.slice(-STAMPS_MAX);
   const ts = stampTs(shape.slotT(n - 1, n), shown.length);
   return (

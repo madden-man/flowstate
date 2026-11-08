@@ -108,7 +108,7 @@ const leanSpec: Spec<Tables['leans']> = {
  *  the peak), so a list can draw the flow before unlock. Opened, the sealed words come back whole. */
 type FSecret = { name: string; line?: string; restLine?: string; steps: Tables['flows']['steps']; revisions: Tables['flows']['revisions']; notes?: string[] };
 const blankSteps = (steps: Tables['flows']['steps']) => steps.map(st => ({
-  id: st.id, name: '', tips: st.tips.map(t => ({ id: t.id, text: '', helper: t.helper, wise: t.wise, struck: t.struck, print: t.print })),
+  id: st.id, name: '', tips: st.tips.map(t => ({ id: t.id, text: '', helper: t.helper, wise: t.wise, struck: t.struck, print: t.print, handoff: t.handoff })),
   spanMin: st.spanMin, peak: st.peak,
 }));
 const flowSpec: Spec<Tables['flows']> = {

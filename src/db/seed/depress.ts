@@ -40,6 +40,8 @@ export const DEPRESS: FlowSeed = {
         { id: 'depress-2-next', text: 'The smallest next step, easiest first', short: 'The smallest next step' },
         { id: 'depress-2-person', text: 'Message one person', short: 'Message one person' },
         { id: 'depress-2-up', text: 'Out of bed by day, even to the couch', short: 'Out of bed by day' },
+        // Avoidance, folded in (PLAN-FLOWS.md 3.5, F4): the engine of pulling in, so "do the small version" sits here
+        { id: 'depress-2-avoid', text: "The thing you've been putting off: do the small version", short: 'The small version' },
       ],
     },
     {

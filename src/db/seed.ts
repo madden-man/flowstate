@@ -2,9 +2,10 @@
 // items, and the small antonym list. Runs once, on an empty database. No pages (V5, 2026-11-08): the
 // manifesto is the threshold's copy (MANIFESTO below), not a journal entry.
 // Every line here is the notebook's own; nothing is generated.
-import type { Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
+import type { Flow, Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
+import type { Read } from './fields';
 import { store, keyState } from './fields';
-import { SEED_FLOWS, seedFlow } from './seed-flows';
+import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -111,7 +112,7 @@ export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
     lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
-    flowsSeeded: SEED_FLOWS.map(f => f.id),
+    flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark)],
   };
 }
 
@@ -142,13 +143,51 @@ export function seedFlowsOnce(): Promise<string[] | null> {
     if (!s || s.locked) return null;
     const done = new Set(s.flowsSeeded ?? []);
     const todo = SEED_FLOWS.filter(f => !done.has(f.id));
-    if (!todo.length) return [];
-    const have = new Set((await store.all('flows')).map(f => f.id));
+    const tips = SEED_TIPS_LATER.filter(id => !done.has(tipMark(id)));
+    if (!todo.length && !tips.length) return [];
+    const stored = await store.all('flows');
+    const have = new Set(stored.map(f => f.id));
     const write = todo.filter(f => !have.has(f.id)).map(f => seedFlow(f));
-    await store.many({ flows: write, settings: [{ ...s, flowsSeeded: [...done, ...todo.map(f => f.id)] }] });
+    // a tip added to a seed flow later: into each stored flow (not one just written, which has it), once
+    const fresh = new Set(write.map(f => f.id));
+    const grown = stored.filter(f => !fresh.has(f.id)).flatMap(f => withLaterTips(f, tips));
+    await store.many({
+      flows: [...write, ...grown],
+      settings: [{ ...s, flowsSeeded: [...done, ...todo.map(f => f.id), ...tips.map(tipMark)] }],
+    });
     return write.map(f => f.id);
   })().finally(() => { flowsPass = null; });
   return flowsPass;
+}
+
+/** How a later seed tip is marked in settings.flowsSeeded once it has been written (a flow id has no colon). */
+const tipMark = (tipId: string) => `tip:${tipId}`;
+
+/**
+ * A stored flow with these later seed tips put in, each in its step after the seed tip before it (or at the end),
+ * as a new revision; [] when none applies. A tip already there (by id) is left alone, a step he deleted gets
+ * nothing, and a locked row is never written.
+ */
+function withLaterTips(flow: Read<Flow>, tipIds: string[]): Flow[] {
+  const seed = SEED_FLOWS.find(f => f.id === flow.id);
+  if (!seed || flow.locked) return [];
+  let changed = false;
+  const steps = flow.steps.map(st => {
+    const from = seed.steps.find(x => x.id === st.id);
+    if (!from) return st;
+    let tips = st.tips;
+    from.tips.forEach((t, k) => {
+      if (!tipIds.includes(t.id) || tips.some(x => x.id === t.id)) return;
+      const after = k > 0 ? tips.findIndex(x => x.id === from.tips[k - 1].id) : -1;
+      const at = after >= 0 ? after + 1 : tips.length;
+      tips = [...tips.slice(0, at), structuredClone(t), ...tips.slice(at)];
+      changed = true;
+    });
+    return tips === st.tips ? st : { ...st, tips };
+  });
+  if (!changed) return [];
+  const at = Date.now();
+  return [{ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] }];
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----
