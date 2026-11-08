@@ -247,4 +247,4 @@ Five research agents on 2026-11-08, each briefed to read primary and reputable s
 
 ## 9. Artifact
 
-Proposal walkthrough: `design/flows/index.html` on `design/flows/tokens.css` and `parts.css` (copies of the design files, as `design/v2/` did). Published private; the link is in the PR body and the session report.
+Proposal walkthrough: `design/flows/index.html` on `design/flows/tokens.css` and `parts.css` (copies of the design files, as `design/v2/` did). Published 2026-11-08 as https://claude.ai/artifact/QgjCMzDNxdzSHbDT36ybhZ (slug bfce334a-58b4-428e-9265-0af61bcbfbc8), private until Tommy shares it.
