@@ -129,3 +129,7 @@ details a{color:var(--accent)}
 .step p.line a{color:var(--accent)}
 /* F2: a phone scrolled down its page (the tips under a long said line, the step sheet's Earlier); static, the mock's own scroll */
 .screen [data-scroll] > :first-child{margin-top:calc(var(--scroll) * -1)}
+/* Right now through the door: a row with no line is the print alone, on a blank rule (src/ui/flow/door.css) */
+.fl-noline .fs-list-meta{padding-top:var(--lh-ink)}
+/* relit to Still, a scrolled phone starts at the top again: Still drops the rows the scroll was reaching past */
+.screen[data-light="still"] [data-scroll] > :first-child{margin-top:0}
