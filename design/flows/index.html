@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState flows 1: Panic, start to finish</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="parts.css">
+<link rel="stylesheet" href="flows.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState flows 1: Panic, start to finish</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+
+<!-- 1 -->
+<section class="step" id="door" data-name="The door without the PIN">
+  <h2>The door without the PIN</h2>
+  <p class="line">One word under the keypad; nothing private shows.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:38</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>16</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col"></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+    <div class="fs-threshold locked" data-threshold data-lock><div class="fs-threshold-words"><h1 class="fs-threshold-title">Who to Be, How to Flow</h1><p class="fs-manifesto">I determine my core.<br>I choose how to flow.</p><span class="fs-ring-mark"></span></div>
+      <div class="fs-threshold-keypad"><div class="fs-keypad" role="group" aria-label="PIN"><div class="fs-dots"><i></i><i></i><i></i><i></i></div><p class="fs-keypad-note" role="status"></p>
+        <div class="fs-keys"><button type="button" class="fs-key" aria-label="1"><b>1</b><small aria-hidden="true"></small></button><button type="button" class="fs-key" aria-label="2 ABC"><b>2</b><small aria-hidden="true">ABC</small></button><button type="button" class="fs-key" aria-label="3 DEF"><b>3</b><small aria-hidden="true">DEF</small></button><button type="button" class="fs-key" aria-label="4 GHI"><b>4</b><small aria-hidden="true">GHI</small></button><button type="button" class="fs-key" aria-label="5 JKL"><b>5</b><small aria-hidden="true">JKL</small></button><button type="button" class="fs-key" aria-label="6 MNO"><b>6</b><small aria-hidden="true">MNO</small></button><button type="button" class="fs-key" aria-label="7 PQRS"><b>7</b><small aria-hidden="true">PQRS</small></button><button type="button" class="fs-key" aria-label="8 TUV"><b>8</b><small aria-hidden="true">TUV</small></button><button type="button" class="fs-key" aria-label="9 WXYZ"><b>9</b><small aria-hidden="true">WXYZ</small></button><span></span><button type="button" class="fs-key" aria-label="0"><b>0</b><small aria-hidden="true"></small></button><button type="button" class="fs-word fs-key-word">delete</button></div></div>
+        <button type="button" class="fs-word fl-door">the ring</button></div></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Door</td><td>The word opens Right now and the flow pages read-only: the ring, the said lines and the seeded tips. Kept lines, notes, "last time", the ghost rings and the journal link stay behind the PIN, and the episode is written once he unlocks (a tap on the moon or the Flow word asks for it). Open question 7.</td></tr>
+    <tr><td>Back Tap</td><td>A Settings row explains the two-tap route: an iOS Shortcut that opens <code>#/flow/now</code>, bound to Back Tap (or the Action button). Two taps on the back of the phone, eyes shut, reach the lines. No code beyond the row.</td></tr>
+    <tr><td>Route</td><td><code>#/flow/now</code> and <code>#/flow/:id/:step</code> are the only routes the lock lets through, and only when the door is on in Settings (off by default).</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="now" data-name="Right now">
+  <h2>Right now</h2>
+  <p class="line">Your own lines; tap the one that fits.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:39</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Right now</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-pagelist">
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Too much coming in at once.</span><small class="fs-list-meta">Panic · Overstimulated</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">The wave. Loud, fast, certain.</span><small class="fs-list-meta">Panic · Panic</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Can't move. Can't start.</span><small class="fs-list-meta">Shutdown · Stuck</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Hot. Leave now.</span><small class="fs-list-meta">Fight · Flooded</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Awake. Trying harder.</span><small class="fs-list-meta">3 a.m. · Lying there</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">That look at dinner. Again.</span><small class="fs-list-meta">Replay · Why did I</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Everyone saw. I'm useless.</span><small class="fs-list-meta">Shame · I'm worthless</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Tomorrow's call. Every version of it.</span><small class="fs-list-meta">What if · Night before</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Cancelling things. Curtains shut.</span><small class="fs-list-meta">Depress · Pulling in</small></a>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Wired. One more thing, then one more.</span><small class="fs-list-meta">Energize · The tip</small></a>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Lines</td><td>One row per step that has a <code>line</code>, across every flow, in flow order: his words, italic, the flow and step in print under each. Naming the flow is the hardest cognitive act at the worst moment; recognising his own sentence is not.</td></tr>
+    <tr><td>Tap</td><td>The row puts the dot on that step and starts the episode (or, through the door, shows the step read-only). A flow with no lines yet has no rows here, and the Flow tab shows this as its first row.</td></tr>
+    <tr><td>Never</td><td>No "how do you feel?", no scale, no generated line. The rows are the step lines he wrote or kept from the seed.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="flows" data-name="Flow is your flows">
+  <h2>Flow is your flows</h2>
+  <p class="line">Right now first, then one row per cycle.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>08:20</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 9 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-pagelist">
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Panic</span><small class="fs-list-meta">The ring <span class="fs-notstill">· last 11 / 8</span></small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Depress</span><small class="fs-list-meta">The valley</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Energize</span><small class="fs-list-meta">The landing arc</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Fight</span><small class="fs-list-meta">The mountain</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Replay</span><small class="fs-list-meta">The coil</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">3 a.m.</span><small class="fs-list-meta">The clock</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Shutdown</span><small class="fs-list-meta">The stairs</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Shame</span><small class="fs-list-meta">The fork</small></a>
+        <button type="button" class="fs-chip add fl-add">+ flow</button>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Gone</td><td>The cadence checks, the lean sliders and the look back leave this tab. The checks and the lean move under each paradox's spread on Be (package F0); the look back goes.</td></tr>
+    <tr><td>Rows</td><td><code>flows</code> table, one row per flow in <code>order</code>; rows reuse <code>.fs-list-row</code>. Panic ships first (F1, F2); the valley, arc and mountain in F3; the five under them in F4. Every one stays editable.</td></tr>
+    <tr><td>Live</td><td>While an episode is open, its flow's row carries the dot and the app opens on that flow, not here (PLAN-FLOWS.md 3.7). Nothing else on this list changes.</td></tr>
+    <tr><td>Route</td><td><code>#/flow</code> is the list; <code>#/flow/now</code> the door; a row opens <code>#/flow/:id</code>. Still hides "last 11 / 8", not the rows.</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="panic" data-name="Panic: the cycle">
+  <h2>Panic: the cycle</h2>
+  <p class="line">Four steps, the dotted way back, and every ring that closed before.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:36</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof">
+        <div class="fl-ring" data-ring="rest" data-ghosts="3"></div>
+        <p class="fl-line">Wait out the truly hard parts. They never last forever.</p>
+        <p class="fl-last fs-notstill">Last time · 11 / 2 · 48 minutes, peak to clear</p>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Ring</td><td><code>parts/Cycle</code>, shape <code>ring</code>: one SVG, a drawn circle (rule 10: drawn paths), four marks, arrowheads clockwise, the arc from the last step back to the first dotted. Step words are buttons around it.</td></tr>
+    <tr><td>The dot</td><td>Where you are. At rest it sits on the dotted arc. It drags round the ring with a detent at each step (a tick, like the lean slider), or jumps to a tapped word.</td></tr>
+    <tr><td>Truth</td><td>It is a loop that closes: the literature confirms the order (build, peak, settle, linger) and the body's chemistry runs on a clock (PLAN-FLOWS.md 3.1).</td></tr>
+    <tr><td>Ghost rings</td><td>Each earlier episode is a faint closed circle outside the live one, one ring further out each time, oldest outermost. Rule 15 bans counts; this is a drawing, and the page prints no number near it. Still hides them (open question 9).</td></tr>
+    <tr><td>Walk it once</td><td>At rest, a tap on a step word only reads that step; the episode starts when the dot is dragged. So the ring can be rehearsed calm, which is when a skill is learned.</td></tr>
+    <tr><td>Data</td><td>An <code>episodes</code> row starts when the dot first leaves rest: <code>{ flowId, startedAt, marks: [{ stepId, at }] }</code>. Nothing is counted; the row is a clock.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="overstimulated" data-name="1 · Overstimulated">
+  <h2>Overstimulated</h2>
+  <p class="line">Drag the dot; the page follows.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:40</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="1"></div>
+        <p class="fl-line">Too much coming in at once.</p>
+        <p class="fl-said">Too much is coming in, and your body is reading it as danger. It isn't. Less coming in, a slower breath out, and this can still settle.</p>
+        <p class="fl-usual">Builds over minutes; often settles here</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Less coming in: leave the room, or dim it</span><small>Still</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Earplugs, or one quiet album</span><small>♪</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out longer than in: four in, six out</span><small>Ring</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Cold water on your wrists and face</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">Name it: too much in, not danger.</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Step</td><td><code>flow.steps[n]</code>: <code>name</code>, your <code>line</code> (italic serif), <code>said</code> (what the page says: print, with its data), <code>usual</code> and <code>tips</code>. All from PLAN-FLOWS.md 3.1, all editable.</td></tr>
+    <tr><td>Tips</td><td>Rows reuse <code>parts/Check</code>; a tick writes <code>episodes.done[]</code>. The small word at the end names a helper: Still, ♪, Ring, Five, Journal, Timer.</td></tr>
+    <tr><td>Evidence</td><td>Less input (clinical), naming the state dampens the amygdala (Lieberman 2007), slow breathing at six a minute (Zaccaro 2018), cold on the face raises vagal tone (Jungmann 2018), acceptance beat suppression in panic patients (Levitt 2004).</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="dim" data-name="Dim the page">
+  <h2>Dim the page</h2>
+  <p class="line">Still: fewer words, no numbers.</p>
+  <div class="phone" data-mock><div class="screen" data-light="still"><div class="island"></div>
+    <div class="status"><span>21:43</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon fs-ring" aria-label="Leave Still" aria-pressed="true"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="1"></div>
+        <p class="fl-line">Too much coming in at once.</p>
+        <p class="fl-said">Your body is reading this as danger. It isn't. Less in, slower out.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Less coming in</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out longer than in</span><small>Ring</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Cold water on your wrists</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td>Rule 13 as is: Still from the moon, or from the Still row. The ring in the header is the way out. Nothing here changes data when you leave.</td></tr>
+    <tr><td>Fewer words</td><td>Each tip has a <code>short</code> form and each step a <code>usualShort</code>; the usual and last-time lines are <code>fs-notstill</code>. Still shows at most three rows and no minutes.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="peak" data-name="2 · Hold the ring">
+  <h2>Hold the ring</h2>
+  <p class="line">One thing at a time; the halo breathes under your thumb.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:52</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="2" data-mid="6 minutes in|most are done by 20"></div>
+        <p class="fl-line">The wave. Loud, fast, certain.</p>
+        <p class="fl-said">This is adrenaline, and it is already on its way out. It halves every few minutes, and you don't have to do anything for that to happen.</p>
+        <div class="fl-one">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Breathe with the ring: in four, out six</span><small>Ring</small></button>
+          <p class="fl-usual">Swipe for the next</p>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Breath</td><td>The dot's halo runs on <code>--t-breath</code> (4s in, 6s out: six a minute, the rate of the slow-breathing studies). Same animation as Still's ring; no new token. The iPhone ticks at the turn points (haptic pacing was preferred 19 of 24, Paredes 2018).</td></tr>
+    <tr><td>Hold</td><td>A thumb held on the ring runs the breath; the halo scales under it and the turn points tick. The switch trick fires only inside a direct tap, so the finger on the ring is the only way the Taptic Engine can mark in and out. iPhone check before build.</td></tr>
+    <tr><td>One thing</td><td>At the peak the tips show one at a time, full width in the title size; a swipe brings the next. Acute stress narrows attention (PLAN-FLOWS.md 3.1, P25, P29), so a list becomes a single instruction.</td></tr>
+    <tr><td>Tone</td><td>Behind the Sound switch: <code>parts/Sound</code> plays a rising tone on the in-breath and a falling one on the out, so the phone can go face down and the breath still has a pacer. Off by default.</td></tr>
+    <tr><td>Awake</td><td>The Wake Lock API holds the screen while the dot is on this step, released when it moves. A ring that goes dark mid-breath is a small cruelty.</td></tr>
+    <tr><td>Clock</td><td>Minutes since the dot reached this step (<code>episodes.marks</code>), redrawn each minute; Day and Night in numbers, Still in words. Attacks peak within minutes and most last 5 to 20 (NHS); adrenaline's half-life is about 3.5 minutes.</td></tr>
+    <tr><td>Never</td><td>A paper bag (it lowers oxygen; Callaham 1989). The two-inhale sigh is daily practice evidence, not a rescue, so it is not seeded here.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="settling" data-name="3 · Settling">
+  <h2>Settling</h2>
+  <p class="line">Five things you can see; one person, already written to.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:07</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="3"></div>
+        <p class="fl-line">Back to discomfort. Shaky, but here.</p>
+        <p class="fl-said">The worst is behind you. Your heart has already slowed. Shaky is what draining feels like, and it takes about an hour: on schedule, not a relapse.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Five things you can see</span><small>Five</small></button>
+          <div class="fl-five"><p>the lamp, still on</p><p>Nala's water bowl</p><p><span class="fl-caret"></span></p></div>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Text Ali: "Hard hour. Talk to me about anything for ten minutes?"</span><small>Ali</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Stand, and walk to a window</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">You're okay. It's passing.</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Five</td><td>The Five helper opens five rules under its row, the caret on the first; each line is kept on the episode (<code>episodes.lines</code>), never generated. Then four you can hear, three you can touch. It is an attention anchor with no trial behind it; the page says so nowhere, it just works as a place to put the eyes.</td></tr>
+    <tr><td>Ali</td><td>A <code>person</code> helper: his contact and a message written when calm; the tap opens Messages with it filled, and nothing goes until he sends. The app makes no request. Open question 8 (it changes the Fight memo's "no contact shortcuts").</td></tr>
+    <tr><td>Wise</td><td>"You're okay. It's passing." is the wiser second person (rule 17): self-talk by name or "you" cut distress and after-rumination (Kross 2014).</td></tr>
+    <tr><td>Timing</td><td>Cortisol peaks 21 to 40 minutes after onset and is still falling an hour later (Dickerson and Kemeny 2004), which is the said line's "on schedule".</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="skin" data-name="4 · Under the skin">
+  <h2>Under the skin</h2>
+  <p class="line">The wash fades as it drains.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:41</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="4" data-wash data-mid="40 minutes here|it drains, it does not snap off"></div>
+        <p class="fl-line">Gross. Lingering. Under the skin.</p>
+        <p class="fl-said">Tired and gross is what afterwards feels like, and it is the last part. It drains over hours, not minutes. Nothing is asked of you but water, food and something easy.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Water, then something to eat</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">An album, or the TV</span><small>♪</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">A warm shower, or a slow walk</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">Don't pick at it yet. It's draining.</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Write it down, later</span><small>Journal</small></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Wash</td><td>A disc of ink behind the ring at 6% when the dot reaches this step, easing to 0 over two hours; the only thing on the page that moves on its own, and it stops under reduced motion. No source gives this step a fixed length, so the page prints "hours" and no more.</td></tr>
+    <tr><td>Rows</td><td>Rest and "do something that relaxes you" (NHS); music lowers stress (de Witte 2020, 104 RCTs); caffeine, alcohol and sugar make attacks worse (NHS), so none is suggested.</td></tr>
+    <tr><td>Journal</td><td>Opens today's page (next step). Dragging the dot on to the dotted arc ends the episode (<code>endedAt</code>).</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="write" data-name="Write it down, later">
+  <h2>Write it down, later</h2>
+  <p class="line">Today's page, linked; nothing written.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>23:10</span><span>Journal</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>16</b></span><span>Date: <b>11 / 8 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-col">
+        <nav class="fs-links" aria-label="Linked pages"><a class="fs-link"><small>Flow · Panic · 21:40 to 22:50</small><span>under the skin, now</span></a></nav>
+        <p>It started with the kitchen: the fan, the TV, Nala barking, all at once.<span class="fl-caret"></span></p>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Link</td><td><code>page.flow = { episodeId }</code>, like <code>page.music</code>; the link row names the flow, the span and the step. The episode keeps <code>pageId</code>, so the Panic page can show what you wrote.</td></tr>
+    <tr><td>Nothing written</td><td>The page opens blank with the caret on the first rule (rule 16). Expressive writing has a small, delayed effect (Guo 2023); distanced self-talk reduced post-event rumination (Kross 2014), which is why the link row says "later".</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="note" data-name="A note to the next one of you">
+  <h2>A note to the next one of you</h2>
+  <p class="line">Written the morning after, in your hand; shown at the step you pick.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>08:40</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 9 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="rest" data-ghosts="4"></div>
+        <p class="fl-line">Wait out the truly hard parts. They never last forever.</p>
+        <p class="fl-last fs-notstill">Last time · 11 / 8 · 1 h 10 m, peak to clear</p>
+        <div class="fl-note fs-notstill"><p class="fl-usual">Anything to tell the next one of you who's here?</p>
+          <p class="fl-line">It was the kitchen again: fan, TV, Nala. Leave the room before anything else. You've closed this ring every time.<span class="fl-caret"></span></p>
+          <div class="fs-chips" role="group" aria-label="Shows at"><button type="button" class="fs-chip" aria-pressed="true">Overstimulated</button><button type="button" class="fs-chip" aria-pressed="false">Panic</button><button type="button" class="fs-chip" aria-pressed="false">Settling</button><button type="button" class="fs-chip" aria-pressed="false">Under the skin</button></div>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Once</td><td>The question prints once, the first time the flow is opened at rest after an episode ends, in Day and Night only; a swipe dismisses it for that episode. Nothing else on the app asks a question.</td></tr>
+    <tr><td>Data</td><td><code>flow.notes[]</code> <code>{ id, stepId, text, at, episodeId }</code>, sealed. Many notes may land on one step; the newest sits first, the earlier ones under "Earlier", struck if he strikes them.</td></tr>
+    <tr><td>Why</td><td>Self-talk from a distance lowers distress and after-rumination (Kross 2014, already behind rule 17); a coping card written when calm is standard CBT practice and the heart of a WRAP crisis plan. His own line, at his own step, is the strongest "not permanent" the page can hold.</td></tr>
+  </table></details>
+</section>
+
+<!-- 12 -->
+<section class="step" id="passed" data-name="It passed before">
+  <h2>It passed before</h2>
+  <p class="line">How long it took, what helped, and your note.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>16:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 14 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring" data-ring="rest" data-ghosts="4"></div>
+        <p class="fl-line">Wait out the truly hard parts. They never last forever.</p>
+        <p class="fl-last fs-notstill">Last time · 11 / 8 · 1 h 10 m, peak to clear</p>
+        <div class="fl-helped fs-notstill">
+          <h3>What helped</h3>
+          <div class="fl-tips">
+            <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Less coming in</span><small>Overstimulated</small></button>
+            <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Five things you can see</span><small>Settling</small></button>
+            <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Water, then something to eat</span><small>Under the skin</small></button>
+          </div>
+          <h3>To the next one of you</h3>
+          <p class="fl-line">It was the kitchen again: fan, TV, Nala. Leave the room before anything else. You've closed this ring every time.</p>
+          <p class="fl-usual">You · 11 / 9 · shows at Overstimulated</p>
+          <nav class="fs-links" aria-label="Linked pages"><a class="fs-link"><small>Journal · 11 / 8</small><span>It started with the kitchen: the fan, the TV, Nala barking, all at once.</span></a></nav>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Last time</td><td>The newest ended episode: its day and the span from the peak mark to <code>endedAt</code>. One line, no averages, no counts of episodes; Still hides it. A broken streak hurts most for people who blame themselves (Silverman and Barasch), so nothing here can break.</td></tr>
+    <tr><td>Your note</td><td><code>flow.notes[]</code>: his line, the step it is for, the day. Next time the dot reaches that step the note sits above the page's said line, in italic, as his. The coping card of CBT and the WRAP crisis plan: written calm, read in it.</td></tr>
+    <tr><td>What helped</td><td>The tips ticked in that episode, each with its step; a ticked tip floats to the top of its step's list next time. The linked page's first line sits under, the way a council shows its first line.</td></tr>
+  </table></details>
+</section>
+
+<!-- 13 -->
+<section class="step" id="edit" data-name="Edit a step">
+  <h2>Edit a step</h2>
+  <p class="line">Name, your line, the page's, Earlier.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:31</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 9 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules"><div class="fl-ring" data-ring="1"></div></div>
+    </section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="This step"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Overstimulated</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body">
+      <div class="fl-field"><small>Name</small><p class="fs-held">Overstimulated</p></div>
+      <div class="fl-field"><small>Your line</small><p class="fs-held">Too much coming in at once.</p></div>
+      <div class="fl-field"><small>What the page says</small><p class="fs-held print">Too much is coming in, and your body is reading it as danger. It isn't. Less coming in, a slower breath out, and this can still settle.</p></div>
+      <div class="fl-field"><small>Things to do</small>
+        <div class="tip"><span>Less coming in: leave the room, or dim it</span><small>Still</small></div>
+        <div class="tip"><span>Earplugs, or one quiet album</span><small>♪</small></div>
+        <div class="tip"><span>Out longer than in: four in, six out</span><small>Ring</small></div>
+        <div class="tip"><span><s>Name it: too much in, not danger.</s> Too much in. Not danger.</span></div>
+        <button type="button" class="fs-chip add">+ thing</button>
+      </div>
+      <div class="fl-field"><small>Earlier</small><p class="fs-held"><s>Overwhelmed</s> · 11 / 9</p></div>
+    </div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td>A long press on a step word (rule 8) opens it; the goal sheet's shape. Tips reorder by long press and drag (V13's <code>Hold</code>); a struck tip stays struck (rule 10), never deleted.</td></tr>
+    <tr><td>Revisions</td><td><code>flow.revisions[]</code> keeps each earlier version of the steps, as paradoxes do. Seeded text is a first revision, so your rewrite is yours and the original stays readable.</td></tr>
+  </table></details>
+</section>
+
+<!-- 14 -->
+<section class="step" id="person" data-name="One person, written when calm">
+  <h2>One person, written when calm <small class="badge">open question 8</small></h2>
+  <p class="line">The tip sheet for a person: who, and what the text says. <a href="https://claude.ai/artifact/3MvU2yNEzRQuzDwNKWuaLo">Next: the other flows</a></p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>08:52</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 9 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules"><div class="fl-ring" data-ring="3"></div></div>
+    </section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="This thing"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>One person</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body">
+      <div class="fl-field"><small>The row says</small><p class="fs-held">Text Ali: "Hard hour. Talk to me about anything for ten minutes?"</p></div>
+      <div class="fl-field"><small>Helper</small><p class="fs-held print">Person</p></div>
+      <div class="fl-field"><small>Who</small><p class="fs-held">Ali · •••• 4471</p></div>
+      <div class="fl-field"><small>What it sends</small><p class="fs-held">Hard hour. Can you talk to me about anything for ten minutes? Doesn't matter what.<span class="fl-caret"></span></p></div>
+      <div class="fl-field"><small>Then</small><p class="fs-held print">One tap opens Messages with this filled in. Nothing goes until you send it.</p></div>
+      <div class="fl-field"><small>Earlier</small><p class="fs-held print">Nothing yet</p></div>
+    </div><section class="fs-page">
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Person</td><td><code>Tip.helper = 'person'</code> with <code>Tip.person = { name, tel?, text }</code>, sealed. The row's tap opens <code>sms:</code> with the body filled; the app sends nothing itself and makes no request (rule 22 holds).</td></tr>
+    <tr><td>Why</td><td>In flooding or panic the composing is the step that fails, not the sending. A line written calm is the opposite of venting, which is what the Fight memo rules out. Still hides the number, never the row.</td></tr>
+    <tr><td>Fight</td><td>The same helper carries "I'm going. Back at 7:40." to the person it is for; the return time fills in from the Timer.</td></tr>
+  </table></details>
+</section>
+
+
+</main>
+</div>
+<script src="flows.js"></script>
+</body>
+</html>
