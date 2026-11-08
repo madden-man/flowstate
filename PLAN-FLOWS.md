@@ -1,6 +1,6 @@
 # FlowState flows: the Flow tab becomes your cycles
 
-Date: 2026-11-08. Status: planned, not built. Tommy's ask: "rework the flow section... instead of having sliders for the paradoxes and showing the goals all in a line, i'd rather have this section be a freeform place where we put larger flows that happen to me often... buttons for some of the main flows (panic, depress, energize, fight)... a flow detail page that showcases a flow cycle and lets me scroll to where i am in the process... below that, based on the step i'm in, recommendations... make it fun and interactive to help during a tough time, and it should fit within design guidelines." Then: "research all the other states i mentioned, and what states i might have missed, for a depressed/anxious person. put together recommendations for each part of each cycle, and be creative about each diagram: it should showcase some truth about how that particular flow/cycle works and make the user feel as though their discomfort is not permanent."
+Date: 2026-11-08. Status: planned, not built. Updated the same evening with the crisis pass (section 3.7): Tommy asked for "other creative things to add" so the plan is "innovative and helpful in a crisis"; the walkthrough split into two parts (section 9). Tommy's ask: "rework the flow section... instead of having sliders for the paradoxes and showing the goals all in a line, i'd rather have this section be a freeform place where we put larger flows that happen to me often... buttons for some of the main flows (panic, depress, energize, fight)... a flow detail page that showcases a flow cycle and lets me scroll to where i am in the process... below that, based on the step i'm in, recommendations... make it fun and interactive to help during a tough time, and it should fit within design guidelines." Then: "research all the other states i mentioned, and what states i might have missed, for a depressed/anxious person. put together recommendations for each part of each cycle, and be creative about each diagram: it should showcase some truth about how that particular flow/cycle works and make the user feel as though their discomfort is not permanent."
 
 `PLAN.md` stays the architecture, `PLAN-V2.md` and `PLAN-V3.md` the earlier reviews. This file records what is there today, the research behind every flow, the screens, the data and the build packages. The proposal walkthrough is `design/flows/index.html` (published as a private artifact; link in section 9).
 
@@ -98,7 +98,7 @@ Not a treatment: the tips are what the guidance agrees on for riding out an ordi
 | 5 Cooling. Usually: 20 minutes at least; about an hour; longer if replayed. | The spike cleared in minutes; the slower hormone takes the hour. Replaying it is the one thing that keeps it up, so the walk is doing more than the argument would. | Distanced self-talk: "What did Tommy want?" (fewer angry feelings and less aggression under real provocation, moderate [F9]) · Reappraise, don't replay (rumination raised anger and arousal, moderate [F23]) · If you catch the replay, distract on purpose (speeds recovery in heavy ruminators, moderate [F24]) · Write it later, from a distance, stopping at what happened and what next time (writing about anger raises it at first, weak [F25]) | |
 | 6 Repair | Coming back is the step that builds trust, and the words matter less than the coming back. One short line is enough. | "Can I take that back?", "Let me try again", "I'm sorry" (clinical [F20][F1]) · Own your part in short phrases (moderate [F11]) · Between fights, the friendship is what makes repairs work (clinical [F4]) | |
 
-**Interaction evidence:** a return time, not a countdown to calm: the person picks a clock time 20 minutes to 24 hours away, the page shows the 20-minute minimum, and at 20 minutes asks "pulse under a hundred?" before "ready?" [F1][F2]; a self-rated heat works as well as a reading, precision is not the point [F2]; no sending and no contact shortcuts during the break [F1]; no scorekeeping, ever [F11][F10]; aftermath prompts in second or third person by name [F9]; if the heat shows up most days, a line to the Depress flow [F12].
+**Interaction evidence:** a return time, not a countdown to calm: the person picks a clock time 20 minutes to 24 hours away, the page shows the 20-minute minimum, and at 20 minutes asks "slower now?" before "ready?" (a self-rated heat works as well as a reading, precision is not the point, and nobody counts a pulse with tunnel hearing [F1][F2]); no venting by text and no contact shortcuts during the break [F1], with one exception decided in 3.7: the "I'm going, back at" line itself may go as a pre-written text to the person it is for; no scorekeeping, ever [F11][F10]; aftermath prompts in second or third person by name [F9]; if the heat shows up most days, a line to the Depress flow [F12].
 
 ### 3.5 The states Tommy may have missed
 
@@ -177,58 +177,105 @@ A sudden collapse after a mistake or being seen. Shame is aimed at the whole sel
 
 **What the agents could not verify** (kept honest here): the "20 minutes" and "100 bpm" figures are Gottman's clinical guidance with no primary paper found; the adrenaline half-life comes from the injected drug's label; no source gives a phase model of a single depressive dip, or times a shutdown, or measures a post-high crash in people without a mood disorder; 5-4-3-2-1 has no trial; the APA anger page and Mayo pages were read through proxies; Anxiety Canada has closed and its sheets survive only as copies.
 
+### 3.7 The first ninety seconds, and what carries forward (the crisis pass)
+
+What the plan above is weakest on: finding the app, getting past the PIN, working out which flow this is, and reading anything with shaking hands. Acute stress narrows attention and working memory [P25][P29], so every item here removes a decision or a word from that window, or carries Tommy's own calm words into it. Nothing here generates text, counts, notifies or leaves the phone (rule 22 holds: an `sms:` link opens Messages; the app sends nothing).
+
+**Getting in**
+
+- **Right now (the door's page).** One screen listing his own step `line`s across every flow, in flow order, italic, with the flow and step in print under each ("Too much coming in at once." / Panic · Overstimulated). A tap puts the dot on that step. Choosing between Panic, Shutdown and Fight is the hardest cognitive act at the worst moment; recognising his own sentence is not. The Flow tab shows it as its first row; route `#/flow/now`.
+- **The door without the PIN.** A word under the lock keypad ("the ring") opens Right now and the flow pages read-only: ring, said lines, seeded and his own tips. Kept lines, notes, "last time", ghost rings and the journal link stay behind the PIN, and the episode is written once he unlocks (the moon or the Flow word asks). Off by default; a Settings switch; only `#/flow/now` and `#/flow/:id/:step` pass. A Settings row explains the two-tap route: an iOS Shortcut that opens `#/flow/now`, bound to Back Tap or the Action button, so two taps on the back of the phone reach the lines with eyes shut. Open question 7 (it replaces 6).
+- **The app opens on the live episode.** With an episode open and the app reopened inside the current step's `usual` span, the app opens on that flow page, not the journal; the flow's row on the list carries the dot. A crisis tool resumes where the crisis is.
+
+**At the peak**
+
+- **Hold the ring.** A thumb held on the ring runs the breath: the halo scales under the finger and the turn points tick. The switch trick fires only inside a direct user gesture, so a finger on the ring is the only way the Taptic Engine can pace in and out (haptic pacing preferred 19 of 24 [P28]). iPhone check before build: whether a held pointer counts as the gesture for repeated ticks.
+- **One thing at a time.** At the peak step the tips show one at a time, full width in `--fs-title`, the next by a swipe; Still shows the same. A list becomes an instruction [P25][P29].
+- **Breathe with eyes shut.** `parts/Sound` plays a rising tone on the in-breath and a falling tone on the out-breath, behind the existing Sound switch, off by default; so the phone can go face down and the breath still has a pacer.
+- **Keep the screen awake.** The Wake Lock API (Safari 16.4+) holds the screen while the dot is on the peak step; released when it moves or the page hides.
+
+**His own words, carried forward**
+
+- **A note to the next one of you.** The first time the flow opens at rest after an episode ends, in Day and Night, the page prints once "Anything to tell the next one of you who's here?" with a rule under it and chips for the step it lands on. The line is his (`flow.notes[]`), sealed, and shows above the said line at that step next time, italic, with "you · 11 / 9". A swipe dismisses the question for that episode; nothing else in the app asks one. This is the CBT coping card and the WRAP crisis plan: written calm, read in it; distanced self-talk lowers distress and after-rumination [P12].
+- **Ghost rings.** Each ended episode is a faint closed circle outside the live ring, one ring further out per episode, oldest outermost, at 30% print. Rule 15 bans counts; this is a drawing, and no number is printed near it. Every ring closed is the page's "every time before, this ended". Still hides them. Open question 9.
+- **One person, written when calm.** A `person` helper beside Still, ♪, Ring, Five, Journal and Timer: a contact and a message written in the step sheet when calm ("Hard hour. Can you talk to me about anything for ten minutes?"). The tap opens `sms:` with the body filled; nothing goes until he sends it. In flooding or panic the composing is the step that fails, not the sending, and a pre-written line is the opposite of the venting the Fight memo rules out [F1]. The same helper carries "I'm going. Back at 7:40." to the person it is for, the time filled from the Timer. Still hides the number, never the row. Open question 8.
+
+**Across flows and after**
+
+- **Your own stamps.** The morning after a What-if episode with a written prediction, the Flow list opens with the prediction and two chips, "Didn't happen" and "Happened"; one tap and the block goes, no second ask. Each outcome is a drawn check or cross on the curve's flat (`episodes.prediction`), his, oldest leftmost; the seeded "9 in 10" gives way to his own marks once there are any. Marking the outcome is the part that teaches [M1][M2].
+- **One episode, two flows.** A wise row that names another flow (Shame's "If it's hot: the Fight flow"; Energize's crash into Depress; Panic's tail into Depress; Fight's heat most days into Depress) moves the dot there. The new episode keeps `from: episodeId`; a link row at the top of the page names the flow, time and step it left, and the journal link reads the whole span ("Shame, I'm worthless, then Fight, 15:02 to 16:10").
+- **Walk it once.** At rest, a tap on a step word only reads that step; the episode starts when the dot is dragged. The ring can be rehearsed calm, which is when the skill is learned.
+- **Still first.** On Shutdown and 3 a.m. the Still row is the first tip, above the body rows: these are the flows where reading is the hardest thing on the page. Still itself stays a choice (rule 13).
+- **Softened.** The Fight timer's "pulse under a hundred?" becomes "slower now?": a self-rated heat works as well as a reading [F2], and nobody counts a pulse with tunnel hearing.
+
 ## 4. The shape (one line per walkthrough step)
 
-`design/flows/index.html`, 22 steps. Every diagram is drawn by `parts/Cycle` from the flow's `diagram` name and its phases; the dot (or walker, or playhead) is where you are, and it drags with a detent at each phase.
+Two walkthroughs (rule 7: past about fifteen steps, split, each a complete path): `design/flows/index.html` is Panic start to finish, `design/flows/others.html` the other flows; both on `flows.css` and `flows.js` with the copied `tokens.css` and `parts.css`. Every diagram is drawn by `parts/Cycle` from the flow's `diagram` name and its phases; the dot (or walker, or playhead) is where you are, and it drags with a detent at each phase.
 
-1. **Flow is your flows.** The tab is a list: Panic, Depress, Energize, Fight, What if, Replay, 3 a.m., Shutdown, Shame, each with its diagram's name in print; "+ flow" last.
-2. **Panic: the cycle.** The ring at rest; your kept line under it; last time in print (Day and Night).
-3. **Overstimulated.** The dot on 1; the step's said line, usual, five things to do.
-4. **Dim the page.** Still from the first row: fewer rows, bigger, no numbers.
-5. **Panic.** The halo breathes at six a minute; the middle reads "6 minutes in, most are done by 20".
-6. **Settling.** Five things you can see, on five rules.
-7. **Under the skin.** The wash behind the ring fades over hours; ♪ and Journal rows.
-8. **Write it down, later.** Today's page, linked to the episode; the caret on an empty rule.
-9. **It passed before.** The ring at rest a week later: last time's span, what helped, the page you wrote.
-10. **Depress: the valley.** Pulling in, on the near slope; the far slope drawn as long.
-11. **The bottom.** The walker on the floor; the dotted arrow "one small thing" up the far slope; the safety line is the NHS's.
-12. **Energize: the landing arc.** Locked in at the crest; a timer row.
-13. **The tip.** Past the crest: land, or the dotted dip that still curves back.
-14. **Fight: the mountain.** Flooded at the summit: "Hot. Leave now. Back at 7:40."
-15. **Cooling.** The long slope; the 20-minute and one-hour lines; both branches reach repair.
-16. **What if: the curve.** The night before, at the peak; the drop at the thing; "didn't happen" stamped nine in ten.
-17. **Replay: the coil.** Why did I, one turn in; the straight exit at how.
-18. **3 a.m.: the clock.** Lying there on the awake arc; the up arrow; 7 pinned.
-19. **Shutdown: the stairs.** Stuck on the second step; the ramp labelled thaw.
-20. **Shame: the fork.** I'm worthless at the fork; hide and hit back lead away; the third path curves up.
-21. **Your own flows.** "+ flow" opens an empty ring: name the first step.
-22. **Edit a step.** Name, your line, what the page says, things to do, Earlier.
+**Part 1: Panic, start to finish** (14 steps)
+
+1. **The door without the PIN.** The lock keypad with one word under it, "the ring"; nothing private shows.
+2. **Right now.** His own step lines across every flow; tap the one that fits.
+3. **Flow is your flows.** The tab: Right now first, then one row per cycle; "+ flow" last.
+4. **Panic: the cycle.** The ring at rest with the ghost rings of earlier episodes; his kept line; last time in print.
+5. **Overstimulated.** The dot on 1; the step's said line, usual, five things to do.
+6. **Dim the page.** Still from the first row: fewer rows, bigger, no numbers.
+7. **Hold the ring.** The halo breathes under the thumb; one tip at a time, swipe for the next; "6 minutes in, most are done by 20".
+8. **Settling.** Five things you can see; the person row ("Text Ali…").
+9. **Under the skin.** The wash behind the ring fades over hours; ♪ and Journal rows.
+10. **Write it down, later.** Today's page, linked to the episode; the caret on an empty rule.
+11. **A note to the next one of you.** The morning after, at rest: the question in print, his line on the rule, the step chips.
+12. **It passed before.** A week later: last time's span, what helped, his note, the page he wrote.
+13. **Edit a step.** Name, your line, what the page says, things to do, Earlier.
+14. **One person, written when calm.** The tip sheet for a person: who, what the text says, "nothing goes until you send it". Links to part 2.
+
+**Part 2: The other flows** (14 steps)
+
+1. **Depress: the valley.** Pulling in, on the near slope; the far slope drawn as long.
+2. **The bottom.** The walker on the floor; the dotted arrow "one small thing" up the far slope; the safety line.
+3. **Energize: the landing arc.** Locked in at the crest; a timer row.
+4. **The tip.** Past the crest: land, or the dotted dip that still curves back.
+5. **Fight: the mountain.** Flooded at the summit: "Hot. Leave now. Back at 7:40."; the line can go as a text.
+6. **Cooling.** The long slope; the 20-minute and one-hour lines; both branches reach repair.
+7. **What if: the curve.** The night before, at the peak; the drop at the thing; "didn't happen" stamped nine in ten.
+8. **Your own stamps.** The morning after: the prediction and two chips; his marks on the curve.
+9. **Replay: the coil.** Why did I, one turn in; the straight exit at how.
+10. **3 a.m.: the clock.** Lying there on the awake arc; the up arrow; 7 pinned.
+11. **Shutdown: the stairs.** Stuck on the second step; the Still row first; the ramp labelled thaw.
+12. **Shame: the fork.** I'm worthless at the fork; hide and hit back lead away; the third path curves up.
+13. **One episode, two flows.** Shame turned hot: the Fight page with the link row "From Shame · 15:02".
+14. **Your own flows.** "+ flow" opens an empty ring: name the first step.
 
 ## 5. Data (schema version 3)
 
-- **`flows`**: `{ id, name, order, createdAt, updatedAt, line?, diagram, steps: Step[], revisions: { at, name, steps }[], sealed? }`. `diagram` is one of `ring | valley | arc | mountain | curve | coil | clock | stairs | fork`, each a drawn shape in `parts/Cycle` with that many phase slots (a flow with more steps than slots spaces them along the path). `Step = { id, name, line?, said?, usual?, usualShort?, tips: Tip[] }`: `line` is Tommy's own words for the step (italic serif), `said` is what the page says at that step (section 3's reassurance line, print, with its data; Still shows it without numbers via `usualShort`), `usual` the typical span. `Tip = { id, text, short?, helper?: 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer', wise?, struck? }`. Names, lines, said and tip text are sealed by the store, like a paradox's poles.
-- **`episodes`**: `{ id, flowId, startedAt, endedAt?, marks: { stepId, at }[], done: { tipId, at }[], pageId?, music?, lines?: string[], returnAt? }`, index `[flowId+startedAt]`. One row per time the dot leaves rest; `endedAt` when it is dragged back onto the way out, or after the last step's usual span with no touch. `lines` are the Five helper's lines (sealed), kept on the episode so the journal stays the journal. `returnAt` is the Fight flow's "back at 7:40".
+- **`flows`**: `{ id, name, order, createdAt, updatedAt, line?, diagram, steps: Step[], revisions: { at, name, steps }[], sealed? }`. `diagram` is one of `ring | valley | arc | mountain | curve | coil | clock | stairs | fork`, each a drawn shape in `parts/Cycle` with that many phase slots (a flow with more steps than slots spaces them along the path). `Step = { id, name, line?, said?, usual?, usualShort?, tips: Tip[] }`: `line` is Tommy's own words for the step (italic serif), `said` is what the page says at that step (section 3's reassurance line, print, with its data; Still shows it without numbers via `usualShort`), `usual` the typical span. `Tip = { id, text, short?, helper?: 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person', person?: { name, tel?, text }, wise?, struck? }`. `notes: { id, stepId, text, at, episodeId }[]` are the notes to the next one of you (3.7), sealed. Names, lines, said and tip text are sealed by the store, like a paradox's poles.
+- **`episodes`**: `{ id, flowId, startedAt, endedAt?, marks: { stepId, at }[], done: { tipId, at }[], pageId?, music?, lines?: string[], returnAt? }`, index `[flowId+startedAt]`. One row per time the dot leaves rest; `endedAt` when it is dragged back onto the way out, or after the last step's usual span with no touch. `lines` are the Five helper's lines (sealed), kept on the episode so the journal stays the journal. `returnAt` is the Fight flow's "back at 7:40". `from?: episodeId` links a hand-off from another flow; `prediction?: { text, outcome?: 'didnt' | 'happened', at }` is a What-if episode's written worry and its stamp.
 - **`pages`** gains optional `flow?: { episodeId }`, like `music`. Optional and unindexed; the bump is for the two tables.
 - `SCHEMA_VERSION` 3; `TABLES` gains both names; `backup.ts` walks `TABLES` and seals by field list, so export and import round-trip them once `fields.ts` lists the sealed fields. The upgrade writes the seed flows (`seed.ts ensureSeeded`, the once-only pattern of the voices), with every seeded text as a first revision.
-- Routes: `#/flow` (the list), `#/flow/:id` (a flow at rest or on its current step), `#/flow/:id/:step` (a deep link; an iPhone home-screen shortcut can point at `#/flow/panic/2`).
+- Routes: `#/flow` (the list), `#/flow/now` (Right now), `#/flow/:id` (a flow at rest or on its current step), `#/flow/:id/:step` (a deep link). With the door on in Settings, the lock lets `#/flow/now` and `#/flow/:id/:step` through read-only (3.7).
+- Settings gains `flowDoor` (off), `breathTone` (off; under the Sound switch). The wake lock needs no setting.
 
 ## 6. Build packages (one PR each, same rules as PLAN.md section 10)
 
 | # | Package | Done when |
 |---|---|---|
 | F0 | Clear the tab | Checks and the lean sit under each paradox's spread on Be; look back gone; `flow.spec.ts` rewritten against Be; walkthrough step 16 retitled; nothing in `model/flow.ts` deleted that Be still reads |
-| F1 | Flows and the ring | `flows` and `episodes` tables, seed Panic; `#/flow` list; `parts/Cycle` with the ring (drawn circle, marks, the dot as a `role="slider"` with detents, a tick, arrow keys); step words; line, said and usual under it; an episode starts when the dot leaves rest; Still variant; e2e: deep link, drag to a detent, offline reload keeps the mark |
-| F2 | What to do | Tip rows (`parts/Check`) per step writing `episodes.done`; helpers: Still (`settle()`), ♪ (`tapMusic`), Ring (the halo at the peak), Five (five rules on the episode), Journal (today's page linked by `page.flow`), Timer (a return time, 20 minutes to 24 hours, the 20-minute minimum shown); the clock in the middle (minutes in Day and Night, words in Still); the wash under the last step; "last time" and "what helped" at rest; the step sheet (name, line, said, tips with reorder and strike, Earlier) |
+| F1 | Flows and the ring | `flows` and `episodes` tables, seed Panic; `#/flow` list; `parts/Cycle` with the ring (drawn circle, marks, the dot as a `role="slider"` with detents, a tick, arrow keys); step words (a tap reads, a drag starts: walk it once); line, said and usual under it; an episode starts when the dot leaves rest; the app opens on the live episode; Still variant; e2e: deep link, drag to a detent, offline reload keeps the mark |
+| F2 | What to do | Tip rows (`parts/Check`) per step writing `episodes.done`; helpers: Still (`settle()`), ♪ (`tapMusic`), Ring (the halo at the peak), Five (five rules on the episode), Journal (today's page linked by `page.flow`), Timer (a return time, 20 minutes to 24 hours, the 20-minute minimum shown); the clock in the middle (minutes in Day and Night, words in Still); hold the ring (halo under the finger, ticks at the turns, iPhone-checked first), one tip at a time at the peak, the breath tone behind the Sound switch, the wake lock; the wash under the last step; "last time" and "what helped" at rest; the step sheet (name, line, said, tips with reorder and strike, Earlier) |
 | F3 | The other three | Depress (valley), Energize (arc) and Fight (mountain) seeded from section 3 with their said lines and tips; `parts/Cycle` gains the three shapes; the hypomania line on Energize; "+ flow" and "+ step" so a flow can be made from nothing (an empty ring) |
-| F4 | The missed five | What if (curve), Replay (coil), 3 a.m. (clock), Shutdown (stairs), Shame (fork) seeded; their shapes; the list scrolls like Pages; the Avoidance step ("do the small version") added to Panic and Depress |
+| F4 | The missed five | What if (curve), Replay (coil), 3 a.m. (clock), Shutdown (stairs), Shame (fork) seeded; their shapes; the list scrolls like Pages; the Avoidance step ("do the small version") added to Panic and Depress; hand-offs between flows (`from`, the link row, the journal span); the Still row first on Shutdown and 3 a.m. |
+| F5 | The door | `#/flow/now` (Right now) as the list's first row and the door's page; the lock's word and the read-only pass-through behind the `flowDoor` switch; the Settings row explaining Back Tap and the Action button; e2e: the door shows no kept line, note, last time or journal link, and unlocking writes the episode |
+| F6 | Carried forward | Notes to the next one of you (the once-only question, `flow.notes`, shown at the step, Earlier); ghost rings (hidden in Still); the `person` helper and its sheet (`sms:` with the body, nothing sent by the app); What-if stamps (the morning-after block, `episodes.prediction`, the marks on the curve) |
 
 Every PR: `npm test`, `npm run e2e`, three-lights screenshots, `design/walkthrough.html` steps updated from the real components (the walkthrough is at 299 of 300 words: the Flow steps replace step 16 and the captions get trimmed, or the flows keep their own walkthrough, as `design/flows/` already is), lints PASS pasted in the body, no em dashes.
 
-**Haptics and sound.** New tick sites, to be added to DESIGN.md rule 19 and `test/ui/feel.test.ts`: the dot's detent at a step (`detent`, in `parts/Cycle`), a tip ticked (`check`), the Still row (`still`, via `settle()` which already ticks). No new bells: the Still row plays the settling tone that `settle()` already plays; the ring's breath is silent. Nothing fires on its own, including the Fight timer: at the return time the page shows a line, it does not notify.
+**Haptics and sound.** New tick sites, to be added to DESIGN.md rule 19 and `test/ui/feel.test.ts`: the dot's detent at a step (`detent`, in `parts/Cycle`), a tip ticked (`check`), the Still row (`still`, via `settle()` which already ticks), and the ring's turn points while a finger holds it (`breath`, F2, only if the iPhone check passes). One new sound, behind the Sound switch and off by default: the breath tone (rising in, falling out). The Still row plays the settling tone that `settle()` already plays. Nothing fires on its own, including the Fight timer: at the return time the page shows a line, it does not notify.
 
 **Tokens.** None new expected: shapes use `--print` and `--ink`, the halo `--t-breath`, the wash `--ink` at an opacity, type from `--fs-chip`, `--fs-print`, `--fs-fill`. If a shape needs a size that is not a token, it gets one with the screen named in the comment (rule 25).
 
 **Reduced motion.** The halo, the caret and the wash stop; the dot still moves under the finger (drag feedback is immediate, rule 20).
+
+**Rules touched.** DESIGN.md rule 19 (the new tick sites), rule 21 (the breath tone), rule 22 unchanged (an `sms:` link is not a request), and a new line under rule 15: a drawing of past episodes is not a count. The lock gains its one read-only pass-through (F5), documented in PLAN.md's lock section.
 
 **Words on the page.** Said lines carry numbers in Day and Night ("most are done by 20") and read in words in Still ("most of these are over soon"). A step shows at most six tip rows, three in Still. Nothing on a flow page says "calm down", counts episodes, or compares this one with the last beyond the one "last time" line.
 
@@ -239,7 +286,10 @@ Every PR: `npm test`, `npm run e2e`, three-lights screenshots, `design/walkthrou
 3. "Last time it passed in 48 minutes" on the page at rest: keep (the strongest "not permanent" line the page has), or only in the journal link?
 4. The safety line on Depress's bottom step (NHS 111 / 988) and the hypomania line on Energize: keep as seeded, or leave them out and let you add your own?
 5. Which of the missed five to seed first: the memo's order is Replay, 3 a.m., What if, Shame, Shutdown. All five, or fewer?
-6. A home-screen shortcut straight to `#/flow/panic/2` (one tap from the lock screen, PIN still in front): worth the Settings row?
+6. Replaced by 7.
+7. The door without the PIN (3.7): a word under the keypad opens Right now and the flow pages read-only, nothing private showing, off by default. Yes, or keep the PIN in front of everything and settle for the home-screen shortcut?
+8. The `person` helper: a contact and a pre-written text, one tap to open Messages, the app sending nothing. It bends the Fight memo's "no contact shortcuts" for the one line that is the Gottman script rather than venting. Yes, no, or Fight's line only?
+9. Ghost rings: a faint closed circle per earlier episode behind the live ring, no number. A drawing, or a count by another name?
 
 ## 8. Research notes (how the memos were made)
 
@@ -247,4 +297,9 @@ Five research agents on 2026-11-08, each briefed to read primary and reputable s
 
 ## 9. Artifact
 
-Proposal walkthrough: `design/flows/index.html` on `design/flows/tokens.css` and `parts.css` (copies of the design files, as `design/v2/` did). Published 2026-11-08 as https://claude.ai/artifact/QgjCMzDNxdzSHbDT36ybhZ (slug bfce334a-58b4-428e-9265-0af61bcbfbc8), private until Tommy shares it.
+Two proposal walkthroughs on `design/flows/flows.css` and `flows.js` with the copied `tokens.css` and `parts.css` (as `design/v2/` did):
+
+- Part 1, Panic start to finish: `design/flows/index.html`, published 2026-11-08 as https://claude.ai/artifact/QgjCMzDNxdzSHbDT36ybhZ (slug bfce334a-58b4-428e-9265-0af61bcbfbc8); its last step links to part 2.
+- Part 2, the other flows: `design/flows/others.html`, published 2026-11-08 as https://claude.ai/artifact/3MvU2yNEzRQuzDwNKWuaLo.
+
+Both private until Tommy shares them.

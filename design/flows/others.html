@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState flows 2: The other flows</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="parts.css">
+<link rel="stylesheet" href="flows.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState flows 2: The other flows</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+
+<!-- 1 -->
+<section class="step" id="depress" data-name="Depress: the valley">
+  <h2>Depress: the valley</h2>
+  <p class="line">A far slope as long as the near.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>10:15</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Depress</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="valley" data-at="2"></div>
+        <p class="fl-line">Cancelling things. Curtains shut.</p>
+        <p class="fl-said">Pulling in is the dip doing its work, not you failing. The way out is back to front: one small thing before you feel like it. Most people who tried that felt a first lift inside three weeks.</p>
+        <p class="fl-usual">Days, sometimes weeks; it has a far side</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">The act before the feeling: one small thing, scheduled</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Message one person</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out of bed by day, even to the sofa</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>valley</code>: six phases, Sliding, Pulling in, Head won't stop on the near slope, The bottom on the floor, A little light and Climbing out on the far slope. The walker is the dot. No percentages on the drawing.</td></tr>
+    <tr><td>Truth</td><td>An episode has a far side: median 3 months, half over by 3, three quarters by 12 (Spijker 2002). Doing before feeling: behavioural activation beat controls (SMD .74, Ekers 2014); 61% halved symptoms by session three (PLAN-FLOWS.md 3.2).</td></tr>
+    <tr><td>Never</td><td>Streaks, counts or "you skipped a day": gamification gave no benefit in depression apps, and a broken streak cut engagement most in self-blamers.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="bottom" data-name="The bottom">
+  <h2>The bottom</h2>
+  <p class="line">A dotted arrow up the far slope.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>07:50</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Depress</span><span>Date: <b>11 / 15 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="valley" data-at="4"></div>
+        <p class="fl-line">Heavy. Nothing tastes of anything.</p>
+        <p class="fl-said">This is the floor, and the floor is where it turns. Half of all dips are over inside three months, many well before. Nothing big is asked of you here: water, food, one tiny thing.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">One tiny thing, at your better time of day</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Eat something, drink water</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Music you choose</span><small>♪</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">No big decisions now.</span></button>
+        </div>
+        <p class="fl-said">If you're thinking of hurting yourself, call or text 988. Any hour.</p>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Arrow</td><td>The dotted arrow from the floor up the far slope is labelled with the next small thing: the activity-reward-mood loop runs outward from one action as surely as inward (Lewinsohn; Dimidjian 2011).</td></tr>
+    <tr><td>Better time</td><td>Never "mornings are worst": in STAR*D 32% were worse mornings, 49% evenings (Morris 2007). The page asks nothing; the tip says "your better time".</td></tr>
+    <tr><td>Safety line</td><td>A print line under the rows, not a check (nothing to tick), with the US Lifeline (988) since that is where Tommy is; open question 4 in PLAN-FLOWS.md asks whether to keep it.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="energize" data-name="Energize: the landing arc">
+  <h2>Energize: the landing arc</h2>
+  <p class="line">Locked in at the crest; a timer.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>14:05</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Energize</span><span>Date: <b>11 / 16 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="arc" data-at="3"></div>
+        <p class="fl-line">Locked in. Time's gone somewhere.</p>
+        <p class="fl-said">This is the sweet spot. It lasts about an hour at a stretch and a few hours a day, and a timer protects it better than willpower does.</p>
+        <p class="fl-usual">An hour at a go; a few hours a day</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">A timer: 45 minutes, extend once</span><small>Timer · 31:20</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Park new ideas on the page, dated for later</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Phone face down, notifications off</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>arc</code>: Spark and Build on the climb, Locked in at the crest, The tip past it, then two paths down: land (solid, to the baseline) and the crash (dotted, below the line and back up). Both reach the line.</td></tr>
+    <tr><td>Truth</td><td>Flow needs a clear goal and a challenge a notch above skill (Peifer 2022); elite practice sessions averaged 80 minutes and gains stop past about four hours a day (Ericsson 1993); fixed breaks gave less fatigue (Biwer 2023). The 90-minute waking cycle is a rule of thumb, not a clock.</td></tr>
+    <tr><td>Timer</td><td>The Timer helper counts in the row; it never notifies. No session counts, totals or badges: tracking output cuts enjoyment (Etkin 2016) and rewarding the surge rewards the tip.</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="tip" data-name="The tip">
+  <h2>The tip</h2>
+  <p class="line">Land, or the dip that curves back.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>23:30</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Energize</span><span>Date: <b>11 / 16 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="arc" data-at="4"></div>
+        <p class="fl-line">Wired. One more thing, then one more.</p>
+        <p class="fl-said">Wired and scattered means you are past the top, and from here more is not better. Park the ideas, assume everything takes twice as long, and hold the big messages until after sleep. If tomorrow is flat, that is the sleep, not you.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Stop while ahead, mid-sentence</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Write tomorrow's list, five minutes, then bed</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Eat; a walk if it's early enough</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">Big messages after sleep.</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Truth</td><td>Past the top, 500 mg of caffeine brought tension and worse performance (Kaplan 1997); people underestimate how long things take (Buehler 1994); sleep loss amplifies reward while raising next-day anxiety about 27% (Gujar 2011; Ben Simon 2020); a five-minute bedtime list sped falling asleep (Scullin 2018).</td></tr>
+    <tr><td>Crash</td><td>No study measures a post-high crash in people without a mood disorder; the dotted path is built from sleep loss, caffeine withdrawal (peaks at 20 to 51 hours) and cortisol recovery. The page says "usually a day or two".</td></tr>
+    <tr><td>Boundary</td><td>One gentle seeded line on the flow at rest: "Highs most days for a week without needing sleep: talk to your GP." Never the word mania.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="fight" data-name="Fight: the mountain">
+  <h2>Fight: the mountain</h2>
+  <p class="line">At the summit: say it, or leave.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>19:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Fight</span><span>Date: <b>11 / 18 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="mountain" data-at="3"></div>
+        <p class="fl-line">Hot. Leave now. Back at 7:40.</p>
+        <p class="fl-said">This is flooding: tunnel sight, tunnel hearing. Nothing said now will land. Twenty minutes is the least it takes; say you are going, and when you will be back.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">"I'm going. Back at 7:40."</span><small>Timer · 7:40 · text</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Walk, music, a shower, slow breathing</span><small>Ring</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Don't text them, and don't vent to anyone yet</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>mountain</code>: Trigger at the foot, Climb, Flooded at the summit; the summit forks into "say it" (dotted, dips lower through shame) and "leave" (the main slope); both rejoin at Repair on the floor. Faint lines across the slope at 20 minutes and about an hour.</td></tr>
+    <tr><td>Truth</td><td>Flooding sits around 100 bpm with tunnel hearing, and the break is 20 minutes to 24 hours with a return time agreed (Gottman); venting at the peak raises anger, and doing nothing beat venting (Bushman 2002; Kjærvik and Bushman 2024, 154 studies); jogging most raised anger, so the rows are walk, music, shower, breath.</td></tr>
+    <tr><td>Timer</td><td>A return time, not a countdown to calm; the row shows the 20-minute minimum. At the time the page shows a line and asks "slower now?" before "ready?" (a self-rated heat works as well as a pulse, and nobody counts a pulse with tunnel hearing). The "I'm going" line can go as a text to the person it is for (open question 8); nothing else sends, and nothing is scored.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="cooling" data-name="Cooling">
+  <h2>Cooling</h2>
+  <p class="line">Both branches reach repair.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>19:48</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Fight</span><span>Date: <b>11 / 18 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="mountain" data-at="5"></div>
+        <p class="fl-line">Still replaying the line I should have said.</p>
+        <p class="fl-said">The spike cleared in minutes; the rest takes about an hour. Replaying it is the one thing that keeps it up, so the walk is doing more than the argument would.</p>
+        <p class="fl-usual">Twenty minutes at least; about an hour</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">What did Tommy want, in there?</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">If you catch the replay, distract on purpose</span><small>♪</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">On return: "Can I take that back?"</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Truth</td><td>Adrenaline clears in minutes; cortisol peaks at 21 to 40 minutes and is still falling an hour after (Dickerson and Kemeny 2004); replaying keeps blood pressure up (Glynn 2002); distraction speeds recovery in heavy ruminators (Gerin 2006).</td></tr>
+    <tr><td>Wise</td><td>Third person by name: fewer angry feelings and less aggression under real provocation (Mischkowski, Kross and Bushman 2012). Owning it is the strongest part of an apology, asking forgiveness the weakest (Lewicki 2016).</td></tr>
+    <tr><td>Depress</td><td>If the heat shows up most days, a line to the Depress flow: irritability appeared in 55% of major depressive episodes (Judd 2013).</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="whatif" data-name="What if: the curve">
+  <h2>What if: the curve</h2>
+  <p class="line">It peaks the night before, not during.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>22:55</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>What if</span><span>Date: <b>11 / 20 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="curve" data-at="3"></div>
+        <p class="fl-line">Tomorrow's call. Every version of it.</p>
+        <p class="fl-said">The night before is the peak of the curve, not the thing itself. Nine in ten logged worries did not happen. Expect the feeling instead of fighting it; it is already as high as it gets.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Write the worry as a prediction, to check tomorrow</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out longer than in</span><small>Ring</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Same wake time tomorrow</span><small>3 a.m.</small></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>curve</code>: Something's coming, What if, Night before on the climb; The thing is the vertical drop; It was fine on the flat after, with past outcomes stamped as drawn checks ("didn't happen, 9 in 10").</td></tr>
+    <tr><td>Truth</td><td>Each worry episode kept the heart up about two hours, and relief when nothing happens is what keeps the habit (Newman and Llera 2011); 91% of logged worries in GAD patients did not come true, and marking the outcome is what teaches next time (LaFreniere and Newman 2020); putting worry off to a set time helped in an RCT.</td></tr>
+    <tr><td>Folded</td><td>Sunday and morning dread are this curve with a weekly trigger.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="stamps" data-name="Your own stamps">
+  <h2>Your own stamps</h2>
+  <p class="line">The morning after a worry, one tap; the curve keeps the mark.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>10:05</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 21 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules fs-pagelist">
+        <div class="fl-note" style="margin-top:0"><p class="fl-usual">Yesterday's worry</p><p class="fl-line">Tomorrow's call. Every version of it.</p>
+          <div class="fs-chips" role="group" aria-label="Did it happen"><button type="button" class="fs-chip" aria-pressed="true">Didn't happen</button><button type="button" class="fs-chip" aria-pressed="false">Happened</button></div></div>
+        <div class="fl-diag" data-diag="stamps" data-at="5"></div>
+        <a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Panic</span><small class="fs-list-meta">The ring <span class="fs-notstill">· last 11 / 8</span></small></a>
+        <a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Depress</span><small class="fs-list-meta">The valley</small></a>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Ask</td><td>The day after a What if episode with a written prediction, the Flow list opens with the prediction and two chips. One tap, then the block goes; no reminder, no second ask.</td></tr>
+    <tr><td>Marks</td><td><code>episodes.prediction = { text, outcome?: 'didnt' | 'happened', at }</code>. Each outcome is a drawn check or cross on the curve's flat, his, oldest leftmost; the seeded "9 in 10" line gives way to his own marks once there are any. No number is printed (rule 15).</td></tr>
+    <tr><td>Why</td><td>Marking the outcome is the part that teaches (LaFreniere and Newman 2020, PLAN-FLOWS.md 3.5); 91% of logged worries did not come true, and his own record will say so in his own hand.</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="replay" data-name="Replay: the coil">
+  <h2>Replay: the coil</h2>
+  <p class="line">"Why" tightens it; "how" is the exit.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>11:40</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Replay</span><span>Date: <b>11 / 21 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="coil" data-at="2"></div>
+        <p class="fl-line">That look at dinner. Again.</p>
+        <p class="fl-said">Every "why" tightens the coil. Swap it for "how did it unfold, moment by moment": that is the swap that loosens it. Eight minutes of something absorbing beats eight minutes of replaying.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">"How", not "why": moment by moment</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Eight minutes of something absorbing</span><small>♪</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">One concrete next step.</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>coil</code>: a spiral in from That stung, Why did I one turn in, Heavier at the centre, and one straight line out of the centre, How not why, with an arrowhead.</td></tr>
+    <tr><td>Truth</td><td>Rumination blocks problem solving and predicts the onset of depression (Nolen-Hoeksema 2008); abstract "why" thinking is the harmful mode and concrete "how" the exit (Watkins 2008); eight minutes of distraction beat eight of rumination in the lab. The social hangover after people is this flow (post-event processing, 2024 meta-analysis).</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="night" data-name="3 a.m.: the clock">
+  <h2>3 a.m.: the clock</h2>
+  <p class="line">The awake arc; 7 pinned.</p>
+  <div class="phone" data-mock><div class="screen" data-light="still"><div class="island"></div>
+    <div class="status"><span>03:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon fs-ring" aria-label="Leave Still" aria-pressed="true"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>3 a.m.</span><span>Date: <b>11 / 22 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="clock" data-at="3"></div>
+        <p class="fl-line">Awake. Trying harder.</p>
+        <p class="fl-said">Trying harder is what keeps you awake. Up for a while: dim light, something dull, back to bed when sleepy. The morning is pinned whatever the night does.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">Clock turned away</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Up; something dull in dim light</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Out longer than in</span><small>Ring</small></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>clock</code>: a face with the night from 11 to 7 dotted, the awake stretch a thick arc from 3, an arrow out of bed at Up, and 7 a pinned dot. In Still the page shows no time at all: the clock is the one with no hands.</td></tr>
+    <tr><td>Still first</td><td>In Day and Night the first tip is the Still row (as on Shutdown); this mock is already in Still, which is why it is absent.</td></tr>
+    <tr><td>Truth</td><td>Watching the clock raised worry and lengthened the time to fall asleep in two experiments (Tang, Schmidt and Harvey 2007); getting up when awake and a fixed wake time are the stimulus-control core of CBT-I, and sleep hygiene alone is not recommended (AASM 2021). Sleep restriction is unsafe with any hypomania history, which the Energize boundary line respects.</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="shutdown" data-name="Shutdown: the stairs">
+  <h2>Shutdown: the stairs</h2>
+  <p class="line">Three steps down; a ramp back.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>17:30</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Shutdown</span><span>Date: <b>11 / 23 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="stairs" data-at="2"></div>
+        <p class="fl-line">Can't move. Can't start.</p>
+        <p class="fl-said">Your body pulled a brake. It is holding fight-or-flight, not failing. Weight first, words later: feet on the floor, the chair against your back. The body thaws from the ground up.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Dim the page</span><small>Still</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Feet on the floor; stomp, or shift your weight</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Feel the chair pressing your back</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Slow the breath</span><small>Ring</small></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>stairs</code>: Too much, Stuck, Far away down three steps; the ramp back up is Thawing. Drawn as a model, which is what it is.</td></tr>
+    <tr><td>Still first</td><td>Here and on 3 a.m. the Still row is the first tip, above the body rows: these are the two flows where reading is the hardest thing on the page. Still itself stays a choice (rule 13).</td></tr>
+    <tr><td>Truth</td><td>The defense cascade: freezing is fight-or-flight on hold, collapse a last resort, and the quiet state after is where repair happens (Kozlowska 2015). Brief unreality is common, about six in ten in depression samples (Hunter 2004). The tips are clinical practice with no trials, and the page claims no more. Polyvagal "dorsal vagal" wording is contested (Grossman 2023) and is not used.</td></tr>
+  </table></details>
+</section>
+
+<!-- 12 -->
+<section class="step" id="shame" data-name="Shame: the fork">
+  <h2>Shame: the fork</h2>
+  <p class="line">Two paths lead away; one curves up.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>15:02</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Shame</span><span>Date: <b>11 / 24 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-diag" data-diag="fork" data-at="2"></div>
+        <p class="fl-line">Everyone saw. I'm useless.</p>
+        <p class="fl-said">"I am bad" is a verdict on the whole of you, and it is the one that drags everything down. "I did a bad thing" is the version with a door. One specific repair, and done.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Reword it: "I did a thing", not "I am"</span><small>Journal</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Notice the urge to hide or blame before replying</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">One specific repair</span></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text fs-wise">If it's hot: the Fight flow.</span></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shape</td><td><code>fork</code>: Seen at the top, the drop to I'm worthless, then three paths: hide and hit back (dotted, away), and "I did a thing, I can fix it" curving back up with an arrowhead.</td></tr>
+    <tr><td>Truth</td><td>Shame is aimed at the whole self and pushes blame outward; guilt points at the amends (Tangney 2007); shame is more tied to depression than guilt (r .43 vs .28); self-compassion practice d .64 on depression in small trials (Kirby 2017). The hit-back branch hands off to Fight.</td></tr>
+  </table></details>
+</section>
+
+<!-- 13 -->
+<section class="step" id="handoff" data-name="One episode, two flows">
+  <h2>One episode, two flows</h2>
+  <p class="line">Shame turned hot; the dot crossed to Fight and the link says where it came from.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>15:06</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Fight</span><span>Date: <b>11 / 24 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <nav class="fs-links" aria-label="Linked pages"><a class="fs-link"><small>From Shame · 15:02 · I'm worthless</small><span>Everyone saw. I'm useless.</span></a></nav>
+        <div class="fl-diag" data-diag="mountain" data-at="3"></div>
+        <p class="fl-line">Hot. Leave now. Back at 3:40.</p>
+        <p class="fl-said">This is flooding: tunnel sight, tunnel hearing. Nothing said now will land. Twenty minutes is the least it takes; say you are going, and when you will be back.</p>
+        <div class="fl-tips">
+          <button type="button" role="checkbox" aria-checked="true" class="fs-check done"><span class="fs-check-text">"I'm going. Back at 3:40."</span><small>Timer · 3:40 · text</small></button>
+          <button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Walk, music, a shower, slow breathing</span><small>Ring</small></button>
+        </div>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Cross</td><td>A wise row that names another flow ("If it's hot: the Fight flow"; Energize's crash into Depress; Panic's tail into Depress) moves the dot there. The new episode keeps <code>from: episodeId</code>; the link row at the top names the flow, the time and the step it left.</td></tr>
+    <tr><td>Journal</td><td>The page's link row reads the whole span: "Shame, I'm worthless, then Fight, 15:02 to 16:10". Last time on each flow counts only its own leg.</td></tr>
+  </table></details>
+</section>
+
+<!-- 14 -->
+<section class="step" id="own" data-name="Your own flows">
+  <h2>Your own flows</h2>
+  <p class="line">An empty ring; name the first step.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>20:05</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button></div><div class="fs-hdr-r"><span>Grief</span><span>Date: <b>11 / 25 / 26</b></span></div></header>
+      <div class="fs-sheetof fs-rules">
+        <div class="fl-ring empty" data-ring="empty"></div>
+        <p class="fl-line"></p>
+        <button type="button" class="fs-chip add fl-add">+ step</button>
+      </div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Empty ring</td><td>A new flow is a dotted ring until a step is named; steps take their places evenly as they are added (two to six). + step opens the step sheet (next step). The shape can be changed in the flow's sheet to any of the nine.</td></tr>
+    <tr><td>Grief</td><td>Not seeded: the dual process model (facing the loss, rebuilding, and breaks from both; Stroebe and Schut) is a wave offered on demand, and this is where it would be made.</td></tr>
+  </table></details>
+</section>
+
+
+</main>
+</div>
+<script src="flows.js"></script>
+</body>
+</html>
