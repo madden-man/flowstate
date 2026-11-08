@@ -23,7 +23,7 @@ Mystical means wordless and incomplete here ("wisdom is to be experienced, and i
 
 ## 3. The page (review)
 
-5. Every writing surface is a page: the notebook header ("No." and "DATE: 11 / 7 / 26" in grey sans, top right), rules the text sits on (line height equals rule spacing), ink in serif. Day 17 on 28; Still 18 on 33.
+5. Every writing surface is a page: the notebook header ("No." and "DATE: 11 / 7 / 26" in grey sans, top right), rules the text sits on (line height equals rule spacing), ink in serif. Day 17 on 28; Still 18 on 33. A row that can wrap (a check, a question, a look-back line) ends on a blank rule however many lines its text took, so one line is text plus a blank rule and three lines is text plus a blank rule; dense indexes (Pages, councils) stay one line each, cut with an ellipsis.
 6. One primary act per screen, and it is the first thing under the thumb. Journal opens on a blank dated page with the caret ready. No save buttons; everything autosaves.
 7. Tabs are four words (Journal, Council, Be, Flow) and, third, the **?** mark for Questions (V2): a glyph in the serif a size up, like the header's ♪, not a fifth word. No icons anywhere except the moon, the ring, the drawn arrow and the drawn check. No icon libraries (lint).
 8. Sheets rise; nothing is a modal dialog (`<dialog>`, `role="dialog"`, `alert`, `confirm`, `prompt` are banned, lint). Back is a swipe. Long press means pick up, keep close or reply.
