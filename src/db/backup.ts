@@ -101,7 +101,8 @@ export function parseBackup(text: string): BackupFile {
 
 /** Older files are brought up to the current version here. A version 1 file (one playlist) gets what the
  *  Dexie upgrade gives a version 1 database: its ordered albums as the Poems playlist's shelf, and that
- *  playlist ticked. */
+ *  playlist ticked. A version 2 file has no flows or episodes (both tables come in empty, above); its settings
+ *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -113,13 +114,19 @@ function migrate(f: BackupFile): BackupFile {
   return { ...f, schemaVersion: SCHEMA_VERSION };
 }
 
-/** The time a row last changed, for merge: updatedAt, else at, else its newest revision, else createdAt. */
+/** The time a row last changed, for merge: updatedAt, else at, else its newest revision, else createdAt, else an
+ *  episode's last touch. */
 export function stamp(row: Record<string, unknown>): number {
   if (typeof row.updatedAt === 'number') return row.updatedAt;
   if (typeof row.at === 'number') return row.at;
   const revs = row.revisions as { at: number }[] | undefined;
   if (Array.isArray(revs) && revs.length) return Math.max(...revs.map(r => r.at));
   if (typeof row.createdAt === 'number') return row.createdAt;
+  // an episode (F1): its last touch, the end or the newest mark or tick, else its start
+  if (typeof row.startedAt === 'number') {
+    const marks = [...(row.marks as { at: number }[] | undefined ?? []), ...(row.done as { at: number }[] | undefined ?? [])];
+    return Math.max(row.startedAt, typeof row.endedAt === 'number' ? row.endedAt : 0, ...marks.map(m => m.at));
+  }
   return 0;
 }
 

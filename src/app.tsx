@@ -1,14 +1,16 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
 import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
-import { HashLocation, Redirect } from './ui/route';
+import { HashLocation, Redirect, readHash } from './ui/route';
 import { JournalToday, JournalPage, JournalPages, JournalNew } from './ui/journal/Journal';
 import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
+import { FlowPage } from './ui/flow/FlowPage';
+import { onOpen } from './model/flows';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
@@ -16,7 +18,7 @@ import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
-import { cleanSeedPages } from './db/seed';
+import { cleanSeedPages, seedFlowsOnce } from './db/seed';
 import { loadSettings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
@@ -70,6 +72,10 @@ function Frame() {
           <Route path="/be" component={Be} />
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
+          {/* Right now is F5's; until then its address is the list, so no flow can ever be called "now" */}
+          <Route path="/flow/now" component={() => <Redirect to="/flow" />} />
+          <Route path="/flow/:id" component={FlowPage} />
+          <Route path="/flow/:id/:step" component={FlowPage} />
           <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
@@ -83,6 +89,9 @@ function Frame() {
     </div>
   );
 }
+
+/** The app opens on a live episode once per load, not on every unlock. */
+let openedOnce = false;
 
 /** One threshold (PLAN.md sections 7 and 8). With a PIN on and the key out of memory, the threshold stands in
  *  front of everything, tab bar included: the manifesto, the ring breathing, and the keypad beneath (package 6).
@@ -99,6 +108,22 @@ function Gate({ children }: { children: ComponentChildren }) {
     if (locked) return;
     cleanSeedPages()
       .then(async removed => { if (!removed) return; await loadSettings(); if (removed.length) dataVersion.value++; })
+      .catch(() => { /* locked again before it ran: the next open tries again */ });
+  }, [locked]);
+  // the flows (F1): the seed flows written once, then, on the first open of this load, a live episode inside its
+  // step's usual span opens its flow page instead of the journal (PLAN-FLOWS.md 3.7); a deep link anywhere else stays
+  const { route } = useLocation();
+  useEffect(() => {
+    if (locked) return;
+    seedFlowsOnce()
+      .then(async written => {
+        if (written?.length) dataVersion.value++;
+        if (openedOnce) return;
+        openedOnce = true;
+        const live = await onOpen();
+        const here = readHash();
+        if (live && (here === '/' || here === '/journal')) route(`/flow/${live.flowId}${live.step ? `/${live.step}` : ''}`, true);
+      })
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);
   if (locked) return <Threshold keypad={<LockPad />} onDone={() => setBreath(false)} />;

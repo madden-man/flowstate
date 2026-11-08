@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB } from './helpers';
-import { openDB, SCHEMA_VERSION, STORES_V1, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
-describe('schema, version 2', () => {
-  it('has every table from PLAN.md section 4, and V7\'s playlists and shelves', async () => {
+describe('schema, version 3', () => {
+  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, and the flows (F1)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(2);
+    expect(SCHEMA_VERSION).toBe(3);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
-    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves']);
+    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes']);
   });
 
   it('carries the listed indexes', async () => {
@@ -21,6 +21,8 @@ describe('schema, version 2', () => {
     expect(idx('leans')).toEqual(['[paradoxId+at]']);
     expect(idx('playlists')).toEqual(['order']);
     expect(idx('shelves')).toEqual(['playlistId']);
+    expect(idx('flows')).toEqual(['order']);
+    expect(idx('episodes')).toEqual(['[flowId+startedAt]']);
     expect(db.table('albums').schema.primKey.name).toBe('albumUri');
     expect(db.table('shelves').schema.primKey.src).toBe('[playlistId+albumUri]');
     expect(db.table('settings').schema.primKey.name).toBe('id');
@@ -44,7 +46,7 @@ describe('the upgrade from version 1 (V7)', () => {
 
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     const shelves = (await db.shelves.where('playlistId').equals(POEMS_ID).toArray()).sort((a, b) => a.order - b.order);
     expect(shelves).toEqual([
       { playlistId: POEMS_ID, albumUri: 'spotify:album:One', order: 0, firstTrackUri: 'spotify:track:1' },
@@ -57,6 +59,25 @@ describe('the upgrade from version 1 (V7)', () => {
     expect(await db.albums.count()).toBe(3);
     const kept = (await db.albums.get('spotify:album:Takk'))!.cover!;
     expect([...await coverBytes(kept)]).toEqual([9, 8, 7]);
+    expect(await db.pages.get('p1')).toBeTruthy();
+    db.close();
+  });
+});
+
+describe('the upgrade from version 2 (F1)', () => {
+  it('a version 2 database opens at version 3 with empty flows and episodes, every row kept', async () => {
+    const name = `flowstate-v2-${Date.now()}`;
+    const v2 = new Dexie(name);
+    v2.version(1).stores(STORES_V1);
+    v2.version(2).stores(STORES_V2);
+    await v2.open();
+    await v2.table('pages').put({ id: 'p1', kind: 'entry', createdAt: 1, updatedAt: 1, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] });
+    v2.close();
+    const db = openDB(name);
+    await db.open();
+    expect(db.verno).toBe(3);
+    expect(await db.flows.count()).toBe(0);
+    expect(await db.episodes.count()).toBe(0);
     expect(await db.pages.get('p1')).toBeTruthy();
     db.close();
   });

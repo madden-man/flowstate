@@ -14,12 +14,12 @@ function calls(kind: 'tick' | 'bell'): string[] {
   return code.flatMap(([f, text]) => [...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`));
 }
 
-// Rule 19: unlock, tab change, a check, an item dropped, a lean detent, entering Still, keep close, a sheet opening.
+// Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening.
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   check: ['src/ui/parts/Check.tsx'],
   drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx'],
-  detent: ['src/ui/parts/LeanSlider.tsx'],
+  detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
   sheet: ['src/ui/parts/Page.tsx', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx'],

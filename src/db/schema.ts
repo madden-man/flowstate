@@ -1,11 +1,12 @@
-// Dexie tables, version 2 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line). UI code never imports this file: it reads and writes
+// Dexie tables, version 3 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
+// version 3 is PLAN-FLOWS.md section 5, the flows and their episodes). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 
 export { POEMS_ID, POEMS_NAME };
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -45,6 +46,9 @@ export type Settings = {
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;
+  /** Not in PLAN-FLOWS.md section 5 (F1): the seed flows (db/seed-flows.ts) already written once, by id, so each
+   *  is written only once: a flow Tommy deletes never comes back, and a flow a later package adds is written on the next open. */
+  flowsSeeded?: string[];
   sealed?: Sealed;
 };
 
@@ -97,6 +101,9 @@ export type Page = {
    *  Optional and unindexed, so no Dexie version bump; an older answered row simply has none. */
   answeredAt?: Millis;
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
+  /** PLAN-FLOWS.md section 5 (F1): the flow episode this page was written about (F2's Journal helper links it).
+   *  Optional and unindexed, like music; an id, clear. */
+  flow?: { episodeId: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
@@ -194,6 +201,57 @@ export type Playlist = {
 export type Shelf = { playlistId: string; albumUri: string; order: number; firstTrackUri: string; firstTrackAt?: number };
 export type PageMusic = NonNullable<Page['music']>;
 
+// ---- flows (PLAN-FLOWS.md section 5, schema version 3) ----
+
+/** The drawn shape of a flow, one module each under src/ui/parts/cycle/. */
+export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'coil' | 'clock' | 'stairs' | 'fork';
+export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person';
+/** A thing to do at a step. text is the row; short the Still row; wise sets it in italic as the wiser second person
+ *  (DESIGN.md rule 17); struck stays struck (rule 10), never deleted. */
+export type Tip = {
+  id: string; text: string; short?: string; helper?: TipHelper;
+  person?: { name: string; tel?: string; text: string };
+  wise?: boolean; struck?: boolean;
+};
+/** A step of a flow. line is Tommy's own words (italic serif); said is what the page says (print, with its data);
+ *  usual the typical span in words, usualShort the same in words only for Still (no numbers, rule 15). */
+export type Step = {
+  id: string; name: string; line?: string; said?: string; usual?: string; usualShort?: string; tips: Tip[];
+  /** Not in PLAN-FLOWS.md section 5 (F1): the usual span in minutes, the clock behind usual's words. The app opens on
+   *  a live episode inside its step's span, and an episode untouched past its last step's span ends (model/flows.ts). */
+  spanMin?: number;
+  /** Not in PLAN-FLOWS.md section 5 (F1): the peak, where "last time" counts from ("48 minutes from the peak to clear"). */
+  peak?: boolean;
+};
+/** A note to the next one of you (PLAN-FLOWS.md 3.7, F6): Tommy's line, the step it shows at, sealed. */
+export type FlowNote = { id: string; stepId: string; text: string; at: Millis; episodeId: string };
+export type Flow = {
+  id: string; name: string; order: number; createdAt: Millis; updatedAt: Millis;
+  /** The flow's own line, shown at rest (Panic: "Wait out the truly hard parts."). */
+  line?: string;
+  diagram: DiagramName;
+  steps: Step[];
+  /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */
+  revisions: { at: Millis; name: string; steps: Step[] }[];
+  notes?: FlowNote[];
+  sealed?: Sealed;
+};
+/** One time the dot left rest (PLAN-FLOWS.md section 5). A clock, not a score: nothing here is ever totalled. */
+export type Episode = {
+  id: string; flowId: string; startedAt: Millis; endedAt?: Millis;
+  /** Each step the dot reached, in order, with when. */
+  marks: { stepId: string; at: Millis }[];
+  done: { tipId: string; at: Millis }[];
+  pageId?: string;
+  music?: { albumUri: string; album: string; artist: string };
+  /** The Five helper's lines (F2), sealed. */
+  lines?: string[];
+  returnAt?: Millis;
+  from?: string;
+  prediction?: { text: string; outcome?: 'didnt' | 'happened'; at: Millis };
+  sealed?: Sealed;
+};
+
 export type Tables = {
   settings: Settings;
   voices: Voice;
@@ -206,12 +264,14 @@ export type Tables = {
   albums: Album;
   playlists: Playlist;
   shelves: Shelf;
+  flows: Flow;
+  episodes: Episode;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -224,10 +284,18 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves'>, stri
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES: Record<TableName, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes'>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
+};
+
+/** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
+ *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V2,
+  flows: 'id, order',
+  episodes: 'id, [flowId+startedAt]',
 };
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
@@ -253,6 +321,8 @@ export type FlowDB = Dexie & {
   albums: EntityTable<Album, 'albumUri'>;
   playlists: EntityTable<Playlist, 'id'>;
   shelves: Table<Shelf, [string, string]>;
+  flows: EntityTable<Flow, 'id'>;
+  episodes: EntityTable<Episode, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -260,11 +330,12 @@ export function openDB(name = DB_NAME): FlowDB {
   db.version(1).stores(STORES_V1);
   // Version 2: every ordered album becomes a shelf row of the Poems playlist, and the playlist itself is written
   // ticked, so the music line has its shelf before the first read. The albums rows are not touched.
-  db.version(2).stores(STORES).upgrade(async tx => {
+  db.version(2).stores(STORES_V2).upgrade(async tx => {
     const albums = await tx.table<Album, string>('albums').toArray();
     await tx.table('shelves').bulkPut(shelvesFromV1(albums));
     await tx.table('playlists').put(poemsPlaylist());
   });
+  db.version(3).stores(STORES);
   return db;
 }
 
