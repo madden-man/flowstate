@@ -12,7 +12,7 @@ import { voiceColour } from '../voice';
 import { notebookDate } from '../date';
 import type { Read } from '../../db/fields';
 import type { Voice } from '../../db/schema';
-import { voiceGroups, moveGroup, starVoice, restoreVoice, moreVoices, addFigure, suggestHue, type VoiceGroup } from '../../model/council';
+import { voiceGroups, moveGroup, starVoice, restoreVoice, moreVoices, addFigure, suggestHue, voiceLabel, voiceRole, type VoiceGroup } from '../../model/council';
 import { voiceList, reloadVoices, editing, draft, useLongPress } from '../council/state';
 import { VoiceSheet } from '../council/VoiceSheet';
 import { CouncilSeg } from '../council/Council';
@@ -25,7 +25,7 @@ function Versions({ v }: { v: V }) {
   return (
     <span class="fs-versions">
       {[...v.revisions].reverse().map(r => (
-        <span key={r.at}><Strike>{r.name}</Strike> <small>{notebookDate(new Date(r.at))}</small></span>
+        <span key={r.at}><Strike>{voiceLabel(r)}</Strike> <small>{notebookDate(new Date(r.at))}</small></span>
       ))}
     </span>
   );
@@ -35,8 +35,8 @@ function Cell({ v, open, onVersions }: { v: V; open: boolean; onVersions: () => 
   return (
     <div class={`fs-vcell${v.shade === 'deep' ? ' deep' : ''}`} style={vc(v)}>
       <button type="button" class="fs-vname" onClick={() => edit(v.id)}>
-        <i />{v.name}
-        {v.aka.length > 0 && <span class="fs-aka">{v.aka.join(', ')}</span>}
+        <i />{voiceLabel(v)}
+        {(voiceRole(v) || v.aka.length > 0) && <span class="fs-aka">{[voiceRole(v), ...v.aka].filter(Boolean).join(', ')}</span>}
       </button>
       <span class="fs-vacts">
         {v.shade === 'light' && (
@@ -162,7 +162,7 @@ export function Voices() {
             <h3 class="fs-note">Archived</h3>
             {archived.map(v => (
               <div key={v.id} class="fs-row">
-                <span class="fs-vname" style={vc(v)}><i />{v.name}</span>
+                <span class="fs-vname" style={vc(v)}><i />{voiceLabel(v)}</span>
                 <button type="button" class="fs-word" onClick={async () => { await restoreVoice(v.id); await reloadVoices(); }}>Restore</button>
               </div>
             ))}

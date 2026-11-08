@@ -237,7 +237,12 @@ export async function allVoices(): Promise<Read<Voice>[]> {
   return (await store.all('voices')).sort((a, b) => a.order - b.order);
 }
 
-export type VoiceDraft = { name: string; aka?: string[]; colour: VoiceColour; shade: 'light' | 'deep'; twinId?: string; starred?: boolean };
+/** What a voice is called where it speaks: the name given to it, else its role (V10). */
+export const voiceLabel = (v: Pick<Voice, 'name' | 'given'>): string => v.given?.trim() || v.name;
+/** The role behind a given name, or undefined when the voice goes by its role. */
+export const voiceRole = (v: Pick<Voice, 'name' | 'given'>): string | undefined => (v.given?.trim() && v.given.trim() !== v.name ? v.name : undefined);
+
+export type VoiceDraft = { name: string; given?: string; aka?: string[]; colour: VoiceColour; shade: 'light' | 'deep'; twinId?: string; starred?: boolean };
 
 /** "a, b , c" to ['a', 'b', 'c']. */
 export const akaWords = (s: string): string[] => s.split(',').map(w => w.trim()).filter(Boolean);
@@ -247,7 +252,7 @@ export async function addVoice(d: VoiceDraft): Promise<Voice> {
   if (!name) throw new Error('A voice needs a name');
   const vs = await allVoices();
   const voice: Voice = {
-    id: uid(), name, aka: d.aka ?? [], colour: d.colour, shade: d.shade, starred: !!d.starred,
+    id: uid(), name, ...(d.given?.trim() ? { given: d.given.trim() } : {}), aka: d.aka ?? [], colour: d.colour, shade: d.shade, starred: !!d.starred,
     order: vs.reduce((m, v) => Math.max(m, v.order), -1) + 1, archived: false, revisions: [],
   };
   await store.put('voices', voice);
@@ -260,18 +265,21 @@ const sameAka = (a: string[], b: string[]) => a.length === b.length && a.every((
 
 /** Renames or recolours. The old name, aka and colour go onto revisions first, so old pages still read
  *  and the struck-through names stay visible. An edit that changes nothing pushes nothing. */
-export async function editVoice(id: string, patch: { name?: string; aka?: string[]; colour?: VoiceColour; shade?: 'light' | 'deep' }, now = Date.now()): Promise<Voice> {
+export async function editVoice(id: string, patch: { name?: string; given?: string; aka?: string[]; colour?: VoiceColour; shade?: 'light' | 'deep' }, now = Date.now()): Promise<Voice> {
   const v = await store.get('voices', id);
   if (!v) throw new Error('No such voice');
   const name = patch.name?.trim() || v.name;
+  // an empty given name lets the voice go by its role again
+  const given = patch.given === undefined ? v.given : patch.given.trim() || undefined;
   const aka = patch.aka ?? v.aka;
   const colour = patch.colour ?? v.colour;
   const shade = patch.shade ?? v.shade;
-  const changed = name !== v.name || !sameAka(aka, v.aka) || !sameColour(colour, v.colour);
+  const changed = name !== v.name || (given ?? '') !== (v.given ?? '') || !sameAka(aka, v.aka) || !sameColour(colour, v.colour);
   const next: Voice = {
-    ...v, name, aka, colour, shade,
-    revisions: changed ? [...v.revisions, { at: now, name: v.name, aka: v.aka, colour: v.colour }] : v.revisions,
+    ...v, name, given, aka, colour, shade,
+    revisions: changed ? [...v.revisions, { at: now, name: v.name, ...(v.given ? { given: v.given } : {}), aka: v.aka, colour: v.colour }] : v.revisions,
   };
+  if (!given) delete next.given;
   await store.put('voices', next);
   // a twin of the same shade is no twin: changing shade lets go of it
   if (shade !== v.shade && v.twinId) await setTwin(id, null);
@@ -380,7 +388,7 @@ export function closeVoice<V extends Voice>(hue: number, vs: V[], except: (strin
 /** "close to the Mystic's blue", or null when the hue is clear of every active voice. */
 export function closeWarning(hue: number, vs: Voice[], except: (string | undefined)[] = []): string | null {
   const v = closeVoice(hue, vs, except);
-  return v ? `Close to the ${v.name}'s ${hueWord(v.colour)}` : null;
+  return v ? `Close to the ${voiceLabel(v)}'s ${hueWord(v.colour)}` : null;
 }
 
 /** A hue for a new voice: the one asked for when it is clear, else the nearest clear hue to it, else

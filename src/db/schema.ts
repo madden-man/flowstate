@@ -57,7 +57,10 @@ export type VoiceColour = { hue: number | null; chroma?: number };
 
 export type Voice = {
   id: string;
+  /** The role: Architect, King, Warrior. */
   name: string;
+  /** V10: the name Tommy gives the voice ("Gus"); shown wherever it speaks, the role a tap away. */
+  given?: string;
   aka: string[];
   colour: VoiceColour;
   shade: 'light' | 'deep';
@@ -65,7 +68,7 @@ export type Voice = {
   starred: boolean;
   order: number;
   archived: boolean;
-  revisions: { at: Millis; name: string; aka: string[]; colour: VoiceColour }[];
+  revisions: { at: Millis; name: string; given?: string; aka: string[]; colour: VoiceColour }[];
 };
 
 export type PageKind = 'question' | 'entry' | 'council';

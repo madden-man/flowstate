@@ -10,7 +10,7 @@ import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
 import type { Read } from '../../db/fields';
 import type { Message } from '../../db/schema';
-import { keepClose, reorderMessage, linkCandidates, linkPages, firstLine, revoice, chipVoices, type Linked } from '../../model/council';
+import { keepClose, reorderMessage, linkCandidates, linkPages, firstLine, revoice, chipVoices, voiceLabel, type Linked } from '../../model/council';
 import { voiceList } from './state';
 import { light } from '../light';
 import { voiceColour } from '../voice';
@@ -65,13 +65,13 @@ export function MessageSheet({ pageId, message, onChanged }: Props) {
             close();
           }}><span>{message.kept ? 'Kept close' : 'Keep close'}</span>{message.kept && <small>Let go</small>}</button>
           <button type="button" class="fs-row" aria-expanded={voicing} onClick={() => setVoicing(!voicing)}>
-            <span>Speak as…</span><small>{voiceList.value.find(v => v.id === message.voiceId)?.name ?? 'Plain ink'}</small>
+            <span>Speak as…</span><small>{(() => { const w = voiceList.value.find(v => v.id === message.voiceId); return w ? voiceLabel(w) : 'Plain ink'; })()}</small>
           </button>
           {voicing && (
             <div class="fs-chips" role="group" aria-label="Speak as">
               <Chip label="Ink" ariaLabel="Plain ink" pressed={!message.voiceId} onPress={() => void speakAs(undefined)} />
               {chipVoices(voiceList.value, light.value === 'still').map(v => (
-                <Chip key={v.id} label={v.name} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+                <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
                   pressed={message.voiceId === v.id} onPress={() => void speakAs(v.id)} />
               ))}
             </div>

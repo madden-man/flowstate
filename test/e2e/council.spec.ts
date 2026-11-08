@@ -144,3 +144,32 @@ test('a council seats its voices, takes turns, gains a voice and survives a relo
 
   expect(outside).toEqual([]);
 });
+
+test('a voice given a name of its own speaks by it; a tap on the name shows its role (V10)', async ({ page }) => {
+  await page.goto('/#/voices');
+  await page.getByRole('button', { name: /^Warrior/ }).click();
+  const sheet = page.locator('[data-sheet="Warrior"]');
+  await expect(sheet.getByRole('textbox', { name: 'Role' })).toHaveValue('Warrior');
+  await sheet.getByRole('textbox', { name: 'Name' }).fill('Gus');
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  // the Voices screen shows the name, the role beside the other words it goes by
+  await expect(page.getByRole('button', { name: /^Gus\s*Warrior/ })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Councils', exact: true }).click();
+  await page.getByRole('button', { name: 'New council' }).click();
+  await page.getByRole('group', { name: 'Who sits' }).getByRole('button', { name: 'Gus', exact: true }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  const say = page.getByRole('textbox', { name: 'Message' });
+  await expect(say).toHaveAttribute('placeholder', 'Gus speaks…');
+  await say.fill('Stand tall.');
+  await say.press('Enter');
+  const name = page.locator('.fs-msg .fs-sp');
+  await expect(name).toHaveText('Gus');
+  // a tap on the name shows the role, and does not reply to the line
+  await name.click();
+  await expect(name).toHaveText('Gus · Warrior');
+  await expect(page.locator('.fs-replying')).toHaveCount(0);
+  await name.click();
+  await expect(name).toHaveText('Gus');
+});
+

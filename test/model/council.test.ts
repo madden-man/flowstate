@@ -278,6 +278,21 @@ describe('voices are mutable', () => {
     expect((await c.editVoice('v-explorer', { name: '  ' })).name).toBe('Wanderer');
   });
 
+  it('a voice can be given a name of its own; it goes by that name, the role behind it, and a blank lets it go (V10)', async () => {
+    const w = await c.editVoice('v-warrior', { given: '  Gus ' }, T0 + 1);
+    expect([w.name, w.given, c.voiceLabel(w), c.voiceRole(w)]).toEqual(['Warrior', 'Gus', 'Gus', 'Warrior']);
+    expect(w.revisions.at(-1)).toMatchObject({ at: T0 + 1, name: 'Warrior' });
+    // an edit that only touches the role keeps the given name
+    expect((await c.editVoice('v-warrior', { name: 'Knight' }, T0 + 2)).given).toBe('Gus');
+    const back = await c.editVoice('v-warrior', { given: '' }, T0 + 3);
+    expect(back.given).toBeUndefined();
+    expect([c.voiceLabel(back), c.voiceRole(back)]).toEqual(['Knight', undefined]);
+    expect(back.revisions.at(-1)).toMatchObject({ name: 'Knight', given: 'Gus' });
+    const made = await c.addVoice({ name: 'King', given: 'Arthur', colour: { hue: 300 }, shade: 'light' });
+    expect(c.voiceLabel(made)).toBe('Arthur');
+    expect(c.closeWarning(300, [made])).toMatch(/^Close to the Arthur's/);
+  });
+
   it('re-pairs twins, letting go of the old partners on both sides', async () => {
     // Phantom leaves the Mystic for the Warrior
     await c.setTwin('v-warrior', 'v-phantom');

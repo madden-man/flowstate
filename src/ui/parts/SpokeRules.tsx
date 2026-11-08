@@ -4,12 +4,13 @@ import type { JSX } from 'preact';
 import { voiceColour } from '../voice';
 import type { Read } from '../../db/fields';
 import type { Voice } from '../../db/schema';
+import { voiceLabel } from '../../model/council';
 
 export function SpokeRules({ ids, byId }: { ids: string[]; byId: Map<string, Read<Voice>> }) {
   const vs = ids.map(id => byId.get(id)).filter((v): v is Read<Voice> => !!v);
   if (!vs.length) return null;
   return (
-    <span class="fs-spoke" aria-label={vs.map(v => v.name).join(', ')}>
+    <span class="fs-spoke" aria-label={vs.map(voiceLabel).join(', ')}>
       {vs.map(v => <i key={v.id} class={v.shade === 'deep' ? 'deep' : undefined} style={{ '--vc': voiceColour(v.colour, v.shade) } as JSX.CSSProperties} />)}
     </span>
   );
