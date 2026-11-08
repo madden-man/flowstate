@@ -2,7 +2,7 @@
 
 "Who to Be, How to Flow." A personal journal that installs on an iPhone, keeps every byte on the phone, and is modelled on the pocket notebook started 2026-11-04. The notebook is the spec: its pages are the screens.
 
-Date: 2026-11-07. Status: packages 0 to 8 built, 2026-11-07; the 2026-11-08 review and the v2 plan (page as editor, Questions behind a ? tab, upright spread, seed pages removed) are in `PLAN-V2.md`, built and deployed 2026-11-08; the v3 plan (playlists under ♪, the pull shows earlier pages) is `PLAN-V3.md`, not built (repo github.com/madden-man/flowstate, public; site flowstate-journal.netlify.app). Section 11's six assumptions all stand (Tommy, 2026-11-07). Decided: iPhone, PIN lock, name FlowState, no model ever voices an archetype, sounds are okay, Spotify tie-in wanted. The design standard is `DESIGN.md` (enforced by `script/design-lint.mjs`); the live design walkthrough is `design/walkthrough.html` on `design/tokens.css`.
+Date: 2026-11-07. Status: packages 0 to 8 built, 2026-11-07; the 2026-11-08 review and the v2 plan (page as editor, Questions behind a ? tab, upright spread, seed pages removed) are in `PLAN-V2.md`, built and deployed 2026-11-08; the v3 plan (playlists under ♪, the pull shows earlier pages) is `PLAN-V3.md`, built and deployed 2026-11-08 (repo github.com/madden-man/flowstate, public; site flowstate-journal.netlify.app). Section 11's six assumptions all stand (Tommy, 2026-11-07). Decided: iPhone, PIN lock, name FlowState, no model ever voices an archetype, sounds are okay, Spotify tie-in wanted. The design standard is `DESIGN.md` (enforced by `script/design-lint.mjs`); the live design walkthrough is `design/walkthrough.html` on `design/tokens.css`.
 
 ---
 

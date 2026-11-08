@@ -1,6 +1,6 @@
 # FlowState v3: playlists under ♪, earlier pages under the pull
 
-Date: 2026-11-08. Status: planned, not built. Tommy's ask: "1) showing multiple playlists to choose from when clicking music icon (master, for the poems and the prose, staging, candidate, and others, where the album covers are shown in the order of the first song from the album), 2) when the app is dragged down, it shouldn't go to dark mode, it should show earlier notes/conversations". `PLAN.md` stays the architecture, `PLAN-V2.md` the journal-first review; this file records what is there today, what changes, and the two build packages.
+Date: 2026-11-08. Status: built, merged and deployed 2026-11-08 (PR #17 V6, PR #16 V7, main 4b59990, live at https://flowstate-journal.netlify.app; the walkthrough artifact T8HMcrmXhHUBiTx2TCKjVV republished). Section 7 still waits on Tommy. Tommy's ask: "1) showing multiple playlists to choose from when clicking music icon (master, for the poems and the prose, staging, candidate, and others, where the album covers are shown in the order of the first song from the album), 2) when the app is dragged down, it shouldn't go to dark mode, it should show earlier notes/conversations". `PLAN.md` stays the architecture, `PLAN-V2.md` the journal-first review; this file records what is there today, what changes, and the two build packages.
 
 ## 1. What is there today (main 076dcd0, 219 vitest, 10 Playwright specs)
 
