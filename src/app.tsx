@@ -12,6 +12,7 @@ import { Flow } from './ui/flow/Flow';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
+import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { cleanSeedPages } from './db/seed';
@@ -73,6 +74,7 @@ function Frame() {
         <SettingsSheet />
         <MusicSheet />
         <AlbumPagesSheet />
+        <PlaylistsSheet />
         <QuietLine />
       </main>
       <Tabs />

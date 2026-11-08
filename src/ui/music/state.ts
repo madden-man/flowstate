@@ -1,8 +1,9 @@
-// The music tie-in's state for the UI (PLAN.md section 8.1). Every network call is in src/music; every
-// row goes through the store there and in src/model/music.ts. Off by default: with no account the ♪ line
-// only points the phone at the playlist, and nothing else in the app changes.
+// The music tie-in's state for the UI (PLAN.md section 8.1, PLAN-V3.md section 5). Every network call is in
+// src/music; every row goes through the store there and in src/model/music.ts. Off by default: with no account
+// the ♪ line only points the phone at the Poems playlist, and nothing else in the app changes. Connected, ♪
+// opens on the list of chosen playlists, and a name opens its grid of covers.
 import { computed, signal } from '@preact/signals';
-import type { Album, PageMusic } from '../../db/schema';
+import type { Album, PageMusic, Playlist } from '../../db/schema';
 import { settings, saveSettings, loadSettings } from '../settings';
 import { openSheet } from '../sheets';
 import { tick } from '../parts/Haptic';
@@ -11,8 +12,11 @@ import {
   cameBackEmpty, disconnect, finishConnect, startConnect, takeReturn, withTokens, NotConnected,
   type Keep, type Outcome,
 } from '../../music/connect';
-import { readPlaylist, shelf, albumRow, keepCover } from '../../music/covers';
-import { nowPlaying, openPlaylist, playFromAlbum, TokenError, redirectUri } from '../../music/spotify';
+import {
+  readOne as readOnePlaylist, readChosen, readMine, playlistRows, choosePlaylist, shelf, albumRow, keepCover, coverWhenNear,
+  type ReadHooks, type ShelfAlbum,
+} from '../../music/covers';
+import { ApiError, nowPlaying, openPlaylist as openInSpotify, playFromAlbum, TokenError, redirectUri } from '../../music/spotify';
 import { noteMusic } from '../../model/music';
 
 /** The Spotify settings, kept in the settings row through saveSettings, so the signal never goes stale. */
@@ -24,12 +28,23 @@ export const keep: Keep = {
 export const connected = computed(() => !!settings.value.spotify?.tokens);
 export const accountName = computed(() => settings.value.spotify?.tokens?.name ?? '');
 export const outcome = signal<Outcome | null>(null);
-/** True while the playlist is being read: a quiet "reading the playlist" line, never a spinner. */
-export const reading = signal(false);
+/** While Spotify is being read, the quiet line that says what ("reading master (ii)"), never a spinner. */
+export const reading = signal<string | null>(null);
+/** One plain line when a read was refused or paused; never an alert. */
 export const readNote = signal<string | null>(null);
-export const albums = signal<Album[] | null>(null);
+/** The chosen playlists, in Spotify's order: the rows of the ♪ list. */
+export const playlists = signal<Playlist[]>([]);
+/** Every owned playlist kept, chosen or not: the Settings sheet. null until first loaded. */
+export const allPlaylists = signal<Playlist[] | null>(null);
+/** Each loaded playlist's shelf, by playlist id. */
+export const shelves = signal<Record<string, ShelfAlbum[]>>({});
+export const shelfOf = (playlistId: string): ShelfAlbum[] | undefined => shelves.value[playlistId];
+/** Which grid the music sheet shows; null is the list of playlists. */
+export const openPlaylist = signal<string | null>(null);
 /** What Spotify is playing, as last seen by a tap or the poll. */
 export const playing = signal<PageMusic | null>(null);
+/** The playlist it is playing from, when it is one of these (by a tap here, or the poll's context). */
+export const playingFrom = signal<string | null>(null);
 export const playNote = signal<string | null>(null);
 /** The album whose pages the "Pages with this album" sheet lists. */
 export const albumFor = signal<PageMusic | null>(null);
@@ -67,35 +82,152 @@ function failed(e: unknown) {
   if (e instanceof TokenError && e.code === 'invalid_grant') outcome.value = 'expired';
 }
 
-export async function loadShelf() {
-  albums.value = await shelf();
+/** The chosen playlists and their shelves, from the database (offline). */
+export async function loadMusic() {
+  const rows = await playlistRows();
+  allPlaylists.value = rows;
+  const chosen = rows.filter(r => r.chosen);
+  playlists.value = chosen;
+  const next: Record<string, ShelfAlbum[]> = { ...shelves.peek() };
+  for (const p of chosen) next[p.id] = await shelf(p.id);
+  shelves.value = next;
 }
 
-/** How often the shelf is read again while covers arrive. */
-const SHELF_EVERY_MS = 400;
+async function loadShelfOf(playlistId: string) {
+  shelves.value = { ...shelves.peek(), [playlistId]: await shelf(playlistId) };
+}
 
-/** "Refresh playlist", and the first read after connecting. The shelf shows its tiles as soon as the
- *  playlist is read, and fills in as the covers land. */
-export async function refreshPlaylist() {
-  if (reading.peek()) return;
-  reading.value = true;
-  readNote.value = null;
+/** How often a shelf is read again while covers arrive. */
+const SHELF_EVERY_MS = 400;
+const throttled = (playlistId: string) => {
   let shown = 0;
-  const onProgress = async () => {
+  return async () => {
     const t = Date.now();
     if (t - shown < SHELF_EVERY_MS) return;
     shown = t;
-    await loadShelf();
+    await loadShelfOf(playlistId);
   };
-  try {
-    await readPlaylist(keep, undefined, onProgress);
-    await loadShelf();
-  } catch (e) {
-    failed(e);
-    readNote.value = offline(e) ? 'No connection to Spotify' : 'Spotify did not hand over the playlist';
-  } finally {
-    reading.value = false;
-  }
+};
+
+// ---- reading Spotify: one read at a time, never in parallel; a 429 stops everything until it has passed ----
+
+/** Each playlist's snapshot as /me/playlists last gave it this session: an unchanged one is not read again. */
+let latest = new Map<string, string>();
+let pauseUntil = 0;
+let chain: Promise<unknown> = Promise.resolve();
+const inTurn = (fn: () => Promise<void>): Promise<void> => {
+  const run = chain.then(fn, fn);
+  chain = run.catch(() => undefined);
+  return run;
+};
+
+/** "Spotify asks for a pause, about 4 minutes", from its Retry-After in seconds. */
+export function pauseLine(seconds = 60): string {
+  const m = Math.max(1, Math.round(seconds / 60));
+  if (m >= 90) return `Spotify asks for a pause, about ${Math.round(m / 60)} hours`;
+  return `Spotify asks for a pause, about ${m === 1 ? 'a minute' : `${m} minutes`}`;
+}
+
+function paused(): boolean {
+  const left = pauseUntil - Date.now();
+  if (left <= 0) return false;
+  readNote.value = pauseLine(left / 1000);
+  return true;
+}
+
+/** Says what went wrong in one plain line, never an alert. A pause also holds every read until it has passed. */
+function refusedRead(e: unknown, what: string) {
+  failed(e);
+  if (e instanceof ApiError && e.status === 429) {
+    pauseUntil = Date.now() + (e.retryAfter ?? 60) * 1000;
+    readNote.value = pauseLine(e.retryAfter);
+  } else if (offline(e)) readNote.value = 'No connection to Spotify';
+  else if (e instanceof NotConnected) readNote.value = 'Connect Spotify in Settings';
+  else if (e instanceof TokenError && e.code === 'invalid_grant') readNote.value = null; // Settings already says the session ended
+  else readNote.value = `Spotify did not hand over ${what}`;
+}
+
+const hooks: ReadHooks = {
+  reading: p => { reading.value = `reading ${p.name}`; },
+  progress: throttled,
+};
+
+/** The chosen playlists, one after another; snapshot skip applies; a pause stops the rest. */
+export function refreshChosen(): Promise<void> {
+  return inTurn(async () => {
+    try {
+      const out = await readChosen(keep, latest, hooks);
+      if (out.failed.length) refusedRead(out.failed[0].error, out.failed[0].name);
+    } catch (e) {
+      refusedRead(e, 'the playlists');
+    } finally {
+      reading.value = null;
+      await loadMusic();
+    }
+  });
+}
+
+/** /me/playlists only: the list the Settings sheet ticks from. */
+function listMine(): Promise<boolean> {
+  let ok = false;
+  return inTurn(async () => {
+    reading.value = 'reading your playlists';
+    try {
+      latest = new Map((await readMine(keep)).map(p => [p.id, p.snapshotId]));
+      ok = true;
+    } catch (e) {
+      refusedRead(e, 'your playlists');
+    } finally {
+      reading.value = null;
+      await loadMusic();
+    }
+  }).then(() => ok);
+}
+
+/** On connect and "Read again": /me/playlists, then the chosen ones. */
+export async function readPlaylists() {
+  if (reading.peek() || paused()) return;
+  readNote.value = null;
+  if (await listMine()) await refreshChosen();
+}
+
+/** Settings, Playlists: the sheet of every owned playlist rises. */
+export function showPlaylists() {
+  openSheet.value = 'playlists';
+  tick('sheet');
+}
+
+/** The Settings sheet opened: the list is read once a session; the rest comes from the database. */
+export async function openPlaylistsList() {
+  await loadMusic();
+  if (!latest.size && !reading.peek() && !paused()) await listMine();
+}
+
+/** A tick in Settings: chosen is written, and a newly ticked playlist is read at once. Unticking keeps its covers. */
+export async function choose(id: string, on: boolean) {
+  const row = await choosePlaylist(id, on);
+  await loadMusic();
+  if (!on || !row || paused()) return;
+  readNote.value = null;
+  await inTurn(async () => {
+    try {
+      await readOnePlaylist(keep, row, latest.get(row.id), hooks);
+    } catch (e) {
+      refusedRead(e, row.name);
+    } finally {
+      reading.value = null;
+      await loadMusic();
+    }
+  });
+}
+
+/** A tile below the fold, scrolled near: its cover fetched and the shelf shown again. */
+export async function nearTile(playlistId: string, albumUri: string): Promise<string | undefined> {
+  const cover = await coverWhenNear(albumUri);
+  if (!cover) return undefined;
+  const list = shelves.peek()[playlistId];
+  if (list) shelves.value = { ...shelves.peek(), [playlistId]: list.map(a => (a.albumUri === albumUri ? { ...a, cover } : a)) };
+  return urlOf({ albumUri, cover });
 }
 
 export async function connectSpotify() {
@@ -106,25 +238,29 @@ export async function connectSpotify() {
 export async function disconnectSpotify() {
   await disconnect(keep);
   playing.value = null;
+  playingFrom.value = null;
+  latest = new Map();
   outcome.value = null;
 }
 
-/** The ♪ line: with no account, open the playlist in Spotify; connected, the music sheet. */
+/** The ♪ line: with no account, open the Poems playlist in Spotify; connected, the music sheet on its list. */
 export function tapMusic() {
-  if (!connected.peek()) { openPlaylist(); return; }
+  if (!connected.peek()) { openInSpotify(); return; }
   playNote.value = null;
+  openPlaylist.value = null;
   openSheet.value = 'music';
   tick('sheet');
-  void loadShelf();
+  void loadMusic();
 }
 
-/** A cover tapped: the playlist plays from that album's first song on the phone's Spotify. */
-export async function play(row: Album) {
+/** A cover tapped: that playlist plays from the album's first song on the phone's Spotify, and runs on. */
+export async function play(playlist: Pick<Playlist, 'id' | 'uri'>, row: Pick<ShelfAlbum, 'albumUri' | 'album' | 'artist' | 'cover' | 'firstTrackUri'>) {
   bell('album');
   playNote.value = null;
   try {
-    const r = await withTokens(keep, t => playFromAlbum(t, row));
+    const r = await withTokens(keep, t => playFromAlbum(t, playlist.uri, row));
     if (r === 'playing') {
+      playingFrom.value = playlist.id;
       playing.value = { albumUri: row.albumUri, album: row.album, artist: row.artist, coverId: row.cover ? row.albumUri : undefined };
     } else {
       playNote.value = r === 'no-device' ? 'Open Spotify on the phone first' : 'Playing from here needs Spotify Premium';
@@ -143,6 +279,7 @@ export async function pollOnce(pageId: string | undefined, onMusic?: (m: PageMus
     if (!np?.isPlaying) return;
     const music = await keepCover(np);
     playing.value = music;
+    if (np.contextUri?.startsWith('spotify:playlist:')) playingFrom.value = np.contextUri.slice('spotify:playlist:'.length);
     if (!pageId) return;
     const written = await noteMusic(pageId, music);
     if (written?.music) onMusic?.(written.music);
@@ -163,7 +300,7 @@ export function bootMusic() {
       .then(async o => {
         outcome.value = o;
         await showSettings();
-        if (o === 'connected') await refreshPlaylist();
+        if (o === 'connected') await readPlaylists();
       });
   } else {
     noticeEmptyReturn();

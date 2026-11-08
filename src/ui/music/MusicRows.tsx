@@ -1,6 +1,7 @@
-// The two Settings rows for music (PLAN.md section 5 item 5): Music (connect or disconnect) and, once
-// connected, Refresh playlist. One plain line under them when something needs saying; never an alert.
-import { accountName, connectSpotify, connected, disconnectSpotify, outcome, outcomeLine, readNote, reading, refreshPlaylist } from './state';
+// The Settings rows for music (PLAN.md section 5 item 5, PLAN-V3.md section 5.4): Music (connect or
+// disconnect) and, once connected, Playlists, which opens the sheet of every playlist the account owns.
+// One plain line under them when something needs saying; never an alert.
+import { accountName, connectSpotify, connected, disconnectSpotify, outcome, outcomeLine, readNote, reading, showPlaylists } from './state';
 
 export function MusicRows() {
   const line = outcomeLine(outcome.value);
@@ -23,8 +24,8 @@ export function MusicRows() {
           <button type="button" class="fs-word" onClick={() => void disconnectSpotify()}>Disconnect</button>
         </span>
       </div>
-      <button type="button" class="fs-row" onClick={() => void refreshPlaylist()} disabled={reading.value}>
-        <span>Refresh playlist</span><small>{reading.value ? 'reading the playlist' : ''}</small>
+      <button type="button" class="fs-row" onClick={showPlaylists}>
+        <span>Playlists</span><small>{reading.value ?? ''}</small>
       </button>
       {readNote.value && <span class="fs-note" role="status">{readNote.value}</span>}
     </div>
