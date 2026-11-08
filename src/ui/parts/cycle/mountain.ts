@@ -53,6 +53,8 @@ export const mountain: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), right of the long slope, above the replay (F4: the centre is drawn on)
+  mid: { x: 274, y: 100 },
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(say1), cls: say1.cls }, { kind: 'path', d: pieceD(say2), cls: say2.cls });

@@ -41,6 +41,8 @@ export const clock: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), the middle of the face
+  mid: C,
   paths(): Drawn[] {
     const out: Drawn[] = [
       // the day side of the face, faint: not part of the night

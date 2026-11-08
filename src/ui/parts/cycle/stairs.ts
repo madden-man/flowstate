@@ -34,6 +34,8 @@ export const stairs: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), under the stairs
+  mid: { x: 72, y: 176 },
   paths(): Drawn[] {
     const out: Drawn[] = [];
     // consecutive pieces of one class drawn as one path

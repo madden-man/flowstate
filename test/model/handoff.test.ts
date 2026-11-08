@@ -8,6 +8,7 @@ import { ensureSeeded } from '../../src/db/seed';
 import { store, setKey } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { handOff, handedFrom, liveEpisode, moveDot, spanOfEpisode, spanText, currentStepId } from '../../src/model/flows';
+import { flowLinkOf } from '../../src/model/tips';
 
 let db: FlowDB;
 beforeEach(async () => { db = await freshDB(); await ensureSeeded(); });
@@ -97,5 +98,18 @@ describe('spanOfEpisode', () => {
     const e = (await moveDot('replay', [], 'replay-2', T0))!;
     expect(spanText((await spanOfEpisode(e.id))!, clock)).toBe('Replay, 15:02');
     expect(await spanOfEpisode('nope')).toBeUndefined();
+  });
+});
+
+describe('the journal link (F2\'s flowLinkOf) reads the span', () => {
+  it('a page written during Shame links to the whole chain, and to where it is now', async () => {
+    const shame = (await moveDot('shame', [], 'shame-2', T0))!;
+    await handOff(shame.id, { flowId: 'fight', stepId: 'fight-1' }, 'shame-2', T0 + 4 * MIN);
+    const row = (await flowLinkOf({ flow: { episodeId: shame.id } }))!;
+    expect(row).toMatchObject({ flow: "Shame, I'm worthless, then Fight", startedAt: T0, endedAt: undefined, href: '#/flow/fight/1', step: 'Trigger', live: true });
+  });
+  it('a lone episode reads as before: the flow\'s name', async () => {
+    const e = (await moveDot('panic', [], 'panic-2', T0))!;
+    expect((await flowLinkOf({ flow: { episodeId: e.id } }))!.flow).toBe('Panic');
   });
 });

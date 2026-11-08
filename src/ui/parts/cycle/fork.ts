@@ -31,6 +31,8 @@ export const fork: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), over the drop, clear of the fork
+  mid: { x: 146, y: 34 },
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(hide), cls: hide.cls }, { kind: 'path', d: pieceD(hitBack), cls: hitBack.cls });

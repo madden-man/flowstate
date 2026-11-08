@@ -58,6 +58,8 @@ export function curveWith(outcomes: Stamp[] = []): Shape {
     at: walk.at,
     slotT: (i, n) => slotsT(SLOTS, i, n),
     restT: () => REST,
+  // the page's middle (F2's clock and hold), above the climb, clear of it
+  mid: { x: 80, y: 70 },
     paths(): Drawn[] {
       const out: Drawn[] = [{ kind: 'path', d: `M14 ${BASE} L${W - 12} ${BASE}`, cls: 'arc faint' }];
       out.push(...pieces.map((p): Drawn => ({ kind: 'path', d: pieceD(p), cls: p.cls })));

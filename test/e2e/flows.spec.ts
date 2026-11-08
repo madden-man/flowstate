@@ -157,11 +157,12 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   if (await t.count()) await t.click();
   await expect(page.getByRole('checkbox', { name: /Cold water on your wrists/ })).toHaveAttribute('aria-checked', 'true');
 
-  // the Still row settles: Still comes on and the row is ticked
+  // the Still row settles: Still comes on, where the row has nothing left to do and goes (F4); out of Still it is ticked
   await page.getByRole('checkbox', { name: /^Less coming in/ }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('checkbox', { name: /^Less coming in|^Less coming/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
 
   // the peak shows one thing at a time; Next brings the next
   await dot.focus();

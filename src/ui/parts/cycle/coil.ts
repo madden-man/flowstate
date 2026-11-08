@@ -39,6 +39,8 @@ export const coil: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), up and to the right, clear of the turns
+  mid: { x: 266, y: 50 },
   paths(): Drawn[] {
     const out: Drawn[] = [
       { kind: 'path', d: piecesD([lead]), cls: 'arc pass' },

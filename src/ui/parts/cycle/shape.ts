@@ -30,7 +30,13 @@ export interface Shape {
   restT(n: number): number;
   /** Where step i's word goes. */
   label(i: number, n: number): Label;
+  /** F4: where the middle of the page (F2's clock, "hold") sits on this drawing, if not its centre: an open shape whose
+   *  centre is drawn on puts it in a clear place. */
+  mid?: Pt;
 }
+
+/** Where the middle sits, as fractions of the drawing (the centre unless the shape says otherwise). */
+export const midOf = (s: Shape) => ({ x: (s.mid?.x ?? s.w / 2) / s.w, y: (s.mid?.y ?? s.h / 2) / s.h });
 
 /** The point of step i: the dot's detent there. */
 export const slotPoint = (s: Shape, i: number, n: number): Pt => s.at(s.slotT(i, n));

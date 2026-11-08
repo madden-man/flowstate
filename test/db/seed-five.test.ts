@@ -17,6 +17,7 @@ import { FIGHT } from '../../src/db/seed/fight';
 import { flowById } from '../../src/model/flows';
 import { store } from '../../src/db/fields';
 import type { FlowDB, Tip } from '../../src/db/schema';
+import { shownTips } from '../../src/model/tips';
 
 const FIVE = [WHATIF, REPLAY, NIGHT, SHUTDOWN, SHAME];
 const AUDIT = /\u2014|calm down|It isn't|it isn't|relapse|\bGP\b|round the block|pinned|hypomania|dorsal|vagal|fight-or-flight/i;
@@ -77,8 +78,12 @@ describe('the five as the plan has them', () => {
     expect(Math.min(...spans(SHAME))).toBeLessThan(60);
     expect(Math.max(...spans(SHAME))).toBeGreaterThanOrEqual(120);
   });
-  it('Still first on Shutdown and 3 a.m.: the Still row is the first tip of every step there', () => {
-    for (const f of [NIGHT, SHUTDOWN]) for (const s of f.steps) expect(s.tips[0].helper, s.id).toBe('still');
+  it('Still first on Shutdown and 3 a.m.: the Still row is the first row of every step in Day and Night, gone in Still', () => {
+    for (const f of [NIGHT, SHUTDOWN]) for (const s of f.steps) {
+      expect(s.tips[0].helper, s.id).toBe('still');
+      expect(shownTips(s, false)[0].helper, s.id).toBe('still');
+      expect(shownTips(s, true).some(t => t.helper === 'still'), s.id).toBe(false);
+    }
   });
   it('"nine in ten" is a natural frequency, in words', () => {
     expect(WHATIF.steps[1].said).toMatch(/^Nine in ten/);

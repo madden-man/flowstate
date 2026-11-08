@@ -189,8 +189,7 @@ export type EpisodeSpan = { legs: Leg[]; startedAt: number; endedAt?: number };
  * The whole span an episode belongs to: back along `from` to where it began, and on to any episode handed off from
  * it, so the journal link of any leg reads the whole chain ("Shame, I'm worthless, then Fight, 15:02 to 16:10").
  * A leg whose flow is gone or locked keeps no words.
- * TODO(F2 integration): F2's flowLinkOf (model/tips.ts, the journal page's link row, ui/flow/JournalLink.tsx) was not
- * on main when F4 was built. Its link text should read the whole span: spanText(await spanOfEpisode(episodeId), ...).
+ * F2's flowLinkOf (model/tips.ts) builds the journal page's link row (ui/flow/JournalLink.tsx) from it.
  */
 export async function spanOfEpisode(episodeId: string): Promise<EpisodeSpan | undefined> {
   const all = await store.all('episodes');

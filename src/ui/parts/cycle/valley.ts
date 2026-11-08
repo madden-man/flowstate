@@ -38,6 +38,8 @@ export const valley: Shape = {
   at: walk.at,
   slotT: (i, n) => slotsT(SLOTS, i, n),
   restT: () => REST,
+  // the page's middle (F2's clock and hold), inside the valley, above "one small thing" (F4: the centre is drawn on)
+  mid: { x: 164, y: 66 },
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD({ ...UP, cls: '' }), cls: 'arc pass' });

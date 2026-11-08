@@ -31,7 +31,7 @@ export const SHAME: FlowSeed = {
       spanMin: 60,
       peak: true,
       tips: [
-        { id: 'shame-2-reword', text: 'Reword "I am bad" as "I did a bad thing"', short: 'I did a thing' },
+        { id: 'shame-2-reword', text: 'Reword "I am bad" as "I did a bad thing"', short: 'Say "I did a bad thing"' },
         { id: 'shame-2-friend', text: "Talk to yourself the way you'd talk to a friend", short: 'As you would to a friend' },
       ],
     },
