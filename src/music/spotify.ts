@@ -218,7 +218,7 @@ export function playBody(playlistUri: string, firstTrackUri: string, firstTrackA
 
 /** not-found (V9): Spotify had the device but would not start at that song (a stale or unplayable offset). */
 export type PlayResult = 'playing' | 'no-device' | 'not-premium' | 'not-found';
-type PlayAlbum = Pick<Album, 'firstTrackUri' | 'firstTrackAt'>;
+type PlayAlbum = Pick<Album, 'firstTrackUri' | 'firstTrackAt'> & { albumUri?: string };
 
 const reasonOf = async (r: Response): Promise<string> => {
   try { const j = await r.json(); return `${j?.error?.reason ?? ''} ${j?.error?.message ?? ''}`; } catch { return ''; }
@@ -237,6 +237,17 @@ export async function playFromAlbum(t: Tokens, playlistUri: string, album: PlayA
   if (r.status === 403 && (!why.trim() || /premium/i.test(why))) return 'not-premium';
   if (r.status === 400 && /offset|track|uri|position/i.test(why)) return 'not-found';
   throw refused('spotify play', r);
+}
+
+/** How long to give Spotify's player after a 5xx before looking whether the play landed anyway. */
+export const GATEWAY_WAIT_MS = 900;
+
+/** True when Spotify is now playing this playlist, at this album (a play answered with a 5xx may still land). */
+async function landed(t: Tokens, playlistUri: string, album: PlayAlbum): Promise<boolean> {
+  try {
+    const np = await nowPlaying(t);
+    return !!np && np.contextUri === playlistUri && (!album.albumUri || np.albumUri === album.albumUri);
+  } catch { return false; }
 }
 
 /** A device Spotify knows the account by (Connect): the phone's app, a speaker, a computer. */
@@ -261,14 +272,29 @@ export function pickDevice(ds: Device[]): Device | undefined {
  *  (Spotify on the phone idle in the background), on the phone's Spotify by its device id; a song Spotify will
  *  not start by uri is tried by its place in the playlist. Shuffle goes off, so the albums run in order.
  *  'no-device' only when Spotify knows no device at all (its app is not running). */
-export async function playAlbum(t: Tokens, playlistUri: string, album: PlayAlbum): Promise<PlayResult> {
+export async function playAlbum(t: Tokens, playlistUri: string, album: PlayAlbum, waitMs = GATEWAY_WAIT_MS): Promise<PlayResult> {
   let device: string | undefined;
-  let r = await playFromAlbum(t, playlistUri, album);
+  // V14: Spotify answers 502/503/504 when its player times out, most of all starting a song by uri in a playlist
+  // thousands long (master (ii), 6,095). Such a play may still land: look before trying again, then try by place.
+  const once = async (byPlace = false): Promise<PlayResult | 'gateway'> => {
+    try { return await playFromAlbum(t, playlistUri, album, device, byPlace); } catch (e) {
+      if (e instanceof ApiError && e.status >= 500) return 'gateway';
+      throw e;
+    }
+  };
+  let r = await once();
   if (r === 'no-device') {
     device = pickDevice(await devices(t))?.id;
-    if (device) r = await playFromAlbum(t, playlistUri, album, device);
+    if (device) r = await once();
   }
-  if (r === 'not-found' && album.firstTrackAt !== undefined) r = await playFromAlbum(t, playlistUri, album, device, true);
+  if (r === 'gateway') {
+    await new Promise(res => setTimeout(res, waitMs));
+    if (await landed(t, playlistUri, album)) r = 'playing';
+    else r = await once(album.firstTrackAt !== undefined);
+    if (r === 'gateway') throw new ApiError('spotify play', 502);
+  }
+  if (r === 'not-found' && album.firstTrackAt !== undefined) r = await once(true);
+  if (r === 'gateway') throw new ApiError('spotify play', 502);
   if (r === 'playing') {
     await api(t, `/me/player/shuffle?state=false${device ? `&device_id=${encodeURIComponent(device)}` : ''}`, { method: 'PUT' }).catch(() => undefined);
   }

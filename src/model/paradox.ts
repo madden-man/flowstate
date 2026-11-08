@@ -2,7 +2,7 @@
 // goals and their balances (pairs, open slots and the rows they share on the upright spread), the lean
 // maths that turns a goal's weight into its height between the poles, and the antonym lookup. Every read and write goes through the fields layer.
 // Lean detents and the lean line over time are package 4's.
-import type { Cadence, Item, Middle, Paradox, Pole } from '../db/schema';
+import { byParadoxOrder, type Cadence, type Item, type Middle, type Paradox, type Pole } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { antonymsOf } from '../db/seed';
 
@@ -124,8 +124,26 @@ const strip = <T>(row: T): T => {
 
 /** Every paradox with its goals (archived goals left out), oldest first. */
 export async function spreads(): Promise<SpreadData[]> {
-  const all = (await store.all('paradoxes')).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  const all = (await store.all('paradoxes')).sort(byParadoxOrder);
   return Promise.all(all.map(async paradox => ({ paradox, items: await goalsOf(paradox.id) })));
+}
+
+/** V13: a paradox dragged to place `to` among `ids` (the Be list as shown). Every paradox shown is placed
+ *  in the new order; the rest keep their places after them. Only rows whose place moved are written. */
+export async function moveParadox(ids: string[], id: string, to: number, now = Date.now()): Promise<void> {
+  const from = ids.indexOf(id);
+  if (from < 0) return;
+  const next = [...ids];
+  next.splice(from, 1);
+  next.splice(Math.max(0, Math.min(next.length, to)), 0, id);
+  const all = (await store.all('paradoxes')).sort(byParadoxOrder);
+  const rest = all.filter(p => !next.includes(p.id)).map(p => p.id);
+  const rows = new Map(all.map(p => [p.id, p]));
+  const changed = [...next, ...rest].flatMap((pid, i) => {
+    const p = rows.get(pid);
+    return p && p.order !== i ? [{ ...p, order: i, updatedAt: now }] : [];
+  });
+  if (changed.length) await store.bulkPut('paradoxes', changed);
 }
 
 export async function goalsOf(paradoxId: string): Promise<Read<Item>[]> {

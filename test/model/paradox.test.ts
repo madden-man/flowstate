@@ -6,7 +6,7 @@ import type { Item, Paradox } from '../../src/db/schema';
 import {
   canSaveParadox, cleanPole, cleanMiddle, revise, sameVersion, createParadox, saveParadox, OnePoleError,
   antonymSuggestions, threeWords, threeWordLines, spreads, goalsOf, pairOf, openSlots, slotLine, leanToY, yToLean, clampLean,
-  layoutColumn, rowsOf, rowOf, nextFreeLean, moveGoal, riders, dropGoal, addGoals, saveGoal, archiveGoal, followable, arrows,
+  layoutColumn, rowsOf, rowOf, nextFreeLean, moveGoal, riders, dropGoal, addGoals, saveGoal, archiveGoal, followable, arrows, moveParadox,
 } from '../../src/model/paradox';
 
 beforeEach(async () => { await freshDB(); });
@@ -98,6 +98,25 @@ describe('the seed spreads', () => {
     expect(openSlots(p2.items).map(s => s.pole)).toEqual(['b', 'b', 'a', 'a']);
     expect(arrows(p1.items)).toEqual([{ from: 'it-volunteer', to: 'it-share' }]);
     expect(arrows(p2.items)).toHaveLength(3);
+  });
+});
+
+describe('the order of the paradoxes (V13)', () => {
+  it('a dragged paradox keeps its new place on Be and Flow; a new one goes after the placed ones', async () => {
+    await ensureSeeded();
+    const poles = async () => (await spreads()).map(s => s.paradox.poleA.value);
+    expect(await poles()).toEqual(['selfless', 'thoughtful']);
+    const ids = (await spreads()).map(s => s.paradox.id);
+    await moveParadox(ids, ids[1], 0);
+    expect(await poles()).toEqual(['thoughtful', 'selfless']);
+    const flow = await import('../../src/model/flow');
+    expect((await flow.today()).map(g => g.paradox.poleA.value)).toEqual(['thoughtful', 'selfless']);
+    await createParadox({ poleA: pole('brave', 'facing it'), poleB: pole('careful', 'looking first') });
+    expect(await poles()).toEqual(['thoughtful', 'selfless', 'brave']);
+    // a drag among the shown rows leaves a resting one (not shown) after them, in its place
+    const all = (await spreads()).map(s => s.paradox.id);
+    await moveParadox([all[0], all[2]], all[2], 0);
+    expect(await poles()).toEqual(['brave', 'thoughtful', 'selfless']);
   });
 });
 

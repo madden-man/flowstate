@@ -2,7 +2,7 @@
 // poles, and the look back. Every read and write goes through store, so sealing works. Every date is the
 // phone's own local calendar: a day starts at local midnight, a week on Monday (ISO), a month on the 1st.
 // Nothing here counts a run of days; there are no totals.
-import type { Cadence, Item, Lean, Paradox, Voice } from '../db/schema';
+import { byParadoxOrder, type Cadence, type Item, type Lean, type Paradox, type Voice } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { questions } from './pages';
 import { goalsOf, openSlots, slotLine, clampLean } from './paradox';
@@ -91,7 +91,7 @@ export async function setDone(id: string, done: boolean, now = Date.now()): Prom
 export type TodayGroup = { paradox: Read<Paradox>; items: Read<Item>[]; lean?: Read<Lean> };
 
 const activeParadoxes = async () =>
-  (await store.all('paradoxes')).filter(p => p.status === 'active').sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  (await store.all('paradoxes')).filter(p => p.status === 'active').sort(byParadoxOrder);
 
 /** Today's page: each active paradox with its items on today (in spread order) and its latest lean. */
 export async function today(now = Date.now()): Promise<TodayGroup[]> {

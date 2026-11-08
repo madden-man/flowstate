@@ -347,6 +347,9 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 /* V8: the list. A row a paradox, its two poles facing across a short seam, two rules high; a tap opens the spread under it */
 .fs-be-row { border-bottom: 1px solid var(--seam); scroll-margin-top: var(--s1); }
 .fs-be-row:last-child { border-bottom: 0; }
+/* V13: a row lifted by a long press rides under the finger, as a voice does on the Voices screen */
+.fs-be-row.lift { position: relative; z-index: 2; background: var(--page); box-shadow: var(--shadow-tile); }
+.fs-be-row .fs-dichotomy { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .fs-dichotomy {
   appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; cursor: pointer; color: var(--ink);
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: var(--s2);

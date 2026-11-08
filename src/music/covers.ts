@@ -144,7 +144,9 @@ export type ReadOutcome = { read: string[]; skipped: string[]; failed: { id: str
 
 /** One playlist: read in full when its snapshot moved or it was never read; otherwise only its first missing covers. */
 export async function readOne(keep: Keep, p: Playlist, snapshotNow: string | undefined, hooks: ReadHooks = {}): Promise<'read' | 'skipped'> {
-  const has = (await store.query('shelves', tb => tb.where('playlistId').equals(p.id))).length > 0;
+  const rows = await store.query('shelves', tb => tb.where('playlistId').equals(p.id));
+  // a shelf written before V9 has no song places (firstTrackAt), the play's fallback: it is read once more
+  const has = rows.length > 0 && rows.every(r => r.firstTrackAt !== undefined);
   if (unchanged(p, snapshotNow, has)) {
     await fillFirstCovers(p.id, hooks.getCover, hooks.progress?.(p.id)).catch(() => undefined);
     return 'skipped';

@@ -114,3 +114,11 @@ Long press a council line: **Edit** turns it into a field where it stands (Retur
 ## 12. V12: another entry today (2026-11-08)
 
 Tommy: "a way to start a new journal entry if there's already one there for the day, maybe just a little +". Once today's entry has words, a small serif + after Pages (gone in Still, like Pages) opens `#/journal/new/:n`, a fresh page with the next number. Its first word makes the new entry, which `today()` (the newest entry of the day) then opens as today's page; the address becomes `#/journal` without a re-render. Left unwritten, it makes nothing.
+
+## 13. V13: reorder the paradoxes (2026-11-08)
+
+Long press a row on Be to lift it, drag it to a new place (the Voices screen's gesture). `Paradox.order` (optional, no Dexie bump) and `byParadoxOrder` in schema.ts order Be, Flow and the pages model alike; unplaced paradoxes (older or new) sort after the placed ones, oldest first. A drop ticks (rule 19, an item dropped).
+
+## 14. V14: a 502 on play (2026-11-08)
+
+Tommy: "when i tapped an album it said spotify did not play it (502)". `playAlbum` now treats a 5xx as Spotify's player timing out: it looks at what is playing (the play may have landed), else plays once more by the song's place in the playlist; two 5xx are one refusal. Shelves without `firstTrackAt` are read once more so the place is there. docs/SPOTIFY.md, Playing.

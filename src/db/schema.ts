@@ -133,8 +133,15 @@ export type Paradox = {
   poleB: Pole;
   middle?: Middle;
   revisions: { at: Millis; poleA: Pole; poleB: Pole; middle?: Middle }[];
+  /** V13: its place on the Be list, as Tommy dragged it. Optional, so no Dexie version bump: a paradox never
+   *  placed (an older one, or a new one) sorts after the placed ones, oldest first. */
+  order?: number;
   sealed?: Sealed;
 };
+
+/** The one order of the paradoxes (V13), for Be, Flow and the rest: placed ones by order, then by age. */
+export const byParadoxOrder = (a: Pick<Paradox, 'order' | 'createdAt' | 'id'>, b: Pick<Paradox, 'order' | 'createdAt' | 'id'>) =>
+  (a.order ?? Infinity) - (b.order ?? Infinity) || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
 
 export type Cadence = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'once';
 export type Item = {

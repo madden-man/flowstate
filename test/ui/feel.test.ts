@@ -18,7 +18,7 @@ function calls(kind: 'tick' | 'bell'): string[] {
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   check: ['src/ui/parts/Check.tsx'],
-  drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx'],
+  drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx'],
   detent: ['src/ui/parts/LeanSlider.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],

@@ -1,13 +1,16 @@
 // Be (PLAN.md section 5 item 3; V8): a vertical list, one row per active paradox, its two poles facing across
 // a short seam ("selfless | selfish"). A tap opens that paradox's spread under its row, drawn like the
 // notebook, and a second tap closes it; "+ Goal" on an open spread is its primary act. "New paradox" is a
-// secondary word at the top; "Resting" reveals the paradoxes set aside. #/be/:id opens that one and scrolls
+// secondary word at the top; "Resting" reveals the paradoxes set aside. Long press a row to lift it and drag it
+// to a new place (V13, as the Voices screen does); the order holds on Flow too. #/be/:id opens that one and scrolls
 // to it once it is laid out.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Spread } from '../parts/Spread';
 import { dataVersion } from '../sheets';
-import { dropGoal, spreads, type SpreadData } from '../../model/paradox';
+import { dropGoal, moveParadox, spreads, type SpreadData } from '../../model/paradox';
+import { useLongPress } from '../council/state';
+import { tick } from '../parts/Haptic';
 import { beData, beVersion, openGoal, openParadox, changed } from './state';
 import { GoalSheet } from './GoalSheet';
 import { ParadoxSheet } from './ParadoxSheet';
@@ -43,15 +46,82 @@ export function Be({ id }: { id?: string }) {
     return () => cancelAnimationFrame(raf);
   }, [id, list]);
 
-  const active = list?.filter(s => s.paradox.status === 'active') ?? [];
-  const asleep = list?.filter(s => s.paradox.status !== 'active') ?? [];
+  // ---- the drag (V13): long press lifts a row; it rides under the finger and drops into its new place ----
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [lifted, setLifted] = useState<string | null>(null);
+  const drag = useRef<{ id: string; y: number; dy: number } | null>(null);
+  const liveOrder = useRef<string[] | null>(null);
+  const shownIds = () => (list ?? []).filter(s => s.paradox.status === 'active' || resting).map(s => s.paradox.id);
+  const press = useLongPress<HTMLElement>((el, e) => {
+    const id = el.closest<HTMLElement>('.fs-be-row')?.dataset.row;
+    if (!id) return;
+    drag.current = { id, y: (e as PointerEvent).clientY ?? 0, dy: 0 };
+    liveOrder.current = shownIds();
+    setOrder(liveOrder.current);
+    setLifted(id);
+  }, '.fs-dichotomy');
+
+  useEffect(() => {
+    if (!lifted) return;
+    const rowOf = (id: string) => scroller.current?.querySelector<HTMLElement>(`[data-row="${id}"]`) ?? null;
+    const hold = (e: TouchEvent) => e.preventDefault();
+    const move = (e: PointerEvent) => {
+      const d = drag.current, cur = liveOrder.current, el = rowOf(lifted);
+      if (!d || !cur || !el) return;
+      d.dy = e.clientY - d.y;
+      const i = cur.indexOf(d.id);
+      const half = el.offsetHeight / 2;
+      const j = d.dy > half && i < cur.length - 1 ? i + 1 : d.dy < -half && i > 0 ? i - 1 : i;
+      if (j !== i) {
+        const h = rowOf(cur[j])?.offsetHeight ?? 0;
+        d.y += j > i ? h : -h;
+        d.dy -= j > i ? h : -h;
+        const n = [...cur];
+        [n[i], n[j]] = [n[j], n[i]];
+        liveOrder.current = n;
+        setOrder(n);
+      }
+      el.style.transform = `translateY(${d.dy - 2}px)`;
+    };
+    const up = async () => {
+      const d = drag.current;
+      drag.current = null;
+      const el = rowOf(lifted);
+      if (el) el.style.transform = '';
+      const ids = shownIds();
+      const to = d && liveOrder.current ? liveOrder.current.indexOf(d.id) : -1;
+      if (d && to >= 0 && to !== ids.indexOf(d.id)) {
+        await moveParadox(ids, d.id, to);
+        tick('drop');
+        changed();
+      }
+      liveOrder.current = null;
+      setLifted(null);
+      setOrder(null);
+    };
+    document.addEventListener('touchmove', hold, { passive: false });
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', up);
+    return () => {
+      document.removeEventListener('touchmove', hold);
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      removeEventListener('pointercancel', up);
+    };
+  }, [lifted]);
+
+  // while a row is lifted the list shows the order it is being dragged into
+  const placed = (ss: SpreadData[]) => (order ? [...ss].sort((a, b) => order.indexOf(a.paradox.id) - order.indexOf(b.paradox.id)) : ss);
+  const active = placed(list?.filter(s => s.paradox.status === 'active') ?? []);
+  const asleep = placed(list?.filter(s => s.paradox.status !== 'active') ?? []);
   if (id && asleep.some(s => s.paradox.id === id) && !resting) setResting(true);
 
   const card = (s: SpreadData) => {
     const pid = s.paradox.id;
     const shown = open.has(pid);
     return (
-      <section key={pid} id={`be-${pid}`} class={`fs-be-row${shown ? ' open' : ''}`}>
+      <section key={pid} id={`be-${pid}`} class={`fs-be-row${shown ? ' open' : ''}${lifted === pid ? ' lift' : ''}`} data-row={pid}>
         <button type="button" class={`fs-dichotomy${s.paradox.status !== 'active' ? ' resting' : ''}`} aria-expanded={shown}
           aria-controls={`spread-${pid}`} onClick={() => flip(pid)}>
           <span class="a">{s.paradox.poleA.value}</span>
@@ -86,7 +156,7 @@ export function Be({ id }: { id?: string }) {
         ) : <span />}
         <button type="button" class="fs-word" onClick={() => openParadox({})}>New paradox</button>
       </div>
-      <div ref={scroller} class="fs-sheetof fs-be">
+      <div ref={scroller} class="fs-sheetof fs-be" {...press}>
         {list && !list.length && <p class="fs-quiet">Fill both.</p>}
         {active.map(card)}
         {resting && asleep.map(card)}
