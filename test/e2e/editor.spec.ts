@@ -79,3 +79,44 @@ test('write, Return, reload; a paragraph in the middle; an earlier page; Pages',
   await expect(page.locator('.fs-dated')).toHaveText('11 / 8 / 26');
   await expect(page.getByRole('button', { name: 'Revisit' })).toHaveCount(0);
 });
+
+test('a + after Pages starts another entry today; nothing is made until its first word (V12)', async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 10, 8, 8, 0) });
+  await page.goto('/');
+  await cross(page);
+  const plus = page.getByRole('button', { name: 'Another entry today' });
+  const no = page.locator('.fs-hdr .fs-count b');
+  // a blank page offers no +
+  await expect(plus).toHaveCount(0);
+  await today$(page).click();
+  await today$(page).pressSequentially('Morning, before the move.', { delay: 2 });
+  await expect(today$(page)).toHaveAttribute('data-saved', 'true');
+  await expect(plus).toBeVisible();
+  const first = Number(await no.textContent());
+
+  // +: a fresh page, the next number, the caret on its first rule; leaving it unwritten makes nothing
+  await plus.click();
+  await expect(page).toHaveURL(/#\/journal\/new\//);
+  await expect(lines(page)).toHaveCount(0);
+  await expect(no).toHaveText(String(first + 1));
+  await expect(plus).toHaveCount(0);
+  await page.getByRole('link', { name: 'Journal', exact: true }).click();
+  await expect(lines(page)).toHaveText(['Morning, before the move.']);
+  await expect(no).toHaveText(String(first));
+
+  // + again, and write: the new entry is today's page from then on
+  await page.getByRole('button', { name: 'Another entry today' }).click();
+  await today$(page).click();
+  await today$(page).pressSequentially('Evening, after it.', { delay: 2 });
+  await expect(today$(page)).toHaveAttribute('data-saved', 'true');
+  await expect(page).toHaveURL(/#\/journal$/);
+  await page.reload();
+  await cross(page);
+  await expect(lines(page)).toHaveText(['Evening, after it.']);
+  await expect(no).toHaveText(String(first + 1));
+  // both are in Pages, the morning one too
+  await page.getByRole('link', { name: 'Pages', exact: true }).click();
+  await expect(page.locator('.fs-list-row', { hasText: 'Morning, before the move.' })).toHaveCount(1);
+  await expect(page.locator('.fs-list-row', { hasText: 'Evening, after it.' })).toHaveCount(1);
+});
+

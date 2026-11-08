@@ -30,7 +30,7 @@ import { voiceColour } from '../voice';
 import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import {
-  today, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
+  today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
   type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel, type Walk,
 } from '../../model/pages';
@@ -45,7 +45,9 @@ type Data = { page?: Read<PageRow>; messages: Read<Message>[]; no?: number; link
 type Section = 'journal' | 'questions';
 type Voices = { chips: Read<Voice>[]; byId: Map<string, Read<Voice>> };
 
-async function load(id: string | undefined, section: Section): Promise<Data | { to: string }> {
+async function load(id: string | undefined, section: Section, fresh = false): Promise<Data | { to: string }> {
+  // V12: a fresh page today (the header's +) is nobody's yet; its first word makes the next entry
+  if (fresh) return { page: undefined, messages: [], no: (await entryCount()) + 1, links: [] };
   const t = await today();
   if (!id || t.page?.id === id) {
     if (id) return { to: '/journal' };
@@ -196,7 +198,7 @@ function TitleEdit({ page, onSave }: { page: Read<PageRow>; onSave: (title: stri
   );
 }
 
-export function PageView({ id, section = 'journal' }: { id?: string; section?: Section }) {
+export function PageView({ id, section = 'journal', fresh = false }: { id?: string; section?: Section; fresh?: boolean }) {
   const isToday = !id;
   const { route } = useLocation();
   const still = light.value === 'still';
@@ -230,7 +232,8 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
 
   // ---- reading ----
   const refresh = async () => {
-    const r = await load(id, section);
+    // a fresh page stays fresh only until its first word: then it is today's entry like any other
+    const r = await load(id, section, fresh && !pageRef.current);
     if ('to' in r) { setTo(r.to); return; }
     pageRef.current = r.page;
     setData(r);
@@ -282,6 +285,8 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
     if (!r) return;
     const made = !pageRef.current;
     pageRef.current = r.page;
+    // the fresh page is now today's entry: the address says so (no hashchange, so nothing re-renders)
+    if (made && fresh) history.replaceState(null, '', '#/journal');
     const links = made && linkTo ? await linksOf(r.page) : undefined;
     setData(prev => (prev ? { ...prev, page: r.page, messages: r.messages, links: links ?? prev.links } : prev));
   };
@@ -515,6 +520,7 @@ export function PageView({ id, section = 'journal' }: { id?: string; section?: S
   return (
     <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
+      another={isToday && kind === 'entry' && !!page && written}
       music={page ? {
         id: page.id, music: page.music,
         onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },

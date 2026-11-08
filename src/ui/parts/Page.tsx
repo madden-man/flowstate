@@ -30,12 +30,17 @@ type Props = {
   back?: { word: string; href: string };
   /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
   count?: string;
+  /** V12: today's entry has words, so a small + after Pages starts another entry today. */
+  another?: boolean;
   /** The page open here, if it is one: the rail of earlier pages leaves it out (V6). */
   pageId?: string;
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, count }: Omit<Props, 'children'>) {
+/** A fresh page today: each + is its own address, so a second + opens a second fresh page. */
+const another = () => { location.hash = `/journal/new/${Date.now().toString(36)}`; };
+
+export function PageHeader({ no, label, date = new Date(), music, pages, back, count, another: plus }: Omit<Props, 'children'>) {
   return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -43,6 +48,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, c
         {pages && (
           <a class="fs-word fs-notstill" href="#/journal/pages" aria-current={pages === 'here' ? 'page' : undefined}>Pages</a>
         )}
+        {plus && <button type="button" class="fs-word fs-notstill fs-plus" aria-label="Another entry today" onClick={another}>+</button>}
         {back && <a class="fs-word" href={back.href}>{back.word}</a>}
         {/* the way back takes Settings' place as well (V2, as the proposal draws it), so "2 of 3 open" and the
             date keep one line on a 375pt phone; Settings is one tap away on every other page */}

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect } from './ui/route';
-import { JournalToday, JournalPage, JournalPages } from './ui/journal/Journal';
+import { JournalToday, JournalPage, JournalPages, JournalNew } from './ui/journal/Journal';
 import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
@@ -61,6 +61,7 @@ function Frame() {
           <Route path="/journal" component={JournalToday} />
           <Route path="/journal/questions" component={() => <Redirect to="/questions" />} />
           <Route path="/journal/pages" component={JournalPages} />
+          <Route path="/journal/new/:n" component={JournalNew} />
           <Route path="/journal/:id" component={JournalPage} />
           <Route path="/questions" component={Questions} />
           <Route path="/questions/:id" component={QuestionPage} />

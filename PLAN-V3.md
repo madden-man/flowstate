@@ -110,3 +110,7 @@ Tommy: "make room for me to name each of the voices (the roles, like architect, 
 ## 11. V11: council lines can be edited and deleted (2026-11-08)
 
 Long press a council line: **Edit** turns it into a field where it stands (Return or leaving keeps the words, Escape puts them back, an emptied line goes) and **Delete** asks on the same row with a second tap, never a dialog. `editMessage` keeps an earlier day's text as the Journal's `revise` does; `deleteMessage` leaves a reply its own words and drops the quote.
+
+## 12. V12: another entry today (2026-11-08)
+
+Tommy: "a way to start a new journal entry if there's already one there for the day, maybe just a little +". Once today's entry has words, a small serif + after Pages (gone in Still, like Pages) opens `#/journal/new/:n`, a fresh page with the next number. Its first word makes the new entry, which `today()` (the newest entry of the day) then opens as today's page; the address becomes `#/journal` without a re-render. Left unwritten, it makes nothing.
