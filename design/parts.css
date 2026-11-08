@@ -803,3 +803,34 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 [data-light="still"] .fl-usual { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); }
 .fs-stillonly { display: none; }
 [data-light="still"] .fs-stillonly { display: block; }
+
+/* ==== Flows (F3): the valley, the arc and the mountain; printed lines; your own flows ==== */
+/* words in the drawing: the hand (italic, print grey) and the print (the time lines across the mountain) */
+.fs-cycle text.hand { font-style: italic; fill: var(--print); }
+.fs-cycle text.print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); fill: var(--print); }
+.fs-cycle .faint { stroke-dasharray: 2 5; opacity: .6; }
+.fs-cycle.small .faint, .fs-cycle.small text { display: none; }
+/* Still has no numbers (rule 13): "20 min" goes, "about an hour" stays */
+[data-light="still"] .fs-cycle text.num { display: none; }
+/* a line the page prints (the safety line, Energize's boundary): the page's grey serif, a blank rule above it,
+   in every light */
+.fl-print { margin-top: var(--lh-ink); }
+.fl-prints .fl-print + .fl-print { margin-top: 0; }
+/* "+ flow" at the end of the list, "+ step" under a flow at rest */
+.fl-add { display: flex; min-height: var(--lh-ink); align-items: center; margin-top: var(--lh-ink); }
+.fl-add .fs-chip { min-height: var(--hit); padding: 0 var(--s2); font-family: var(--sans); font-size: var(--fs-chip); }
+/* a flow made from nothing: "name the first step" in the hand, with the caret waiting */
+.fl-name-first { display: block; min-height: var(--hit); margin: 0; padding: 0; border: 0; background: none; font: inherit;
+  font-style: italic; line-height: var(--lh-ink); color: var(--print); text-align: left; cursor: pointer; }
+.fl-caret { display: inline-block; width: 1.5px; height: 1.1em; margin-left: 1px; vertical-align: -.15em; background: var(--ink);
+  animation: fl-blink calc(var(--t-breath) / 9) steps(1) infinite; }
+@keyframes fl-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fl-caret { animation: none; } }
+/* the sheet's nine drawings, small in print, each with its name; the chosen one in ink */
+.fl-shapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); }
+.fl-shape { display: grid; gap: 4px; justify-items: center; min-height: var(--hit); padding: var(--s1) 4px; border: 1px solid transparent;
+  border-radius: 8px; background: none; color: var(--print); font-family: var(--sans); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); cursor: pointer; }
+.fl-shape[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
+.fl-shape-draw { display: block; width: 100%; height: calc(var(--lh-ink) * 1.5); }
+.fl-shape[aria-pressed="true"] .fs-cycle .arc, .fl-shape[aria-pressed="true"] .fs-cycle .arrow { stroke: var(--ink); }
