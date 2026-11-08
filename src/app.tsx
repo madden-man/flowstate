@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
 import { useEffect, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash } from './ui/route';
@@ -10,6 +10,10 @@ import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { FlowPage } from './ui/flow/FlowPage';
+import { Now } from './ui/flow/Now';
+import { afterUnlock } from './ui/flow/door';
+import { doorPasses } from './model/door';
+import { DoorPin } from './ui/lock/DoorPin';
 import { onOpen } from './model/flows';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
@@ -19,7 +23,7 @@ import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
 import { cleanSeedPages, seedFlowsOnce } from './db/seed';
-import { loadSettings } from './ui/settings';
+import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
 import type { ComponentChildren } from 'preact';
@@ -72,8 +76,8 @@ function Frame() {
           <Route path="/be" component={Be} />
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
-          {/* Right now is F5's; until then its address is the list, so no flow can ever be called "now" */}
-          <Route path="/flow/now" component={() => <Redirect to="/flow" />} />
+          {/* before /flow/:id, so no flow can ever be called "now" */}
+          <Route path="/flow/now" component={Now} />
           <Route path="/flow/:id" component={FlowPage} />
           <Route path="/flow/:id/:step" component={FlowPage} />
           <Route path="/voices" component={Voices} />
@@ -93,6 +97,25 @@ function Frame() {
 /** The app opens on a live episode once per load, not on every unlock. */
 let openedOnce = false;
 
+const DoorNow = () => <Now doorOnly />;
+const DoorFlowPage = ({ id, step }: { id: string; step?: string }) => <FlowPage id={id} step={step} doorOnly />;
+
+/** Through the door without the PIN (PLAN-FLOWS.md 3.7, F5): the two pages the lock lets through, read-only, with no
+ *  tab bar and no sheet but the PIN's own. Every other hash shows the keypad (the Gate). */
+function DoorFrame() {
+  return (
+    <div class="fs-app" data-door>
+      <main class="fs-main">
+        <Router>
+          <Route path="/flow/now" component={DoorNow} />
+          <Route path="/flow/:id/:step" component={DoorFlowPage} />
+        </Router>
+        <DoorPin />
+      </main>
+    </div>
+  );
+}
+
 /** One threshold (PLAN.md sections 7 and 8). With a PIN on and the key out of memory, the threshold stands in
  *  front of everything, tab bar included: the manifesto, the ring breathing, and the keypad beneath (package 6).
  *  The hash is left alone, so a deep link lands once the PIN opens it. Unlocked, a cold load breathes once
@@ -111,13 +134,28 @@ function Gate({ children }: { children: ComponentChildren }) {
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);
   // the flows (F1): the seed flows written once, then, on the first open of this load, a live episode inside its
-  // step's usual span opens its flow page instead of the journal (PLAN-FLOWS.md 3.7); a deep link anywhere else stays
-  const { route } = useLocation();
+  // step's usual span opens its flow page instead of the journal (PLAN-FLOWS.md 3.7); a deep link anywhere else stays.
+  // The door (F5): locked with the door on, the live episode opens read-only through the door. Once the PIN opens
+  // the journal, the dot put through the door is written first (ui/flow/door.ts), and the page stays where it is.
+  const { route, path } = useLocation();
+  const doorOn = !!settings.value.flowDoor;
   useEffect(() => {
-    if (locked) return;
-    seedFlowsOnce()
-      .then(async written => {
-        if (written?.length) dataVersion.value++;
+    if (locked) {
+      if (!doorOn || openedOnce) return;
+      onOpen()
+        .then(live => {
+          const here = readHash();
+          if (openedOnce || !live?.step || (here !== '/' && here !== '/journal')) return;
+          openedOnce = true;
+          route(`/flow/${live.flowId}/${live.step}`, true);
+        })
+        .catch(() => { /* nothing to open on */ });
+      return;
+    }
+    afterUnlock(to => route(to))
+      .then(async wrote => {
+        const written = await seedFlowsOnce();
+        if (wrote || written?.length) dataVersion.value++;
         if (openedOnce) return;
         openedOnce = true;
         const live = await onOpen();
@@ -126,7 +164,18 @@ function Gate({ children }: { children: ComponentChildren }) {
       })
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);
-  if (locked) return <Threshold keypad={<LockPad />} onDone={() => setBreath(false)} />;
+  if (locked && doorPasses(path, doorOn)) return <DoorFrame />;
+  if (locked) {
+    return (
+      <Threshold onDone={() => setBreath(false)} keypad={
+        <>
+          <LockPad />
+          {/* the door (F5): one word under the keypad, only with the door on in Settings */}
+          {doorOn && <a class="fs-word fl-door" href="#/flow/now">the ring</a>}
+        </>
+      } />
+    );
+  }
   return (
     <>
       {children}
