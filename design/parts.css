@@ -709,3 +709,34 @@ button.fs-back-link { display: flex; align-items: flex-start; }
 .fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
 /* the lean before the first drag: the mark waits at the middle in print grey */
 .fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
+
+/* ---- V7: playlists under the music line ---- */
+/* the word that goes back a screen inside a sheet ("Playlists" above a playlist's name) */
+.fs-sheet-back { display: block; margin-left: calc(var(--s1) * -1); }
+/* the two screens of the music sheet, and the Settings list, come in over --t-ui */
+.fs-music-screen { animation: fs-fade var(--t-ui) var(--ease); }
+/* the list: a row per chosen playlist, its name in serif on the rule, six covers beneath, no counts */
+.fs-playlists { display: grid; }
+.fs-playlist {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0 0 var(--s2); width: 100%; cursor: pointer;
+  display: grid; gap: var(--s1); text-align: left; font: inherit; color: var(--ink);
+  border-top: 1px solid var(--seam); -webkit-tap-highlight-color: transparent;
+}
+.fs-playlist:first-child { border-top: 0; }
+.fs-playlist-name { display: flex; align-items: flex-end; gap: var(--s1); min-height: calc(var(--lh-ink) * 2); line-height: var(--lh-ink); font-family: var(--serif); font-size: var(--fs-title); }
+.fs-playlist-name > span { flex: 1; min-width: 0; }
+.fs-playlist-now { flex: none; display: block; width: var(--s3); height: var(--s3); border-radius: 3px; object-fit: cover; box-shadow: var(--shadow-tile); background: var(--seam); }
+.fs-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--s1); }
+.fs-strip img, .fs-strip span { display: block; width: 100%; aspect-ratio: 1; border-radius: 3px; object-fit: cover; background: var(--seam); box-shadow: var(--shadow-tile); }
+.fs-playlist:active .fs-strip { transform: translateY(1px); }
+.fs-playlist:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+[data-light="night"] .fs-strip img, [data-light="night"] .fs-playlist-now { opacity: .88; }
+[data-light="still"] .fs-strip img, [data-light="still"] .fs-playlist-now { opacity: .62; }
+/* Settings, Your playlists: a drawn check per playlist, Read again at the bottom */
+.fs-mylists { display: grid; padding-top: var(--s1); }
+.fs-readagain { display: flex; justify-content: flex-start; padding-top: var(--s2); border-top: 1px solid var(--seam); }
+.fs-readagain .fs-word { margin-left: calc(var(--s1) * -1); }
+.fs-readagain .fs-word:disabled { color: var(--print); cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-music-screen { animation: none; }
+}
