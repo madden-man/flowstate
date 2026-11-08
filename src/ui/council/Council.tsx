@@ -20,7 +20,7 @@ import type { Read } from '../../db/fields';
 import type { Message, Voice } from '../../db/schema';
 import {
   councilPages, councilById, newCouncil, speak, chipVoices, nextSpeaker, lastSpeaker, startsRun, firstLine,
-  seatedVoices, isSeated, toggleSeat, seat, voiceLabel,
+  seatedVoices, isSeated, toggleSeat, seat, voiceLabel, editMessage,
   type CouncilRow, type CouncilPage as CouncilData,
 } from '../../model/council';
 import { Speaker } from '../parts/Speaker';
@@ -190,11 +190,44 @@ function CouncilList() {
 
 // ---------------------------------------------------------------- one council page
 
-function Line({ m, voice, run, quoted, press, onTap }: { m: Read<Message>; voice?: Read<Voice>; run: boolean; quoted?: Quote; press: JSX.HTMLAttributes<HTMLDivElement>; onTap: () => void }) {
+/** A line being edited where it stands (V11): Return or leaving it keeps the words, Escape puts them back,
+ *  an emptied line goes. */
+function EditLine({ m, onDone }: { m: Read<Message>; onDone: (text: string | null) => void }) {
+  const area = useRef<HTMLTextAreaElement>(null);
+  const done = useRef(false);
+  const finish = (text: string | null) => { if (done.current) return; done.current = true; onDone(text); };
+  const grow = () => { const a = area.current; if (a) { a.style.height = ''; a.style.height = `${a.scrollHeight}px`; } };
+  useLayoutEffect(() => {
+    const a = area.current;
+    if (!a) return;
+    grow();
+    a.focus({ preventScroll: true });
+    a.setSelectionRange(a.value.length, a.value.length);
+    a.scrollIntoView({ block: 'nearest' });
+  }, []);
+  return (
+    <textarea ref={area} class="fs-edit" rows={1} aria-label="Edit the line" defaultValue={m.text} enterkeyhint="done"
+      onInput={grow}
+      onBlur={e => finish(e.currentTarget.value)}
+      onKeyDown={(e: KeyboardEvent) => {
+        if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+        else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); finish((e.currentTarget as HTMLTextAreaElement).value); }
+      }} />
+  );
+}
+
+function Line({ m, voice, run, quoted, press, onTap, editing, onEdited }: {
+  m: Read<Message>; voice?: Read<Voice>; run: boolean; quoted?: Quote; press: JSX.HTMLAttributes<HTMLDivElement>; onTap: () => void;
+  editing?: boolean; onEdited?: (text: string | null) => void;
+}) {
   const quote = quoted && (
     <span class="fs-quote" style={quoted.vc ? ({ '--qc': quoted.vc } as JSX.CSSProperties) : undefined}><b>{quoted.who}</b> {quoted.text}</span>
   );
-  const body = <>{quote}{m.text.split('\n').map((l, i) => <p key={i}>{l || ' '}</p>)}</>;
+  const body = <>{quote}{editing ? <EditLine m={m} onDone={t => onEdited?.(t)} /> : m.text.split('\n').map((l, i) => <p key={i}>{l || ' '}</p>)}</>;
+  if (editing) {
+    press = {};
+    onTap = () => undefined;
+  }
   if (!voice) return <div class={`fs-msg${m.kept ? ' kept' : ''}`} data-id={m.id} {...press} onClick={onTap}>{body}</div>;
   return (
     <div class={`fs-msg fs-v${voice.shade === 'deep' ? ' deep' : ''}${m.kept ? ' kept' : ''}`} style={vcOf(voice)} data-id={m.id} data-voice={voice.name} {...press} onClick={onTap}>
@@ -225,6 +258,8 @@ function CouncilPage({ id }: { id: string }) {
   const [data, setData] = useState<CouncilData | null | 'missing'>(null);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [pressed, setPressed] = useState<string | null>(null);
+  // the line being edited where it stands (V11)
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [focus, setFocus] = useState(0);
   // Begin was tapped here: the seats screen shows only while nothing has been said and Begin is not yet tapped
   const [begun, setBegun] = useState(false);
@@ -235,7 +270,7 @@ function CouncilPage({ id }: { id: string }) {
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   const load = () => councilById(id).then(d => setData(d ?? 'missing'));
-  useEffect(() => { void load(); setBegun(false); setSeating(false); setReplyTo(null); speaker.value = undefined; }, [id]);
+  useEffect(() => { void load(); setBegun(false); setSeating(false); setReplyTo(null); setEditingId(null); speaker.value = undefined; }, [id]);
 
   const msgs = data && data !== 'missing' ? data.messages : [];
   const vs = voiceList.value;
@@ -331,7 +366,13 @@ function CouncilPage({ id }: { id: string }) {
               {data && <Links data={data} />}
               {msgs.map((m, i) => (
                 <Line key={m.id} m={m} voice={byId(m.voiceId)} run={startsRun(msgs, i)} quoted={quoteOf(m.replyTo)} press={press}
-                  onTap={() => { notePlace(); setReplyTo(m.id); setFocus(f => f + 1); }} />
+                  onTap={() => { notePlace(); setReplyTo(m.id); setFocus(f => f + 1); }}
+                  editing={editingId === m.id}
+                  onEdited={async text => {
+                    setEditingId(null);
+                    if (text !== null) await editMessage(m.id, text);
+                    await load();
+                  }} />
               ))}
             </div>
             {data && (
@@ -351,7 +392,8 @@ function CouncilPage({ id }: { id: string }) {
       </div>
       <VoiceSheet onMade={vid => void made(vid)} />
       {data && (
-        <MessageSheet pageId={id} message={msgs.find(m => m.id === pressed) ?? null} onChanged={load} />
+        <MessageSheet pageId={id} message={msgs.find(m => m.id === pressed) ?? null} onChanged={load}
+          onEdit={mid => { if (replyTo === mid) setReplyTo(null); setEditingId(mid); }} />
       )}
     </Page>
   );

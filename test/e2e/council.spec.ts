@@ -173,3 +173,47 @@ test('a voice given a name of its own speaks by it; a tap on the name shows its 
   await expect(name).toHaveText('Gus');
 });
 
+test('a line can be edited where it stands and deleted with a second tap (V11)', async ({ page }) => {
+  await page.goto('/#/council');
+  await page.getByRole('button', { name: 'New council' }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  const say = page.getByRole('textbox', { name: 'Message' });
+  const lines = page.locator('.fs-council .fs-msg');
+  for (const t of ['Stand tall.', 'And which voice is that?']) { await say.fill(t); await say.press('Enter'); await expect(lines.last()).toContainText(t); }
+  const hold = async (i: number) => {
+    const b = (await lines.nth(i).boundingBox())!;
+    await page.mouse.move(b.x + 30, b.y + b.height - 10);
+    await page.mouse.down();
+    await page.waitForTimeout(650);
+    await page.mouse.up();
+  };
+  const msheet = page.locator('[data-sheet="Message"]');
+
+  // Edit: the line becomes a field where it stands; Return keeps the words
+  await hold(0);
+  await msheet.getByRole('button', { name: 'Edit' }).click();
+  const field = page.getByRole('textbox', { name: 'Edit the line' });
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue('Stand tall.');
+  await field.fill('Stand tall, young one.');
+  await field.press('Enter');
+  await expect(field).toHaveCount(0);
+  await expect(lines.nth(0)).toContainText('Stand tall, young one.');
+  await expect(page.locator('.fs-replying')).toHaveCount(0);
+  // Escape puts the words back
+  await hold(0);
+  await msheet.getByRole('button', { name: 'Edit' }).click();
+  await field.fill('nothing kept');
+  await field.press('Escape');
+  await expect(lines.nth(0)).toContainText('Stand tall, young one.');
+
+  // Delete asks once more on the same row
+  await hold(1);
+  await msheet.getByRole('button', { name: 'Delete' }).click();
+  await expect(lines).toHaveCount(2);
+  await msheet.getByRole('button', { name: /Delete it/ }).click();
+  await expect(lines).toHaveCount(1);
+  await page.reload();
+  await expect(lines).toHaveCount(1);
+  await expect(lines.nth(0)).toContainText('Stand tall, young one.');
+});
