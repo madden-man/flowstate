@@ -37,7 +37,7 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   await expect(page.getByRole('button', { name: 'New council' })).toBeVisible();
   await page.goto('/#/be/px-selfless-selfish');
   await expect(page.getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByText('selfless', { exact: true })).toBeVisible();
+  await expect(page.locator('.fs-dichotomy .a', { hasText: 'selfless' })).toBeVisible();
 
   // Be (package 3): a goal on the selfless side only leaves a dashed slot on the selfish side; filling
   // it from the slot links the two across the seam; a reload offline keeps all of it

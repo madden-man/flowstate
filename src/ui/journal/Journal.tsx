@@ -6,7 +6,7 @@ import { Page, Ruled } from '../parts/Page';
 import { SpokeRules } from '../parts/SpokeRules';
 import { notebookDate } from '../date';
 import { PageView } from './PageView';
-import { hrefOf } from './href';
+import { hrefOf, startAnother } from './href';
 import { pagesList, searchPages, voicesById, type Paged } from '../../model/pages';
 import type { Read } from '../../db/fields';
 import type { Voice } from '../../db/schema';
@@ -51,6 +51,8 @@ export function JournalPages() {
   }, [q]);
   const now = new Date();
   const rows = (list ?? []).filter(x => !found || found.has(x.page.id));
+  // V15: a small + under the newest entry starts another (not while searching)
+  const newest = found ? undefined : rows.find(x => x.page.kind === 'entry')?.page.id;
   let month = '';
   return (
     <Page label="Pages" pages="here">
@@ -73,6 +75,9 @@ export function JournalPages() {
                 <span class="fs-list-line">{x.line}</span>
                 {match && <span class="fs-list-line fs-quiet">{match}</span>}
               </a>,
+              x.page.id === newest && (
+                <button key="another" type="button" class="fs-another" aria-label="Another entry today" onClick={startAnother}>+</button>
+              ),
             ];
           })}
         </div>
