@@ -74,7 +74,9 @@ describe('what the door shows', () => {
     expect(fs.find(x => x.id === 'panic')!.steps.at(-1)).toMatchObject({ id: 'mine', name: '', tips: [] });
     expect(fs.find(x => x.id === 'own')!.steps[0].name).toBe('');
     const rows = nowRows(fs);
-    expect(rows.map(r => r.stepId)).toEqual(PANIC.steps.map(s => s.id));
+    // four flows are seeded (F3); the added step and the flow he made are left out
+    expect(rows.filter(r => r.flow === 'Panic').map(r => r.stepId)).toEqual(PANIC.steps.map(s => s.id));
+    expect(rows.some(r => r.stepId === 'mine' || r.stepId === 'own-1')).toBe(false);
     expect(JSON.stringify(rows)).not.toMatch(/Mine|Secret|Own|After/);
   });
 
@@ -82,7 +84,8 @@ describe('what the door shows', () => {
     const f = (await flowById('panic'))!;
     await store.put('flows', { ...f, steps: f.steps.map((s, i) => (i === 2 ? { ...s, line: undefined } : s)) });
     const rows = nowRows(await flows());
-    expect(rows.map(r => [r.flow, r.step, r.name, r.line ?? null])).toEqual([
+    // Panic comes first; the other seeded flows follow it
+    expect(rows.slice(0, 4).map(r => [r.flow, r.step, r.name, r.line ?? null])).toEqual([
       ['Panic', 1, 'Overstimulated', 'Too much coming in at once.'],
       ['Panic', 2, 'The wave', 'The wave. Loud, fast, certain.'],
       ['Panic', 3, 'Settling', null],

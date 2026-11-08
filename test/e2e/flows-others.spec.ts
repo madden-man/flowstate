@@ -44,10 +44,10 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await expect(page.locator('.fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
   await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Slower now?');
 
-  // the list: Panic, Depress, Energize, Fight, then "+ flow"
+  // the list: Right now (F5) first, then Panic, Depress, Energize, Fight, then "+ flow"
   await page.goto('/#/flow');
-  await expect(page.locator('a.fl-flow .fs-list-line')).toHaveText(['Panic', 'Depress', 'Energize', 'Fight']);
-  await expect(page.locator('a.fl-flow .fs-list-meta')).toHaveText(['The ring', 'The valley', 'The landing arc', 'The mountain']);
+  await expect(page.locator('a.fl-flow:not(.fl-now) .fs-list-line')).toHaveText(['Panic', 'Depress', 'Energize', 'Fight']);
+  await expect(page.locator('a.fl-flow:not(.fl-now) .fs-list-meta')).toHaveText(['The ring', 'The valley', 'The landing arc', 'The mountain']);
 });
 
 test('"+ flow" makes a flow from nothing that survives an offline reload', async ({ page }) => {
