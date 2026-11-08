@@ -7,8 +7,11 @@
 // section 3) applied: the false-alarm frame in place of "It isn't", speech register ("it's", "you're"), no clinic words.
 // Nothing here is generated.
 //
-// Adding a flow (F3, F4): a new const here, or in a new file beside this one, and one line in SEED_FLOWS.
+// Adding a flow (F3, F4): a new file under ./seed/ (F3: depress, energize, fight), its import, and one line in SEED_FLOWS.
 import type { Flow } from './schema';
+import { DEPRESS } from './seed/depress';
+import { ENERGIZE } from './seed/energize';
+import { FIGHT } from './seed/fight';
 
 /** A seed flow as written here: the row without its dates and first revision, which seedFlow adds. */
 export type FlowSeed = Omit<Flow, 'createdAt' | 'updatedAt' | 'revisions' | 'sealed'>;
@@ -100,7 +103,12 @@ export const PANIC: FlowSeed = {
 };
 
 /** Every seed flow, in the list's order. F3 and F4 add theirs here, one line each. */
-export const SEED_FLOWS: FlowSeed[] = [PANIC];
+export const SEED_FLOWS: FlowSeed[] = [
+  PANIC,
+  DEPRESS,
+  ENERGIZE,
+  FIGHT,
+];
 
 /** A seed as a flows row: dated, with its seed text as the first revision. */
 export function seedFlow(seed: FlowSeed, at = SEED_FLOWS_AT): Flow {

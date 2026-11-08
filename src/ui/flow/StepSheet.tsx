@@ -4,6 +4,10 @@
 // says, struck through with the day it changed (rule 10, the paradox sheet's pattern). Closing the sheet keeps the work
 // (rule 6: no save button): an edit writes the step and adds the new version to the flow's revisions.
 // Opened by the Edit word under a step read at rest (walk it once: the words are changed calm, never mid-episode).
+// The same sheet adds a step (F3's "+ step" under a flow at rest, and "name the first step" on a flow made from
+// nothing): it opens empty, and closing it (Save, inert until there is a name, or Done) with a name written adds the step (model/flow-make.ts addStep), then
+// keeps whatever else was written (usually, the tips) with saveStep. With no name, nothing is written. Still keeps
+// the page to its words (rule 13), so "+ step" waits for Day or Night; "name the first step" stays.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { Sheet } from '../parts/Sheet';
@@ -15,23 +19,63 @@ import { HELPER_WORD } from './Tips';
 import type { Flow, Step, Tip, TipHelper } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import { earlierOf, moveTip, newTip, saveStep, type StepDraft } from '../../model/tips';
+import { addStep, isUnnamed } from '../../model/flow-make';
+
+/** A sheet opening is felt (rule 19): the Edit word and "+ step". */
+export const tickSheet = () => tick('sheet');
+
+/** "+ step" under a flow at rest, or "name the first step" on a flow made from nothing: the step sheet, empty. */
+export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [n, setN] = useState(0);
+  if (flow.locked) return null;
+  const first = flow.steps.some(isUnnamed);
+  const show = () => { tickSheet(); setN(k => k + 1); setOpen(true); };
+  return (
+    <>
+      {first
+        ? <button type="button" class="fl-name-first" onClick={show}>name the first step<span class="fl-caret" aria-hidden="true" /></button>
+        : <div class="fl-add fs-notstill"><button type="button" class="fs-chip add" onClick={show}>+ step</button></div>}
+      {n > 0 && <StepSheet key={n} flow={flow} open={open} first={first} onClose={() => setOpen(false)} onSaved={onSaved} />}
+    </>
+  );
+}
 
 /** The helpers a tip can carry from this sheet (the person row is F6's and has its own sheet). */
 const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer'];
 
-type Props = { flow: Read<Flow>; step: Step; open: boolean; onClose: () => void; onSaved: () => void };
+/** step: the step to edit; none to add one (first: it names the flow's unnamed step). */
+type Props = { flow: Read<Flow>; step?: Step; first?: boolean; open: boolean; onClose: () => void; onSaved: () => void };
 
-const draftOf = (s: Step): StepDraft => ({ name: s.name, line: s.line ?? '', said: s.said ?? '', usual: s.usual ?? '', tips: structuredClone(s.tips) });
+const draftOf = (s: Step | undefined): StepDraft => ({
+  name: s?.name ?? '', line: s?.line ?? '', said: s?.said ?? '', usual: s?.usual ?? '', tips: structuredClone(s?.tips ?? []),
+});
 
-export function StepSheet({ flow, step, open, onClose, onSaved }: Props) {
+/** A new step: added by name, then the rest of what was written kept on it. */
+async function addAndSave(flow: Read<Flow>, d: StepDraft): Promise<void> {
+  if (!d.name.trim()) return;
+  const blank = flow.steps.find(isUnnamed)?.id;
+  const next = await addStep(flow.id, d);
+  const id = blank ?? next?.steps.at(-1)?.id;
+  if (next && id && (d.usual?.trim() || d.tips.some(t => t.text.trim()))) await saveStep(flow.id, id, d);
+}
+
+export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) {
   const [d, setD] = useState<StepDraft>(() => draftOf(step));
   const dRef = useRef(d);
   dRef.current = d;
-  useEffect(() => { if (open) setD(draftOf(step)); }, [open, step.id]);
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (open && step) setD(draftOf(step)); }, [open, step?.id]);
+  // adding: the caret waits in the name
+  useEffect(() => {
+    if (!open || step) return;
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => nameRef.current?.focus({ preventScroll: true })));
+    return () => cancelAnimationFrame(r);
+  }, [open]);
   // closing keeps the work
   const wasOpen = useRef(open);
   useEffect(() => {
-    if (wasOpen.current && !open) void saveStep(flow.id, step.id, dRef.current).then(onSaved);
+    if (wasOpen.current && !open) void (step ? saveStep(flow.id, step.id, dRef.current) : addAndSave(flow, dRef.current)).then(onSaved);
     wasOpen.current = open;
   }, [open]);
 
@@ -85,15 +129,17 @@ export function StepSheet({ flow, step, open, onClose, onSaved }: Props) {
   }, [lifted]);
   const lift = (id: string, y: number) => { drag.current = { id, y, dy: 0 }; setLifted(id); };
 
-  const earlier = earlierOf({ revisions: flow.revisions, steps: flow.steps.map(s => (s.id === step.id ? { ...s, ...d } : s)) }, step.id);
+  const earlier = step ? earlierOf({ revisions: flow.revisions, steps: flow.steps.map(s => (s.id === step.id ? { ...s, ...d } : s)) }, step.id) : [];
   const tips = d.tips.filter(t => !t.struck);
 
   return (
-    <Sheet open={open} onClose={onClose} title={d.name.trim() || step.name}>
+    <Sheet open={open} onClose={onClose} title={step ? d.name.trim() || step.name : first ? 'The first step' : 'New step'}
+      action={step ? undefined : { label: 'Save', inert: !d.name.trim(), onPress: onClose }}>
       <div class="fs-rows fl-stepsheet">
         <label class="fs-row stack">
           <span class="fs-print">Name</span>
-          <input class="fs-input" value={d.name} aria-label="Name" autocomplete="off" onInput={set('name')} />
+          <input ref={nameRef} class="fs-input" value={d.name} aria-label="Name" placeholder={step ? undefined : 'Two or three words'}
+            autocomplete="off" onInput={set('name')} />
         </label>
         <label class="fs-row stack">
           <span class="fs-print">Your line</span>
@@ -153,8 +199,9 @@ function TipRow({ t, lifted, onLift, onText, onHelper, onStrike }: RowProps) {
           onPointerDown={e => { y.current = e.clientY; hold.onPointerDown(e); }}>{t.text}</p>
       )}
       <div class="fl-tipacts">
-        {/* a wise line is the wiser second person, printed, not a thing to tick: it carries no helper */}
-        {!t.wise ? (
+        {/* a wise line (the wiser second person) and a print line (F3: the page's own, the 988 line) are not things to
+            tick: neither carries a helper */}
+        {!t.wise && !t.print ? (
           <button type="button" class={`fs-chip${t.helper ? '' : ' add'}`} aria-expanded={helpers} onClick={() => setHelpers(!helpers)}>
             {t.helper ? HELPER_WORD[t.helper] : 'helper'}
           </button>

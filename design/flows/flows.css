@@ -109,6 +109,8 @@ details a{color:var(--accent)}
 /* ---------- the crisis pass (2026-11-08 evening) ---------- */
 /* right now: your own step lines across every flow, one per rule, the flow and step in print under each */
 .fl-now .fs-list-line{font-style:italic}
+.fl-nowlist .fs-row.fl-flow{padding-right:0}
+.fl-nowlist .fs-list-line{white-space:normal}
 /* ghost rings: every earlier episode a faint closed circle behind the live ring; a drawing, not a count */
 .fl-ring .ghost{fill:none;stroke:var(--print);stroke-width:1;opacity:.3}
 /* hold the ring: one thing at a time at the peak, full width, the next by a swipe */
@@ -119,7 +121,7 @@ details a{color:var(--accent)}
 .fl-note .fs-chips{padding-inline:0}
 /* the lock inside the phone, not over the page; the door is one word under the keypad */
 .screen .fs-threshold{position:absolute;border-radius:inherit;animation:none}
-.fl-door{display:block;margin:var(--s2) auto 0;color:var(--print);font-family:var(--serif);font-style:italic;font-size:var(--fs-chip)}
+.fs-word.fl-door{display:block;margin:var(--s2) auto 0;min-height:var(--hit);text-transform:none;letter-spacing:0;color:var(--print);font-family:var(--serif);font-style:italic;font-size:var(--fs-chip)}
 /* stamps: your own outcomes on the curve, a drawn check or cross */
 .fl-diag .cross{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round}
 /* a small badge beside a step title for a step that is still a question */

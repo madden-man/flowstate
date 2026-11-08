@@ -9,7 +9,12 @@
 // Five opens five rules on the page, kept on the episode, never on the journal; Journal links today's page to the
 // episode and opens it; Timer sets a return time 20 minutes to 24 hours away. Helpers that only move you (Still, ♪,
 // Five's rules) work at rest too, so the flow can be rehearsed calm; the ones that write (Journal, Timer, Five's
-// lines) wait for a live episode. The person row is F6's and is not drawn yet.
+// lines) wait for a live episode. The person row is F6's and is not drawn yet. A print tip (F3, the 988 line) is never
+// a row: PrintLines prints it under these.
+//
+// Through the door (F5, the journal locked, door true): a tick draws and writes nothing; the rows that write or leave
+// the page (Journal, Timer, ♪) and Five's rules stay behind the PIN, and so does the return line. Ring and the Still
+// row stay: they only move you.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Check } from '../parts/Check';
@@ -38,7 +43,12 @@ type Props = {
   now: number;
   /** Something was written: read the page again. */
   onChanged: () => void;
+  /** Through the door without the PIN (F5): draw, never write; the helpers that write or leave stay behind the PIN. */
+  door?: boolean;
 };
+
+/** The helpers that stay behind the PIN: they write (Journal, Timer, Five's lines) or leave the page for an account (♪). */
+const BEHIND_PIN: TipHelper[] = ['journal', 'timer', 'music', 'five'];
 
 const SWIPE_SLOP_PX = 12;
 const SWIPE_PX = 60;
@@ -66,15 +76,17 @@ function useSwipe(go: (dir: 1 | -1) => void) {
   };
 }
 
-export function Tips({ step, flowTips, live, still, now, onChanged }: Props) {
+export function Tips({ step, flowTips, live: stored, still, now, onChanged, door }: Props) {
   const { route } = useLocation();
-  const tips = shownTips(step, still);
+  // through the door the live episode is read for its ticks and never written
+  const live = door ? undefined : stored;
+  const tips = shownTips(step, still).filter(t => !door || !t.helper || !BEHIND_PIN.includes(t.helper));
   // ticks drawn at rest (walk it once) and ticks drawn before the write lands
   const [drawn, setDrawn] = useState<Record<string, boolean>>({});
   const [fiveOpen, setFiveOpen] = useState(false);
   const [one, setOne] = useState(0);
   useEffect(() => { setDrawn({}); setFiveOpen(false); setOne(0); }, [step.id, live?.id]);
-  const done = doneIds(live);
+  const done = doneIds(stored);
   const isDone = (t: Tip) => drawn[t.id] ?? done.has(t.id);
   const swipe = useSwipe(dir => setOne(i => (i + dir + tips.length) % tips.length));
   if (!tips.length) return null;

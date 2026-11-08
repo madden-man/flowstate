@@ -49,7 +49,7 @@ describe('the seed flows', () => {
     await db.flows.clear();
     const s = (await store.get('settings', 'app'))!;
     await store.put('settings', { ...s, flowsSeeded: undefined });
-    expect(await seedFlowsOnce()).toEqual(['panic']);
+    expect(await seedFlowsOnce()).toEqual(SEED_FLOWS.map(f => f.id));
     expect((await flowById('panic'))!.name).toBe('Panic');
     await store.delete('flows', 'panic');
     expect(await seedFlowsOnce()).toEqual([]);
@@ -158,7 +158,7 @@ describe('backup', () => {
     await ensureSeeded();
     await moveDot('panic', [], ids[1], T0);
     const file = parseBackup(JSON.stringify(await exportData(db, 1000)));
-    expect(file.tables.flows).toHaveLength(1);
+    expect(file.tables.flows).toHaveLength(SEED_FLOWS.length);
     expect(file.tables.episodes).toHaveLength(1);
     const other = await freshDB();
     await importData(file, 'replace', other);
@@ -177,6 +177,6 @@ describe('backup', () => {
     const other = await freshDB();
     await importData(parseBackup(JSON.stringify(v2)), 'replace', other);
     expect(await other.flows.count()).toBe(0);
-    expect(await seedFlowsOnce()).toEqual(['panic']);
+    expect(await seedFlowsOnce()).toEqual(SEED_FLOWS.map(f => f.id));
   });
 });

@@ -1,0 +1,16 @@
+/* ==== The door (F5, PLAN-FLOWS.md 3.7): Right now, and the one word under the lock's keypad ==== */
+/* Right now: his own line in italic on the rule, the flow and the step in print under it; a row with no line is the
+   print alone, on a blank rule above it so every row keeps the two-rule height. The line wraps rather than being cut
+   (DESIGN.md rule 5, a row that can wrap): it is the sentence he has to recognise, so all of it shows. */
+.fl-nowlist .fs-row.fl-flow { padding-right: 0; }
+.fl-now .fs-list-line { font-style: italic; }
+.fl-nowlist .fs-list-line { white-space: normal; }
+.fl-noline .fs-list-meta { padding-top: var(--lh-ink); }
+/* the word under the keypad: print grey italic serif, centred, a 44 point target (it is the one way in without the PIN) */
+.fs-word.fl-door { display: block; text-transform: none; letter-spacing: 0; margin: var(--s2) auto 0; min-height: var(--hit); color: var(--print); font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); }
+/* the PIN asked from the door: the keypad in a sheet over the page */
+.fl-doorpin { padding-bottom: var(--s2); }
+/* Settings, the Shortcut row: the address as typed, not in the print's capitals, and free to break anywhere */
+.fl-url { text-transform: none; letter-spacing: 0; overflow-wrap: anywhere; }
+/* the note under a stacked row is a flex row by default (.fs-row.stack > span); this one is a sentence */
+.fs-row.stack > .fs-note.fl-shortcut { display: block; }
