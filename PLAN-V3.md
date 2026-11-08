@@ -122,3 +122,7 @@ Long press a row on Be to lift it, drag it to a new place (the Voices screen's g
 ## 14. V14: a 502 on play (2026-11-08)
 
 Tommy: "when i tapped an album it said spotify did not play it (502)". `playAlbum` now treats a 5xx as Spotify's player timing out: it looks at what is playing (the play may have landed), else plays once more by the song's place in the playlist; two 5xx are one refusal. Shelves without `firstTrackAt` are read once more so the place is there. docs/SPOTIFY.md, Playing.
+
+## 15. V15: the + lives on Pages (2026-11-08)
+
+Tommy: "instead of putting the + in header, put it on the pages section below the most recent entry". The header's + goes; on Pages a small serif + in print grey sits on the rule under the newest entry (not while searching, and Pages is gone in Still). It does what V12's did: `#/journal/new/:n`, a fresh page that becomes another entry today at its first word.

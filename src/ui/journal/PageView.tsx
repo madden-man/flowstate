@@ -520,7 +520,6 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   return (
     <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
-      another={isToday && kind === 'entry' && !!page && written}
       music={page ? {
         id: page.id, music: page.music,
         onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },

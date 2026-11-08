@@ -30,8 +30,6 @@
 /* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
 .fs-hdr-r > span { white-space: nowrap; }
 .fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
-/* V12: the + after Pages (another entry today): the serif a size up, like ♪, not a word */
-.fs-hdr-l > .fs-plus { font-family: var(--serif); font-size: var(--fs-fill); letter-spacing: 0; min-width: var(--hit); justify-content: center; }
 .fs-hdr-r b {
   font-family: var(--serif); font-weight: 400; font-size: var(--fs-fill);
   text-transform: none; letter-spacing: 0; color: var(--ink);
@@ -503,6 +501,9 @@ a.fs-word { text-decoration: none; }
 .fs-links { margin-top: var(--lh-ink); }
 .fs-link, .fs-list-row, .fs-qrow { display: block; color: inherit; text-decoration: none; min-height: calc(var(--lh-ink) * 2); }
 .fs-link { color: var(--print); }
+/* V15: the + under the newest entry on Pages (another entry today): one rule high, in print grey, no word */
+.fs-another { appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer; display: block; height: var(--lh-ink); min-width: var(--hit); text-align: left; font-family: var(--serif); font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--print); }
+.fs-another:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .fs-link small, .fs-list-meta { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span, .fs-list-line { display: block; line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fs-link span { font-style: italic; }

@@ -80,32 +80,38 @@ test('write, Return, reload; a paragraph in the middle; an earlier page; Pages',
   await expect(page.getByRole('button', { name: 'Revisit' })).toHaveCount(0);
 });
 
-test('a + after Pages starts another entry today; nothing is made until its first word (V12)', async ({ page }) => {
+test('a + under the newest entry on Pages starts another entry today; nothing is made until its first word (V12, V15)', async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 10, 8, 8, 0) });
   await page.goto('/');
   await cross(page);
-  const plus = page.getByRole('button', { name: 'Another entry today' });
   const no = page.locator('.fs-hdr .fs-count b');
-  // a blank page offers no +
+  const plus = page.getByRole('button', { name: 'Another entry today' });
+  const listed = page.locator('.fs-pagelist .fs-list-row');
+  const toPages = () => page.getByRole('link', { name: 'Pages', exact: true }).click();
+  // the header carries no + (V15 moved it to Pages)
   await expect(plus).toHaveCount(0);
   await today$(page).click();
   await today$(page).pressSequentially('Morning, before the move.', { delay: 2 });
   await expect(today$(page)).toHaveAttribute('data-saved', 'true');
-  await expect(plus).toBeVisible();
+  await expect(plus).toHaveCount(0);
   const first = Number(await no.textContent());
 
-  // +: a fresh page, the next number, the caret on its first rule; leaving it unwritten makes nothing
+  // Pages: the + sits right under the newest entry
+  await toPages();
+  await expect(listed.first()).toContainText('Morning, before the move.');
+  await expect(page.locator('.fs-pagelist .fs-list-row:first-of-type + .fs-another, .fs-pagelist a.fs-list-row + button.fs-another')).toHaveCount(1);
   await plus.click();
   await expect(page).toHaveURL(/#\/journal\/new\//);
   await expect(lines(page)).toHaveCount(0);
   await expect(no).toHaveText(String(first + 1));
-  await expect(plus).toHaveCount(0);
+  // left unwritten, it makes nothing: the Journal tab is the morning's page again
   await page.getByRole('link', { name: 'Journal', exact: true }).click();
   await expect(lines(page)).toHaveText(['Morning, before the move.']);
   await expect(no).toHaveText(String(first));
 
   // + again, and write: the new entry is today's page from then on
-  await page.getByRole('button', { name: 'Another entry today' }).click();
+  await toPages();
+  await plus.click();
   await today$(page).click();
   await today$(page).pressSequentially('Evening, after it.', { delay: 2 });
   await expect(today$(page)).toHaveAttribute('data-saved', 'true');
@@ -114,10 +120,11 @@ test('a + after Pages starts another entry today; nothing is made until its firs
   await cross(page);
   await expect(lines(page)).toHaveText(['Evening, after it.']);
   await expect(no).toHaveText(String(first + 1));
-  // both are in Pages, the morning one too (the list itself: the pull's rail shares its row class)
-  await page.getByRole('link', { name: 'Pages', exact: true }).click();
-  const listed = page.locator('.fs-pagelist .fs-list-row');
+  // both are in Pages, newest first, the + under the evening one; a search hides it
+  await toPages();
   await expect(listed.filter({ hasText: 'Morning, before the move.' })).toHaveCount(1);
-  await expect(listed.filter({ hasText: 'Evening, after it.' })).toHaveCount(1);
+  await expect(listed.first()).toContainText('Evening, after it.');
+  await expect(plus).toHaveCount(1);
+  await page.getByRole('searchbox', { name: 'Search the pages' }).fill('Morning');
+  await expect(plus).toHaveCount(0);
 });
-
