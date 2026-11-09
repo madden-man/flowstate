@@ -1,6 +1,6 @@
 // The audition for PLAN-MEDITATE.md. Two halves:
 //   1. the four scapes (rain, ocean, forest, bowl) synthesised with Web Audio, no files, written the way they
-//      would move into src/ui/parts/Sound.ts in package M1 (rule 21: sound only there, never uninvited);
+//      would move into src/ui/parts/Sound.ts in package S1 (rule 21: sound only there, never uninvited);
 //   2. the circle in each phone mock: a tap begins the sit and the sound, a tap ends both.
 // Nothing here plays until the circle is tapped.
 (function () {
