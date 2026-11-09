@@ -10,3 +10,5 @@
 /* after: the page is back, with what the sit was and the way to the journal */
 .md-page[data-state="after"] .md-quiet { display: none; }
 .md-page[data-state="after"] .md-after { display: flex; }
+/* the mock of a sit with an end (step 6, and step 2 once minutes are chosen) shows the ink stroke; in the app S2 sets data-ending */
+.md-page[data-minutes]:not([data-minutes="0"]) .md-circle .sat { display: inline; }

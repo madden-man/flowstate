@@ -15,7 +15,8 @@ function ctx(): AudioContext | null {
     if (!AC) return null;
     try { ac = new AC(); } catch { return null; }
   }
-  if (ac.state === 'suspended') void ac.resume();
+  // 'suspended' before the first tap, and on the iPhone 'interrupted' after a call or a lock: both wake the same way
+  if (ac.state !== 'running') void ac.resume().catch(() => undefined);
   return ac;
 }
 
@@ -410,11 +411,14 @@ export function scape(name: SitSound): Scape | null {
   playing?.end(OUT_S, release(playing));
   playing = null;
   if (name === 'quiet') { const t0 = wallClock(); return { t0, now: wallClock, end: () => undefined }; }
+  // the session is named before the context is made or woken, so the first sound of a sit is already media
+  const media = settings.value.sitThroughSilent ?? true;
+  if (media) sessionType('playback');
   const a = ctx();
-  if (!a) return null;
+  if (!a) { if (media && !holding) sessionType('auto'); return null; }
   const s = buildScape(a, name)!;
   playing = s;
-  if (settings.value.sitThroughSilent ?? true) { sessionType('playback'); holding = s; }
+  if (media) holding = s;
   let ended = false;
   return {
     t0: s.t0,
