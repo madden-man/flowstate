@@ -10,12 +10,14 @@ import { startLight } from './ui/light';
 import { startUpdates, countLaunch } from './pwa/install';
 import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
+import { startPress } from './ui/parts/Press';
 
 async function boot() {
   await init();
   const firstRun = await ensureSeeded();
   await loadSettings();
   startLight();
+  startPress();
   bootMusic();
   // first run asks Safari to keep the data, and the answer goes into the settings row
   if (firstRun) void persistNow();
