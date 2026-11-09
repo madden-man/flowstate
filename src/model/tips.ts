@@ -4,7 +4,7 @@
 // the clock is minutes since this episode's own peak, and "what helped" is the last episode's ticks, as words.
 import type { Episode, Flow, Page, Step, Tip } from '../db/schema';
 import { store, type Read } from '../db/fields';
-import { newPage, today } from './pages';
+import { todayLinked } from './pages';
 import { currentStepId, spanOfEpisode } from './flows';
 
 const MIN = 60_000;
@@ -152,13 +152,12 @@ export function whatHelped(flow: Pick<Flow, 'steps'>, e: Pick<Episode, 'done'> |
 
 // ---------------------------------------------------------------- the journal link (the Journal helper)
 
-/** Today's page, linked to the episode both ways: page.flow on the page, pageId on the episode. A day with no page
- *  yet gets an empty one (nothing written: it stays off every list until a word is, like any fresh page). */
+/** Today's page, linked to the episode both ways: page.flow on the page, pageId on the episode (pages.ts todayLinked,
+ *  which the page after a sit shares). */
 export async function linkToday(episodeId: string, now = Date.now()): Promise<Read<Page> | undefined> {
   const e = await liveRow(episodeId);
   if (!e) return undefined;
-  const t = await today(new Date(now));
-  const page: Read<Page> = t.page ? { ...t.page, flow: { episodeId }, updatedAt: now } : newPage('entry', now, { flow: { episodeId } });
+  const page = await todayLinked({ flow: { episodeId } }, now);
   await store.many({ pages: [page], episodes: [{ ...e, pageId: page.id }] });
   return page;
 }

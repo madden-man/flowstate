@@ -547,6 +547,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
         )}
         {/* F2: a page written about a flow episode links back to it (page.flow, like page.music) */}
         {page?.flow && <JournalLink episodeId={page.flow.episodeId} />}
+        {/* S2: a page written after a sit links back to it the same way (page.sit) */}
+        {page?.sit && <JournalLink sitId={page.sit.sitId} />}
         {data && blocks.map(b => {
           const m = b.m;
           const dated = m && prevAt !== undefined && dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;
