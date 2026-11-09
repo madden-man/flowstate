@@ -991,7 +991,9 @@ html[data-turn="still"]::view-transition-old(root), html[data-turn="still"]::vie
 html[data-turn="wake"]::view-transition-old(root), html[data-turn="wake"]::view-transition-new(root) {
   animation: none; mix-blend-mode: normal;
 }
-html[data-turn="still"]::view-transition-new(root) { animation: fs-still-open var(--t-light) var(--ease) both; }
+/* opening runs at a steady pace: --ease would spend the breath in its first third (the edge is across the page by
+   then, and the rest is spent off screen); closing keeps --ease, quick away from the corners and slow into the ring */
+html[data-turn="still"]::view-transition-new(root) { animation: fs-still-open var(--t-light) linear both; }
 html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-still-close var(--t-light) var(--ease) both; }
 @keyframes fs-still-open {
   from { clip-path: circle(0 at var(--still-x) var(--still-y)); }
