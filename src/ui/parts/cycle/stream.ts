@@ -30,25 +30,37 @@ export const FASTEST = 100;
 export const SLOWEST = 0.22;
 /** The main stream's motes: one per this many drawing units of walk, between MOTES_MIN and MOTES_MAX. With the side
  *  roads the layer stays under about ninety lines (PLAN-MOTION.md M5 item 7). */
-export const SPACING = 8.5;
-export const MOTES_MIN = 30;
-export const MOTES_MAX = 64;
-/** How bright the brightest mote is, as opacity, before the light and the lane scale it. */
-export const OPACITY = 0.62;
+export const SPACING = 6;
+export const MOTES_MIN = 40;
+export const MOTES_MAX = 78;
+/** A mote's depth, near to far: the nearest is NEAR_A of ink and NEAR_W CSS pixels wide, the farthest FAR_A and FAR_W,
+ *  so the water has depth instead of one grey. The motes are ink, so they read against the line's print grey. */
+export const NEAR_A = 0.9;
+export const FAR_A = 0.35;
+export const NEAR_W = 3.2;
+export const FAR_W = 1.6;
 /** At rest (the dot between episodes): the whole stream, a little quieter. */
 export const AT_REST = 0.7;
 /** Behind the dot, the water fades to this. */
 export const BEHIND = 0.2;
 /** The dotted stretches carry it at this. */
 export const THIN = 0.4;
-/** A dash's length is the distance its mote covers in this many seconds (a physical constant, not a duration). */
-export const DASH_S = 0.11;
-/** The longest dash, in drawing units. */
-export const DASH_MAX = 11;
-/** How far across the line the water spreads, in drawing units either side: SPREAD_MIN for the quickest (so the drawn
- *  line does not cover it all), up to SPREAD_MAX for the slowest. */
-export const SPREAD_MIN = 2.2;
-export const SPREAD_MAX = 6;
+/** Below this many drawing units a second a mote is a dot; from there its dash grows, eased, to DASH_MAX at FASTEST,
+ *  so a single frame tells the jet from the pool. */
+export const DOT_BELOW = 12;
+/** The longest dash, in drawing units (the top pace). */
+export const DASH_MAX = 14;
+/** The stream is a channel centred on the line, denser toward its middle: this many drawing units either side where it
+ *  runs fast (a jet), up to SPREAD_POOL where it is slow (a pool). */
+export const SPREAD_JET = 5.5;
+export const SPREAD_POOL = 9.5;
+/** Still shows this share of the motes (by day all of them show); the light's own --stream slows them. */
+export const STILL_SHARE = 0.5;
+/** The channel beside a step's word, as a share of its width, and how far from the word it is back to full. */
+export const WORD_NARROW = 0.5;
+export const WORD_REACH = 14;
+/** A side road is a trickle, narrower than the main channel. */
+export const SIDE_NARROW = 0.55;
 /** Hold the ring: the calm each breath takes away, and the least it can fall to. */
 export const CALM_STEP = 0.12;
 export const CALM_FLOOR = 0.45;
@@ -64,6 +76,9 @@ const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const mod1 = (x: number) => ((x % 1) + 1) % 1;
 /** The signed shortest way from a to b round a closed walk. */
 const wrapSigned = (d: number) => mod1(d + 0.5) - 0.5;
+
+/** The share of motes the light shows: all of them by day and night, STILL_SHARE in Still (--stream .4), none at 0. */
+export const shownAt = (k: number) => (k <= 0 ? 0 : lerp(STILL_SHARE, 1, smooth((k - 0.4) / 0.45)));
 
 export type Paces = { rest: number; steps: number[] };
 
@@ -117,6 +132,8 @@ export type Mote = { t: number; off: number; w: number; a: number; s: number; ra
 
 export type Lane = {
   at(t: number): Pt; len: number; closed: boolean; v(t: number): number; fade(t: number): number;
+  /** How wide the channel may run here (1 is all of it): narrower where a step's word sits beside the line. */
+  narrow(t: number, side: number): number;
   alpha: number; main: boolean;
   /** Where on the walk a side road leaves it, for the fade behind the dot. */
   from: number;
@@ -138,6 +155,26 @@ export function tickAt(ms: number): number {
   return 0.1 + 2.6 * smooth(u / 0.12) * (1 - smooth((u - 0.2) / 0.2));
 }
 
+/** Where a step's word sits beside the line, the side of the channel facing it narrows to WORD_NARROW (eased over
+ *  WORD_REACH drawing units), so a pool never sits under a word; the far side keeps its width, and the words keep their
+ *  page-coloured edge as well. A table, read by t and by side (side > 0 is the side the layer's offsets call positive). */
+function wordsBeside(shape: Shape, n: number, samples = 240): (t: number, side: number) => number {
+  const words = Array.from({ length: n }, (_, i) => shape.label(i, n));
+  const plus: number[] = [], minus: number[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples, e = 0.004, p = shape.at(t);
+    const a = shape.at(Math.max(0, t - e)), b = shape.at(Math.min(1, t + e));
+    const d = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / d, ny = (b.x - a.x) / d;
+    let fp = 1, fm = 1;
+    for (const w of words) {
+      const f = lerp(WORD_NARROW, 1, smooth((Math.hypot(p.x - w.x, p.y - w.y) - 8) / WORD_REACH));
+      if ((w.x - p.x) * nx + (w.y - p.y) * ny >= 0) fp = Math.min(fp, f); else fm = Math.min(fm, f);
+    }
+    plus.push(fp); minus.push(fm);
+  }
+  return (t, side) => (side >= 0 ? plus : minus)[Math.round(Math.max(0, Math.min(1, t)) * samples)];
+}
+
 /** A side road as a lane of its own, measured along its pieces. */
 function sideLane(shape: Shape, side: SideRoad): Lane {
   const walk = walkOf(side.pieces.map(p => ({ ...p, cls: '' })), 48);
@@ -146,7 +183,7 @@ function sideLane(shape: Shape, side: SideRoad): Lane {
   let from = 0, best = Infinity;
   for (let i = 0; i <= 400; i++) { const q = shape.at(i / 400), d = (q.x - start.x) ** 2 + (q.y - start.y) ** 2; if (d < best) { best = d; from = i / 400; } }
   return {
-    at: walk.at, len: walk.length, closed: false, v: () => side.pace, main: false, from, alpha: side.alpha, motes: [],
+    at: walk.at, len: walk.length, closed: false, v: () => side.pace, narrow: () => SIDE_NARROW, main: false, from, alpha: side.alpha, motes: [],
     fade: t => smooth(t / 0.1) * (side.fades ? 1 - smooth((t - 0.3) / 0.6) : smooth((1 - t) / 0.1)),
   };
 }
@@ -180,7 +217,7 @@ export class Water {
     const thin = this.water.thin ?? [];
     const thinAt = (t: number) => thin.reduce((f, [a, b]) => f * lerp(1, THIN, smooth((t - a) / 0.04) * smooth((b - t) / 0.04)), 1);
     const main: Lane = {
-      at: shape.at, len, closed: shape.closed, v, main: true, from: 0, alpha: 1, motes: [],
+      at: shape.at, len, closed: shape.closed, v, narrow: wordsBeside(shape, n), main: true, from: 0, alpha: 1, motes: [],
       // an open walk fades in and out at its ends, where its motes go round again; a closed one never ends
       fade: shape.closed ? thinAt : t => smooth(t / 0.06) * smooth((1 - t) / 0.06) * thinAt(t),
     };
@@ -197,7 +234,8 @@ export class Water {
   private seed(lane: Lane, count: number) {
     const r = this.rng;
     for (const t of steadyFill(lane.v, count, r)) {
-      lane.motes.push({ t, off: r() + r() - 1, w: 1.1 + r() * 1.1, a: 0.55 + r() * 0.45, s: r(), rank: r(), vis: 1 });
+      const depth = r();
+      lane.motes.push({ t, off: r() + r() - 1, w: lerp(FAR_W, NEAR_W, depth), a: lerp(FAR_A, NEAR_A, Math.min(1, depth + (r() - 0.5) * 0.2)), s: r(), rank: r(), vis: 1 });
     }
   }
 
@@ -258,7 +296,7 @@ export class Water {
       if (this.shape.closed) this.mask = mod1(this.mask);
     }
     if (this.push) { this.push.age += dt / this.push.life; if (this.push.age >= 1) this.push = null; }
-    const shown = 0.25 + 0.75 * Math.min(1, k);
+    const shown = shownAt(k);
     for (const lane of this.lanes) {
       for (const m of lane.motes) {
         m.t += (this.unitsAt(lane, m.t, wall) * this.mult * k * dt) / lane.len;
@@ -287,7 +325,7 @@ export class Water {
 
   /** Writes each mote as a line, x1 y1 x2 y2 and opacity, five numbers a mote in lane order. */
   draw(out: Float32Array, wall: number) {
-    const k = this.k, light = 0.6 + 0.4 * Math.min(1, k), hang = this.water.hang ?? 0, lift = this.water.lift ?? 0;
+    const k = this.k, light = 0.85 + 0.15 * Math.min(1, k), hang = this.water.hang ?? 0, lift = this.water.lift ?? 0;
     let o = 0;
     for (const lane of this.lanes) {
       for (const m of lane.motes) {
@@ -296,12 +334,12 @@ export class Water {
         const a = lane.at(lane.closed ? mod1(m.t - e) : Math.max(0, m.t - e)), b = lane.at(lane.closed ? mod1(m.t + e) : Math.min(1, m.t + e));
         const d = Math.hypot(b.x - a.x, b.y - a.y) || 1, tx = (b.x - a.x) / d, ty = (b.y - a.y) / d;
         const p = lane.at(m.t);
-        const spread = Math.min(SPREAD_MAX, SPREAD_MIN + 2.6 / Math.max(v, 0.5)) * this.gather;
+        const spread = lerp(SPREAD_POOL, SPREAD_JET, smooth((v - 0.3) / 1.6)) * this.gather * lane.narrow(m.t, m.off);
         let x = p.x - ty * m.off * spread, y = p.y + tx * m.off * spread;
         if (lane.main) y += hang * m.s * Math.min(1, 0.6 / v) - lift * m.s * smooth((v - 1.2) / 1.2);
-        const L = Math.max(0.01, Math.min(DASH_MAX, units * DASH_S));
+        const L = Math.max(0.01, DASH_MAX * smooth((units - DOT_BELOW) / (FASTEST - DOT_BELOW)));
         out[o] = x - tx * L; out[o + 1] = y - ty * L; out[o + 2] = x; out[o + 3] = y;
-        out[o + 4] = OPACITY * lane.alpha * m.a * lane.fade(m.t) * this.ahead(lane.main ? m.t : lane.from) * light * m.vis;
+        out[o + 4] = Math.min(1, lane.alpha * m.a) * lane.fade(m.t) * this.ahead(lane.main ? m.t : lane.from) * light * m.vis;
         o += 5;
       }
     }

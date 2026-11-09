@@ -107,13 +107,45 @@ describe('the fastest water', () => {
   });
 });
 
+describe('presence: one frame tells the jet from the pool', () => {
+  it('Panic: long dashes in a narrow channel through the wave, dots in a wide pool under the skin', () => {
+    const w = new Water(ring, 4, panic, rng());
+    const out = new Float32Array(w.size * 5);
+    w.draw(out, 0);
+    const lane = w.lanes[0];
+    const at = (t: number) => lane.motes.map((m, i) => ({ m, i })).filter(({ m }) => Math.min(Math.abs(m.t - t), 1 - Math.abs(m.t - t)) < 0.04);
+    const dash = (i: number) => Math.hypot(out[i * 5 + 2] - out[i * 5], out[i * 5 + 3] - out[i * 5 + 1]);
+    const off = (i: number) => { const p = lane.at(lane.motes[i].t); return Math.hypot(out[i * 5 + 2] - p.x, out[i * 5 + 3] - p.y); };
+    const wave = at(ring.slotT(1, 4)), skin = at(ring.slotT(3, 4));
+    expect(Math.min(...wave.map(x => dash(x.i)))).toBeGreaterThan(6);
+    expect(Math.max(...skin.map(x => dash(x.i)))).toBeLessThan(0.5);
+    // the pool spreads wider than the jet
+    expect(Math.max(...skin.map(x => off(x.i)))).toBeGreaterThan(Math.max(...wave.map(x => off(x.i))));
+    // and there is depth: the motes run from faint to near-ink
+    const as = lane.motes.map(m => m.a);
+    expect(Math.min(...as)).toBeLessThan(0.45);
+    expect(Math.max(...as)).toBeGreaterThan(0.8);
+  });
+  it('Still shows about half, plainly: never three', () => {
+    const w = new Water(ring, 4, panic, rng());
+    w.k = 0.4;
+    w.setAt(2);
+    for (let f = 0; f < 600; f++) w.step(1 / 60, 0);
+    const out = new Float32Array(w.size * 5);
+    w.draw(out, 0);
+    const ops = Array.from({ length: w.size }, (_, i) => out[i * 5 + 4]);
+    expect(ops.filter(o => o > 0.01).length).toBeGreaterThan(w.size * 0.35);
+    expect(ops.filter(o => o > 0.3).length).toBeGreaterThan(8);
+  });
+});
+
 describe('the layer stays small', () => {
   it.each(Object.keys(SHAPES))('%s: at most about ninety lines, with the seeded steps or eight', name => {
     const shape = shapeOf(name as DiagramName);
     for (const n of [1, 4, 6, 8]) {
       const w = new Water(shape, n, { rest: 1, steps: Array(n).fill(1) }, rng());
-      expect(w.size).toBeLessThanOrEqual(88);
-      expect(w.size).toBeGreaterThanOrEqual(30);
+      expect(w.size).toBeLessThanOrEqual(90);
+      expect(w.size).toBeGreaterThanOrEqual(40);
     }
   });
 });
