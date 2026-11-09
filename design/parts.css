@@ -1060,6 +1060,10 @@ html:is([data-turn="open"], [data-turn="close"])::view-transition-old(fs-drawing
 html:is([data-turn="open"], [data-turn="close"])::view-transition-old(fs-title) { animation: fs-turn-out var(--t-ui) var(--ease) both; }
 html:is([data-turn="open"], [data-turn="close"])::view-transition-new(fs-drawing),
 html:is([data-turn="open"], [data-turn="close"])::view-transition-new(fs-title) { animation: fs-turn-in var(--t-ui) var(--ease) both; }
+/* going back, the large picture stays while its box shrinks, and the small one comes in once the box is nearly its
+   own size: brought in at once it would be seen blown up, its thin stroke thick */
+html[data-turn="close"]::view-transition-old(fs-drawing) { animation: fs-turn-out var(--t-ui) var(--ease) var(--t-ui) both; }
+html[data-turn="close"]::view-transition-new(fs-drawing) { animation: fs-turn-in var(--t-ui) var(--ease) var(--t-ui) both; }
 @keyframes fs-turn-out { to { opacity: 0; } }
 @keyframes fs-turn-in { from { opacity: 0; } }
 @keyframes fs-ink-out-left { to { transform: translateX(-18px); opacity: 0; } }
