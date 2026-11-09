@@ -23,6 +23,8 @@ export const ring: Shape = {
   at,
   slotT: (i, n) => i / n,
   restT: n => (n - 0.5) / n,
+  // the stream (M5): the dotted way back carries the water thin, from the last step round to the first
+  stream: n => (n < 2 ? {} : { thin: [[(n - 1) / n, 1]] }),
   paths(n) {
     const out: Drawn[] = [];
     if (n < 2) return [{ kind: 'path', d: arc(0, 0.5) + arc(0.5, 1).replace('M', ' M'), cls: 'arc pass' }];

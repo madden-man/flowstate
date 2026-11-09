@@ -43,6 +43,8 @@ export const clock: Shape = {
   restT: () => REST,
   // the page's middle (F2's clock and hold), high inside the face, above the awake arc's words
   mid: { x: C.x, y: C.y - 30 },
+  // the stream (M5): the night's water moves in ticks, a second apart
+  stream: () => ({ ticks: true }),
   paths(): Drawn[] {
     const out: Drawn[] = [
       // the day side of the face, faint: not part of the night

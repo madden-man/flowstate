@@ -1111,5 +1111,21 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 
 
 /* ---- M5: the stream (a flow's drawing runs like water) ---- */
+/* parts/Stream: on the drawing's own grid, behind parts/Cycle and above the ghost rings; the words, marks and dot are
+   drawn after it, so they stay crisp. A mote is a short line in ink; how bright is the engine's (cycle/stream.ts). */
+.fl-stream { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--lh-ink) * 8); pointer-events: none; }
+.fl-stream svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fl-stream line { stroke: var(--ink); stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* a landing: one thin ring goes out from the dot and is gone, over twice --t-page */
+.fl-ripple {
+  fill: none; stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center;
+  animation: fl-ripple calc(var(--t-page) * 2) var(--ease) forwards;
+}
+@keyframes fl-ripple { from { transform: scale(.4); opacity: .5; } to { transform: scale(2.8); opacity: 0; } }
+/* Reduce Motion: --stream is 0 and nothing runs; the layer is not shown either */
+@media (prefers-reduced-motion: reduce) {
+  .fl-ripple { animation: none; }
+  .fl-stream { display: none; }
+}
 
 /* ---- M5 ends ---- */
