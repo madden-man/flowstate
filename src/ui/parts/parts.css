@@ -976,7 +976,34 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 
 
 /* ---- M4: Still from the moon ---- */
-
+/* A tap on the moon is turn('still'): the new light opens as a circle from the moon's centre (--still-x, --still-y,
+   measured by still.ts) out to the farthest corner (--still-r). A tap on the ring is turn('wake'): the old light, laid
+   over the new, closes back into the ring. Both run over --t-light. Only the root is pictured, and the page's own
+   --t-light cross-fades are off for the length of the turn: the circle is the change, and both at once would smear.
+   Taps go through the pictures to the page under them. Sunrise, sunset and the Settings pin are not turns (rule 12). */
+html[data-turn="still"], html[data-turn="still"] *, html[data-turn="still"] *::before, html[data-turn="still"] *::after,
+html[data-turn="wake"], html[data-turn="wake"] *, html[data-turn="wake"] *::before, html[data-turn="wake"] *::after {
+  transition: none !important;
+}
+html[data-turn="still"] *, html[data-turn="wake"] * { view-transition-name: none !important; }
+html[data-turn="still"]::view-transition, html[data-turn="wake"]::view-transition { pointer-events: none; }
+html[data-turn="still"]::view-transition-old(root), html[data-turn="still"]::view-transition-new(root),
+html[data-turn="wake"]::view-transition-old(root), html[data-turn="wake"]::view-transition-new(root) {
+  animation: none; mix-blend-mode: normal;
+}
+html[data-turn="still"]::view-transition-new(root) { animation: fs-still-open var(--t-light) var(--ease) both; }
+html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-still-close var(--t-light) var(--ease) both; }
+@keyframes fs-still-open {
+  from { clip-path: circle(0 at var(--still-x) var(--still-y)); }
+  to { clip-path: circle(var(--still-r) at var(--still-x) var(--still-y)); }
+}
+@keyframes fs-still-close {
+  from { clip-path: circle(var(--still-r) at var(--still-x) var(--still-y)); }
+  to { clip-path: circle(0 at var(--still-x) var(--still-y)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-turn="still"]::view-transition-new(root), html[data-turn="wake"]::view-transition-old(root) { animation: none; }
+}
 /* ---- M4 ends ---- */
 
 

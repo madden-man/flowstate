@@ -7,6 +7,7 @@ import { signal, computed } from '@preact/signals';
 import { still, enterStill, leaveStill } from './light';
 import { tick } from './parts/Haptic';
 import { bell } from './parts/Sound';
+import { turn } from './parts/Turn';
 import { keptLines } from '../model/pages';
 
 /** Twelve minutes of typing, once a session (Tommy, 2026-11-07). */
@@ -68,18 +69,68 @@ export async function loadKeptLine(): Promise<void> {
   keptLine.value = { since: s.since, text: k?.message.text ?? '' };
 }
 
-/** Entering Still, by the moon (the only way in since V6): one tick and the long low tone. */
-export function settle(): void {
+// ---- the circle (DESIGN.md rule 29, PLAN-MOTION.md M4) ----
+// A tap on the moon opens the dark from the moon as a circle; a tap on the ring closes it back into the ring. The
+// light itself changes inside the turn's update, the first frame the browser can show it (the turn has to picture
+// the old light before the new one is in the page); the tick and the tone stay in the tap. Where there is no moon on
+// screen (the lock threshold, a page with no header) there is nothing to open from, and the light just changes
+// with today's --t-light cross-fade, as it does wherever the browser has no view transitions.
+
+/** The moon or the ring in the page header, where the circle opens from: its centre and the distance to the
+ *  farthest corner of the screen, as the vars parts.css reads. Null when none is on screen. */
+export function fromMoon(): Record<string, string> | null {
+  if (typeof document === 'undefined') return null;
+  const w = window.innerWidth, h = window.innerHeight;
+  for (const el of document.querySelectorAll<HTMLElement>('.fs-hdr .fs-moon')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || r.bottom <= 0 || r.right <= 0 || r.top >= h || r.left >= w) continue;
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const far = Math.hypot(Math.max(x, w - x), Math.max(y, h - y));
+    return { '--still-x': `${x}px`, '--still-y': `${y}px`, '--still-r': `${Math.ceil(far)}px` };
+  }
+  return null;
+}
+
+/** Still begins: the state and a fresh session, nothing else. */
+function begin(): void {
   if (still.peek()) return;
   enterStill();
   session.value = freshSession(still.peek()!.since);
+}
+
+/** A tap on the moon or the ring has asked for a change the turn has not made yet: a second tap is the same tap. */
+let turning = false;
+
+/** Entering Still with no circle (after the PIN through the door): one tick and the long low tone. */
+export function settle(): void {
+  if (still.peek()) return;
+  begin();
   tick('still');
   bell('settle');
 }
 
-/** The ring: back to the light of the sky. No tick, no bell. */
+/** Entering Still by the moon, or by "Dim the page" on a flow's tip as if the moon had been tapped: the tick and the
+ *  tone in the tap, and the dark opens from the moon. */
+export function settleFromMoon(): void {
+  if (still.peek() || turning) return;
+  const vars = fromMoon();
+  tick('still');
+  bell('settle');
+  if (!vars) { begin(); return; }
+  turning = true;
+  const go = () => { turning = false; begin(); };
+  // the update always runs, even in a skipped turn; the finally is for a browser that throws before it does
+  void turn('still', go, { vars }).finally(() => turning && go());
+}
+
+/** The ring: back to the light of the sky, the dark closing into the ring. No tick, no bell. */
 export function rise(): void {
-  leaveStill();
+  if (turning) return;
+  const vars = still.peek() && fromMoon();
+  if (!vars) { leaveStill(); return; }
+  turning = true;
+  const go = () => { turning = false; leaveStill(); };
+  void turn('wake', go, { vars }).finally(() => turning && go());
 }
 
 /** A keystroke in a composer while Still is on. Outside Still nothing is counted. */
