@@ -51,7 +51,9 @@ const ITEMS: Record<string, object[]> = {
   S: [track('spotify:track:s1', 'brillion.', 'brillion.', 'sand'), track('spotify:track:s2', 'Takk', 'Sigur Rós', 'moss')],
 };
 
-async function mockSpotify(page: Page, base: string, playing: () => object | null, played: string[]) {
+/** How the mocked player answers a play: 204 at once unless a test holds it or refuses it. */
+type Answer = () => Promise<{ status: number; json?: object }>;
+async function mockSpotify(page: Page, base: string, playing: () => object | null, played: string[], answer?: Answer) {
   await page.route('https://accounts.spotify.com/authorize**', route => {
     const state = new URL(route.request().url()).searchParams.get('state');
     return route.fulfill({ status: 302, headers: { Location: `${base}/?code=TESTCODE&state=${state}` } });
@@ -68,7 +70,11 @@ async function mockSpotify(page: Page, base: string, playing: () => object | nul
     }
     const items = url.match(/\/playlists\/(\w+)\/items/);
     if (items) return route.fulfill({ json: { next: null, items: ITEMS[items[1]] ?? [] } });
-    if (url.endsWith('/me/player/play')) { played.push(route.request().postData() ?? ''); return route.fulfill({ status: 204 }); }
+    if (url.endsWith('/me/player/play')) {
+      played.push(route.request().postData() ?? '');
+      if (!answer) return route.fulfill({ status: 204 });
+      return answer().then(a => route.fulfill(a));
+    }
     if (url.endsWith('/me/player/currently-playing')) {
       const p = playing();
       return p ? route.fulfill({ json: p }) : route.fulfill({ status: 204 });
@@ -234,4 +240,121 @@ test('the ♪ line: a link with no account; connected, a list of playlists, each
   expect(outside).toContain(`spotify:playlist:${POEMS}`);
   expect(outside.filter(u => !u.startsWith(`blob:${baseURL}/`) && !u.startsWith('spotify:playlist:')
     && !/^https:\/\/(accounts|api|open)\.spotify\.com\/|^https:\/\/i\.scdn\.co\//.test(u))).toEqual([]);
+});
+
+test('an album tapped (M3): answered at the tap, the ring drawn and the cover sent to the ♪ only once Spotify plays it, nothing for a refusal', async ({ page, baseURL }) => {
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  const played: string[] = [];
+  // each play waits for the test to answer it
+  let answer: (a: { status: number; json?: object }) => void = () => undefined;
+  await mockSpotify(page, baseURL!, () => null, played, () => new Promise(r => { answer = r; }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: /Music\s*Connect Spotify/ }).click();
+  await expect(page.getByText('Connected as Thomas Madden')).toBeVisible();
+  await page.getByRole('button', { name: /^Playlists/ }).click();
+  const mine = page.locator('[data-sheet="Your playlists"]');
+  await mine.getByRole('checkbox', { name: 'master (ii)' }).click();
+  await expect(mine.getByText(/^reading /)).toHaveCount(0);
+  await mine.getByRole('button', { name: 'Done' }).click();
+  await page.locator('[data-sheet="Settings"]').getByRole('button', { name: 'Done' }).click();
+
+  // the rows rise in behind the sheet; a name opens its grid, the strip's covers dealt into it
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  const list = page.locator('[data-sheet="Playlists"]');
+  await expect(list.locator('.fs-playlists.rise')).toBeVisible();
+  await list.locator('.fs-playlist').first().click();
+  const grid = page.locator('[data-sheet="master (ii)"]');
+  await expect(grid.locator('.fs-music-screen.deal')).toBeVisible();
+  const tiles = grid.locator('.fs-tile');
+  await expect(tiles).toHaveCount(4);
+  await expect.poll(() => tiles.locator('img').count()).toBe(4);
+  const rings = grid.locator('.fs-tile-ring:not(.lift)');
+
+  // down: the cover gives at once
+  const box = (await tiles.nth(0).boundingBox())!;
+  await page.mouse.move(box.x + box.width * .3, box.y + box.height * .3);
+  await page.mouse.down();
+  await expect(tiles.nth(0)).toHaveAttribute('data-down', '');
+  expect(await tiles.nth(0).evaluate(t => getComputedStyle(t).transform)).not.toBe('none');
+  // up: the request leaves, the drop goes out and the others hush, but no ring until Spotify says so
+  await page.mouse.up();
+  await expect.poll(() => played.length).toBe(1);
+  await expect(tiles.nth(0).locator('.fs-tile-drop')).toHaveCount(1);
+  await expect(grid.locator('.fs-tiles.hush')).toHaveCount(1);
+  await expect(rings).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await expect(rings).toHaveCount(0);
+  await expect(tiles.nth(0)).toHaveAttribute('aria-pressed', 'false');
+  // Spotify plays it: the ring is drawn round that cover, and a copy of it travels to the small cover by the ♪
+  answer({ status: 204 });
+  await expect(tiles.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await expect(rings).toHaveCount(1);
+  await expect(grid.locator('.fs-tile-cell').nth(0).locator('.fs-tile-ring.drawn')).toHaveCount(1);
+  await expect(page.locator('.fs-fly')).toHaveCount(1);
+  await expect(page.locator('.fs-fly')).toHaveCount(0);
+  const mini = page.locator('.fs-hdr [data-mini="spotify:album:Takk"]');
+  await expect(mini).toBeVisible();
+  await expect(mini).not.toHaveAttribute('data-landing', '');
+  // it landed on the small cover, exactly
+  await expect(mini.locator('img')).toBeVisible();
+
+  // a refusal: its note says why, and nothing is drawn; the playing album keeps its ring
+  await tiles.nth(1).click();
+  await expect.poll(() => played.length).toBe(2);
+  answer({ status: 403, json: { error: { status: 403, message: 'Player command failed: Premium required', reason: 'PREMIUM_REQUIRED' } } });
+  await expect(grid.getByRole('status')).toHaveText('Playing from here needs Spotify Premium');
+  await expect(rings).toHaveCount(1);
+  await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.fs-fly')).toHaveCount(0);
+
+  // a second album plays: its ring is drawn and the first one's is lifted
+  await tiles.nth(2).click();
+  await expect.poll(() => played.length).toBe(3);
+  answer({ status: 204 });
+  await expect(tiles.nth(2)).toHaveAttribute('aria-pressed', 'true');
+  await expect(grid.locator('.fs-tile-cell').nth(2).locator('.fs-tile-ring.drawn')).toHaveCount(1);
+  await expect(grid.locator('.fs-tile-ring')).toHaveCount(1);
+
+  // the album already playing, tapped again: the tap is answered, nothing travels a second time
+  await tiles.nth(2).click();
+  await expect.poll(() => played.length).toBe(4);
+  answer({ status: 204 });
+  await page.waitForTimeout(100);
+  await expect(page.locator('.fs-fly')).toHaveCount(0);
+
+  // the handle: let go short and slow, the sheet settles back; a flick puts it away short of the line
+  const head = (await grid.locator('.fs-grab').boundingBox())!;
+  const cx = head.x + head.width / 2, cy = head.y + head.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  for (let i = 1; i <= 6; i++) { await page.mouse.move(cx, cy + i * 8); await page.waitForTimeout(60); }
+  expect(Number(await page.locator('.fs-scrim').evaluate(s => (s as HTMLElement).style.opacity))).toBeLessThan(1);
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await expect(grid).toHaveClass(/settle/);
+  await expect(grid).toBeVisible();
+  // a flick: 50px in the time it takes to send four events (well past FLICK_PX_PER_MS), short of the 80px line
+  await grid.locator('.fs-sheet-head').evaluate((h, [x, y]) => {
+    const at = (type: string, dy: number) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX: x, clientY: y + dy, isPrimary: true }));
+    at('pointerdown', 0); at('pointermove', 20); at('pointermove', 50); at('pointerup', 50);
+  }, [cx, cy]);
+  await expect(grid).toHaveCount(0);
+
+  // Reduce Motion: nothing moves, everything still happens
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await list.locator('.fs-playlist').first().click();
+  await expect(grid.locator('.fs-music-screen.deal')).toHaveCount(0);
+  await tiles.nth(3).click();
+  await expect.poll(() => played.length).toBe(5);
+  answer({ status: 204 });
+  await expect(tiles.nth(3)).toHaveAttribute('aria-pressed', 'true');
+  await expect(grid.locator('.fs-tile-cell').nth(3).locator('.fs-tile-ring')).toHaveCount(1);
+  await expect(grid.locator('.fs-tile-drop, .fs-tile-ring .bead:visible')).toHaveCount(0);
+  await expect(page.locator('.fs-fly')).toHaveCount(0);
+  await expect(grid.locator('.fs-tiles.hush')).toHaveCount(0);
+
+  expect(errors).toEqual([]);
 });

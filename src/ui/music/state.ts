@@ -46,6 +46,8 @@ export const playing = signal<PageMusic | null>(null);
 /** The playlist it is playing from, when it is one of these (by a tap here, or the poll's context). */
 export const playingFrom = signal<string | null>(null);
 export const playNote = signal<string | null>(null);
+/** The album a tap asked for, until Spotify answers: playing it, the cover travels to the ♪ (M3); a refusal clears it. */
+export const asked = signal<string | null>(null);
 /** The album whose pages the "Pages with this album" sheet lists. */
 export const albumFor = signal<PageMusic | null>(null);
 
@@ -272,13 +274,16 @@ export const wake = { open: (href: string) => { location.assign(href); } };
  *  next album. Spotify idle in the background is found by its device and played on; Spotify not running at all is
  *  opened, and the tap plays when you come back. A refusal is one plain line with Spotify's own status. */
 export async function play(playlist: Tapped['playlist'], row: Tapped['row'], again = false) {
-  if (!again) bell('album');
+  // the bell and the tick inside the tap itself: iOS fires the haptic only there
+  if (!again) { bell('album'); tick('album'); asked.value = row.albumUri; }
   playNote.value = null;
-  if (!row.firstTrackUri && row.firstTrackAt === undefined) { playNote.value = 'Read again in Settings, then tap'; return; }
+  if (!row.firstTrackUri && row.firstTrackAt === undefined) { asked.value = null; playNote.value = 'Read again in Settings, then tap'; return; }
   try {
     const r = await withTokens(keep, t => playAlbum(t, playlist.uri, row));
     if (r === 'playing') {
       pending = null;
+      // the album already playing, tapped again: nothing travels a second time
+      if (playing.peek()?.albumUri === row.albumUri && playingFrom.peek() === playlist.id) asked.value = null;
       playingFrom.value = playlist.id;
       playing.value = { albumUri: row.albumUri, album: row.album, artist: row.artist, coverId: row.cover ? row.albumUri : undefined };
     } else if (r === 'no-device' && !again) {
@@ -287,6 +292,7 @@ export async function play(playlist: Tapped['playlist'], row: Tapped['row'], aga
       wake.open(playlist.uri);
     } else {
       pending = null;
+      asked.value = null;
       playNote.value = r === 'no-device' ? 'Open Spotify on the phone, then tap again'
         : r === 'not-found' ? 'Spotify would not start that song: Read again in Settings'
         : 'Playing from here needs Spotify Premium';
@@ -294,6 +300,7 @@ export async function play(playlist: Tapped['playlist'], row: Tapped['row'], aga
   } catch (e) {
     failed(e);
     pending = null;
+    asked.value = null;
     playNote.value = e instanceof NotConnected ? 'Connect Spotify in Settings'
       : offline(e) ? 'No connection to Spotify'
       : e instanceof ApiError ? `Spotify did not play it (${e.status})` : 'Spotify did not answer';
@@ -304,7 +311,7 @@ export async function play(playlist: Tapped['playlist'], row: Tapped['row'], aga
 export function playPending() {
   const p = pending;
   if (!p || document.visibilityState !== 'visible') return;
-  if (Date.now() - p.at > PENDING_MS) { pending = null; return; }
+  if (Date.now() - p.at > PENDING_MS) { pending = null; asked.value = null; return; }
   pending = null;
   void play(p.playlist, p.row, true);
 }
