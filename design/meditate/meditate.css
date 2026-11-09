@@ -1,0 +1,48 @@
+/* Meditate (PLAN-MEDITATE.md): the page is one circle. Everything here is what M1 and M2 add to parts.css;
+   colours, sizes and durations are tokens only. */
+
+/* the list row's small drawing: the ring with nothing on it (no steps, no arrows, no way back to draw) */
+.md-row .fs-cycle circle { fill: none; stroke: var(--print); stroke-width: 1.3; vector-effect: non-scaling-stroke; }
+
+/* the page: the circle sits in the middle and stays there; what can be chosen sits under it */
+.md-page { position: relative; display: flex; flex-direction: column; }
+.md-page::before { content: ""; position: absolute; inset: 0; background: var(--page); opacity: 0; pointer-events: none;
+  transition: opacity var(--t-light) var(--ease), background-color var(--t-light) var(--ease); }
+.md-circle { position: relative; appearance: none; border: 0; background: none; padding: 0; margin: auto; width: 100%; max-width: 328px;
+  aspect-ratio: 328 / 264; flex: none; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
+.md-circle svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.md-circle .arc { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
+/* a sit with an end: the same circle drawn again in ink, once round, closing at the bell */
+.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.md-breath { transform-box: view-box; transform-origin: 164px 132px; animation: md-breathe var(--t-breath) var(--ease) infinite; }
+@keyframes md-breathe { 0% { transform: scale(.86); } 40% { transform: scale(1); } 100% { transform: scale(.86); } }
+/* while sitting the circle reads the sound's own clock (meditate.js), so the sea and the circle turn together */
+.md-page[data-playing] .md-breath { animation: none; }
+.md-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--sans); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); transition: opacity var(--t-light) var(--ease); }
+.md-circle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
+
+.md-quiet, .md-after { position: relative; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end; transition: opacity var(--t-light) var(--ease); }
+.md-quiet { display: flex; }
+.md-quiet .fs-chips { justify-content: center; }
+.md-quiet .fl-last, .md-after .fl-last { text-align: center; }
+.md-lengths::before { content: "Minutes"; align-self: center; margin-right: var(--s1); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; color: var(--print); }
+.md-after { display: none; }
+.md-after .fs-list-meta { color: var(--print); text-align: left; }
+
+/* sitting: the rules, the header, the tabs and every word leave on one --t-light breath; only the circle is left */
+.md-page[data-state="sitting"]::before { opacity: 1; }
+.md-page[data-state="sitting"] .md-quiet, .md-page[data-state="sitting"] .md-mid { opacity: 0; pointer-events: none; }
+.md-page[data-state="sitting"] .md-circle { z-index: 1; }
+.fs-app .fs-hdr, .fs-app .fs-tabs { transition: opacity var(--t-light) var(--ease); }
+.fs-app[data-sitting] .fs-hdr, .fs-app[data-sitting] .fs-tabs { opacity: 0; pointer-events: none; }
+/* the lamp in the corner goes out with them */
+.fs-app::before { transition: opacity var(--t-light) var(--ease); }
+.fs-app[data-sitting]::before { opacity: 0; }
+/* after: the page is back, with what the sit was and the way to the journal */
+.md-page[data-state="after"] .md-quiet { display: none; }
+.md-page[data-state="after"] .md-after { display: flex; }
+
+/* Still: the circle and the sounds; a sit there is open, so the lengths and "last sat" are gone (rule 13, fs-notstill) */
+@media (prefers-reduced-motion: reduce) { .md-breath { animation: none; } }

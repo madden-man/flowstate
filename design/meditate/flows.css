@@ -1,0 +1,135 @@
+/* Page chrome around the phones; the phones themselves run on tokens.css and parts.css unchanged. */
+:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow: walkthrough chrome */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow: walkthrough chrome */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px 16px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
+header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+.lights{margin-left:auto;display:flex;gap:4px;background:var(--rail);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lights button,.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
+.lights button[aria-pressed="true"]{background:var(--fg);color:var(--rail)}
+.lights button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
+nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
+nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
+nav.rail a[aria-current]{background:var(--bg)}
+nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
+@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
+main{min-width:0}
+.step{display:none}
+.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
+.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
+.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
+.ctl{display:flex;gap:10px;justify-content:center}
+.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
+details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
+summary{cursor:pointer;color:var(--fg)}
+details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
+details td:first-child{color:var(--fg);white-space:nowrap}
+details code{font-size:12px}
+details a{color:var(--accent)}
+
+/* ---------- the phone ---------- */
+.phone{width:min(100%,380px);aspect-ratio:390/800;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative;user-select:none;-webkit-user-select:none} /* design-lint: allow: the phone shell */
+.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--page);color:var(--ink);font-family:var(--serif);font-size:var(--fs-ink);line-height:var(--lh-ink);transition:background-color var(--t-light) var(--ease),color var(--t-light) var(--ease)}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow: the phone shell */
+.status{display:flex;justify-content:space-between;padding:15px 28px 0;font-family:var(--sans);font-size:12px;color:var(--print);position:relative}
+.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent;position:relative}
+.screen .fs-moon b{display:none}
+.screen[data-light="still"] .fs-moon i{display:none}
+.screen[data-light="still"] .fs-moon b{display:block;animation:breathe var(--t-breath) var(--ease) infinite}
+@keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
+.screen .fs-hdr-l .fs-word{padding-inline:var(--s1)}
+.screen .fs-sheetof{overflow:hidden}
+.screen .fs-sheetof.more{mask-image:linear-gradient(to bottom,black calc(100% - var(--s4)),transparent)} /* design-lint: allow: mock fade, no colour */
+.screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
+.screen .fs-list-row{min-height:calc(var(--lh-ink) * 2)}
+
+/* the list rows, parts/Cycle and a flow page's line, said, usual and last time are real since F1: parts.css (copied here) */
+.fl-flow .fs-list-meta{color:var(--print)}
+.fl-add{margin-top:var(--s2)}
+/* the ring: four steps around a drawn circle, the way back dotted; the dot is where you are */
+.fl-ring{position:relative;width:100%;max-width:328px;height:300px;margin:0 auto;flex:none}
+.fl-ring svg,.fl-diag svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fl-ring .arc,.fl-diag .arc{fill:none;stroke:var(--print);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.fl-ring .pass,.fl-diag .pass{stroke-dasharray:1 7}
+.fl-diag .faint{stroke-dasharray:2 5;opacity:.6}
+.fl-diag .thick{stroke:var(--ink);stroke-width:4}
+.fl-ring .arrow,.fl-diag .arrow{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.fl-ring .mark,.fl-diag .mark{fill:var(--page);stroke:var(--print);stroke-width:1}
+.fl-ring .now,.fl-diag .now{fill:var(--ink)}
+.fl-diag .pin{fill:var(--ink)}
+.fl-ring .halo{fill:none;stroke:var(--ink);stroke-width:1;transform-box:fill-box;transform-origin:center;animation:breathe var(--t-breath) var(--ease) infinite}
+.fl-ring.empty .arc{stroke-dasharray:1 7}
+.fl-step{position:absolute;font-family:var(--serif);font-size:var(--fs-chip);line-height:1.25;color:var(--ink);background:none;border:0;padding:4px 6px;text-align:center;cursor:pointer;min-height:var(--hit);display:grid;align-content:center}
+.fl-step small{display:block;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);color:var(--print)}
+.fl-step[aria-pressed="true"]{font-weight:600}
+.fl-step.s1{left:50%;top:0;transform:translateX(-50%)}
+.fl-step.s2{left:262px;top:50%;transform:translateY(-50%);text-align:left}
+.fl-step.s3{left:50%;bottom:0;transform:translateX(-50%)}
+.fl-step.s4{right:calc(100% - 66px);top:50%;transform:translateY(-50%);text-align:right}
+.fl-ring .fl-mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;text-align:center;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);margin:0;line-height:1.5}
+.fl-ring .fl-mid i{display:block;font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:0;font-size:var(--fs-chip)}
+.fl-ring.empty .fl-step.cur{font-style:italic;color:var(--print)}
+/* the other diagrams: one drawn shape each, phase words in the serif, the walker where you are */
+.fl-diag{position:relative;width:100%;max-width:328px;height:calc(var(--lh-ink) * 8);margin:0 auto;flex:none}
+.fl-diag text.ph{cursor:pointer}
+.fl-diag text{font-family:var(--serif);font-size:var(--fs-chip);fill:var(--ink)}
+.fl-diag text.cur{font-weight:600}
+.fl-diag text.print{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);fill:var(--print);text-transform:uppercase}
+.fl-diag text.hand{font-style:italic;fill:var(--print)}
+.fl-diag .tick{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round}
+/* things to do: drawn checks, the helper named in print at the end of the row */
+.fl-tips .fs-check{width:100%}
+.fl-tips .fs-check small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);flex:none}
+.fl-tips .fs-check-text.fs-wise{color:var(--print)}
+/* five things: five rules, one thing each; the cursor is the only prompt */
+.fl-five p{margin:0;min-height:var(--lh-ink)}
+.fl-caret{display:inline-block;width:1.5px;height:20px;background:var(--ink);vertical-align:-4px;animation:blink calc(var(--t-breath) / 9) steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+/* under the skin: a wash behind the ring that fades as it drains */
+.fl-ring .fl-wash{position:absolute;inset:40px 20px;border-radius:50%;background:var(--ink);opacity:.06;pointer-events:none}
+/* the next visit: what helped as ticked rows (last time, the line, said and usual are the real ones in parts.css, F1) */
+.fl-helped h3{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);font-weight:400;margin:var(--lh-ink) 0 0;line-height:var(--lh-ink)}
+/* the sheet rows reused from Settings and the goal sheet */
+.fl-field{display:grid;gap:2px;margin:var(--s1) 0}
+.fl-field small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print)}
+.fl-field .fs-held{color:var(--ink);font-style:normal}
+.fl-field .fs-held.print{color:var(--print);font-family:var(--sans);font-size:var(--fs-fill)}
+.fl-field .tip{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);min-height:var(--lh-ink)}
+.fl-field .tip small{text-transform:none;letter-spacing:0}
+.fl-field s{color:var(--print)}
+@media (prefers-reduced-motion:reduce){.fl-caret,.fl-ring .halo,.screen .fs-moon b{animation:none}}
+
+/* ---------- the crisis pass (2026-11-08 evening) ---------- */
+/* right now: your own step lines across every flow, one per rule, the flow and step in print under each */
+.fl-now .fs-list-line{font-style:italic}
+.fl-nowlist .fs-row.fl-flow{padding-right:0}
+.fl-nowlist .fs-list-line{white-space:normal}
+/* ghost rings: every earlier episode a faint closed circle behind the live ring; a drawing, not a count */
+.fl-ring .ghost{fill:none;stroke:var(--print);stroke-width:1;opacity:.3}
+/* hold the ring: one thing at a time at the peak, full width, the next by a swipe */
+.fl-one .fs-check{width:100%;font-size:var(--fs-title);line-height:1.3;min-height:calc(var(--lh-ink) * 2)}
+.fl-one .fl-usual{text-align:right}
+/* the note to the next one of you: the question in print, the answer your ink; the step it lands on as chips */
+.fl-note{margin-top:var(--lh-ink)}
+.fl-note .fs-chips{padding-inline:0}
+/* the lock inside the phone, not over the page; the door is one word under the keypad */
+.screen .fs-threshold{position:absolute;border-radius:inherit;animation:none}
+.fs-word.fl-door{display:block;margin:var(--s2) auto 0;min-height:var(--hit);text-transform:none;letter-spacing:0;color:var(--print);font-family:var(--serif);font-style:italic;font-size:var(--fs-chip)}
+/* stamps: your own outcomes on the curve, a drawn check or cross */
+.fl-diag .cross{fill:none;stroke:var(--print);stroke-width:1.2;stroke-linecap:round}
+/* a small badge beside a step title for a step that is still a question */
+.step>h2 .badge{display:inline-block;vertical-align:middle;margin-left:10px;font:500 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--muted)}
+.step p.line a{color:var(--accent)}
+/* F2: a phone scrolled down its page (the tips under a long said line, the step sheet's Earlier); static, the mock's own scroll */
+.screen [data-scroll] > :first-child{margin-top:calc(var(--scroll) * -1)}
+/* Right now through the door: a row with no line is the print alone, on a blank rule (src/ui/flow/door.css) */
+.fl-noline .fs-list-meta{padding-top:var(--lh-ink)}
+/* relit to Still, a scrolled phone starts at the top again: Still drops the rows the scroll was reaching past */
+.screen[data-light="still"] [data-scroll] > :first-child{margin-top:0}
