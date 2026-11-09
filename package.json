@@ -17,7 +17,8 @@
     "test": "npm run lint:design && npm run tokens:check && npm run test:unit && npm run typecheck",
     "e2e": "playwright test && node script/check-dist.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
-    "check:dist": "node script/check-dist.mjs"
+    "check:dist": "node script/check-dist.mjs",
+    "walkthrough:motion": "node script/build-motion-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

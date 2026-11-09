@@ -108,6 +108,8 @@ A flow's drawing runs like water. Start from `design/motion/src/stream.ts` (move
 
 `design/motion/index.html`: twelve steps from the real components (the keys, a check, the tabs, a flow opening, the sheet, an album tapped, Still from the moon, the stream on Panic, each flow's pace, the dot, hold, Still and Reduce Motion), live, one sentence each, passing the artifact lint; published as the motion pass's artifact. `design/motion/motion.css` goes when the page runs on `parts.css`.
 
+Built (2026-11-09): the page holds one phone whose screen is the real app, built from `src` by `design/motion/vite.config.ts` as one classic script, with storage in memory, Spotify answered from fixtures and no service worker; each step drives it by a message (`design/motion/src/driver.ts`). `npm run walkthrough:motion` builds everything into `design/motion/dist/` (ignored by git), the folder to publish. `motion.css` is gone.
+
 ## 4. Review (every PR, before merge)
 
 1. `npm test`, `PORT=42xx npm run e2e`, `node script/design-lint.mjs src design`: all green, PASS lines in the PR body.
