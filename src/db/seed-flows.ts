@@ -105,6 +105,8 @@ export const PANIC: FlowSeed = {
         { id: 'panic-4-water', text: 'Water, then something to eat', short: 'Water, then food' },
         { id: 'panic-4-album', text: 'An album, or the TV', helper: 'music' },
         { id: 'panic-4-shower', text: 'A warm shower' },
+        // Meditate S3 (PLAN-MEDITATE.md): the row opens the circle, and a sit of a minute or more ticks it
+        { id: 'panic-4-sit', text: 'Sit with the rain', helper: 'sit' },
         { id: 'panic-4-walk', text: 'A slow walk around the block' },
         { id: 'panic-4-pick', text: "Don't pick at it yet. It's draining.", wise: true },
         { id: 'panic-4-write', text: 'Write it down, later', helper: 'journal' },
@@ -130,11 +132,12 @@ export const SEED_FLOWS: FlowSeed[] = [
 
 /**
  * Tips added to a seed flow after it was first written (F4: the Avoidance tip on Panic and Depress, the hand-offs
- * into Depress). A journal that already has the flow gets each once, in its seed place (seed.ts seedFlowsOnce), as
+ * into Depress; Meditate S3: "Sit with the rain" on Panic, What if and Energize). A journal that already has the flow gets each once, in its seed place (seed.ts seedFlowsOnce), as
  * a new revision; one Tommy has struck or deleted is never brought back.
  */
 export const SEED_TIPS_LATER: string[] = [
   'panic-3-avoid', 'panic-4-depress', 'depress-2-avoid', 'energize-5-depress', 'fight-1-depress',
+  'panic-4-sit', 'whatif-2-sit', 'energize-5-sit',
 ];
 
 /** A seed as a flows row: dated, with its seed text as the first revision. */

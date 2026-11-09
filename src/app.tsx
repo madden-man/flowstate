@@ -146,15 +146,18 @@ let openedOnce = false;
 
 const DoorNow = () => <Now doorOnly />;
 const DoorFlowPage = ({ id, step }: { id: string; step?: string }) => <FlowPage id={id} step={step} doorOnly />;
+const DoorMeditate = () => <Meditate doorOnly />;
 
-/** Through the door without the PIN (PLAN-FLOWS.md 3.7, F5): the two pages the lock lets through, read-only, with no
- *  tab bar and no sheet but the PIN's own. Every other hash shows the keypad (the Gate). */
+/** Through the door without the PIN (PLAN-FLOWS.md 3.7, F5): the pages the lock lets through, read-only, with no
+ *  tab bar and no sheet but the PIN's own; Meditate S3 adds #/flow/meditate, whose sit fades the frame as it does
+ *  unlocked. Every other hash shows the keypad (the Gate). */
 function DoorFrame() {
   return (
-    <div class="fs-app" data-door>
+    <div class="fs-app" data-door data-sitting={sitting.value ? 'true' : undefined}>
       <main class="fs-main">
         <Router>
           <Route path="/flow/now" component={DoorNow} />
+          <Route path="/flow/meditate" component={DoorMeditate} />
           <Route path="/flow/:id/:step" component={DoorFlowPage} />
         </Router>
         <DoorPin />

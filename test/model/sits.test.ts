@@ -5,6 +5,11 @@ import { freshDB } from '../db/helpers';
 import { store } from '../../src/db/fields';
 import { today, writeLine } from '../../src/model/pages';
 import { sitOf, keepSit, lastSit, satMinutes, minutesWords, linkSitToday, sitLinkOf, SIT_LENGTHS } from '../../src/model/sits';
+import { ensureSeeded } from '../../src/db/seed';
+import { PANIC } from '../../src/db/seed-flows';
+import { moveDot, endEpisode } from '../../src/model/flows';
+import { shownTips } from '../../src/model/tips';
+import { HELPER_WORD } from '../../src/ui/flow/Tips';
 
 beforeEach(async () => { await freshDB(); });
 
@@ -71,5 +76,52 @@ describe('write it down', () => {
   it('a sit that is not there links nothing', async () => {
     expect(await linkSitToday('gone')).toBeUndefined();
     expect(await sitLinkOf({})).toBeUndefined();
+  });
+});
+
+// S3: a flow's Sit tip sends a sit here; it carries the episode, and a sit of a minute or more ticks the tip.
+describe('a sit sent from a flow', () => {
+  beforeEach(async () => { await ensureSeeded(); });
+
+  it('the helper is Sit, offered in the step sheet like every helper', () => {
+    const t = PANIC.steps[3].tips.find(x => x.id === 'panic-4-sit')!;
+    expect(t).toMatchObject({ text: 'Sit with the rain', helper: 'sit' });
+    expect(HELPER_WORD.sit).toBe('Sit');
+  });
+  it('a sit of a minute or more carries the episode and ticks the tip when it ends', async () => {
+    const e = await moveDot('panic', [], 'panic-4', T0);
+    const from = { episodeId: e!.id, tipId: 'panic-4-sit' };
+    const s = sitOf(T0 + MIN, T0 + 13 * MIN, 'rain', 0, from)!;
+    expect(s.episodeId).toBe(e!.id);
+    await keepSit(s, from);
+    expect((await store.get('sits', s.id))!.episodeId).toBe(e!.id);
+    expect((await store.get('episodes', e!.id))!.done).toEqual([{ tipId: 'panic-4-sit', at: T0 + 13 * MIN }]);
+  });
+  it('a sit under a minute writes nothing and ticks nothing', async () => {
+    const e = await moveDot('panic', [], 'panic-4', T0);
+    expect(sitOf(T0 + MIN, T0 + MIN + 59_000, 'rain', 0, { episodeId: e!.id, tipId: 'panic-4-sit' })).toBeNull();
+    expect(await store.all('sits')).toEqual([]);
+    expect((await store.get('episodes', e!.id))!.done).toEqual([]);
+  });
+  it('a sit reached any other way carries no episode and ticks nothing', async () => {
+    const e = await moveDot('panic', [], 'panic-4', T0);
+    const s = sitOf(T0, T0 + 2 * MIN, 'ocean')!;
+    expect(s).not.toHaveProperty('episodeId');
+    await keepSit(s);
+    expect((await store.get('episodes', e!.id))!.done).toEqual([]);
+  });
+  it('an episode ended before the sit ends keeps the sit and gains no tick', async () => {
+    const e = await moveDot('panic', [], 'panic-4', T0);
+    await endEpisode(e!.id, T0 + MIN);
+    const from = { episodeId: e!.id, tipId: 'panic-4-sit' };
+    const s = sitOf(T0, T0 + 5 * MIN, 'rain', 5, from)!;
+    await keepSit(s, from);
+    expect((await store.get('sits', s.id))!.episodeId).toBe(e!.id);
+    expect((await store.get('episodes', e!.id))!.done).toEqual([]);
+  });
+  it('the Sit row is not counted against the six rows: Under the skin keeps all six and gains it, in its place', () => {
+    const ids = shownTips(PANIC.steps[3], false).map(t => t.id);
+    expect(ids).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-shower', 'panic-4-sit', 'panic-4-walk', 'panic-4-pick', 'panic-4-write']);
+    expect(shownTips(PANIC.steps[3], true).map(t => t.id)).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-shower', 'panic-4-sit']);
   });
 });

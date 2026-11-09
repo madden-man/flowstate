@@ -37,6 +37,9 @@ export const WHATIF: FlowSeed = {
       tips: [
         { id: 'whatif-2-how', text: 'Ask "what can I do about this, step by step?"', short: 'What can I do, step by step?' },
         { id: 'whatif-2-time', text: 'Worry at the set time, then stop', short: 'The set time, then stop' },
+        // Meditate S3: planned for "Night before", which is this flow's peak, and a sit is never asked at a peak
+        // (PLAN-MEDITATE.md step 9), so it sits on the climb before it
+        { id: 'whatif-2-sit', text: 'Sit with the rain', helper: 'sit' },
       ],
     },
     {

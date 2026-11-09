@@ -1,6 +1,6 @@
 # FlowState Meditate: one circle and a gentle sound
 
-Date: 2026-11-09. Status: planned; the build follows this file (section 6). Packages are S1 to S5 (S for sit): the motion pass building the same day owns M1 to M6. Tommy's ask: "i want there to be a 'meditate' section of the flowstate app under flows that's a little different from the others. in this one, it shows some kind of circle and plays very gentle, calming music (maybe rain or the ocean or birds in a forest, etc), something very simple and harmonious. check muse to see if there's any open integration paths for their headset (probably not, if not, that's fine)."
+Date: 2026-11-09. Status: S1, S2 and S3 built, merged and deployed the same day (PRs #41, #43, #47); S4 and S5 wait on Tommy. What the build changed from this plan is listed at the end of section 6. Packages are S1 to S5 (S for sit): the motion pass building the same day owns M1 to M6. Tommy's ask: "i want there to be a 'meditate' section of the flowstate app under flows that's a little different from the others. in this one, it shows some kind of circle and plays very gentle, calming music (maybe rain or the ocean or birds in a forest, etc), something very simple and harmonious. check muse to see if there's any open integration paths for their headset (probably not, if not, that's fine)."
 
 `PLAN.md` stays the architecture, `PLAN-FLOWS.md` the Flow tab and `PLAN-MOTION.md` how things move. This file records what is there today, the decisions, how the sound is made and what the iPhone does to it, the screens, the data, the build packages, and what is open on a Muse headset (section 7: nothing live on the iPhone, one path after the fact). The proposal walkthrough is `design/meditate/index.html`; its phone mocks play the four sounds, so it is also the audition (section 9).
 
@@ -91,7 +91,7 @@ If check 2 comes back "it keeps playing while locked" on Tommy's phone, a later 
 |---|---|---|
 | S1 | The circle and the sounds | `parts/Sound` gains `scape(name)` returning `{ t0, end(seconds) }` for rain, ocean, forest and bowl, ported from `design/meditate/meditate.js` (one `AudioContext`, the bells' own); `parts/Circle` (the drawn circle, breathing on `--t-breath` at rest and on the sound's clock while sitting; reduced motion stills it); `ui/flow/Meditate.tsx` at `#/flow/meditate` with the sound chips (`settings.sitSound`), the sitting state (header, tabs, rules, lamp and words fade; wake lock; tap to end; four seconds in, six out), Quiet; the list row, second; `audioSession` set to `playback` for the sit behind `settings.sitThroughSilent` and its Settings row; ticks on begin and end. Unit: the scape graph on a fake context, Quiet makes no nodes, the ocean's curves land on the breath; e2e: the row opens the page, a tap sits, a tap returns, an offline reload keeps the chosen sound; three lights. |
 | S2 | A sit with an end, and what is kept | The minutes chips (`settings.sitMinutes`); the ink stroke round the circle and the closing bell (the bell follows the Sounds switch); the `sits` table and schema version 4; "last sat" on the list row and the page; the after page with "Write it down" linking today's page by `page.sit`; a sit under a minute writes nothing and returns to rest; Still: chips for sound only, always open, nothing about last time; backup round trip. |
-| S3 | From a flow, and through the door | `Tip.helper` `'sit'`: the row opens `#/flow/meditate`, the sit carries `episodeId`, and the tip is ticked when a sit of a minute or more ends; seeded as "Sit with the rain" on Panic "Under the skin", What if "Night before" and Energize "Landing" (existing users get the three tips added once, as a first revision, like every seed); the step sheet lists Sit among the helpers; `doorPasses` lets `#/flow/meditate` through read-only with the sit held in memory until the PIN. |
+| S3 | From a flow, and through the door | `Tip.helper` `'sit'`: the row opens `#/flow/meditate`, the sit carries `episodeId`, and the tip is ticked when a sit of a minute or more ends; seeded as "Sit with the rain" on Panic "Under the skin", What if "What if" (the climb before the peak; this plan first said "Night before", which is that flow's peak) and Energize "Landing" (existing users get the three tips added once, as a first revision, like every seed); the step sheet lists Sit among the helpers; `doorPasses` lets `#/flow/meditate` through read-only with the sit held in memory until the PIN. |
 | S4 | A recorded forest (only if the synthesised one fails the listen) | One loop, precached, crossfaded at the seam, for Forest alone; rule 21 amended; `check-dist` still passes its size budget. |
 | S5 | A Muse sitting, after the fact (only if Tommy has the headset and wants it; section 7) | Not planned in detail. |
 
@@ -106,6 +106,19 @@ Every PR: `npm test`, `npm run e2e`, three-lights screenshots, `design/meditate/
 **Tokens.** None new expected: the circle is `--print`, the stroke `--ink`, the breath `--t-breath`, the fades `--t-light`, the type `--fs-print` and `--fs-chip`.
 
 **Rules touched.** DESIGN.md rule 13 (a sit in Still is open and shows no "last sat"), rule 15 (one line: a sit keeps its date, never a total or a run), rule 19 (the tick site), rule 21 (above), rule 29 (sitting) and rule 31 (the circle breathes). Rule 22 is untouched: nothing here makes a request.
+
+**What the build changed (2026-11-09).**
+
+- The bowl fades in over 0.3 seconds, not an in-breath: a four-second ramp swelled the first strike.
+- The ink stroke is not rendered at all unless a sit with an end is running (a dash of nothing left a hairline at twelve o'clock); when the page returns it is lifted by opacity over `--t-ui`.
+- The after page hides the chips; a tap on the circle or leaving and coming back brings them. In Still a sit returns to rest with no after page.
+- The closing bell is `sitEnd`. The audio session is named `playback` before the context is made or woken, and the context is woken from `interrupted` as well as `suspended`.
+- "Today's page carrying a link" is one function (`todayLinked` in `model/pages.ts`) shared by a flow's Journal helper and the sit; `JournalLink` takes an episode or a sit.
+- The Sit tip does not count toward a step's six rows (three in Still), so "Under the skin" and "Landing" keep the rows they had.
+- Where a sit came from travels in memory (`sitFrom`, read once by the page), not in the hash.
+- Through the door: the chips choose for that visit only (settings cannot be written while locked), and a sit held until the PIN carries no `episodeId`.
+- The walkthrough's nine steps are captured from the real components; `design/meditate/meditate.js` remains the published page's own sound engine.
+- Not done: the row's small circle travelling into the page's circle (rule 28). Both circles carry `data-circle` for it; the turn is one rule in the motion pass's M2 section.
 
 **iPhone-only checks (S1, for Tommy's phone).** With the ringer off, is the rain heard (switch on) and silent (switch off)? Does Spotify pause when a sit begins? Does the screen stay lit for ten minutes? What happens to the sound when the phone is locked by hand? Does the circle stay in time with the waves after ten minutes? Are the ticks felt?
 
@@ -135,7 +148,7 @@ Sources: [Muse developers page](https://choosemuse.com/pages/developers), [web-m
 4. Lengths: Open, 5, 10, 20 (assumed), or other numbers, or no lengths at all?
 5. "Last sat" and the `sits` row: keep (assumed), or should a sit leave no trace?
 6. The door: may Meditate open without the PIN when the door is on (assumed yes, it holds nothing private)?
-7. Which flows' steps get the seeded "Sit with the rain" tip: the three named in S3, others, or none?
+7. Which flows' steps get the seeded "Sit with the rain" tip: the three named in S3, others, or none? (What if's sits on "What if", not the peak.)
 8. Muse: which headset do you have, and is the after-the-fact line (S5) worth building?
 
 ## 9. Artifact

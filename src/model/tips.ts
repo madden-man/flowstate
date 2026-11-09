@@ -126,12 +126,16 @@ export function washLeft(markedAt: number, spanMs: number, now: number): number 
 
 /** The tip rows a step shows: struck ones never (they stay in the step sheet, rule 10), not a print line (F3's
  *  PrintLines prints those under the rows, never as a check); at most six, three in Still. A person row (F6) shows
- *  named or not (an unnamed one reads as the slot to fill), and always: past the cap it is added at the end. */
+ *  named or not (an unnamed one reads as the slot to fill), and always: past the cap it is added at the end. A Sit
+ *  row (S3) is not counted against the cap and keeps its place. */
 export function shownTips(step: Pick<Step, 'tips'>, still: boolean): Tip[] {
   // F4: in Still the Still row has nothing left to do, so it goes (the 3 a.m. mock: "already in Still, which is why
   // it is absent"); on Shutdown and 3 a.m. it is the first row in Day and Night
   const rows = step.tips.filter(t => !t.struck && !t.print && !(still && t.helper === 'still'));
-  const shown = rows.slice(0, still ? 3 : 6);
+  // Meditate S3: a Sit row rides on top of the cap like the person row, but in its own place among the rows, so a
+  // step already at six (Panic "Under the skin", Energize "Landing") keeps all six and gains it
+  const capped = new Set(rows.filter(t => t.helper !== 'sit').slice(0, still ? 3 : 6));
+  const shown = rows.filter(t => t.helper === 'sit' || capped.has(t));
   // Still hides the person's number, never the row (PLAN-FLOWS.md 3.7): a person row past the cap still shows
   return [...shown, ...rows.filter(t => t.helper === 'person' && !shown.includes(t))];
 }
