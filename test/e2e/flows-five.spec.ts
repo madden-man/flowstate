@@ -26,7 +26,7 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   await threshold(page);
   const body = page.locator('.fs-flowpage');
   await expect(body).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.fs-cycle[data-diagram="fork"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
   await expect(page.getByRole('button', { name: "I'm worthless" })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.fs-cycle text.hand')).toHaveText(['hide', 'hit back', 'I can fix it']);
   await expect(body.locator('.fl-said').first()).toContainText('has a door in it');
@@ -81,7 +81,7 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   // the link row leads back to the step it left, which reads
   await page.locator('.fl-from a.fs-link').click();
   await expect(page).toHaveURL(/#\/flow\/shame\/3$/);
-  await expect(page.locator('.fs-cycle[data-diagram="fork"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
 });
 
 test('3 a.m. in Still: the clock with no digit on the page; the list of nine scrolls to "+ flow"', async ({ page }) => {
@@ -89,7 +89,7 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   await page.locator('.fs-flowpage').waitFor();
   await threshold(page);
   const body = page.locator('.fs-flowpage');
-  await expect(page.locator('.fs-cycle[data-diagram="clock"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="clock"]')).toBeVisible();
   await expect(page.locator('.fs-flowpage .fl-usual.fs-notstill')).toContainText('twenty minutes');
   await expect(page.locator('.fs-cycle text.num')).toHaveText(['12', '7']);
   // the quiet clock (F4): on a live episode the middle reads in words in Day too, never minutes in digits
