@@ -17,6 +17,7 @@ import { openSheet } from '../sheets';
 import { notebookDate } from '../date';
 import { tick } from './Haptic';
 import { MusicLine, type MusicPage } from '../music/MusicLine';
+import { useDrawn } from '../turns';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -39,6 +40,8 @@ type Props = {
   /** Through the door without the PIN (F5, PLAN-FLOWS.md 3.7): the moon and the way back ask for the PIN, and the
    *  header carries nothing else: no Settings, no ♪ line, no kept line in Still, no rail of earlier pages. */
   door?: { ask: (then: 'still' | 'flow') => void };
+  /** False while the page is still reading what it draws (M2): a page turn waits for it, a moment at most. */
+  drawn?: boolean;
   children?: ComponentChildren;
 };
 
@@ -74,7 +77,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, k
       <div class="fs-hdr-r">
         {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
         {count && <span class="fs-count">{count}</span>}
-        {label && <span>{label}</span>}
+        {label && <span class="fs-hdr-label">{label}</span>}
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>
@@ -87,7 +90,8 @@ const onInput = (e: JSX.TargetedEvent<HTMLElement>) => {
   if (t.tagName === 'TEXTAREA' && t.closest('.fs-composer, .fs-col')) noteKeystroke();
 };
 
-export function Page({ children, pageId, ...header }: Props) {
+export function Page({ children, pageId, drawn = true, ...header }: Props) {
+  useDrawn(drawn);
   const page = useRef<HTMLElement>(null);
   const rail = useRef<HTMLElement>(null);
   const none = useRef<HTMLElement>(null);

@@ -72,7 +72,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   }, [id, version, dataVersion.value]);
 
   const door = doorOnly ? { ask: askPin } : undefined;
-  if (data === 'none' || !data) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}><div class="fs-sheetof fs-rules" /></Page>;
+  if (data === 'none' || !data) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door} drawn={data !== null}><div class="fs-sheetof fs-rules" /></Page>;
 
   const { flow, live, last } = data;
   const n = flow.steps.length;

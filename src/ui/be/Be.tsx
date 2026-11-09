@@ -5,7 +5,8 @@
 // to a new place (V13, as the Voices screen does). #/be/:id opens that one and scrolls
 // to it once it is laid out. Under an active paradox's spread sit its checks due today and its lean (F0, moved
 // from Flow; see Due.tsx), in Day and Night.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import { Page } from '../parts/Page';
 import { Spread } from '../parts/Spread';
 import { dataVersion } from '../sheets';
@@ -19,12 +20,80 @@ import { beData, beVersion, openGoal, openParadox, changed } from './state';
 import { GoalSheet } from './GoalSheet';
 import { ParadoxSheet } from './ParadoxSheet';
 import { Due } from './Due';
+import { moves, tokenMs } from '../turns';
+
+/** A spread under its row grows down from it and folds back up (M2, PLAN-MOTION.md; DESIGN.md rule 11): it is laid
+ *  out first, at its full size with none of it showing, and only once laid out is it revealed, over --t-page. Folding,
+ *  it is already closed (the row says so at once); it goes once folded. A deep link opens it as it is. */
+function Fold({ grow, closing, onFolded, children }: { grow: boolean; closing: boolean; onFolded: () => void; children: ComponentChildren }) {
+  const el = useRef<HTMLDivElement>(null);
+  const done = useRef(onFolded);
+  done.current = onFolded;
+  /** Opens from wherever it stands to the height of what it holds. */
+  const open = (f: HTMLDivElement) => {
+    // measured while it is still shut (reading after the switch would see it at auto, which cannot be eased from)
+    const h = f.scrollHeight;
+    f.style.height = `${h}px`;
+    f.dataset.fold = 'moving';
+  };
+  useLayoutEffect(() => {
+    const f = el.current;
+    if (!f || !grow || !moves()) return;
+    f.dataset.fold = 'shut';
+    let raf = 0, tries = 0;
+    const reveal = () => {
+      // the spread measures itself after display; wait for it (as the deep link does), then open
+      if (f.querySelector('[data-laid="true"]') || !f.querySelector('[data-laid]') || tries++ > 60) open(f);
+      else raf = requestAnimationFrame(reveal);
+    };
+    raf = requestAnimationFrame(reveal);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  useEffect(() => {
+    const f = el.current;
+    if (!f) return;
+    if (!closing) {
+      // opened again while it folded: it opens from where it is
+      if (f.dataset.fold === 'closing') open(f);
+      return;
+    }
+    if (!moves()) { done.current(); return; }
+    // from the height it has now, which the browser must see before it can go to nothing
+    f.style.height = `${f.getBoundingClientRect().height}px`;
+    f.dataset.fold = 'closing';
+    void f.offsetHeight;
+    f.style.height = '0px';
+    // its transition's end, or a page's length and a half: whichever is first
+    const t = setTimeout(() => done.current(), tokenMs('--t-page') * 1.5);
+    return () => clearTimeout(t);
+  }, [closing]);
+  const end = (e: TransitionEvent) => {
+    const f = el.current;
+    if (!f || e.target !== f) return;
+    if (f.dataset.fold === 'moving') { delete f.dataset.fold; f.style.height = ''; }
+    else if (f.dataset.fold === 'closing') done.current();
+  };
+  return (
+    <div ref={el} class="fs-be-fold" onTransitionEnd={end} inert={closing} aria-hidden={closing ? 'true' : undefined}>
+      {children}
+    </div>
+  );
+}
 
 export function Be({ id }: { id?: string }) {
   const [list, setList] = useState<SpreadData[] | null>(null);
   const [resting, setResting] = useState(false);
   const [open, setOpen] = useState<Set<string>>(() => new Set(id ? [id] : []));
-  const flip = (pid: string) => setOpen(prev => { const n = new Set(prev); if (n.has(pid)) n.delete(pid); else n.add(pid); return n; });
+  // M2: a tapped spread grows; one being closed stays to fold up before it goes
+  const [closing, setClosing] = useState<Set<string>>(new Set());
+  const grown = useRef(new Set<string>());
+  const flip = (pid: string) => {
+    const shut = open.has(pid);
+    if (!shut) grown.current.add(pid);
+    setClosing(prev => { const n = new Set(prev); if (shut) n.add(pid); else n.delete(pid); return n; });
+    setOpen(prev => { const n = new Set(prev); if (shut) n.delete(pid); else n.add(pid); return n; });
+  };
+  const folded = (pid: string) => setClosing(prev => { if (!prev.has(pid)) return prev; const n = new Set(prev); n.delete(pid); return n; });
   const scroller = useRef<HTMLDivElement>(null);
   const scrolledTo = useRef<string | null>(null);
 
@@ -136,6 +205,7 @@ export function Be({ id }: { id?: string }) {
   const card = (s: SpreadData) => {
     const pid = s.paradox.id;
     const shown = open.has(pid);
+    const folding = !shown && closing.has(pid);
     return (
       <section key={pid} id={`be-${pid}`} class={`fs-be-row${shown ? ' open' : ''}${lifted === pid ? ' lift' : ''}`} data-row={pid}>
         <button type="button" class={`fs-dichotomy${s.paradox.status !== 'active' ? ' resting' : ''}`} aria-expanded={shown}
@@ -144,11 +214,13 @@ export function Be({ id }: { id?: string }) {
           <i aria-hidden="true" />
           <span class="b">{s.paradox.poleB.value}</span>
         </button>
-        {shown && (
-          <div id={`spread-${pid}`}>
-            {spread(s)}
-            {due.has(pid) && <Due key={`${pid} ${day}`} group={due.get(pid)!} now={t} onWritten={() => setDueVersion(v => v + 1)} />}
-          </div>
+        {(shown || folding) && (
+          <Fold grow={grown.current.has(pid)} closing={folding} onFolded={() => folded(pid)}>
+            <div id={`spread-${pid}`}>
+              {spread(s)}
+              {due.has(pid) && <Due key={`${pid} ${day}`} group={due.get(pid)!} now={t} onWritten={() => setDueVersion(v => v + 1)} />}
+            </div>
+          </Fold>
         )}
       </section>
     );
@@ -170,7 +242,7 @@ export function Be({ id }: { id?: string }) {
   );
 
   return (
-    <Page label="Be">
+    <Page label="Be" drawn={list !== null}>
       <div class="fs-be-top">
         {asleep.length > 0 ? (
           <button type="button" class="fs-word fs-state" aria-expanded={resting} onClick={() => setResting(!resting)}>Resting</button>

@@ -966,7 +966,78 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 
 
 /* ---- M2: turns (the mark under a tab, tab to tab, a row into its page) ---- */
+/* the mark under the tab: one ink stroke under the current word (app.tsx Tabs places it). It slides to the tapped tab
+   and lands; placed, it does not move; drawn left to right where there was none; lifted where no tab is current. */
+.fs-tab-mark {
+  position: absolute; left: 0; top: 0; width: 1px; height: 1.5px; border-radius: 1px; pointer-events: none;
+  background: var(--ink); transform-origin: 0 50%;
+  transform: translate(var(--mark-x, 0px), var(--mark-y, 0px)) scaleX(var(--mark-w, 0));
+  transition: transform var(--t-page) var(--ease-settle), opacity var(--t-ui) var(--ease), background-color var(--t-light) var(--ease);
+}
+.fs-tab-mark[data-drawing] { transition: transform var(--t-draw) var(--ease), opacity var(--t-ui) var(--ease), background-color var(--t-light) var(--ease); }
+.fs-tab-mark[data-placing] { transition: none; }
+.fs-tab-mark[data-gone] { opacity: 0; }
 
+/* the turns (ui/turns.ts, parts/Turn): under one of these four kinds the page's ink, the header and the tab bar are
+   captured on their own; the paper (page colour, lamp, sheets) is the root, which only cross-fades in place */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"]) .fs-page { view-transition-name: fs-ink; }
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"]) .fs-hdr { view-transition-name: fs-hdr; }
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"]) .fs-tabs { view-transition-name: fs-tabs; }
+/* the paper stays: the writing column lends its rules to the frame behind it for the turn (ui/turns.ts) */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"]) [data-paper] { background-image: none; }
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"]) .fs-main::after {
+  content: ""; position: absolute; pointer-events: none;
+  left: var(--paper-x); top: var(--paper-top); width: var(--paper-w); height: var(--paper-h);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 calc(var(--lh-ink) - 1px), var(--rule) calc(var(--lh-ink) - 1px) var(--lh-ink));
+  background-size: 100% var(--paper-size); background-position: 0 var(--paper-y);
+}
+/* a flow's name travels as its words, not as the row's whole width */
+html:is([data-turn="open"], [data-turn="close"]) .fl-flow .fs-list-line { width: fit-content; max-width: 100%; }
+/* a second tap during a turn reaches the page under it, and goes at once */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition { pointer-events: none; }
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-group(*) {
+  animation-duration: var(--t-page); animation-timing-function: var(--ease-settle);
+}
+/* what stays: the paper and the header cross-fade where they differ (the same pixels add up to themselves) */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-old(root),
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-new(root),
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-old(fs-hdr),
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-new(fs-hdr) {
+  animation-duration: var(--t-ui); animation-timing-function: var(--ease);
+}
+/* the tab bar is the live one at once, so its mark is seen sliding */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-group(fs-tabs),
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-new(fs-tabs) { animation: none; }
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-old(fs-tabs) { animation: none; opacity: 0; }
+/* the ink turns: out a short way over --t-ui, in from the other side over --t-page */
+html:is([data-turn="tab-left"], [data-turn="tab-right"], [data-turn="open"], [data-turn="close"])::view-transition-group(fs-ink) { animation: none; }
+html:is([data-turn="tab-right"], [data-turn="open"])::view-transition-old(fs-ink) { animation: fs-ink-out-left var(--t-ui) var(--ease) both; }
+html:is([data-turn="tab-right"], [data-turn="open"])::view-transition-new(fs-ink) { animation: fs-ink-in-right var(--t-page) var(--ease-settle) both; }
+html:is([data-turn="tab-left"], [data-turn="close"])::view-transition-old(fs-ink) { animation: fs-ink-out-right var(--t-ui) var(--ease) both; }
+html:is([data-turn="tab-left"], [data-turn="close"])::view-transition-new(fs-ink) { animation: fs-ink-in-left var(--t-page) var(--ease-settle) both; }
+/* what travels (ui/turns.ts names it): the box goes over --t-page and lands; the small and the large pictures trade
+   places early, over --t-ui, so a thin stroke is never seen blown up thick */
+html:is([data-turn="open"], [data-turn="close"])::view-transition-old(fs-drawing),
+html:is([data-turn="open"], [data-turn="close"])::view-transition-old(fs-title) { animation: fs-turn-out var(--t-ui) var(--ease) both; }
+html:is([data-turn="open"], [data-turn="close"])::view-transition-new(fs-drawing),
+html:is([data-turn="open"], [data-turn="close"])::view-transition-new(fs-title) { animation: fs-turn-in var(--t-ui) var(--ease) both; }
+@keyframes fs-turn-out { to { opacity: 0; } }
+@keyframes fs-turn-in { from { opacity: 0; } }
+@keyframes fs-ink-out-left { to { transform: translateX(-18px); opacity: 0; } }
+@keyframes fs-ink-out-right { to { transform: translateX(18px); opacity: 0; } }
+@keyframes fs-ink-in-right { from { transform: translateX(18px); opacity: 0; } }
+@keyframes fs-ink-in-left { from { transform: translateX(-18px); opacity: 0; } }
+
+/* Be: a spread grows down from its row and folds back up into it (Be.tsx Fold sets the heights). Laid out at its full
+   height behind a fold of nothing, then the fold opens to it; the rows under it ride down with its edge. */
+.fs-be-fold[data-fold] { overflow: hidden; transition: height var(--t-page) var(--ease-settle); }
+.fs-be-fold[data-fold="shut"] { height: 0; transition: none; }
+/* "+ Goal" keeps to the spread's foot while it moves, not to the fold's edge */
+.fs-be-fold[data-fold] .fs-addgoal { position: relative; bottom: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-tab-mark, .fs-tab-mark[data-drawing], .fs-be-fold[data-fold] { transition: none; }
+}
 /* ---- M2 ends ---- */
 
 
