@@ -23,6 +23,13 @@
   /* motion: slow, no bounce */
   --t-ui: 180ms; --t-page: 400ms; --t-light: 1200ms; --t-breath: 10s;   /* 4s in, 6s out */
   --ease: cubic-bezier(.2, .7, .2, 1);
+  /* the motion pass (PLAN-MOTION.md); each names the screen that needed it */
+  --t-draw: 320ms;                              /* a pen stroke: the check, the ring round a playing album, the mark under a tab */
+  --t-hold: 500ms;                              /* a long press filling: a held line lifts over the hold itself (parts/Hold, HOLD_MS) */
+  --t-orbit: 9s;                                /* one turn of the bead round the playing album (the music sheet) */
+  --ease-settle: cubic-bezier(.16, 1, .3, 1);   /* a thing that travels and lands: a long tail, no overshoot (a cover to the ♪, a small drawing to its page) */
+  --press: .95;                                 /* how far a cover gives under a thumb (the music sheet) */
+  --stream: 1;                                  /* how fast and how full a flow's water runs (parts/Cycle, the stream) */
 
   /* the page */
   --page: #F6F1E4;   /* cream */
@@ -46,6 +53,7 @@
   --lamp: #262A38; --lamp-mix: 35%;
   --black-voice: #C9C9CF;
   --voice-l: 74%; --voice-c: .12;
+  --stream: .85;
   color-scheme: dark;
 }
 
@@ -56,7 +64,7 @@
   --voice-l: 66%; --voice-c: .055;   /* embers */
   --tint: 0%;
   --fs-ink: 18px; --lh-ink: 33px;    /* more air between lines */
-  --t-ui: 260ms; --t-page: 600ms;
+  --t-ui: 260ms; --t-page: 600ms; --t-draw: 460ms; --stream: .4;
   color-scheme: dark;
 }
 
@@ -81,7 +89,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root, [data-light] { --t-ui: 0ms; --t-page: 0ms; --t-light: 0ms; }
+  :root, [data-light] { --t-ui: 0ms; --t-page: 0ms; --t-light: 0ms; --t-draw: 0ms; --t-hold: 0ms; --stream: 0; }
 }
 
 /* surfaces that sit above the page */

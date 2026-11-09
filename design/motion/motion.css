@@ -1,0 +1,106 @@
+/* The motion pass (proposal). Everything above the last section would move into src/ui/parts/parts.css as written:
+   tokens only, no bounce, and nothing moves under Reduce Motion (the tokens go to zero and the keyframes are switched off
+   at the foot of this file). */
+
+/* ==== 1. Press: down is instant, up is eased ====
+   parts/Press puts [data-down] on at pointerdown and takes it off at up, cancel or the first scroll, so the page answers the
+   touch and not the click 100ms later. Going down has no transition; coming back takes --t-ui. */
+.fs-key b { display: block; transition: transform var(--t-ui) var(--ease); }
+.fs-key[data-down] { background: var(--seam); transition: none; }
+.fs-key[data-down] b { transform: translateY(1px) scale(.96); transition: none; }
+.fs-word, .fs-tab { transition: color var(--t-ui) var(--ease), transform var(--t-ui) var(--ease); }
+.fs-word[data-down], .fs-tab[data-down] { color: var(--ink); transform: translateY(1px); transition: none; }
+.fs-row, .fs-playlist { transition: background-color var(--t-page) var(--ease); }
+.fs-row[data-down], .fs-playlist[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+.fs-moon i { transition: box-shadow var(--t-light) var(--ease), transform var(--t-ui) var(--ease); }
+.fs-moon[data-down] i { transform: scale(.86); transition: none; }
+.fs-tile { transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease), opacity var(--t-page) var(--ease); }
+.fs-tile[data-down] { transform: scale(var(--press)); box-shadow: none; transition: none; }
+.fl-mid.holdable[data-down] { transform: translate(-50%, -50%) scale(.96); }
+
+/* ==== 2. Drawn, not shown: a check is a pen stroke ==== */
+.fs-check-box { transform-box: fill-box; transform-origin: center; transition: scale var(--t-ui) var(--ease); }
+.fs-check[data-down] .fs-check-box { scale: .86; transition: none; }
+.fs-check-ink { transition: stroke-dashoffset var(--t-draw) var(--ease); }
+.fs-check.done .fs-check-ink { animation: fs-pen var(--t-draw) var(--ease); }
+@keyframes fs-pen { from { stroke-width: 3.8; } }   /* the pen lands heavy and lifts light */
+
+/* the PIN: a dot fills like a blot, and the fourth one opens the ring */
+.fs-dots i.on { animation: fs-blot var(--t-ui) var(--ease-settle); }
+@keyframes fs-blot { from { transform: scale(.3); } }
+.fs-threshold-keypad, .fs-threshold-words > :not(.fs-ring-mark) { transition: opacity var(--t-ui) var(--ease); }
+.fs-threshold.opening .fs-threshold-keypad, .fs-threshold.opening .fs-threshold-words > * { opacity: 0; }
+.fs-iris { position: absolute; width: 34px; height: 34px; overflow: visible; pointer-events: none; animation: fs-iris var(--t-light) var(--ease) forwards; }
+.fs-iris circle { fill: none; stroke: var(--print); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@keyframes fs-iris { to { transform: scale(30); opacity: 0; } }
+
+/* ==== 3. The paper stays, the ink turns: tabs ==== */
+.fs-tab-mark {
+  position: absolute; left: 0; bottom: calc(var(--safe-bottom) + var(--s1) + 4px); height: 1.5px; width: 1px; border-radius: 1px;
+  background: var(--ink); transform-origin: 0 50%; pointer-events: none;
+  transition: transform var(--t-page) var(--ease-settle), background-color var(--t-light) var(--ease);
+}
+
+/* ==== 4. The same thing stays the same thing: a flow's small drawing grows into its page ==== */
+.fl-grow { transform-origin: 0 0; will-change: transform; }
+
+/* ==== 5. The music sheet ==== */
+.fs-tiles { position: relative; }
+.fs-tile { position: relative; }
+.fs-tile[aria-pressed="true"] { outline: 0; }   /* the ring round the playing album is drawn now, not switched on */
+.fs-tiles.hush .fs-tile:not(.chosen) { opacity: .45; transition: opacity var(--t-ui) var(--ease); }
+/* the drop: where the thumb landed, a soft ring goes out across the cover */
+.fs-tile-drop {
+  position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: var(--page);
+  pointer-events: none; animation: fs-drop calc(var(--t-page) * 1.5) var(--ease) forwards;
+}
+@keyframes fs-drop { from { transform: scale(.4); opacity: .5; } to { transform: scale(9); opacity: 0; } }
+/* the ring, drawn round the cover in one stroke; a bead walks it for as long as the album plays */
+.fs-tile-ring { position: absolute; overflow: visible; pointer-events: none; }
+.fs-tile-ring rect { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.fs-tile-ring .draw { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset var(--t-draw) var(--ease); }
+.fs-tile-ring.on .draw { stroke-dashoffset: 0; }
+.fs-tile-ring .bead { stroke-width: 5; stroke-dasharray: .001 .999; opacity: 0; transition: opacity var(--t-page) var(--ease); animation: fs-orbit var(--t-orbit) linear infinite; }
+.fs-tile-ring.on .bead { opacity: 1; }
+[data-light="still"] .fs-tile-ring .bead { display: none; }
+@keyframes fs-orbit { to { stroke-dashoffset: -1; } }
+/* the cover that travels to the ♪ */
+.fs-fly { position: absolute; left: 0; top: 0; z-index: 6; border-radius: 4px; object-fit: cover; box-shadow: var(--shadow-tile); pointer-events: none; transform-origin: 0 0; background: var(--seam); }
+.fs-mini.landed img, .fs-mini.landed span { animation: fs-land var(--t-page) var(--ease-settle); }
+@keyframes fs-land { from { transform: scale(1.3); } }
+
+/* ==== 6. Still spreads out from the moon ====
+   The light changes inside one view transition: the new light opens as a circle from the moon, and going back the
+   old one closes into the ring. Colours do not also cross-fade while it runs. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-still::view-transition-new(root) { animation: fs-dusk var(--t-light) var(--ease) both; }
+html.vt-wake::view-transition-old(root) { animation: fs-dawn var(--t-light) var(--ease) both; z-index: 1; }
+@keyframes fs-dusk { from { clip-path: circle(0 at var(--vt-x) var(--vt-y)); } to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); } }
+@keyframes fs-dawn { from { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); } to { clip-path: circle(0 at var(--vt-x) var(--vt-y)); } }
+html.vt-still .screen, html.vt-still .screen *, html.vt-wake .screen, html.vt-wake .screen * { transition: none !important; }
+
+/* ==== 7. The stream: a flow's drawing runs like water (src/stream.ts) ==== */
+.fl-stream { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--lh-ink) * 8); overflow: visible; pointer-events: none; }
+.fl-stream line { stroke: var(--ink); stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fl-ripple {
+  fill: none; stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center;
+  animation: fl-ripple calc(var(--t-page) * 2) var(--ease) forwards;
+}
+@keyframes fl-ripple { from { transform: scale(.4); opacity: .7; } to { transform: scale(2.8); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-check.done .fs-check-ink, .fs-dots i.on, .fs-iris, .fs-tile-drop, .fs-tile-ring .bead, .fs-mini.landed img, .fs-mini.landed span, .fl-ripple { animation: none; }
+  .fs-iris, .fs-tile-drop, .fl-ripple, .fl-stream g { display: none; }
+  html.vt-still::view-transition-new(root), html.vt-wake::view-transition-old(root) { animation: none; }
+}
+
+/* ==== mock only: what the walkthrough needs to stand the screens up ==== */
+.screen [hidden] { display: none !important; }
+.screen .fs-main { overflow: hidden; }
+.screen .fs-page[data-view], .screen .fs-page[data-tab] { position: absolute; inset: 0; }
+.screen .fs-sheet-body { min-height: 0; }
+.screen .fs-flowpage .fl-step-page { min-height: calc(var(--lh-ink) * 3); }
+.picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 560px; }
+.picker button { font: 500 13px var(--sans); padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--rail); color: var(--fg); cursor: pointer; min-height: 36px; }
+.picker button[aria-pressed="true"] { background: var(--fg); color: var(--rail); }
+.sound { font: 500 13px var(--sans); padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--rail); color: var(--fg); cursor: pointer; min-height: 36px; }
