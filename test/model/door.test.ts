@@ -3,23 +3,30 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from '../db/helpers';
 import { ensureSeeded } from '../../src/db/seed';
 import { PANIC } from '../../src/db/seed-flows';
-import { store, setKey, lock } from '../../src/db/fields';
+import { store, setKey, lock, unlock } from '../../src/db/fields';
+import { sitOf } from '../../src/model/sits';
+import { afterUnlock, doorSits } from '../../src/ui/flow/door';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { flowById, flows, moveDot, liveEpisode } from '../../src/model/flows';
 import { doorPasses, doorRead, nowRows } from '../../src/model/door';
 
 describe('the route gate', () => {
-  const PASS = ['/flow/now', '/flow/now/', '/flow/panic/1', '/flow/panic/4', '/flow/a-flow-of-mine/12'];
+  const PASS = ['/flow/now', '/flow/now/', '/flow/panic/1', '/flow/panic/4', '/flow/a-flow-of-mine/12', '/flow/meditate', '/flow/meditate/'];
   const KEYPAD = [
     '/', '/journal', '/journal/pages', '/journal/abc', '/questions', '/questions/q1', '/council', '/council/c1', '/be', '/be/p1',
-    '/voices', '/flow', '/flow/panic', '/flow/panic/0', '/flow/panic/one', '/flow/panic/1/edit', '/flow/now/1', '/flow/now/x', '/flow/meditate', '/flow/meditate/1', '/settings',
+    '/voices', '/flow', '/flow/panic', '/flow/panic/0', '/flow/panic/one', '/flow/panic/1/edit', '/flow/now/1', '/flow/now/x', '/flow/meditate/1', '/flow/meditate/x', '/settings',
   ];
-  it('with the door on, only Right now and a flow\'s step pass', () => {
+  it('with the door on, only Right now, a flow\'s step and Meditate (S3) pass', () => {
     for (const p of PASS) expect(doorPasses(p, true), p).toBe(true);
     for (const p of KEYPAD) expect(doorPasses(p, true), p).toBe(false);
   });
   it('with the door off, nothing passes', () => {
     for (const p of [...PASS, ...KEYPAD]) expect(doorPasses(p, false), p).toBe(false);
+  });
+  it('Meditate passes itself, never as a flow\'s step, and not with the door off (S3)', () => {
+    expect(doorPasses('/flow/meditate', true)).toBe(true);
+    expect(doorPasses('/flow/meditate/1', true)).toBe(false);
+    expect(doorPasses('/flow/meditate', false)).toBe(false);
   });
   it('a query does not change the answer', () => {
     expect(doorPasses('/flow/panic/2?x=1', true)).toBe(true);
@@ -109,5 +116,29 @@ describe('what the door shows', () => {
     expect((await liveEpisode('panic'))!.marks.map(m => m.stepId)).toEqual(['panic-2']);
     await moveDot('panic', [], 'panic-3').catch(() => undefined);
     expect((await liveEpisode('panic'))!.marks.map(m => m.stepId)).toEqual(['panic-2']);
+  });
+});
+
+// Meditate S3: a sit ended while the journal is locked is held in memory, and the PIN writes it (and its tick).
+describe('a sit through the door', () => {
+  beforeEach(async () => { await freshDB(); await ensureSeeded(); doorSits.value = []; });
+
+  it('is held while locked, written once the PIN is in, its tip ticked on the episode it came from', async () => {
+    const e = await moveDot('panic', [], 'panic-4');
+    const salt = randomSalt();
+    const key = await deriveKey('3569', salt, 1000);
+    await setKey(key, { salt, iterations: 1000 });
+    lock();
+    const from = { episodeId: e!.id, tipId: 'panic-4-sit' };
+    const sit = sitOf(Date.now() - 3 * 60_000, Date.now(), 'rain', 0, from)!;
+    await expect(store.put('sits', sit)).rejects.toThrow();
+    doorSits.value = [{ sit, from }];
+    expect(await unlock(await deriveKey('3569', salt, 1000))).toBe(true);
+    expect(await afterUnlock(() => undefined)).toBe(true);
+    expect(doorSits.value).toEqual([]);
+    expect(await store.all('sits')).toEqual([sit]);
+    expect((await store.get('episodes', e!.id))!.done.map(d => d.tipId)).toEqual(['panic-4-sit']);
+    // nothing held, nothing written
+    expect(await afterUnlock(() => undefined)).toBe(false);
   });
 });

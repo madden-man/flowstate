@@ -12,6 +12,14 @@
 // ended inside its first minute writes nothing and the page goes back to rest. Leaving the page forgets the after.
 // In Still the page is the circle and the sound chips only: a sit begun there is open, nothing about the last one
 // shows and there is no after, but the sit is still written. Nothing here adds sits up (rule 15).
+//
+// S3. From a flow: a Sit tip's row (./Tips.tsx) puts the live episode and the tip in sitFrom and opens this page,
+// which takes them once as it mounts and clears them; every sit of a minute or more on that visit is written with the
+// episode, and the tip is ticked on it (model/sits.ts keepSit). Coming here any other way carries nothing.
+// Through the door (doorOnly, the journal locked): the circle, the chips and a sit with its sound all work, nothing
+// that reads the locked journal shows (no "last sat", no page after, no journal row), the chips choose for this visit
+// only, and a sit of a minute or more is held in memory (./door.ts doorSits) for the PIN to write. Any sit that ends
+// while the journal is locked (the lock come down over the page) is held the same way.
 import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
@@ -25,10 +33,15 @@ import { shortDate } from '../date';
 import { useWakeLock } from './breath';
 import type { Read } from '../../db/fields';
 import type { Sit, SitMinutes } from '../../db/schema';
-import { keepSit, lastSit, linkSitToday, minutesWords, satMinutes, sitOf, SIT_LENGTHS } from '../../model/sits';
+import { keepSit, lastSit, linkSitToday, minutesWords, satMinutes, sitOf, SIT_LENGTHS, type SitFrom } from '../../model/sits';
+import { keyState } from '../../db/fields';
+import { askPin, doorSits } from './door';
 
 /** A sit is on: the frame (app.tsx) puts data-sitting on .fs-app, and the header, the tabs and the lamp leave. */
 export const sitting = signal(false);
+
+/** A Sit tip's row sent this page here (S3): the episode and the tip, taken once by the page as it mounts. */
+export const sitFrom = signal<SitFrom | null>(null);
 
 const WORDS: Record<SitSound, string> = { rain: 'Rain', ocean: 'Ocean', forest: 'Forest', bowl: 'Bowl', quiet: 'Quiet' };
 const LENGTH_WORDS: Record<SitMinutes, string> = { 0: 'Open', 5: '5', 10: '10', 20: '20' };
@@ -39,11 +52,19 @@ const wall = (): Clock => { const now = () => performance.now() / 1000; return {
 /** A sit on: its clock, when it began, its sound, and its length (0 is open). */
 type Run = { clock: Clock; startedAt: number; sound: SitSound; minutes: SitMinutes };
 
-export function Meditate() {
+export function Meditate({ doorOnly }: { doorOnly?: boolean }) {
   const { route } = useLocation();
-  const sound: SitSound = settings.value.sitSound ?? 'rain';
+  // through the door nothing is written, so the chips choose for this visit only
+  const [pick, setPick] = useState<{ sound?: SitSound; minutes?: SitMinutes }>({});
+  const sound: SitSound = pick.sound ?? settings.value.sitSound ?? 'rain';
   const still = light.value === 'still';
-  const minutes: SitMinutes = settings.value.sitMinutes ?? 0;
+  const minutes: SitMinutes = pick.minutes ?? settings.value.sitMinutes ?? 0;
+  const choose = (p: { sitSound: SitSound } | { sitMinutes: SitMinutes }) => {
+    if (!doorOnly) { void saveSettings(p); return; }
+    setPick(was => ('sitSound' in p ? { ...was, sound: p.sitSound } : { ...was, minutes: p.sitMinutes }));
+  };
+  // where a Sit tip sent this visit from (taken once, then cleared); through the door no episode is carried
+  const [from] = useState<SitFrom | null>(() => { const f = sitFrom.value; sitFrom.value = null; return doorOnly ? null : f; });
   const [run, setRun] = useState<Run | null>(null);
   /** The sit just ended, while the page is the page after it. */
   const [after, setAfter] = useState<Sit | null>(null);
@@ -55,6 +76,8 @@ export function Meditate() {
   const on = run !== null;
 
   useEffect(() => {
+    // "last sat" reads the journal, so through the door it stays behind the PIN
+    if (doorOnly) return;
     let here = true;
     void lastSit().then(s => { if (here) setLast(s); }).catch(() => undefined);
     return () => { here = false; };
@@ -68,17 +91,20 @@ export function Meditate() {
     live.current = null;
     s?.end(seconds);
     sitting.value = false;
-    const row = r && sitOf(r.startedAt, Date.now(), r.sound, r.minutes);
-    // locked (the PIN came down over the page), nothing can be written yet; S3 holds such a sit until the PIN
-    if (row) writing.current = keepSit(row).catch(() => undefined);
+    const row = r && sitOf(r.startedAt, Date.now(), r.sound, r.minutes, from ?? undefined);
+    if (!row) return null;
+    // locked (through the door, or the PIN came down over the page): held for the PIN to write (./door.ts)
+    if (keyState() === 'locked') doorSits.value = [...doorSits.value, { sit: row, from: from ?? undefined }];
+    else writing.current = keepSit(row, from ?? undefined).catch(() => undefined);
     return row;
   };
   /** Ends the sit; the page comes back as the page after it, or at rest for one under a minute or in Still. */
   const end = (seconds = OUT_S) => {
     const row = finish(seconds);
     setRun(null);
-    setAfter(row && light.value !== 'still' ? row : null);
-    if (row) setLast(row);
+    // through the door there is no page after: it leads to the journal
+    setAfter(row && light.value !== 'still' && !doorOnly ? row : null);
+    if (row && !doorOnly) setLast(row);
   };
   const begin = () => {
     // the tap itself: the sound starts inside it (rule 21), or the circle alone for Quiet or where there is no Web Audio
@@ -116,7 +142,7 @@ export function Meditate() {
   const state = on ? 'sitting' : showAfter ? 'after' : 'rest';
   const rest = state === 'rest';
   return (
-    <Page label="Meditate" back={{ word: 'Flow', href: '#/flow' }} keepSettings>
+    <Page label="Meditate" back={{ word: 'Flow', href: '#/flow' }} keepSettings door={doorOnly ? { ask: askPin } : undefined}>
       <div class="fs-sheetof fs-rules md-page" data-state={state} data-sound={sound} data-playing={on ? 'true' : undefined}
         data-ending={run?.minutes ? 'true' : undefined}>
         <Circle sitting={on} clock={run?.clock} word="begin" label={on ? 'End the sit' : 'Begin'} onTap={tap}
@@ -127,17 +153,17 @@ export function Meditate() {
               {SIT_SOUNDS.map(name => (
                 <button key={name} type="button" class="fs-chip" data-sound={name} aria-pressed={sound === name}
                   tabIndex={rest ? undefined : -1}
-                  onClick={() => { if (sound !== name) void saveSettings({ sitSound: name }); }}>{WORDS[name]}</button>
+                  onClick={() => { if (sound !== name) choose({ sitSound: name }); }}>{WORDS[name]}</button>
               ))}
             </div>
             <div class="fs-chips fs-chips-wrap md-lengths fs-notstill" role="group" aria-label="Minutes">
               {SIT_LENGTHS.map(n => (
                 <button key={n} type="button" class="fs-chip" data-minutes={n} aria-pressed={minutes === n}
                   tabIndex={rest ? undefined : -1}
-                  onClick={() => { if (minutes !== n) void saveSettings({ sitMinutes: n }); }}>{LENGTH_WORDS[n]}</button>
+                  onClick={() => { if (minutes !== n) choose({ sitMinutes: n }); }}>{LENGTH_WORDS[n]}</button>
               ))}
             </div>
-            {last && <p class="fl-last fs-notstill">Last sat · {shortDate(new Date(last.startedAt))} · {last.sound}</p>}
+            {last && !doorOnly && <p class="fl-last fs-notstill">Last sat · {shortDate(new Date(last.startedAt))} · {last.sound}</p>}
           </div>
           <div class="md-after" aria-hidden={showAfter ? undefined : 'true'}>
             {after && <p class="fl-last fs-notstill">Sat · {minutesWords(satMinutes(after))} · {after.sound}</p>}

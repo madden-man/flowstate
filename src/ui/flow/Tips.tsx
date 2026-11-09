@@ -12,10 +12,13 @@
 // lines) wait for a live episode. A print tip (F3, the 988 line) is never a row: PrintLines prints it under these.
 // F6: the person row (./Person.tsx) opens Messages with his text, or the person sheet while it has no name; the
 // prediction row (./Stamps.tsx) opens one rule for the worry written as a prediction, kept on the episode.
+// Meditate S3: Sit opens #/flow/meditate. A tap does not tick it: with a live episode the row puts the episode and the
+// tip in Meditate's sitFrom (in memory, read once by the page), and a sit there of a minute or more ticks the row when
+// it ends; at rest it carries nothing. A tap on a ticked Sit row un-ticks it like any row.
 //
 // Through the door (F5, the journal locked, door true): a tick draws and writes nothing; the rows that write or leave
 // the page (Journal, Timer, ♪) and Five's rules stay behind the PIN, and so does the return line. Ring and the Still
-// row stay: they only move you.
+// row stay: they only move you; so does Sit (S3), which opens Meditate through the door with no episode carried.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Check } from '../parts/Check';
@@ -23,6 +26,7 @@ import { settleFromMoon } from '../still';
 import { tapMusic } from '../music/state';
 import { clockTime } from '../date';
 import { PersonRow, PersonSheet } from './Person';
+import { sitFrom } from './Meditate';
 import { Prediction } from './Stamps';
 import { savePerson } from '../../model/carried';
 import type { Episode, Step, Tip, TipHelper } from '../../db/schema';
@@ -34,7 +38,7 @@ import {
 
 /** The helper's word at the row's end, as the flows proposal prints it. */
 export const HELPER_WORD: Record<TipHelper, string> = {
-  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person', prediction: 'Predict',
+  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person', prediction: 'Predict', sit: 'Sit',
 };
 
 type Props = {
@@ -116,6 +120,12 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
     }
   };
   const toggle = async (t: Tip, on: boolean) => {
+    if (t.helper === 'sit' && on) {
+      // the sit ticks it, not the tap
+      sitFrom.value = live ? { episodeId: live.id, tipId: t.id } : null;
+      route('/flow/meditate');
+      return;
+    }
     setDrawn(d => ({ ...d, [t.id]: on }));
     if (live) { await setDone(live.id, t.id, on); onChanged(); }
     if (on) await run(t);

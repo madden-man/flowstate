@@ -227,8 +227,9 @@ export type PageMusic = NonNullable<Page['music']>;
 /** The drawn shape of a flow, one module each under src/ui/parts/cycle/. */
 export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'coil' | 'clock' | 'stairs' | 'fork';
 /** prediction (F6, not in PLAN-FLOWS.md section 5): one rule under the row for the worry written as a prediction,
- *  kept on the episode (episodes.prediction), so the morning after can ask for its outcome. */
-export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction';
+ *  kept on the episode (episodes.prediction), so the morning after can ask for its outcome. sit (PLAN-MEDITATE.md
+ *  section 5, S3): the row opens Meditate carrying the episode, and a sit of a minute or more ends by ticking it. */
+export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit';
 /** A thing to do at a step. text is the row; short the Still row; wise sets it in italic as the wiser second person
  *  (DESIGN.md rule 17); struck stays struck (rule 10), never deleted. */
 export type Tip = {

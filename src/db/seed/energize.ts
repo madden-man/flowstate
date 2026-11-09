@@ -75,6 +75,8 @@ export const ENERGIZE: FlowSeed = {
         { id: 'energize-5-stop', text: 'Stop mid-sentence, so tomorrow starts easy', short: 'Stop mid-sentence' },
         { id: 'energize-5-eat', text: 'Eat something', short: 'Eat' },
         { id: 'energize-5-walk', text: 'Move it into the body: a walk', short: 'A walk' },
+        // Meditate S3 (PLAN-MEDITATE.md): landing, the circle and the rain
+        { id: 'energize-5-sit', text: 'Sit with the rain', helper: 'sit' },
         { id: 'energize-5-list', text: "Five minutes of tomorrow's list at bedtime", short: "Tomorrow's list", helper: 'journal' },
         { id: 'energize-5-night', text: 'Protect the night: sleep comes first', short: 'Sleep first' },
         { id: 'energize-5-crash', text: 'In the crash: something easy on, the usual coffee, and judge it after sleep', short: 'Something easy on', helper: 'music' },
