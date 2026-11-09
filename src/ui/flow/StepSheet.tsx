@@ -45,8 +45,9 @@ export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => vo
 }
 
 /** The helpers a tip can carry from this sheet. Person (F6) opens the person sheet over this one: who, the number,
- *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode. */
-const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction'];
+ *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode; Sit
+ *  (PLAN-MEDITATE.md S3) opens Meditate and is ticked by a sit of a minute or more. */
+export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit'];
 
 /** step: the step to edit; none to add one (first: it names the flow's unnamed step). */
 type Props = { flow: Read<Flow>; step?: Step; first?: boolean; open: boolean; onClose: () => void; onSaved: () => void };

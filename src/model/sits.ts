@@ -2,9 +2,11 @@
 // ends; "last sat", the newest of them; and the page after a sit, today's journal page linked to it both ways. Every
 // read and write goes through store. No UI. Nothing here adds sits up, counts them or runs them into days (DESIGN.md
 // rule 15): a sit keeps its date and its sound, and the one number said about it is its own length.
+// S3: a sit reached from a flow's Sit tip carries that episode; when it is kept, the tip is ticked on the episode.
 import type { Millis, Page, Sit, SitMinutes, SitSound } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { todayLinked } from './pages';
+import { setDone } from './tips';
 
 const MIN = 60_000;
 /** A sit ended inside its first minute writes nothing and the page goes back to rest. */
@@ -12,14 +14,22 @@ export const SIT_KEPT_MS = MIN;
 /** The lengths the Minutes chips offer: open, then 5, 10 and 20. */
 export const SIT_LENGTHS: readonly SitMinutes[] = [0, 5, 10, 20];
 
-/** The row a sit leaves, or null for one ended inside its first minute. minutes 0 is open (no minutes on the row). */
-export function sitOf(startedAt: Millis, endedAt: Millis, sound: SitSound, minutes: SitMinutes = 0): Sit | null {
+/** Where a sit was sent from (S3): the live episode and the Sit tip whose row opened Meditate. */
+export type SitFrom = { episodeId: string; tipId: string };
+
+/** The row a sit leaves, or null for one ended inside its first minute. minutes 0 is open (no minutes on the row).
+ *  One sent from a flow's tip carries the episode. */
+export function sitOf(startedAt: Millis, endedAt: Millis, sound: SitSound, minutes: SitMinutes = 0, from?: SitFrom): Sit | null {
   if (endedAt - startedAt < SIT_KEPT_MS) return null;
-  return { id: crypto.randomUUID(), startedAt, endedAt, sound, ...(minutes ? { minutes } : {}) };
+  return { id: crypto.randomUUID(), startedAt, endedAt, sound, ...(minutes ? { minutes } : {}), ...(from ? { episodeId: from.episodeId } : {}) };
 }
 
-/** Writes a sit's row. */
-export const keepSit = (sit: Sit): Promise<void> => store.put('sits', sit);
+/** Writes a sit's row; one sent from a flow's tip then ticks that tip on its episode, at the sit's end (the same
+ *  write a tap on the row makes, model/tips.ts setDone: nothing when the episode has ended or is locked). */
+export async function keepSit(sit: Sit, from?: SitFrom): Promise<void> {
+  await store.put('sits', sit);
+  if (from && sit.episodeId === from.episodeId) await setDone(from.episodeId, from.tipId, true, sit.endedAt);
+}
 
 /** The newest sit, for "last sat"; undefined before the first. */
 export async function lastSit(): Promise<Read<Sit> | undefined> {

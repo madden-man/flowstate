@@ -10,11 +10,12 @@ import type { Flow, Step } from '../db/schema';
 import type { Read } from '../db/fields';
 import { SEED_FLOWS } from '../db/seed-flows';
 
-/** The two hashes the lock lets through with the door on: Right now, and a flow's step. Nothing else. */
+/** The hashes the lock lets through with the door on: Right now, a flow's step, and Meditate (PLAN-MEDITATE.md S3: it
+ *  holds nothing private). Nothing else: #/flow/meditate/:step is no flow's step and stays behind the keypad. */
 export function doorPasses(path: string, doorOn: boolean): boolean {
   if (!doorOn) return false;
   const p = path.split('?')[0].replace(/\/+$/, '');
-  if (p === '/flow/now') return true;
+  if (p === '/flow/now' || p === '/flow/meditate') return true;
   const m = /^\/flow\/([^/]+)\/(\d+)$/.exec(p);
   return !!m && m[1] !== 'now' && m[1] !== 'meditate' && Number(m[2]) >= 1;
 }

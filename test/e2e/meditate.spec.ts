@@ -300,3 +300,162 @@ test.describe('reduced motion', () => {
     expect(await page.locator('.fs-tabs').evaluate(el => getComputedStyle(el).opacity)).toBe('0');
   });
 });
+
+// ---- S3: from a flow, and through the door ----
+
+/** One table, read straight from IndexedDB. */
+const rowsOf = <T,>(page: Page, table: string) => page.evaluate(name => new Promise<T[]>((resolve, reject) => {
+  const open = indexedDB.open('flowstate');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const r = open.result.transaction(name).objectStore(name).getAll();
+    r.onsuccess = () => { open.result.close(); resolve(r.result); };
+    r.onerror = () => reject(r.error);
+  };
+}), table);
+type Ep = { id: string; flowId: string; endedAt?: number; done: { tipId: string }[] };
+const keypad = (p: Page) => p.getByRole('group', { name: 'PIN' });
+const tapPin = async (p: Page, digits: string, scope = p.locator('body')) => {
+  for (const d of digits) await scope.locator('.fs-key', { has: p.locator('b', { hasText: new RegExp(`^${d}$`) }) }).click();
+};
+
+test('meditate S3: the Sit row on Under the skin opens Meditate, and a sit of a minute ticks it on the episode', async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 10, 9, 22, 10) });
+  await open(page, '#/flow/now');
+  // Right now puts the dot on Under the skin: a live episode
+  await page.locator('.fl-nowlist a.fl-flow', { hasText: 'Panic · Under the skin' }).click();
+  await expect(page).toHaveURL(/#\/flow\/panic\/4$/);
+  await expect.poll(async () => (await rowsOf<Ep>(page, 'episodes')).filter(e => e.endedAt === undefined).length).toBe(1);
+  const [live] = (await rowsOf<Ep>(page, 'episodes')).filter(e => e.endedAt === undefined);
+
+  // the row: after A warm shower, Sit in print at its end; the six rows before S3 all still there
+  const tips = page.locator('.fl-tips .fl-tip, .fl-tips .fl-wise');
+  await expect(tips).toHaveCount(7);
+  const ids = await tips.evaluateAll(els => els.map(el => el.getAttribute('data-tip')));
+  expect(ids.slice(2, 5)).toEqual(['panic-4-shower', 'panic-4-sit', 'panic-4-walk']);
+  const row = page.locator('[data-tip="panic-4-sit"] [role="checkbox"]');
+  await expect(row.locator('.fs-check-text')).toHaveText('Sit with the rain');
+  await expect(row.locator('small')).toHaveText('Sit');
+
+  // a tap opens Meditate and ticks nothing yet
+  await row.click();
+  await expect(page).toHaveURL(/#\/flow\/meditate$/);
+  expect((await rowsOf<Ep>(page, 'episodes')).find(e => e.id === live.id)!.done).toEqual([]);
+
+  // under a minute: nothing written, nothing ticked
+  const md = page.locator('.md-page');
+  await page.getByRole('button', { name: 'Quiet' }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.clock.fastForward(30_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect(md).toHaveAttribute('data-state', 'rest');
+  expect(await sits(page)).toEqual([]);
+  expect((await rowsOf<Ep>(page, 'episodes')).find(e => e.id === live.id)!.done).toEqual([]);
+
+  // over a minute: the sit carries the episode, and the row is ticked when it ends
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.clock.fastForward(75_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect(md).toHaveAttribute('data-state', 'after');
+  await expect.poll(async () => (await sits(page)).map(s => s.episodeId)).toEqual([live.id]);
+  await expect.poll(async () => (await rowsOf<Ep>(page, 'episodes')).find(e => e.id === live.id)!.done.map(d => d.tipId)).toEqual(['panic-4-sit']);
+  await page.evaluate(() => { location.hash = '#/flow/panic/4'; });
+  await expect(row).toHaveAttribute('aria-checked', 'true');
+
+  // Meditate reached any other way carries no episode
+  await page.evaluate(() => { location.hash = '#/flow'; });
+  await page.locator('a.md-row').click();
+  await expect(page).toHaveURL(/#\/flow\/meditate$/);
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.clock.fastForward(65_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect.poll(async () => (await sits(page)).length).toBe(2);
+  expect((await sits(page)).filter(s => !s.episodeId)).toHaveLength(1);
+});
+
+test('meditate S3: through the door the page works with nothing private, and the PIN writes the sit', async ({ page }) => {
+  await page.clock.install({ time: new Date(2026, 10, 9, 22, 30) });
+  await open(page, '#/flow/meditate');
+  // one sit first, so there is a "last sat" to keep behind the PIN
+  await page.getByRole('button', { name: 'Quiet' }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.clock.fastForward(65_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect(page.locator('.md-after .fl-last')).toBeVisible();
+  await expect.poll(async () => (await sits(page)).length).toBe(1);
+
+  // a PIN, and the door on
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const settings = page.locator('[data-sheet="Settings"]');
+  await settings.getByRole('button', { name: /Set a PIN/ }).click();
+  const set = page.locator('[data-sheet="Set a PIN"]');
+  await tapPin(page, '3569', set);
+  await set.getByRole('button', { name: 'Next' }).click();
+  await tapPin(page, '3569', set);
+  await expect(settings.getByRole('button', { name: 'Change PIN' })).toBeVisible({ timeout: 15_000 });
+  const door = settings.getByRole('switch', { name: /The ring without the PIN/ });
+  await door.click();
+  await expect(door).toHaveAttribute('aria-checked', 'true');
+  await settings.getByRole('button', { name: 'Done' }).click();
+
+  // locked: #/flow/meditate passes the lock, read-only
+  await page.reload();
+  await expect(page).toHaveURL(/#\/flow\/meditate$/);
+  const md = page.locator('.md-page');
+  await expect(md).toBeVisible();
+  await expect(keypad(page)).toHaveCount(0);
+  await expect(page.locator('.fs-app[data-door]')).toBeVisible();
+  await expect(page.locator('.fl-last')).toHaveCount(0);
+  await expect(page.locator('a[href^="#/journal"]')).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Sections' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Settings' })).toHaveCount(0);
+  // the chips choose for this visit (the settings row is not written through the door)
+  await page.getByRole('button', { name: 'Rain' }).click();
+  await expect(page.getByRole('button', { name: 'Rain' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Quiet' }).click();
+  await expect(page.getByRole('button', { name: 'Quiet' })).toHaveAttribute('aria-pressed', 'true');
+
+  // a sit of a minute or more through the door: the frame leaves, the page comes back at rest, nothing written yet
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await expect(md).toHaveAttribute('data-state', 'sitting');
+  await expect(page.locator('.fs-app')).toHaveAttribute('data-sitting', 'true');
+  await page.clock.fastForward(80_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect(md).toHaveAttribute('data-state', 'rest');
+  await expect(page.locator('.md-after .fl-last, .fl-last')).toHaveCount(0);
+  expect(await sits(page)).toHaveLength(1);
+
+  // the Sit row on a flow page through the door opens Meditate too
+  await page.evaluate(() => { location.hash = '#/flow/panic/4'; });
+  await expect(page.locator('.fs-flowpage[data-door]')).toBeVisible();
+  await page.locator('[data-tip="panic-4-sit"] [role="checkbox"]').click();
+  await expect(page).toHaveURL(/#\/flow\/meditate$/);
+  await expect(keypad(page)).toHaveCount(0);
+  await expect(md).toBeVisible();
+  // a second sit, held beside the first
+  await page.getByRole('button', { name: 'Quiet' }).click();
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await page.clock.fastForward(70_000);
+  await page.getByRole('button', { name: 'End the sit' }).click();
+  await expect(md).toHaveAttribute('data-state', 'rest');
+  expect(await sits(page)).toHaveLength(1);
+
+  // the moon asks for the PIN; the PIN writes the held sit
+  await page.getByRole('button', { name: 'Still', exact: true }).click();
+  const pin = page.locator('[data-sheet="Your PIN"]');
+  await tapPin(page, '3569', pin);
+  await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible({ timeout: 15_000 });
+  await expect.poll(async () => (await sits(page)).length).toBe(3);
+  expect((await sits(page)).every(s => !s.episodeId)).toBe(true);
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+
+  // the door off: the lock stays in front of Meditate
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await door.click();
+  await expect(door).toHaveAttribute('aria-checked', 'false');
+  await settings.getByRole('button', { name: 'Done' }).click();
+  await page.goto('/#/flow/meditate');
+  await page.reload();
+  await expect(keypad(page)).toBeVisible();
+  await expect(page.locator('.md-page')).toHaveCount(0);
+});
