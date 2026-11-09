@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the motion pass</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the motion pass</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="keys" data-name="The keys">
+  <h2>Every key gives the moment I touch it</h2>
+  <p class="line">Type 3569: each dot blots, and the ring opens.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td><code>parts/Press</code> puts <code>data-down</code> on the key at pointerdown; down has no transition, up eases back. A dot fills with <code>fs-blot</code>; the right PIN opens the app at once and a copy of the threshold fades while one thin circle opens from the ring.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/parts/Press.ts</code>, <code>parts/Keypad.tsx</code>, <code>lock/Lock.tsx</code> (<code>openRing</code>), parts.css M1</td></tr>
+    <tr><td>Tokens</td><td><code>--t-ui</code>, <code>--t-light</code>, <code>--ease-settle</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 26 (press), 27 (drawn)</td></tr>
+    <tr><td>Demo</td><td>The PIN is set once by the driver with <code>choosePin</code>, at fewer PBKDF2 rounds so it answers at once.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="press" data-name="A check">
+  <h2>A check is a pen stroke</h2>
+  <p class="line">The box gives, the ink draws itself, and a held line lifts as I hold it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>The box scales to .86 while down; the ink's stroke is drawn over <code>--t-draw</code> and lifts over <code>--t-ui</code>. A long press lifts its row over <code>--t-hold</code> from the touch, so the hold is felt building.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/parts/Check.tsx</code>, <code>parts/Hold.ts</code>, <code>be/Be.tsx</code>, parts.css M1</td></tr>
+    <tr><td>Tokens</td><td><code>--t-draw</code>, <code>--t-hold</code>, <code>--t-ui</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 26, 27</td></tr>
+    <tr><td>Demo</td><td>Today's checks are cleared each time this step opens.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="tabs" data-name="The tabs">
+  <h2>The paper stays, the ink turns</h2>
+  <p class="line">A mark slides to the tab I tap and the page follows it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>One ink stroke under the current tab slides to the tapped one. The route changes at once inside a named view transition: only what is written moves, about 18px toward the side it came from; the header's left words, the rules and the tab bar stay.</td></tr>
+    <tr><td>Files</td><td><code>src/app.tsx</code> (<code>Tabs</code>, <code>placeMark</code>), <code>ui/turns.ts</code>, <code>parts/Turn.ts</code>, <code>ui/route.tsx</code></td></tr>
+    <tr><td>Tokens</td><td><code>--t-page</code>, <code>--t-ui</code>, <code>--ease-settle</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 27, 29</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="open" data-name="A flow opens">
+  <h2>A flow's small drawing grows into its page</h2>
+  <p class="line">Tap any flow, then Flow to go back.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>The tapped row alone gets a <code>view-transition-name</code>, so its small drawing travels and grows into the page's drawing and its name rides to the header; back is the same turn reversed. The page waits for its read (<code>ready</code>) so the turn never shows it empty.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/turns.ts</code>, <code>flow/Flow.tsx</code>, <code>flow/FlowPage.tsx</code>, parts.css M2</td></tr>
+    <tr><td>Tokens</td><td><code>--t-page</code>, <code>--ease-settle</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 28, 29</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="sheet" data-name="The sheet">
+  <h2>The sheet follows my thumb</h2>
+  <p class="line">Tap the ♪, flick the sheet away, then open a playlist and watch its covers deal out.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>The scrim's darkness follows the drag; a flick faster than about 0.5px/ms puts the sheet away short of the 80px line; a slow short drag settles back. A playlist's strip travels to the grid's first six places and the rest rise row by row, 30ms apart.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/parts/Sheet.tsx</code>, <code>music/MusicSheet.tsx</code>, <code>music/motion.ts</code></td></tr>
+    <tr><td>Tokens</td><td><code>--t-page</code>, <code>--ease-settle</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 28</td></tr>
+    <tr><td>Demo</td><td>Spotify is answered inside the page from fixtures: four playlists, covers from the artifact's own files. Nothing leaves the page.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="album" data-name="An album">
+  <h2>The album I tap lands beside the ♪</h2>
+  <p class="line">It sinks, the others hush, a ring draws round it and its cover flies up.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>Down, the cover gives; up, a drop goes out from the thumb, the others hush for one <code>--t-page</code>, and the tick and bell sound in the tap. Only when Spotify says it plays is the ring drawn and the cover flown to the small cover by the ♪; a refusal draws nothing.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/music/MusicSheet.tsx</code> (Tile), <code>music/motion.ts</code>, <code>music/MusicLine.tsx</code>, <code>music/state.ts</code> (<code>play</code>, <code>asked</code>)</td></tr>
+    <tr><td>Tokens</td><td><code>--press</code>, <code>--t-draw</code>, <code>--t-page</code>, <code>--t-orbit</code>, <code>--ease-settle</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 27, 28; tick <code>album</code></td></tr>
+    <tr><td>Demo</td><td>The play answers after 600ms. All We Grow (the lake cover, second in master (ii)) answers with a Premium refusal, so its one line shows and no ring is drawn.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="still" data-name="Still">
+  <h2>Still spreads out from the moon</h2>
+  <p class="line">Tap the moon, then the ring to come back.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td><code>turn('still')</code> with the moon's centre and the farthest corner as vars: the dark opens as a circle and the light changes inside the turn's update, never after it. The ring runs <code>turn('wake')</code>, closing it back. Sunrise and sunset stay one breath.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/still.ts</code> (<code>settleFromMoon</code>, <code>rise</code>, <code>fromMoon</code>), <code>parts/Turn.ts</code>, parts.css M4</td></tr>
+    <tr><td>Tokens</td><td><code>--t-light</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13, 29</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="stream" data-name="The stream">
+  <h2>The drawing runs like water</h2>
+  <p class="line">Quick through the wave, pooling where it settles, thin on the way back.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>An SVG of at most about ninety lines behind <code>parts/Cycle</code>. Each step has a pace; the same motes pass every point, so they thin out where it is fast and pool where it is slow. A fast mote is a short streak, a slow one a dot. One frame loop, only while the page is seen.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/parts/Stream.tsx</code>, <code>parts/cycle/stream.ts</code>, <code>model/pace.ts</code></td></tr>
+    <tr><td>Tokens</td><td><code>--stream</code> (Day 1, Night .85, Still .4, Reduce Motion 0)</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 30, 31</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="nine" data-name="Nine paces">
+  <h2>Each flow runs at its own pace</h2>
+  <p class="line">Pick a flow.</p>
+  <div class="nine" role="group" aria-label="Flows"><button type="button" data-flow="panic">Panic</button><button type="button" data-flow="depress">Depress</button><button type="button" data-flow="energize">Energize</button><button type="button" data-flow="fight">Fight</button><button type="button" data-flow="whatif">What if</button><button type="button" data-flow="replay">Replay</button><button type="button" data-flow="night">3 a.m.</button><button type="button" data-flow="shutdown">Shutdown</button><button type="button" data-flow="shame">Shame</button></div>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>A shape may add its own water (<code>Shape.stream</code>): Depress hangs below the line, Energize lifts off at the tip, What if drops fastest, 3 a.m. moves in ticks a second apart, Shame's dead ends fade out. A flow he made runs every step at 1.</td></tr>
+    <tr><td>Files</td><td><code>src/model/pace.ts</code> (<code>STEP_PACE</code>, <code>REST_PACE</code>), <code>parts/cycle/*.ts</code></td></tr>
+    <tr><td>Tokens</td><td><code>--stream</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 30</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="dot" data-name="The dot">
+  <h2>The water runs on from where I am</h2>
+  <p class="line">Drag the dot: a ring goes out where it lands, and what is behind me fades.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>With the dot on a step, the water behind it fades to 20% and runs on from the dot. A landing on a detent sends one ring out over twice <code>--t-page</code> and pushes the nearby water on; the tick is unchanged. The dot is drawn where it was let go; the write follows.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/flow/FlowPage.tsx</code> (<code>landing</code>), <code>parts/Stream.tsx</code>, <code>model/flows.ts</code> (<code>moveDot</code>)</td></tr>
+    <tr><td>Tokens</td><td><code>--t-page</code>, <code>--stream</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 30</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="hold" data-name="Hold the ring">
+  <h2>Holding the middle slows the water</h2>
+  <p class="line">Each breath out, the whole stream runs a little slower.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>While a thumb holds the middle (<code>breath.held</code>), the stream gathers on the in-breath and lets go on the out-breath, and its calm falls a little each breath, never below 45%, coming back slowly after the thumb lifts.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/flow/breath.ts</code>, <code>flow/Clock.tsx</code>, <code>parts/Stream.tsx</code></td></tr>
+    <tr><td>Tokens</td><td><code>--t-breath</code> (4s in, 6s out), <code>--stream</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 30, 31</td></tr>
+  </table></details>
+</section>
+
+<!-- 12 -->
+<section class="step" id="quiet" data-name="Still and Reduce Motion">
+  <h2>In Still it thins to embers</h2>
+  <p class="line">Fewer, slower, dimmer; with Reduce Motion on, none at all.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Mechanism</td><td>The layer reads <code>--stream</code> when the light changes, never per frame: Still runs at .4 of the speed with fewer motes. Under Reduce Motion every motion token is zero, so there is no stream, no turn and no flight, and every tap still works.</td></tr>
+    <tr><td>Files</td><td><code>src/ui/tokens.css</code>, <code>parts/Stream.tsx</code>, <code>test/e2e/reduced-motion.spec.ts</code></td></tr>
+    <tr><td>Tokens</td><td><code>--stream</code>, every <code>--t-*</code></td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13, 30, 31</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:41</span><span>FlowState</span></div>
+    <iframe id="app" src="app.html" title="FlowState, running live"></iframe>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same motion is in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>
