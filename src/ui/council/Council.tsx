@@ -228,9 +228,11 @@ function Line({ m, voice, run, quoted, press, onTap, editing, onEdited }: {
     press = {};
     onTap = () => undefined;
   }
-  if (!voice) return <div class={`fs-msg${m.kept ? ' kept' : ''}`} data-id={m.id} {...press} onClick={onTap}>{body}</div>;
+  // a tap replies, so the line answers the touch as a row does (parts/Press); not while it is being edited
+  const pressable = editing ? undefined : '';
+  if (!voice) return <div class={`fs-msg${m.kept ? ' kept' : ''}`} data-id={m.id} data-press={pressable} {...press} onClick={onTap}>{body}</div>;
   return (
-    <div class={`fs-msg fs-v${voice.shade === 'deep' ? ' deep' : ''}${m.kept ? ' kept' : ''}`} style={vcOf(voice)} data-id={m.id} data-voice={voice.name} {...press} onClick={onTap}>
+    <div class={`fs-msg fs-v${voice.shade === 'deep' ? ' deep' : ''}${m.kept ? ' kept' : ''}`} style={vcOf(voice)} data-id={m.id} data-voice={voice.name} data-press={pressable} {...press} onClick={onTap}>
       {run && <Speaker v={voice} />}
       {body}
     </div>

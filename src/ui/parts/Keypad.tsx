@@ -1,7 +1,7 @@
 // The phone keypad (PLAN.md section 7): 1 to 9 then 0, each digit with its letters under it in print grey,
 // so a word works as a PIN. Dots above show how many digits are in, never which. "delete" is a word, not
 // an icon. A hardware keyboard types too: digits, the letters of a word, Backspace and Enter.
-import { useEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import { LETTERS, digitOf, PIN_MAX } from '../lock/keys';
 
 type Props = {
@@ -29,15 +29,22 @@ export function Keypad({ value, onInput, digits, action, held, label, note }: Pr
   const press = (d: string) => {
     const l = live.current;
     if (l.held || l.value.length >= l.max) return;
-    l.onInput(l.value + d);
+    // written through at once, so two keys landing before the next render both count
+    l.value += d;
+    l.onInput(l.value);
   };
   const del = () => {
     const l = live.current;
     if (l.held || !l.value) return;
-    l.onInput(l.value.slice(0, -1));
+    l.value = l.value.slice(0, -1);
+    l.onInput(l.value);
   };
 
-  useEffect(() => {
+  // A layout effect, not an effect: it runs as the keypad goes into the document, before it is painted, so a hardware
+  // keyboard is heard from the first frame the keypad can be seen. (An effect waits for a paint, and on a slow frame a
+  // PIN typed at once was lost key by key.) data-listening says so, for anyone who needs to know.
+  const group = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target;
@@ -52,14 +59,22 @@ export function Keypad({ value, onInput, digits, action, held, label, note }: Pr
       if (d) { e.preventDefault(); press(d); }
     };
     addEventListener('keydown', onKey);
+    group.current?.setAttribute('data-listening', '');
     return () => removeEventListener('keydown', onKey);
   }, []);
 
+  // a miss (or a sheet starting over) empties every dot at once: they go right to left, one --t-ui apart, so the
+  // render that empties them tells each how many places it stands from the right (--k in parts.css). One dot
+  // going (delete) goes at once.
+  const had = useRef(value.length);
   const shown = digits ?? Math.max(4, value.length);
+  const emptied = value.length < had.current - 1 ? Math.min(had.current, shown) : 0;
+  had.current = value.length;
   return (
-    <div class={`fs-keypad${held ? ' held' : ''}`} role="group" aria-label={label}>
+    <div ref={group} class={`fs-keypad${held ? ' held' : ''}`} role="group" aria-label={label}>
       <div class="fs-dots" role="img" aria-label={value.length ? `${value.length} in` : 'Nothing in yet'}>
-        {Array.from({ length: shown }, (_, i) => <i key={i} class={i < value.length ? 'on' : undefined} />)}
+        {Array.from({ length: shown }, (_, i) => <i key={i} class={i < value.length ? 'on' : undefined}
+          style={i >= value.length && i < emptied ? { '--k': String(emptied - 1 - i) } : undefined} />)}
       </div>
       <p class="fs-keypad-note" role="status">{note}</p>
       <div class="fs-keys">

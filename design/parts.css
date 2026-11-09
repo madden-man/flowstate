@@ -617,7 +617,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-keypad { --key: calc(var(--hit) * 1.5); display: grid; justify-items: center; gap: var(--s1); width: 100%; }
 .fs-dots { display: flex; gap: var(--s2); justify-content: center; min-height: var(--s2); align-items: center; }
 .fs-dots i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--ink); transition: background-color var(--t-ui) var(--ease); }
-.fs-dots i.on { background: var(--ink); }
 .fs-keypad-note {
   margin: 0; min-height: var(--lh-ink); line-height: var(--lh-ink); font-family: var(--sans); font-size: var(--fs-chip); color: var(--print);
 }
@@ -628,7 +627,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   display: grid; place-content: center; justify-items: center; line-height: 1; -webkit-tap-highlight-color: transparent;
   transition: background-color var(--t-ui) var(--ease), color var(--t-ui) var(--ease);
 }
-.fs-key:active { background: var(--seam); }
 .fs-key b { font-family: var(--serif); font-weight: 400; font-size: var(--fs-manifesto); }
 .fs-key small {
   display: block; min-height: var(--fs-print); margin-top: 3px; font-family: var(--sans); font-size: var(--fs-print);
@@ -637,7 +635,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-key-word { min-height: var(--hit); min-width: var(--key); justify-self: center; color: var(--ink); }
 .fs-key-word.inert { color: var(--print); cursor: default; }
 .fs-keypad.held .fs-key { color: var(--print); cursor: default; }
-.fs-keypad.held .fs-key:active { background: transparent; }
 .fs-key:focus-visible, .fs-key-word:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* the PIN sheet and an import's file PIN: a prompt line, the keypad, and the quiet line while it seals */
@@ -1015,6 +1012,122 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
    eased); parts/Turn sets html[data-turn] for one view transition. ==== */
 
 /* ---- M1: press and drawn marks (words, keys, chips, rows, the check, the PIN, the unlock, the hold) ---- */
+/* Every [data-down] rule here has transition: none, so the page answers the touch in the same frame; the part's own
+   rule says how it comes back, over --t-ui (rows over --t-page: a wash fades, it does not snap off). A 1px give uses
+   the translate property and the moon's give uses scale, so neither fights a transform a part already carries. */
+
+/* words and tabs: the ink comes up and the word sits 1px down */
+.fs-word, .fs-tab, .fs-another, .fs-quietline-tap, .fs-seg a, .fl-handoff, .fl-name-first, .fs-sp-tap {
+  transition: color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease);
+}
+.fs-word[data-down], .fs-tab[data-down], .fs-another[data-down], .fs-quietline-tap[data-down], .fs-seg a[data-down],
+.fl-handoff[data-down], .fl-name-first[data-down] { color: var(--ink); translate: 0 1px; transition: none; }
+.fs-sp-tap[data-down] { translate: 0 1px; transition: none; }   /* a voice's name keeps its colour */
+.fs-quietline-tap[data-down] b { color: var(--ink); }
+
+/* the keys: the seam fills the key and the digit sits 1px down (a held keypad is aria-disabled, so it never goes down) */
+.fs-key b { display: block; transition: translate var(--t-ui) var(--ease); }
+.fs-key[data-down] { background-color: var(--seam); transition: none; }
+.fs-key[data-down] b { translate: 0 1px; transition: none; }
+
+/* pills (chips, options, "+ voice", New, + Goal): the border goes to ink, a little ink washes in, 1px down */
+.fs-chip, .fs-opt, .fs-new, .fs-addgoal, .fs-vslot {
+  transition: background-color var(--t-ui) var(--ease), color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease);
+}
+.fs-chip[data-down], .fs-opt[data-down], .fs-new[data-down], .fs-vslot[data-down] {
+  border-color: var(--ink); background-color: color-mix(in oklch, var(--ink) 6%, transparent); translate: 0 1px; transition: none;
+}
+/* a chosen pill is already ink: it only gives */
+.fs-chip[aria-pressed="true"][data-down], .fs-opt[aria-pressed="true"][data-down] { background-color: var(--ink); }
+/* + Goal rides over the spread, so its wash is mixed into the page, not into what scrolls under it */
+.fs-addgoal[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, var(--page)); translate: 0 1px; transition: none; }
+
+/* rows: a 6% ink wash, on at the touch, easing out over --t-page */
+.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fs-goal, .fs-slot, .fl-shape {
+  transition: background-color var(--t-page) var(--ease);
+}
+.fs-row[data-down], .fs-list-row[data-down], .fs-crow[data-down], .fs-link[data-down], .fs-qrow[data-down], .fs-dichotomy[data-down],
+.fs-echo-tap[data-down], .fs-vname[data-down], .fs-goal[data-down], .fs-slot[data-down], .fl-shape[data-down] {
+  background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none;
+}
+.fs-goal { transition: background-color var(--t-page) var(--ease), transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
+/* the step words on a flow's drawing: the wash fills their 44pt target */
+.fs-cycle-hit { transition: fill var(--t-page) var(--ease); }
+.fs-cycle-word[data-down] .fs-cycle-hit { fill: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+/* a council's line (a tap replies): the wash lies over the voice's own, as an inset shade, so the voice's colour stays */
+.fs-council .fs-msg { transition: box-shadow var(--t-page) var(--ease), transform var(--t-ui) var(--ease); }
+.fs-council .fs-msg[data-down] { box-shadow: inset 0 0 0 100vmax color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+/* the margin dot fills while it is under the thumb */
+.fs-dot::before { transition: background-color var(--t-ui) var(--ease); }
+.fs-dot[data-down]::before { background-color: var(--print); transition: none; }
+
+/* the moon gives (and the ring, in Still); the middle of a flow's drawing gives under the thumb that holds it */
+.fs-moon i { transition: box-shadow var(--t-light) var(--ease), scale var(--t-ui) var(--ease); }
+.fs-moon .fs-ring-mark, .fl-mid.holdable, .fs-mini span { transition: scale var(--t-ui) var(--ease); }
+.fs-moon[data-down] i, .fs-moon[data-down] .fs-ring-mark { scale: .86; transition: none; }
+.fl-mid.holdable[data-down] { scale: .96; transition: none; }
+/* the small cover by the ♪ gives as a cover on the music sheet does */
+.fs-mini[data-down] img, .fs-mini[data-down] span { scale: var(--press); transition: none; }
+
+/* ---- the check: the box gives while down; the ink is a pen stroke over --t-draw that lands heavy and lifts light ---- */
+.fs-check-box { transform-box: fill-box; transform-origin: center; transition: scale var(--t-ui) var(--ease); }
+.fs-check[data-down] .fs-check-box { scale: .86; transition: none; }
+.fs-check-ink { transition: stroke-dashoffset var(--t-ui) var(--ease); }   /* unchecking lifts the ink over --t-ui */
+.fs-check.done .fs-check-ink { transition: stroke-dashoffset var(--t-draw) var(--ease); }
+/* the weight only when a thumb drew it (parts/Check sets .inked on the tap), never on a check already there when the page drew */
+.fs-check.done.inked .fs-check-ink { animation: fs-pen var(--t-draw) var(--ease); }
+@keyframes fs-pen { from { stroke-width: 3.2; } }
+
+/* ---- the PIN: a dot fills like a blot from its middle; delete empties it over --t-ui; a miss empties them right to
+   left, one --t-ui apart (parts/Keypad sets --k, how many places from the right, on the render that empties them) ---- */
+.fs-dots i { position: relative; }
+.fs-dots i::after {
+  content: ""; position: absolute; inset: -1px; border-radius: 50%; background: var(--ink); scale: 0; opacity: 0;
+  transition: scale var(--t-ui) var(--ease) calc(var(--t-ui) * var(--k, 0)), opacity var(--t-ui) var(--ease) calc(var(--t-ui) * var(--k, 0));
+}
+.fs-dots i.on::after { scale: 1; opacity: 1; transition: scale var(--t-ui) var(--ease-settle), opacity var(--t-ui) var(--ease-settle); }
+
+/* ---- the unlock: a copy of the threshold stays over the opened page (lock/Lock.tsx openRing), its keypad and words
+   fade over --t-ui, the page shows through over --t-page, and the ring opens outward as one thin circle over
+   --t-light. The circle grows by its width and height, not by a scale, so its line stays 1.5px all the way out. ---- */
+.fs-threshold.opening { pointer-events: none; animation: fs-unveil var(--t-page) var(--ease) forwards; }
+.fs-threshold.opening .fs-threshold-keypad, .fs-threshold.opening .fs-threshold-title, .fs-threshold.opening .fs-manifesto, .fs-threshold.opening .fl-door {
+  animation: fs-unveil var(--t-ui) var(--ease) forwards;
+}
+.fs-threshold.opening .fs-ring-mark { visibility: hidden; }
+.fs-iris {
+  position: fixed; z-index: 31; left: var(--iris-x); top: var(--iris-y); width: var(--iris-from); height: var(--iris-from);
+  translate: -50% -50%; box-sizing: border-box; border: 1.5px solid var(--print); border-radius: 50%; pointer-events: none;
+  /* at a steady pace, like Still's circle (M4): --ease would have it at the screen's edge in the first fifth */
+  animation: fs-iris var(--t-light) linear forwards;
+}
+@keyframes fs-unveil { to { opacity: 0; } }
+@keyframes fs-iris { to { width: var(--iris-to); height: var(--iris-to); opacity: 0; } }
+
+/* ---- the hold: a long press fills. The lift grows over --t-hold from the touch, at time's own even pace (so a
+   plain tap barely stirs it); let go early and it drops over --t-ui. At --t-hold the hold fires (HOLD_MS, the same
+   500ms) and the part's lifted state takes over where the fill ends. ---- */
+.fs-vgroup, .fs-be-row, .fl-tiprow { transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
+.fs-vgroup.holding, .fs-be-row:has(> .fs-dichotomy.holding), .fl-tiprow:has(.fl-tiptext.holding) {
+  position: relative; z-index: 2; background: var(--page); transform: translateY(-2px); box-shadow: var(--shadow-tile);
+  transition: transform var(--t-hold) linear, box-shadow var(--t-hold) linear;
+}
+.fs-col .fs-msg.holding, .fs-council .fs-msg.holding, .fs-mini.holding img { transform: translateY(-2px); transition: transform var(--t-hold) linear; }
+.fs-mini img { transition: transform var(--t-ui) var(--ease), scale var(--t-ui) var(--ease); }
+/* lifted, the drag owns the row (rule 20); it rides 2px up, as the drag already places it */
+.fs-vgroup.lift, .fs-be-row.lift, .fl-tiprow.lift { transition: none; }
+.fs-be-row.lift, .fl-tiprow.lift { transform: translateY(-2px); }
+
+/* Still is slower (its tokens) and has less: the ink and the wash answer, nothing moves the 1px */
+[data-light="still"] [data-down], [data-light="still"] [data-down] b { translate: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* the tokens are zero already; no keyframes either, no unlock circle, and a hold does not lift until it fires */
+  .fs-check.done.inked .fs-check-ink, .fs-threshold.opening, .fs-threshold.opening * { animation: none; }
+  .fs-iris { display: none; }
+  .fs-vgroup.holding, .fs-be-row:has(> .fs-dichotomy.holding), .fl-tiprow:has(.fl-tiptext.holding) { transform: none; box-shadow: none; }
+  .fs-col .fs-msg.holding, .fs-council .fs-msg.holding, .fs-mini.holding img { transform: none; }
+}
 
 /* ---- M1 ends ---- */
 

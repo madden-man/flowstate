@@ -59,3 +59,54 @@ test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a che
   await expect(item).toHaveAttribute('aria-checked', 'true');
   expect(await moving(page)).toEqual([]);
 });
+
+// M1 (PLAN-MOTION.md): the press, the check's pen, the PIN's blot, the unlock's ring and the hold's lift all stand
+// still under Reduce Motion, and every one of them still does its job.
+test('reduced motion: a key held down, the dots, the unlock and a held line do not move', async ({ page }) => {
+  const key = (d: string) => page.locator('.fs-key', { has: page.locator('b', { hasText: new RegExp(`^${d}$`) }) });
+  const hold = async (sel: ReturnType<Page['locator']>) => {
+    const b = (await sel.boundingBox())!;
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+  };
+  await page.goto('/');
+  const today = page.getByRole('textbox', { name: "Today's page" });
+  await today.fill('A line to hold.');
+  await expect(today).toHaveAttribute('data-saved', 'true');
+  await page.reload();
+
+  // a line held: the hold fills without lifting, then the line sheet opens as before
+  const line = page.locator('.fs-msg', { hasText: 'A line to hold.' });
+  await hold(line);
+  await expect(line).toHaveClass(/holding/);
+  expect(await line.evaluate(el => getComputedStyle(el).transform)).toBe('none');
+  expect(await moving(page)).toEqual([]);
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+
+  // a PIN set through Settings: a key held down answers at once, nothing eases
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.locator('[data-sheet="Settings"]').getByRole('button', { name: /Set a PIN/ }).click();
+  await hold(key('3'));
+  await expect(key('3')).toHaveAttribute('data-down', '');
+  expect(await moving(page)).toEqual([]);
+  await page.mouse.up();
+  for (const d of '569') await key(d).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  for (const d of '3569') await key(d).click();
+  const settings = page.locator('[data-sheet="Settings"]');
+  await expect(settings.getByRole('button', { name: 'Change PIN' })).toBeVisible({ timeout: 15_000 });
+  await settings.getByRole('button', { name: 'Done' }).click();
+
+  // locked: a miss empties every dot at once, and the right PIN opens with no circle and no copy of the threshold
+  await page.reload();
+  await expect(page.getByRole('group', { name: 'PIN' })).toBeVisible();
+  for (const d of '1234') await key(d).click();
+  await expect(page.getByText('Not that one')).toBeVisible();
+  await expect(page.locator('.fs-dots i.on')).toHaveCount(0);
+  expect(await moving(page)).toEqual([]);
+  for (const d of '3569') await key(d).click();
+  await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => [...document.body.children].filter(e => !e.matches('script, #app')).length)).toBe(0);
+  expect(await moving(page)).toEqual([]);
+});
