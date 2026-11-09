@@ -133,6 +133,8 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await page.goto('/#/flow/panic/4');
   await expect(keypad(page)).toHaveCount(0);
   await expect(page.locator('.fs-flowpage[data-door]')).toBeVisible();
+  // M5: the stream runs through the door too (it shows no past episode)
+  await expect(page.locator('.fs-flowpage[data-door] .fl-stream svg')).toHaveAttribute('data-running', '');
   const water = page.locator('[data-tip="panic-4-water"] [role="checkbox"]');
   await water.click();
   await expect(water).toHaveAttribute('aria-checked', 'true');

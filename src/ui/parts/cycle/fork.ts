@@ -33,6 +33,8 @@ export const fork: Shape = {
   restT: () => REST,
   // the page's middle (F2's clock and hold), low on the right, under the road back (its word sits under the road, left of it)
   mid: { x: 278, y: 196 },
+  // the stream (M5): "hide" and "hit back" carry a little water that fades out on the way; the road back carries on
+  stream: () => ({ sides: [hide, hitBack].map(p => ({ pieces: [p], pace: 0.5, motes: 3, alpha: 0.45, fades: true })) }),
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(hide), cls: hide.cls }, { kind: 'path', d: pieceD(hitBack), cls: hitBack.cls });
