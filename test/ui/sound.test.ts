@@ -232,6 +232,35 @@ describe('scape(): the one AudioContext, and the ringer', () => {
   });
 });
 
+describe('the closing bell (S2)', () => {
+  let made: FakeContext[] = [];
+  let bell: typeof import('../../src/ui/parts/Sound').bell;
+  let settings: typeof import('../../src/ui/settings').settings;
+  beforeEach(async () => {
+    vi.resetModules();
+    made = [];
+    class AC extends FakeContext { state = 'running'; resume() { return Promise.resolve(); } constructor() { super(); made.push(this); } }
+    vi.stubGlobal('window', { AudioContext: AC });
+    ({ bell } = await import('../../src/ui/parts/Sound'));
+    ({ settings } = await import('../../src/ui/settings'));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('follows the Sounds switch: off, nothing is made', () => {
+    settings.value = { ...defaultSettings(0), sounds: false };
+    bell('sitEnd');
+    expect(made).toHaveLength(0);
+  });
+  it('on, it is struck at 528 Hz and rings down over four seconds', () => {
+    settings.value = { ...defaultSettings(0), sounds: true };
+    bell('sitEnd');
+    const oscs = made[0].nodes.filter(n => n.kind === 'oscillator') as unknown as { frequency: FakeParam }[];
+    expect(oscs[0].frequency.value).toBe(528);
+    const out = made[0].nodes.find(n => n.kind === 'gain') as unknown as { gain: FakeParam };
+    expect(out.gain.calls.at(-1)).toEqual(['exponentialRampToValueAtTime', 0.0008, 4]);
+  });
+});
+
 describe('settings', () => {
   it('a new journal sits with the rain, heard with the ringer off', () => {
     const d = defaultSettings(0);

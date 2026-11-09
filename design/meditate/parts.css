@@ -956,7 +956,7 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 /* the morning after a worry: the prediction in his words and two chips, at the top of the list */
 .fl-stampask { margin: 0; }
 
-/* ==== Meditate (PLAN-MEDITATE.md, S1): one circle and a gentle sound. The list row's small circle is parts/Cycle's
+/* ==== Meditate (PLAN-MEDITATE.md, S1 and S2): one circle and a gentle sound. The list row's small circle is parts/Cycle's
    .fs-cycle.small (above). The page is the circle in the middle, and what can be chosen under it; sitting, everything
    but the circle leaves on one --t-light breath, and the light itself does not change. design/meditate shares these. ==== */
 .md-page { position: relative; display: flex; flex-direction: column; }
@@ -967,10 +967,13 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
   aspect-ratio: 328 / 264; flex: none; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
 .md-circle svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .md-circle .arc { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
-/* the second circle, in ink, nothing of it drawn (S2 draws it round as a sit with an end runs) */
-.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1; }
-/* a dash of nothing still leaves a hairline at twelve o'clock, so until a sit with an end is running it is not drawn at all */
-.md-page:not([data-ending]) .md-circle .sat { display: none; }
+/* the second circle, in ink: a sit with an end draws it round once on the sit's own clock (parts/Circle sets the dash
+   offset, the share still to come). It is a clock drawn as a line, so it runs on the sit's time and not --t-draw. */
+.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: opacity var(--t-ui) var(--ease), visibility var(--t-ui) var(--ease); }
+/* when the page returns the line is lifted over --t-ui (rule 27), from where it had got to; then it is not drawn at all,
+   since a dash of nothing still leaves a hairline at twelve o'clock */
+.md-page:not([data-ending]) .md-circle .sat { opacity: 0; visibility: hidden; }
 /* at rest it breathes by CSS on --t-breath, four seconds in and six out; sitting, on the sound's own clock (parts/Circle) */
 .md-breath { transform-box: view-box; transform-origin: 164px 132px; animation: md-breathe var(--t-breath) var(--ease) infinite; }
 @keyframes md-breathe { 0% { transform: scale(.86); } 40% { transform: scale(1); } 100% { transform: scale(.86); } }
@@ -981,10 +984,22 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 .md-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--sans); font-size: var(--fs-print);
   letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); transition: opacity var(--t-light) var(--ease); }
 .md-circle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
-/* the sound chips under the circle, centred, the page's foot */
-.md-quiet { position: relative; display: flex; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
-  transition: opacity var(--t-light) var(--ease); }
+/* the page's foot, under the circle: at rest the chips and "last sat", after a sit what it was and the way to the
+   journal. The two share one cell, so the foot is as tall in every state and the circle never moves. */
+.md-foot { display: grid; }
+.md-foot > * { grid-area: 1 / 1; }
+.md-quiet, .md-after { position: relative; display: flex; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
+  transition: opacity var(--t-light) var(--ease), visibility var(--t-light) var(--ease); }
 .md-quiet .fs-chips { justify-content: center; }
+/* the Minutes chips (S2), the print label in front of them; gone in Still with "last sat" (fs-notstill) */
+.md-lengths::before { content: "Minutes"; align-self: center; margin-right: var(--s1); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+.md-quiet .fl-last, .md-after .fl-last { text-align: center; }
+/* after a sit: the page is back with what it was and the row to today's page; the chips wait under it */
+.md-after { opacity: 0; visibility: hidden; pointer-events: none; }
+.md-after .fs-list-meta { color: var(--print); text-align: left; }
+.md-page[data-state="after"] .md-quiet { opacity: 0; visibility: hidden; pointer-events: none; }
+.md-page[data-state="after"] .md-after { opacity: 1; visibility: visible; pointer-events: auto; }
 /* sitting: the rules, the words and the chips leave; only the circle is left */
 .md-page[data-state="sitting"]::before { opacity: 1; }
 .md-page[data-state="sitting"] .md-quiet, .md-page[data-state="sitting"] .md-mid { opacity: 0; pointer-events: none; }

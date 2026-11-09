@@ -128,6 +128,14 @@ export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Pag
   return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...extra };
 }
 
+/** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2) or page.sit
+ *  (the page after a sit, PLAN-MEDITATE.md S2). A day with no page yet gets an empty one (nothing written: it stays off
+ *  every list until a word is, like any fresh page). Not stored: the caller writes it with the row it links, both ways. */
+export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'>, now = Date.now()): Promise<Read<Page>> {
+  const t = await today(new Date(now));
+  return t.page ? { ...t.page, ...link, updatedAt: now } : newPage('entry', now, link);
+}
+
 export type Draft = { text: string; voiceId?: string; replyTo?: string; wise?: boolean };
 export type Line = { page: Read<Page>; message?: Read<Message>; messages: Read<Message>[] };
 
