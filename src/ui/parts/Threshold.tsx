@@ -11,7 +11,7 @@ import { RingMark } from './Ring';
 const SEEN_KEY = 'fs-threshold';
 
 /** A duration token in milliseconds, as the current light sets it. */
-function tokenMs(name: string): number {
+export function tokenMs(name: string): number {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const n = parseFloat(v);
   if (!Number.isFinite(n)) return 0;

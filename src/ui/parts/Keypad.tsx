@@ -55,11 +55,18 @@ export function Keypad({ value, onInput, digits, action, held, label, note }: Pr
     return () => removeEventListener('keydown', onKey);
   }, []);
 
+  // a miss (or a sheet starting over) empties every dot at once: they go right to left, one --t-ui apart, so the
+  // render that empties them tells each how many places it stands from the right (--k in parts.css). One dot
+  // going (delete) goes at once.
+  const had = useRef(value.length);
   const shown = digits ?? Math.max(4, value.length);
+  const emptied = value.length < had.current - 1 ? Math.min(had.current, shown) : 0;
+  had.current = value.length;
   return (
     <div class={`fs-keypad${held ? ' held' : ''}`} role="group" aria-label={label}>
       <div class="fs-dots" role="img" aria-label={value.length ? `${value.length} in` : 'Nothing in yet'}>
-        {Array.from({ length: shown }, (_, i) => <i key={i} class={i < value.length ? 'on' : undefined} />)}
+        {Array.from({ length: shown }, (_, i) => <i key={i} class={i < value.length ? 'on' : undefined}
+          style={i >= value.length && i < emptied ? { '--k': String(emptied - 1 - i) } : undefined} />)}
       </div>
       <p class="fs-keypad-note" role="status">{note}</p>
       <div class="fs-keys">

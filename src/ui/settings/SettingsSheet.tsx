@@ -129,7 +129,8 @@ function ImportRow() {
   const needsPin = !!file && !fileKey && fileNeedsPin(file);
   return (
     <div>
-      <label class="fs-row">
+      {/* a label opens the file picker: data-press gives it the rows' press (parts/Press) */}
+      <label class="fs-row" data-press>
         <span>Import</span><small>{file ? `From ${notebookDate(new Date(file.exportedAt))}` : 'A FlowState file'}</small>
         <input class="fs-hidden" type="file" accept="application/json,.json" onChange={pick} />
       </label>
