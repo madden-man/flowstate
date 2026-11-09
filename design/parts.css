@@ -602,8 +602,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   transition: transform var(--t-ui) var(--ease);
 }
 .fs-tile img, .fs-tile span { display: block; width: 100%; height: 100%; object-fit: cover; }
-.fs-tile:active { transform: translateY(1px); }
-.fs-tile[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
 .fs-tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* the covers are photographs: Night and Still lower their light with the page (DESIGN.md rule 14) */
 [data-light="night"] .fs-tile img, [data-light="night"] .fs-mini img { opacity: .88; }
@@ -753,7 +751,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-playlist-now { flex: none; display: block; width: var(--s3); height: var(--s3); border-radius: 3px; object-fit: cover; box-shadow: var(--shadow-tile); background: var(--seam); }
 .fs-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--s1); }
 .fs-strip img, .fs-strip span { display: block; width: 100%; aspect-ratio: 1; border-radius: 3px; object-fit: cover; background: var(--seam); box-shadow: var(--shadow-tile); }
-.fs-playlist:active .fs-strip { transform: translateY(1px); }
 .fs-playlist:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 [data-light="night"] .fs-strip img, [data-light="night"] .fs-playlist-now { opacity: .88; }
 [data-light="still"] .fs-strip img, [data-light="still"] .fs-playlist-now { opacity: .62; }
@@ -1013,7 +1010,69 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 
 
 /* ---- M3: music (the sheet under the thumb, a playlist into its covers, an album tapped) ---- */
+/* the sheet under the thumb (parts/Sheet): the scrim follows the drag with no lag; let go short, both settle back */
+.fs-scrim.drag { transition: none; }
+.fs-sheet.settle, .fs-scrim.settle { transition-timing-function: var(--ease-settle); }
+/* opening the music sheet, its rows rise in behind it, a fifth of --t-ui apart (src/ui/music/MusicSheet.tsx) */
+.fs-playlists.rise .fs-playlist { animation: fs-deal var(--t-page) var(--ease-settle) calc(var(--t-ui) / 6 * var(--i)) both; }
+@keyframes fs-deal { from { opacity: 0; transform: translateY(var(--s2)); } }
+/* a playlist under the thumb: the row takes a wash of ink and its strip gives, at once; both ease back */
+.fs-playlist { transition: background-color var(--t-page) var(--ease); }
+.fs-playlist[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+.fs-strip { transition: transform var(--t-ui) var(--ease); }
+.fs-playlist[data-down] .fs-strip { transform: translateY(1px); transition: none; }
+/* a playlist into its covers: the strip travels (music/motion.ts), so the grid does not also fade; the rows past
+   the strip rise in one after another, eight at most, then the rest together */
+.fs-music-screen.deal { animation: none; }
+.fs-tile-cell.rise { animation: fs-deal var(--t-page) var(--ease-settle) calc(var(--t-ui) / 6 * var(--row)) both; }
 
+/* an album tapped. Down: the cover gives at once and its shadow goes; up, it comes back over --t-ui */
+.fs-tile-cell { position: relative; transition: opacity var(--t-page) var(--ease); }
+.fs-tile-cell > .fs-tile { position: relative; display: block; width: 100%; transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
+.fs-tile[data-down] { transform: scale(var(--press)); box-shadow: none; transition: none; }
+/* the other covers hush for one --t-page and come back; Still's covers are already dimmed and stay as they are */
+.fs-tiles.hush .fs-tile-cell:not([data-chosen]) { opacity: .45; transition-duration: var(--t-ui); }
+[data-light="still"] .fs-tiles.hush .fs-tile-cell { opacity: 1; }
+/* the drop: from where the thumb was, a soft ring of the page goes out across the cover */
+.fs-tile-drop {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, transparent 60%, var(--page) 84%, transparent);
+  animation: fs-drop calc(var(--t-page) * 1.5) var(--ease) forwards;
+}
+@keyframes fs-drop { from { transform: scale(.08); opacity: .7; } to { transform: scale(1); opacity: 0; } }
+/* the ring round the playing album (it was an outline): drawn in one stroke once Spotify says so, lifted when
+   another takes over. A bead walks it once every --t-orbit while it plays; none in Still */
+.fs-tile-ring {
+  position: absolute; left: calc(var(--s1) * -.5); top: calc(var(--s1) * -.5);
+  width: calc(100% + var(--s1)); height: calc(100% + var(--s1)); overflow: visible; pointer-events: none;
+}
+.fs-tile-ring path { fill: none; stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+.fs-tile-ring .ink { stroke-width: 1.7; }
+/* the dash lives only while it is being drawn, so the finished ring has no seam where the pen closed it */
+.fs-tile-ring.drawn .ink { animation: fs-ring var(--t-draw) var(--ease) backwards; }
+@keyframes fs-ring { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+.fs-tile-ring.lift { opacity: 0; transition: opacity var(--t-ui) var(--ease); }
+.fs-tile-ring .bead {
+  stroke-width: 4.5; stroke-dasharray: 0 1;
+  animation: fs-bead var(--t-page) var(--ease) var(--t-draw) both, fs-orbit var(--t-orbit) linear var(--t-draw) infinite;
+}
+@keyframes fs-bead { from { opacity: 0; } }
+@keyframes fs-orbit { to { stroke-dashoffset: -1; } }
+.fs-tile-ring.lift .bead, [data-light="still"] .fs-tile-ring .bead { display: none; }
+/* the copy of the cover that travels to the small cover by the ♪, above the sheet and its scrim */
+.fs-fly {
+  position: fixed; z-index: 6; margin: 0; object-fit: cover; transform-origin: 0 0; pointer-events: none;
+  background: var(--seam); box-shadow: var(--shadow-tile);
+}
+[data-light="night"] .fs-fly { opacity: .88; }
+[data-light="still"] .fs-fly { opacity: .62; }
+/* the small cover waits unseen for the copy, then sits lit above the scrim until the sheet goes down */
+.fs-mini[data-landing] img, .fs-mini[data-landing] span { visibility: hidden; }
+.fs-mini[data-lit] { position: relative; z-index: 5; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-playlists.rise .fs-playlist, .fs-tile-cell.rise, .fs-tile-ring.drawn .ink { animation: none; }
+  .fs-tile-drop, .fs-fly, .fs-tile-ring .bead { display: none; }
+}
 /* ---- M3 ends ---- */
 
 
