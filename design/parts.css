@@ -953,6 +953,48 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 /* the morning after a worry: the prediction in his words and two chips, at the top of the list */
 .fl-stampask { margin: 0; }
 
+/* ==== Meditate (PLAN-MEDITATE.md, S1): one circle and a gentle sound. The list row's small circle is parts/Cycle's
+   .fs-cycle.small (above). The page is the circle in the middle, and what can be chosen under it; sitting, everything
+   but the circle leaves on one --t-light breath, and the light itself does not change. design/meditate shares these. ==== */
+.md-page { position: relative; display: flex; flex-direction: column; }
+/* the rules go under a sheet of the page's own colour */
+.md-page::before { content: ""; position: absolute; inset: 0; background: var(--page); opacity: 0; pointer-events: none;
+  transition: opacity var(--t-light) var(--ease), background-color var(--t-light) var(--ease); }
+.md-circle { position: relative; appearance: none; border: 0; background: none; padding: 0; margin: auto; width: 100%; max-width: 328px;
+  aspect-ratio: 328 / 264; flex: none; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
+.md-circle svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.md-circle .arc { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
+/* the second circle, in ink, nothing of it drawn (S2 draws it round as a sit with an end runs) */
+.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1; }
+/* a dash of nothing still leaves a hairline at twelve o'clock, so until a sit with an end is running it is not drawn at all */
+.md-page:not([data-ending]) .md-circle .sat { display: none; }
+/* at rest it breathes by CSS on --t-breath, four seconds in and six out; sitting, on the sound's own clock (parts/Circle) */
+.md-breath { transform-box: view-box; transform-origin: 164px 132px; animation: md-breathe var(--t-breath) var(--ease) infinite; }
+@keyframes md-breathe { 0% { transform: scale(.86); } 40% { transform: scale(1); } 100% { transform: scale(.86); } }
+.md-page[data-playing] .md-breath { animation: none; }
+/* under the thumb the drawn line gives (rule 26): down at once, back over --t-ui */
+.md-breath .arc { transform-box: view-box; transform-origin: 164px 132px; transition: transform var(--t-ui) var(--ease); }
+.md-circle[data-down] .md-breath .arc { transform: scale(var(--press)); transition: none; }
+.md-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--sans); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); transition: opacity var(--t-light) var(--ease); }
+.md-circle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
+/* the sound chips under the circle, centred, the page's foot */
+.md-quiet { position: relative; display: flex; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
+  transition: opacity var(--t-light) var(--ease); }
+.md-quiet .fs-chips { justify-content: center; }
+/* sitting: the rules, the words and the chips leave; only the circle is left */
+.md-page[data-state="sitting"]::before { opacity: 1; }
+.md-page[data-state="sitting"] .md-quiet, .md-page[data-state="sitting"] .md-mid { opacity: 0; pointer-events: none; }
+.md-page[data-state="sitting"] .md-circle { z-index: 1; }
+/* and the header, the kept line in Still, the tab bar and the lamp in the corner go with them (app.tsx data-sitting) */
+.fs-app:has(.md-page) .fs-page > :not(.md-page, .fs-earlier) { transition: opacity var(--t-light) var(--ease); }
+.fs-app:has(.md-page) .fs-tabs { transition: opacity var(--t-light) var(--ease), background-color var(--t-light) var(--ease); }
+.fs-app:has(.md-page)::before { transition: opacity var(--t-light) var(--ease); }
+.fs-app[data-sitting] .fs-page > :not(.md-page), .fs-app[data-sitting] .fs-tabs { opacity: 0; pointer-events: none; }
+.fs-app[data-sitting]::before { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .md-breath { animation: none; } }
+/* ==== Meditate ends ==== */
+
 /* ==== Motion (PLAN-MOTION.md). One section per package, written only by that package; each section ends with its
    own prefers-reduced-motion rule. parts/Press sets [data-down] on the thing under the thumb (down is instant, up is
    eased); parts/Turn sets html[data-turn] for one view transition. ==== */
