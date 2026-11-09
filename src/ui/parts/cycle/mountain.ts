@@ -55,6 +55,8 @@ export const mountain: Shape = {
   restT: () => REST,
   // the page's middle (F2's clock and hold), right of the long slope, above the replay (F4: the centre is drawn on)
   mid: { x: 274, y: 100 },
+  // the stream (M5): "say it" runs longer and slower beside "leave", through shame, and still reaches repair
+  stream: () => ({ sides: [{ pieces: [say1, say2], pace: 0.45, motes: 7, alpha: 0.55 }] }),
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(say1), cls: say1.cls }, { kind: 'path', d: pieceD(say2), cls: say2.cls });

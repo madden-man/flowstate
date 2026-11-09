@@ -40,6 +40,8 @@ export const valley: Shape = {
   restT: () => REST,
   // the page's middle (F2's clock and hold), inside the valley, above "one small thing" (F4: the centre is drawn on)
   mid: { x: 164, y: 66 },
+  // the stream (M5): slow water hangs a little below the line, and a few brighter motes take "one small thing" up
+  stream: () => ({ hang: 5, sides: [{ pieces: [UP], pace: 0.6, motes: 5, alpha: 1.5 }] }),
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD({ ...UP, cls: '' }), cls: 'arc pass' });
