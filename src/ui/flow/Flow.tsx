@@ -22,7 +22,7 @@ export function Flow() {
   }, [dataVersion.value]);
 
   return (
-    <Page label="Flow">
+    <Page label="Flow" drawn={rows !== null}>
       <div class="fs-sheetof fs-rules fs-flows">
         {/* the morning after a worry (F6): the prediction and two chips, once */}
         <StampAsk />

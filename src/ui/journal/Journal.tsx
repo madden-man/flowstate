@@ -55,7 +55,7 @@ export function JournalPages() {
   const newest = found ? undefined : rows.find(x => x.page.kind === 'entry')?.page.id;
   let month = '';
   return (
-    <Page label="Pages" pages="here">
+    <Page label="Pages" pages="here" drawn={list !== null}>
       <Ruled>
         <div class="fs-pagelist">
           <input class="fs-search" type="search" aria-label="Search the pages" placeholder="Search…" value={q} enterKeyHint="search"

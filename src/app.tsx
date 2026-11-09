@@ -1,9 +1,10 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
 // #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
-import { HashLocation, Redirect, readHash } from './ui/route';
+import { HashLocation, Redirect, readHash, TABS } from './ui/route';
+import { useFrameUp } from './ui/turns';
 import { JournalToday, JournalPage, JournalPages, JournalNew } from './ui/journal/Journal';
 import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
@@ -32,32 +33,74 @@ import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
 
-/** The bar: four words, and Questions as a ? mark in the serif (V2, PLAN-V2.md section 2), so DESIGN.md
- *  rule 7's four words stand. The mark carries its name for VoiceOver. */
-export const TABS: readonly { slug: string; word: string; label?: string }[] = [
-  { slug: 'journal', word: 'Journal' },
-  { slug: 'council', word: 'Council' },
-  { slug: 'questions', word: '?', label: 'Questions' },
-  { slug: 'be', word: 'Be' },
-  { slug: 'flow', word: 'Flow' },
-];
+// the bar's words live with the turns now (ui/turns.ts), which turn by their order
+export { TABS };
+
+/** The mark under the tab (M2, DESIGN.md rule 27): one ink stroke under the current word, or the ?. It slides to the
+ *  tapped tab over --t-page; it is placed without moving on first render and on resize, drawn where there was none,
+ *  and lifted where no tab is current (Voices). The bar itself never moves. */
+function placeMark(nav: HTMLElement, mark: HTMLElement, how: 'slide' | 'place') {
+  const tab = nav.querySelector('.fs-tab[aria-current="page"]');
+  if (!tab) { mark.dataset.gone = ''; return; }
+  // the word's own box, not the tab's: a range round its text
+  const range = document.createRange();
+  range.selectNodeContents(tab);
+  const w = range.getBoundingClientRect(), n = nav.getBoundingClientRect();
+  const gone = mark.dataset.gone !== undefined;
+  const set = (scale: number) => {
+    mark.style.setProperty('--mark-x', `${w.left - n.left}px`);
+    mark.style.setProperty('--mark-y', `${w.bottom - n.top + 3}px`);
+    mark.style.setProperty('--mark-w', String(scale * w.width));
+  };
+  if (how === 'place' || gone) {
+    // put it there with no transition; where there was none, from nothing, then drawn left to right
+    mark.dataset.placing = '';
+    set(how === 'place' ? 1 : 0);
+    delete mark.dataset.gone;
+    void mark.getBoundingClientRect();
+    delete mark.dataset.placing;
+    if (how === 'place') return;
+    mark.dataset.drawing = '';
+    set(1);
+    return;
+  }
+  delete mark.dataset.drawing;
+  set(1);
+}
 
 function Tabs() {
   const { path } = useLocation();
   const here = path.split('/')[1];
+  const nav = useRef<HTMLElement>(null);
+  const mark = useRef<HTMLSpanElement>(null);
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    if (!nav.current || !mark.current) return;
+    placeMark(nav.current, mark.current, first.current ? 'place' : 'slide');
+    first.current = false;
+  }, [here]);
+  useEffect(() => {
+    const again = () => { if (nav.current && mark.current) placeMark(nav.current, mark.current, 'place'); };
+    addEventListener('resize', again);
+    // the words' widths change when the phone's fonts finish loading
+    void document.fonts?.ready.then(again);
+    return () => removeEventListener('resize', again);
+  }, []);
   return (
-    <nav class="fs-tabs" aria-label="Sections">
+    <nav ref={nav} class="fs-tabs" aria-label="Sections">
       {TABS.map(({ slug, word, label }) => (
         <a key={slug} class={label ? 'fs-tab fs-tab-q' : 'fs-tab'} href={`#/${slug}`} aria-label={label}
           aria-current={here === slug ? 'page' : undefined}
           onClick={() => { if (here !== slug) tick('tab'); }}>{word}</a>
       ))}
+      <span ref={mark} class="fs-tab-mark" aria-hidden="true" data-gone="" />
     </nav>
   );
 }
 
 function Frame() {
   const { path } = useLocation();
+  useFrameUp();
   // A tab change (or any route change) puts the sheet away, and the rail of earlier pages back up (V6).
   useEffect(() => { openSheet.value = null; earlierOpen.value = false; }, [path]);
   return (
