@@ -31,16 +31,29 @@ export function drop(tile: HTMLElement, e: MouseEvent) {
   tile.appendChild(ring);
 }
 
-let hushed: ReturnType<typeof setTimeout> | undefined;
-/** The other covers hush for one --t-page and come back (Still's covers are already dimmed; parts.css leaves them). */
-export function hush(cell: HTMLElement) {
-  const grid = cell.closest('.fs-tiles');
-  if (!grid || still()) return;
-  clearTimeout(hushed);
-  grid.querySelector('[data-chosen]')?.removeAttribute('data-chosen');
-  cell.setAttribute('data-chosen', '');
-  grid.classList.add('hush');
-  hushed = setTimeout(() => { grid.classList.remove('hush'); cell.removeAttribute('data-chosen'); }, tokenMs('--t-page'));
+/** The cover a tap chose, while the others are hushed: they stay hushed for as long as the tap waits on Spotify,
+ *  and never less than one --t-page, so a quick answer still reads as a hush and not a flicker. The grid renders
+ *  from it (MusicSheet.tsx); parts.css leaves Still's covers as they are, already dimmed. */
+export const hushOf = signal<string | null>(null);
+let hushedAt = 0;
+let lifting: ReturnType<typeof setTimeout> | undefined;
+
+/** A cover tapped: the others hush now. */
+export function hush(albumUri: string) {
+  clearTimeout(lifting);
+  if (still()) { hushOf.value = null; return; }
+  hushedAt = performance.now();
+  hushOf.value = albumUri;
+}
+
+/** The answer came (either way): the others come back, once the hush has lasted its --t-page. `now` lets go at once:
+ *  the grid going away, or the page hidden for a hop out to Spotify, so he never comes back to a dimmed grid. */
+export function unhush(now = false) {
+  clearTimeout(lifting);
+  if (!hushOf.peek()) return;
+  const left = now ? 0 : hushedAt + tokenMs('--t-page') - performance.now();
+  if (left <= 0) { hushOf.value = null; return; }
+  lifting = setTimeout(() => { hushOf.value = null; }, left);
 }
 
 // ---- the small cover by the ♪ ----

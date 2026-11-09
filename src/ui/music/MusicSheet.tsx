@@ -18,7 +18,8 @@ import { isFresh, type ShelfAlbum } from '../../music/covers';
 import { pagesWithAlbum, type AlbumPage } from '../../model/music';
 import { Cover } from './MusicLine';
 import { albumFor, asked, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf } from './state';
-import { deal, dealInto, drop, fly, hush, takeDeal, unlight } from './motion';
+import { effect } from '@preact/signals';
+import { deal, dealInto, drop, fly, hush, hushOf, takeDeal, unhush, unlight } from './motion';
 
 const STRIP = 6;
 /** How far below the sheet's fold a tile starts fetching its cover: about two rows. */
@@ -96,12 +97,22 @@ function Grid({ playlist }: { playlist: Playlist }) {
   useLayoutEffect(() => {
     if (from && tiles.current) dealInto([...tiles.current.querySelectorAll<HTMLElement>('.fs-tile')], from);
   }, []);
+  // the hush holds while the tap waits on Spotify, and lets go the moment it is not waiting on this album any more
+  // (playing, refused, an error, another cover); the page hidden (a hop out to Spotify) or this grid gone (closed,
+  // back to the list, another playlist) lets go at once, so it can never be left on
+  useEffect(() => {
+    const off = effect(() => { if (hushOf.value && asked.value !== hushOf.value) unhush(); });
+    const hidden = () => { if (document.visibilityState === 'hidden') unhush(true); };
+    document.addEventListener('visibilitychange', hidden);
+    return () => { off(); document.removeEventListener('visibilitychange', hidden); unhush(true); };
+  }, []);
+  const hushed = hushOf.value;
   return (
     <div class={`fs-music-screen${from ? ' deal' : ''}`}>
       {albums && !albums.length && !reading.value && <p class="fs-note">Read again in Settings</p>}
-      <div ref={tiles} class="fs-tiles" role="group" aria-label="Albums">
+      <div ref={tiles} class={`fs-tiles${hushed ? ' hush' : ''}`} role="group" aria-label="Albums">
         {albums?.map((a, i) => (
-          <Tile key={a.albumUri} playlist={playlist} album={a} pressed={here && now === a.albumUri}
+          <Tile key={a.albumUri} playlist={playlist} album={a} pressed={here && now === a.albumUri} chosen={hushed === a.albumUri}
             row={from && i >= from.length ? Math.min(Math.floor(i / COLUMNS) - 1, RISE_ROWS) : 0} />
         ))}
       </div>
@@ -132,7 +143,7 @@ function Ring({ on }: { on: boolean }) {
   );
 }
 
-function Tile({ playlist, album, pressed, row }: { playlist: Playlist; album: ShelfAlbum; pressed: boolean; row: number }) {
+function Tile({ playlist, album, pressed, chosen, row }: { playlist: Playlist; album: ShelfAlbum; pressed: boolean; chosen: boolean; row: number }) {
   const ref = useRef<HTMLButtonElement>(null);
   // Spotify said yes to this tile's tap: the cover travels to the ♪ (only then; a refusal draws nothing)
   useEffect(() => {
@@ -157,13 +168,13 @@ function Tile({ playlist, album, pressed, row }: { playlist: Playlist; album: Sh
     return () => { live = false; io.disconnect(); };
   }, [wants, album.albumUri]);
   return (
-    <div class={`fs-tile-cell${row ? ' rise' : ''}`} style={row ? { '--row': row } : undefined}>
+    <div class={`fs-tile-cell${row ? ' rise' : ''}`} style={row ? { '--row': row } : undefined} data-chosen={chosen ? '' : undefined}>
       <button ref={ref} type="button" class="fs-tile" aria-label={`${album.album}, ${album.artist}`} aria-pressed={pressed}
         data-album={album.albumUri} onClick={e => {
           // the request leaves first, exactly as it did; the motion runs alongside it
           void play(playlist, album);
           drop(e.currentTarget, e);
-          hush(e.currentTarget.parentElement!);
+          hush(album.albumUri);
         }}>
         {src ? <img src={src} alt="" draggable={false} /> : <span />}
       </button>

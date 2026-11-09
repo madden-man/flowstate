@@ -282,13 +282,21 @@ test('an album tapped (M3): answered at the tap, the ring drawn and the cover se
   await page.mouse.up();
   await expect.poll(() => played.length).toBe(1);
   await expect(tiles.nth(0).locator('.fs-tile-drop')).toHaveCount(1);
-  await expect(grid.locator('.fs-tiles.hush')).toHaveCount(1);
+  const hush = grid.locator('.fs-tiles.hush');
+  const cells = grid.locator('.fs-tile-cell');
+  await expect(hush).toHaveCount(1);
   await expect(rings).toHaveCount(0);
-  await page.waitForTimeout(300);
+  // a slow answer: the others stay hushed the whole time it waits, the chosen cover at full strength, no ring yet
+  await page.waitForTimeout(2000);
+  await expect(hush).toHaveCount(1);
+  await expect(cells.nth(0)).toHaveAttribute('data-chosen', '');
+  expect(await cells.nth(0).evaluate(c => getComputedStyle(c).opacity)).toBe('1');
+  expect(await cells.nth(1).evaluate(c => getComputedStyle(c).opacity)).toBe('0.45');
   await expect(rings).toHaveCount(0);
   await expect(tiles.nth(0)).toHaveAttribute('aria-pressed', 'false');
-  // Spotify plays it: the ring is drawn round that cover, and a copy of it travels to the small cover by the ♪
+  // Spotify plays it: the others come back as the ring is drawn round that cover, and a copy of it travels to the small cover by the ♪
   answer({ status: 204 });
+  await expect(hush).toHaveCount(0);
   await expect(tiles.nth(0)).toHaveAttribute('aria-pressed', 'true');
   await expect(rings).toHaveCount(1);
   await expect(grid.locator('.fs-tile-cell').nth(0).locator('.fs-tile-ring.drawn')).toHaveCount(1);
@@ -303,15 +311,30 @@ test('an album tapped (M3): answered at the tap, the ring drawn and the cover se
   // a refusal: its note says why, and nothing is drawn; the playing album keeps its ring
   await tiles.nth(1).click();
   await expect.poll(() => played.length).toBe(2);
+  await page.waitForTimeout(2000);
+  await expect(hush).toHaveCount(1);
   answer({ status: 403, json: { error: { status: 403, message: 'Player command failed: Premium required', reason: 'PREMIUM_REQUIRED' } } });
   await expect(grid.getByRole('status')).toHaveText('Playing from here needs Spotify Premium');
+  await expect(hush).toHaveCount(0);
+  await expect(grid.locator('[data-chosen]')).toHaveCount(0);
   await expect(rings).toHaveCount(1);
   await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('.fs-fly')).toHaveCount(0);
 
+  // an error thrown on the way: the hush holds while it waits and lets go with the note, never left on
+  await tiles.nth(1).click();
+  await expect.poll(() => played.length).toBe(3);
+  await page.waitForTimeout(2000);
+  await expect(hush).toHaveCount(1);
+  answer({ status: 400, json: { error: { status: 400, message: 'Something else went wrong' } } });
+  await expect(grid.getByRole('status')).toHaveText('Spotify did not play it (400)');
+  await expect(hush).toHaveCount(0);
+  await expect(rings).toHaveCount(1);
+  await expect(page.locator('.fs-fly')).toHaveCount(0);
+
   // a second album plays: its ring is drawn and the first one's is lifted
   await tiles.nth(2).click();
-  await expect.poll(() => played.length).toBe(3);
+  await expect.poll(() => played.length).toBe(4);
   answer({ status: 204 });
   await expect(tiles.nth(2)).toHaveAttribute('aria-pressed', 'true');
   await expect(grid.locator('.fs-tile-cell').nth(2).locator('.fs-tile-ring.drawn')).toHaveCount(1);
@@ -319,7 +342,7 @@ test('an album tapped (M3): answered at the tap, the ring drawn and the cover se
 
   // the album already playing, tapped again: the tap is answered, nothing travels a second time
   await tiles.nth(2).click();
-  await expect.poll(() => played.length).toBe(4);
+  await expect.poll(() => played.length).toBe(5);
   answer({ status: 204 });
   await page.waitForTimeout(100);
   await expect(page.locator('.fs-fly')).toHaveCount(0);
@@ -348,7 +371,7 @@ test('an album tapped (M3): answered at the tap, the ring drawn and the cover se
   await list.locator('.fs-playlist').first().click();
   await expect(grid.locator('.fs-music-screen.deal')).toHaveCount(0);
   await tiles.nth(3).click();
-  await expect.poll(() => played.length).toBe(5);
+  await expect.poll(() => played.length).toBe(6);
   answer({ status: 204 });
   await expect(tiles.nth(3)).toHaveAttribute('aria-pressed', 'true');
   await expect(grid.locator('.fs-tile-cell').nth(3).locator('.fs-tile-ring')).toHaveCount(1);
