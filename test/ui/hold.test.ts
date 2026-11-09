@@ -52,4 +52,15 @@ describe('the marks', () => {
     act(() => render(box(), host));
     expect(b.className).toBe('fs-check done inked');
   });
+
+  it('the keypad hears a hardware keyboard from the render that draws it, before any paint', () => {
+    const got: string[] = [];
+    host = document.createElement('div');
+    document.body.append(host);
+    // no act(): an effect would still be waiting for a frame here, and these keys would be lost
+    render(h(Keypad, { label: 'PIN', value: '', onInput: (v: string) => { got.push(v); }, digits: 4 }), host);
+    expect(host.querySelector('[role="group"]')!.hasAttribute('data-listening')).toBe(true);
+    for (const key of 'fl') dispatchEvent(new KeyboardEvent('keydown', { key }));
+    expect(got).toEqual(['3', '35']);
+  });
 });

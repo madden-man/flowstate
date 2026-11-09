@@ -164,6 +164,8 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.reload();
   await expect(page.getByRole('group', { name: 'PIN' })).toBeVisible();
   await expect(tabs(page)).toHaveCount(0);
+  // the keypad hears a hardware keyboard from the frame it is drawn; it says so (parts/Keypad data-listening)
+  await expect(page.getByRole('group', { name: 'PIN' })).toHaveAttribute('data-listening', '');
   await page.keyboard.type('flow');
   await expect(tab(page, 'Journal')).toHaveAttribute('aria-current', 'page', { timeout: 15_000 });
 
