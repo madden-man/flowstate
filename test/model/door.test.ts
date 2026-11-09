@@ -12,7 +12,7 @@ describe('the route gate', () => {
   const PASS = ['/flow/now', '/flow/now/', '/flow/panic/1', '/flow/panic/4', '/flow/a-flow-of-mine/12'];
   const KEYPAD = [
     '/', '/journal', '/journal/pages', '/journal/abc', '/questions', '/questions/q1', '/council', '/council/c1', '/be', '/be/p1',
-    '/voices', '/flow', '/flow/panic', '/flow/panic/0', '/flow/panic/one', '/flow/panic/1/edit', '/flow/now/1', '/flow/now/x', '/settings',
+    '/voices', '/flow', '/flow/panic', '/flow/panic/0', '/flow/panic/one', '/flow/panic/1/edit', '/flow/now/1', '/flow/now/x', '/flow/meditate', '/flow/meditate/1', '/settings',
   ];
   it('with the door on, only Right now and a flow\'s step pass', () => {
     for (const p of PASS) expect(doorPasses(p, true), p).toBe(true);

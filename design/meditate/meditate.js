@@ -1,7 +1,8 @@
 // The audition for PLAN-MEDITATE.md. Two halves:
-//   1. the four scapes (rain, ocean, forest, bowl) synthesised with Web Audio, no files, written the way they
-//      would move into src/ui/parts/Sound.ts in package S1 (rule 21: sound only there, never uninvited);
-//   2. the circle in each phone mock: a tap begins the sit and the sound, a tap ends both.
+//   1. the four scapes (rain, ocean, forest, bowl) synthesised with Web Audio, no files; since S1 the app's own are
+//      src/ui/parts/Sound.ts (scape), ported from these and kept the same graphs and levels;
+//   2. the circle in each phone mock (steps 1 to 5 are the app's real markup since S1): a tap begins the sit and the
+//      sound, a tap ends both.
 // Nothing here plays until the circle is tapped.
 (function () {
   var AC = window.AudioContext || window.webkitAudioContext;
@@ -215,7 +216,7 @@
     l.breath.style.transform = ''; if (l.sat) l.sat.style.strokeDashoffset = l.page.dataset.from ? String(1 - l.from) : '';
     var sat = (l.clock() - l.t0) / 60, said = l.page.querySelector('.md-after .fl-last');
     if (said && !l.page.dataset.fixed && sat >= 1) said.textContent = 'Sat · ' + Math.round(sat) + (Math.round(sat) === 1 ? ' minute · ' : ' minutes · ') + (l.page.dataset.sound || 'rain');
-    set(l.page, l.page.dataset.fixed ? 'sitting' : sat >= 1 ? 'after' : 'rest'); l.page.removeAttribute('data-playing');
+    set(l.page, l.page.dataset.fixed ? 'sitting' : sat >= 1 && l.page.querySelector('.md-after') ? 'after' : 'rest'); l.page.removeAttribute('data-playing');
   }
   function start(page) {
     stop();

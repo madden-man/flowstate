@@ -55,8 +55,15 @@ export type Settings = {
    *  now and the flow pages read-only. Off by default (absent is off). Clear, like the rest of settings, so the
    *  locked gate can read it. */
   flowDoor?: boolean;
+  /** PLAN-MEDITATE.md section 5 (S1): the sound the Meditate page's chips last chose; absent is rain. */
+  sitSound?: SitSound;
+  /** PLAN-MEDITATE.md section 5 (S1): a sit's sound is media and plays with the ringer switch off ('playback'); absent is on. */
+  sitThroughSilent?: boolean;
   sealed?: Sealed;
 };
+
+/** A sit's sound (PLAN-MEDITATE.md 3.1): one of the four scapes parts/Sound makes, or Quiet, the circle alone. */
+export type SitSound = 'rain' | 'ocean' | 'forest' | 'bowl' | 'quiet';
 
 /** The echo above a new page (DESIGN.md rule 16): one kept line a day, oldest unseen first. Ids only, no text. */
 export type EchoState = { day: string; id?: string; dismissed?: boolean; linked?: boolean; seen: string[] };

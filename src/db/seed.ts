@@ -113,6 +113,7 @@ export function defaultSettings(now = Date.now()): Settings {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
     lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
     flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark)],
+    sitSound: 'rain', sitThroughSilent: true,
   };
 }
 
