@@ -247,7 +247,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     const day = dayKey(Date.now());
     const pick = pickEcho(kept.map(k => ({ id: k.message.id, at: k.message.at })), settings.peek().echo, day);
     const prev = settings.peek().echo;
-    if (JSON.stringify(prev) !== JSON.stringify(pick.state)) await saveSettings({ echo: pick.state });
+    // the journal may lock while the page is still picking (a light change re-reads it): the next open picks again
+    if (JSON.stringify(prev) !== JSON.stringify(pick.state)) await saveSettings({ echo: pick.state }).catch(() => undefined);
     const k = kept.find(x => x.message.id === pick.state.id) ?? null;
     echoRef.current = k;
     setEcho(pick.id && !pick.state.linked ? k : null);

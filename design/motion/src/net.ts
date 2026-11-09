@@ -25,7 +25,7 @@ const examples: Alb[] = Array.from({ length: 11 }, (_, i) => ({
 }));
 const ALBUMS = [...named, ...examples];
 /** The one album whose play Spotify refuses (a Premium refusal), so the refusal shows too: no ring, one line. */
-export const REFUSED = 'All We Grow';
+export const REFUSED = 'Example album 15';
 
 const [MASTER, STAGING, CANDIDATE] = [NAMED_IDS[1], NAMED_IDS[2], NAMED_IDS[3]];
 const PLAYLISTS: { id: string; name: string; albums: Alb[] }[] = [
