@@ -5,7 +5,10 @@
 // Reduce Motion stills it. A tap on it is the page's one act: it begins a sit, and ends one.
 //
 // The circle is drawn twice in the same place: the line in print, and a second path in ink (class "sat",
-// pathLength 1, nothing shown) that S2 draws round as the clock of a sit with an end.
+// pathLength 1) that a sit with an end (S2) draws round once over the sit's length, read from the same clock, its dash
+// offset the share still to come. No number, no clock face: the line is the clock. When the share reaches the whole
+// circle the page is told (onClose), once; Reduce Motion stills the breath but not this line, which moves too slowly
+// to be motion.
 //
 // Under the thumb (rule 26): parts/Press puts data-down on the button and the drawn line gives, scale(var(--press)),
 // down at once and back over --t-ui. The two circles (this one and the list row's CircleMark) carry data-circle, so the
@@ -26,6 +29,12 @@ export function breathScale(seconds: number): number {
   return 0.86 + 0.14 * open;
 }
 
+/** How much of a sit with an end has gone: 0 at the start, 1 at the end, clamped either side. */
+export function strokeShare(seconds: number, length: number): number {
+  if (!(length > 0)) return 0;
+  return Math.max(0, Math.min(1, seconds / length));
+}
+
 const stillMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** How long the circle takes to move from where the CSS breath had it onto the sound's clock. */
 const JOIN_S = 1.2;
@@ -39,10 +48,16 @@ type Props = {
   word: string;
   label: string;
   onTap: () => void;
+  /** A sit with an end: its length in seconds. The ink line is drawn round over it, and onClose comes when it is round. */
+  length?: number;
+  onClose?: () => void;
 };
 
-export function Circle({ sitting, clock, word, label, onTap }: Props) {
+export function Circle({ sitting, clock, word, label, onTap, length = 0, onClose }: Props) {
   const breath = useRef<SVGGElement>(null);
+  const sat = useRef<SVGPathElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   /** Where the CSS breath had the circle at the tap, so the sit starts from there and not from a jump. */
   const from = useRef(1);
   const tap = () => {
@@ -56,33 +71,46 @@ export function Circle({ sitting, clock, word, label, onTap }: Props) {
   };
 
   useEffect(() => {
-    const g = breath.current;
+    const g = breath.current, line = sat.current;
     if (!g) return;
     if (!sitting || !clock) { g.style.transform = ''; return; }
-    if (stillMotion()) return;
-    let raf = 0;
+    const breathe = !stillMotion();
+    if (!breathe && !length) return;
+    // a new sit with an end starts with nothing of the line drawn; the last one's stays where it was until then, so
+    // the page coming back lifts it from there (rule 27)
+    if (line && length) line.style.strokeDashoffset = '1';
+    let raf = 0, closed = false;
     const frame = () => {
-      const t = clock.now() - clock.t0, k = Math.max(0, Math.min(1, t / JOIN_S));
-      const s = breathScale(t), join = from.current + (s - from.current) * (0.5 - 0.5 * Math.cos(Math.PI * k));
-      g.style.transform = `scale(${(k < 1 ? join : s).toFixed(4)})`;
+      const t = clock.now() - clock.t0;
+      if (breathe) {
+        const k = Math.max(0, Math.min(1, t / JOIN_S));
+        const s = breathScale(t), join = from.current + (s - from.current) * (0.5 - 0.5 * Math.cos(Math.PI * k));
+        g.style.transform = `scale(${(k < 1 ? join : s).toFixed(4)})`;
+      }
+      if (length && line) {
+        const share = strokeShare(t, length);
+        line.style.strokeDashoffset = (1 - share).toFixed(4);
+        if (share >= 1 && !closed) { closed = true; close.current?.(); return; }
+      }
       raf = requestAnimationFrame(frame);
     };
     frame();
     return () => {
       cancelAnimationFrame(raf);
+      if (!breathe) return;
       // back at rest, the CSS breath carries on from where the sound's clock left it
       const p = ((clock.now() - clock.t0) % BREATH_S + BREATH_S) % BREATH_S;
       g.style.transform = '';
       g.style.animationDelay = `${(-p).toFixed(2)}s`;
     };
-  }, [sitting, clock]);
+  }, [sitting, clock, length]);
 
   return (
     <button type="button" class="md-circle" data-circle="page" aria-label={label} onClick={tap}>
       <svg viewBox="0 0 328 264" aria-hidden="true">
         <g class="md-breath" ref={breath}>
           <path class="arc" d={CIRCLE_D} />
-          <path class="arc sat" pathLength={1} d={CIRCLE_D} />
+          <path class="arc sat" ref={sat} pathLength={1} d={CIRCLE_D} />
         </g>
       </svg>
       <span class="md-mid">{word}</span>

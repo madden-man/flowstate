@@ -602,8 +602,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   transition: transform var(--t-ui) var(--ease);
 }
 .fs-tile img, .fs-tile span { display: block; width: 100%; height: 100%; object-fit: cover; }
-.fs-tile:active { transform: translateY(1px); }
-.fs-tile[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
 .fs-tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* the covers are photographs: Night and Still lower their light with the page (DESIGN.md rule 14) */
 [data-light="night"] .fs-tile img, [data-light="night"] .fs-mini img { opacity: .88; }
@@ -753,7 +751,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-playlist-now { flex: none; display: block; width: var(--s3); height: var(--s3); border-radius: 3px; object-fit: cover; box-shadow: var(--shadow-tile); background: var(--seam); }
 .fs-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--s1); }
 .fs-strip img, .fs-strip span { display: block; width: 100%; aspect-ratio: 1; border-radius: 3px; object-fit: cover; background: var(--seam); box-shadow: var(--shadow-tile); }
-.fs-playlist:active .fs-strip { transform: translateY(1px); }
 .fs-playlist:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 [data-light="night"] .fs-strip img, [data-light="night"] .fs-playlist-now { opacity: .88; }
 [data-light="still"] .fs-strip img, [data-light="still"] .fs-playlist-now { opacity: .62; }
@@ -956,7 +953,7 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 /* the morning after a worry: the prediction in his words and two chips, at the top of the list */
 .fl-stampask { margin: 0; }
 
-/* ==== Meditate (PLAN-MEDITATE.md, S1): one circle and a gentle sound. The list row's small circle is parts/Cycle's
+/* ==== Meditate (PLAN-MEDITATE.md, S1 and S2): one circle and a gentle sound. The list row's small circle is parts/Cycle's
    .fs-cycle.small (above). The page is the circle in the middle, and what can be chosen under it; sitting, everything
    but the circle leaves on one --t-light breath, and the light itself does not change. design/meditate shares these. ==== */
 .md-page { position: relative; display: flex; flex-direction: column; }
@@ -967,10 +964,13 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
   aspect-ratio: 328 / 264; flex: none; cursor: pointer; color: inherit; -webkit-tap-highlight-color: transparent; }
 .md-circle svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .md-circle .arc { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
-/* the second circle, in ink, nothing of it drawn (S2 draws it round as a sit with an end runs) */
-.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1; }
-/* a dash of nothing still leaves a hairline at twelve o'clock, so until a sit with an end is running it is not drawn at all */
-.md-page:not([data-ending]) .md-circle .sat { display: none; }
+/* the second circle, in ink: a sit with an end draws it round once on the sit's own clock (parts/Circle sets the dash
+   offset, the share still to come). It is a clock drawn as a line, so it runs on the sit's time and not --t-draw. */
+.md-circle .sat { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: opacity var(--t-ui) var(--ease), visibility var(--t-ui) var(--ease); }
+/* when the page returns the line is lifted over --t-ui (rule 27), from where it had got to; then it is not drawn at all,
+   since a dash of nothing still leaves a hairline at twelve o'clock */
+.md-page:not([data-ending]) .md-circle .sat { opacity: 0; visibility: hidden; }
 /* at rest it breathes by CSS on --t-breath, four seconds in and six out; sitting, on the sound's own clock (parts/Circle) */
 .md-breath { transform-box: view-box; transform-origin: 164px 132px; animation: md-breathe var(--t-breath) var(--ease) infinite; }
 @keyframes md-breathe { 0% { transform: scale(.86); } 40% { transform: scale(1); } 100% { transform: scale(.86); } }
@@ -981,10 +981,22 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 .md-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--sans); font-size: var(--fs-print);
   letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); transition: opacity var(--t-light) var(--ease); }
 .md-circle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
-/* the sound chips under the circle, centred, the page's foot */
-.md-quiet { position: relative; display: flex; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
-  transition: opacity var(--t-light) var(--ease); }
+/* the page's foot, under the circle: at rest the chips and "last sat", after a sit what it was and the way to the
+   journal. The two share one cell, so the foot is as tall in every state and the circle never moves. */
+.md-foot { display: grid; }
+.md-foot > * { grid-area: 1 / 1; }
+.md-quiet, .md-after { position: relative; display: flex; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
+  transition: opacity var(--t-light) var(--ease), visibility var(--t-light) var(--ease); }
 .md-quiet .fs-chips { justify-content: center; }
+/* the Minutes chips (S2), the print label in front of them; gone in Still with "last sat" (fs-notstill) */
+.md-lengths::before { content: "Minutes"; align-self: center; margin-right: var(--s1); font-size: var(--fs-print);
+  letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+.md-quiet .fl-last, .md-after .fl-last { text-align: center; }
+/* after a sit: the page is back with what it was and the row to today's page; the chips wait under it */
+.md-after { opacity: 0; visibility: hidden; pointer-events: none; }
+.md-after .fs-list-meta { color: var(--print); text-align: left; }
+.md-page[data-state="after"] .md-quiet { opacity: 0; visibility: hidden; pointer-events: none; }
+.md-page[data-state="after"] .md-after { opacity: 1; visibility: visible; pointer-events: auto; }
 /* sitting: the rules, the words and the chips leave; only the circle is left */
 .md-page[data-state="sitting"]::before { opacity: 1; }
 .md-page[data-state="sitting"] .md-quiet, .md-page[data-state="sitting"] .md-mid { opacity: 0; pointer-events: none; }
@@ -1013,7 +1025,69 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 
 
 /* ---- M3: music (the sheet under the thumb, a playlist into its covers, an album tapped) ---- */
+/* the sheet under the thumb (parts/Sheet): the scrim follows the drag with no lag; let go short, both settle back */
+.fs-scrim.drag { transition: none; }
+.fs-sheet.settle, .fs-scrim.settle { transition-timing-function: var(--ease-settle); }
+/* opening the music sheet, its rows rise in behind it, a fifth of --t-ui apart (src/ui/music/MusicSheet.tsx) */
+.fs-playlists.rise .fs-playlist { animation: fs-deal var(--t-page) var(--ease-settle) calc(var(--t-ui) / 6 * var(--i)) both; }
+@keyframes fs-deal { from { opacity: 0; transform: translateY(var(--s2)); } }
+/* a playlist under the thumb: the row takes a wash of ink and its strip gives, at once; both ease back */
+.fs-playlist { transition: background-color var(--t-page) var(--ease); }
+.fs-playlist[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+.fs-strip { transition: transform var(--t-ui) var(--ease); }
+.fs-playlist[data-down] .fs-strip { transform: translateY(1px); transition: none; }
+/* a playlist into its covers: the strip travels (music/motion.ts), so the grid does not also fade; the rows past
+   the strip rise in one after another, eight at most, then the rest together */
+.fs-music-screen.deal { animation: none; }
+.fs-tile-cell.rise { animation: fs-deal var(--t-page) var(--ease-settle) calc(var(--t-ui) / 6 * var(--row)) both; }
 
+/* an album tapped. Down: the cover gives at once and its shadow goes; up, it comes back over --t-ui */
+.fs-tile-cell { position: relative; transition: opacity var(--t-page) var(--ease); }
+.fs-tile-cell > .fs-tile { position: relative; display: block; width: 100%; transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
+.fs-tile[data-down] { transform: scale(var(--press)); box-shadow: none; transition: none; }
+/* the other covers hush for one --t-page and come back; Still's covers are already dimmed and stay as they are */
+.fs-tiles.hush .fs-tile-cell:not([data-chosen]) { opacity: .45; transition-duration: var(--t-ui); }
+[data-light="still"] .fs-tiles.hush .fs-tile-cell { opacity: 1; }
+/* the drop: from where the thumb was, a soft ring of the page goes out across the cover */
+.fs-tile-drop {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, transparent 60%, var(--page) 84%, transparent);
+  animation: fs-drop calc(var(--t-page) * 1.5) var(--ease) forwards;
+}
+@keyframes fs-drop { from { transform: scale(.08); opacity: .7; } to { transform: scale(1); opacity: 0; } }
+/* the ring round the playing album (it was an outline): drawn in one stroke once Spotify says so, lifted when
+   another takes over. A bead walks it once every --t-orbit while it plays; none in Still */
+.fs-tile-ring {
+  position: absolute; left: calc(var(--s1) * -.5); top: calc(var(--s1) * -.5);
+  width: calc(100% + var(--s1)); height: calc(100% + var(--s1)); overflow: visible; pointer-events: none;
+}
+.fs-tile-ring path { fill: none; stroke: var(--ink); stroke-linecap: round; stroke-linejoin: round; }
+.fs-tile-ring .ink { stroke-width: 1.7; }
+/* the dash lives only while it is being drawn, so the finished ring has no seam where the pen closed it */
+.fs-tile-ring.drawn .ink { animation: fs-ring var(--t-draw) var(--ease) backwards; }
+@keyframes fs-ring { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+.fs-tile-ring.lift { opacity: 0; transition: opacity var(--t-ui) var(--ease); }
+.fs-tile-ring .bead {
+  stroke-width: 4.5; stroke-dasharray: 0 1;
+  animation: fs-bead var(--t-page) var(--ease) var(--t-draw) both, fs-orbit var(--t-orbit) linear var(--t-draw) infinite;
+}
+@keyframes fs-bead { from { opacity: 0; } }
+@keyframes fs-orbit { to { stroke-dashoffset: -1; } }
+.fs-tile-ring.lift .bead, [data-light="still"] .fs-tile-ring .bead { display: none; }
+/* the copy of the cover that travels to the small cover by the ♪, above the sheet and its scrim */
+.fs-fly {
+  position: fixed; z-index: 6; margin: 0; object-fit: cover; transform-origin: 0 0; pointer-events: none;
+  background: var(--seam); box-shadow: var(--shadow-tile);
+}
+[data-light="night"] .fs-fly { opacity: .88; }
+[data-light="still"] .fs-fly { opacity: .62; }
+/* the small cover waits unseen for the copy, then sits lit above the scrim until the sheet goes down */
+.fs-mini[data-landing] img, .fs-mini[data-landing] span { visibility: hidden; }
+.fs-mini[data-lit] { position: relative; z-index: 5; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-playlists.rise .fs-playlist, .fs-tile-cell.rise, .fs-tile-ring.drawn .ink { animation: none; }
+  .fs-tile-drop, .fs-fly, .fs-tile-ring .bead { display: none; }
+}
 /* ---- M3 ends ---- */
 
 
@@ -1052,5 +1126,21 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 
 
 /* ---- M5: the stream (a flow's drawing runs like water) ---- */
+/* parts/Stream: on the drawing's own grid, behind parts/Cycle and above the ghost rings; the words, marks and dot are
+   drawn after it, so they stay crisp. A mote is a short line in ink; how bright is the engine's (cycle/stream.ts). */
+.fl-stream { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--lh-ink) * 8); pointer-events: none; }
+.fl-stream svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fl-stream line { stroke: var(--ink); stroke-linecap: round; vector-effect: non-scaling-stroke; }
+/* a landing: one thin ring goes out from the dot and is gone, over twice --t-page */
+.fl-ripple {
+  fill: none; stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center;
+  animation: fl-ripple calc(var(--t-page) * 2) var(--ease) forwards;
+}
+@keyframes fl-ripple { from { transform: scale(.4); opacity: .5; } to { transform: scale(2.8); opacity: 0; } }
+/* Reduce Motion: --stream is 0 and nothing runs; the layer is not shown either */
+@media (prefers-reduced-motion: reduce) {
+  .fl-ripple { animation: none; }
+  .fl-stream { display: none; }
+}
 
 /* ---- M5 ends ---- */

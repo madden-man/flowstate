@@ -5,7 +5,7 @@
 import { settings } from '../settings';
 import type { SitSound } from '../../db/schema';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd';
 
 let ac: AudioContext | null = null;
 function ctx(): AudioContext | null {
@@ -86,6 +86,8 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   album: a => strike(a, 660, 0.6, 0.06),
   breathIn: a => breathTone(a, 196, 294, 4),
   breathOut: a => breathTone(a, 294, 196, 6),
+  // the one bell that closes a sit with an end (PLAN-MEDITATE.md 3.1, S2): the unlock bell's shape, lower and longer
+  sitEnd: a => strike(a, 528, 4, 0.16),
 };
 
 /** The breath tone has its own switch under Sounds, off by default, and follows it (rule 21). */

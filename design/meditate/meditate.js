@@ -1,8 +1,10 @@
 // The audition for PLAN-MEDITATE.md. Two halves:
 //   1. the four scapes (rain, ocean, forest, bowl) synthesised with Web Audio, no files; since S1 the app's own are
 //      src/ui/parts/Sound.ts (scape), ported from these and kept the same graphs and levels;
-//   2. the circle in each phone mock (steps 1 to 5 are the app's real markup since S1): a tap begins the sit and the
-//      sound, a tap ends both.
+//   2. the circle in each phone mock (steps 1 to 8 are the app's real markup since S1 and S2): a tap begins the sit and
+//      the sound, a tap ends both. With a length chosen on the Minutes chips the page carries data-ending and the ink
+//      line goes round on the sound's clock, as in ui/flow/Meditate.tsx; the bell closes it. A sit of a minute or more
+//      comes back as the page after it; under a minute, or in Still, back to rest.
 // Nothing here plays until the circle is tapped.
 (function () {
   var AC = window.AudioContext || window.webkitAudioContext;
@@ -186,7 +188,7 @@
 
   /** Start a scape on a context; returns the sit (t0 is the clock the circle breathes on). */
   function begin(a, name, dest) { var s = new Sit(a, dest || a.destination); if (SCAPES[name]) SCAPES[name](s); return s; }
-  /** The closing bell: the unlock bell's shape, lower and longer. */
+  /** The closing bell: the unlock bell's shape, lower and longer (parts/Sound's sitEnd: 528 Hz over four seconds). */
   function closingBell(a, dest) {
     var t = a.currentTime + 0.02, out = a.createGain(); out.connect(dest || a.destination);
     out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(0.16, t + 0.012); out.gain.exponentialRampToValueAtTime(0.0008, t + 4);
@@ -209,14 +211,31 @@
     var app = page.closest('.fs-app'); if (app) { if (state === 'sitting') app.dataset.sitting = 'true'; else delete app.dataset.sitting; }
     var c = page.querySelector('.md-circle'); if (c) c.setAttribute('aria-label', state === 'sitting' ? 'End the sit' : 'Begin');
   }
-  function stop(rang) {
+  /** The chosen length in seconds: the pressed Minutes chip, open in Still (a sit begun there is always open). */
+  function lengthOf(page) {
+    var screen = page.closest('[data-light]');
+    if (screen && screen.dataset.light === 'still') return 0;
+    var chip = page.querySelector('.md-lengths [aria-pressed="true"]');
+    return (chip ? +chip.dataset.minutes || 0 : 0) * 60;
+  }
+  function stop() {
     if (!live) return;
     var l = live; live = null; cancelAnimationFrame(l.raf);
-    if (l.sit) l.sit.end(rang ? 2 : OUT);
-    l.breath.style.transform = ''; if (l.sat) l.sat.style.strokeDashoffset = l.page.dataset.from ? String(1 - l.from) : '';
-    var sat = (l.clock() - l.t0) / 60, said = l.page.querySelector('.md-after .fl-last');
-    if (said && !l.page.dataset.fixed && sat >= 1) said.textContent = 'Sat · ' + Math.round(sat) + (Math.round(sat) === 1 ? ' minute · ' : ' minutes · ') + (l.page.dataset.sound || 'rain');
-    set(l.page, l.page.dataset.fixed ? 'sitting' : sat >= 1 && l.page.querySelector('.md-after') ? 'after' : 'rest'); l.page.removeAttribute('data-playing');
+    if (l.sit) l.sit.end(OUT);
+    var page = l.page, fixed = !!page.dataset.fixed;
+    l.breath.style.transform = '';
+    // a fixed mock (step 6) goes back to how it is drawn; a live one lifts the line from where it got to (rule 27)
+    if (fixed) { if (l.sat && page.dataset.from) l.sat.style.strokeDashoffset = String(1 - l.from); }
+    else delete page.dataset.ending;
+    var sat = (l.clock() - l.t0) / 60, after = page.querySelector('.md-after');
+    var still = (page.closest('[data-light]') || {}).dataset;
+    var back = fixed ? 'sitting' : sat >= 1 && after && !(still && still.light === 'still') ? 'after' : 'rest';
+    if (back === 'after') {
+      var n = Math.max(1, Math.round(sat));
+      after.innerHTML = '<p class="fl-last fs-notstill">Sat · ' + n + (n === 1 ? ' minute · ' : ' minutes · ') + (page.dataset.sound || 'rain') +
+        '</p><a class="fs-row fs-list-row"><span class="fs-list-line">Write it down</span><small class="fs-list-meta">Today\'s page</small></a>';
+    }
+    set(page, back); page.removeAttribute('data-playing');
   }
   function start(page) {
     stop();
@@ -224,9 +243,10 @@
     // a sit is media, like the music: where the phone lets a page say so, the ringer switch does not silence it
     try { if (a && navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not on this phone */ }
     var sit = a ? begin(a, name) : null, t0 = sit ? sit.t0 : performance.now() / 1000;
-    var seconds = (+page.dataset.minutes || 0) * 60, from = +page.dataset.from || 0;
+    var seconds = lengthOf(page), from = +page.dataset.from || 0;
     var clock = function () { return sit ? a.currentTime : performance.now() / 1000; };
     var l = live = { page: page, sit: sit, breath: page.querySelector('.md-breath'), sat: page.querySelector('.sat'), from: from, clock: clock, t0: t0 };
+    if (seconds) { page.dataset.ending = 'true'; if (l.sat) l.sat.style.strokeDashoffset = String(1 - from); }
     set(page, 'sitting'); page.dataset.playing = 'true';
     (function frame() {
       if (live !== l) return;
@@ -235,8 +255,8 @@
       var open = p < IN ? ease(p / IN) : 1 - ease((p - IN) / OUT);
       if (!still) l.breath.style.transform = 'scale(' + (0.86 + 0.14 * open).toFixed(4) + ')';
       if (seconds && l.sat) {
-        var done = from + t / seconds; l.sat.style.strokeDashoffset = String(Math.max(0, 1 - done));
-        if (done >= 1) { if (a) closingBell(a); stop(true); return; }
+        var done = Math.max(0, Math.min(1, from + t / seconds)); l.sat.style.strokeDashoffset = String(1 - done);
+        if (done >= 1) { if (a || ctx()) closingBell(a || ctx()); stop(); return; }
       }
       l.raf = requestAnimationFrame(frame);
     })();
@@ -248,7 +268,7 @@
     if (chip) {
       var group = chip.parentNode, pg = chip.closest('.md-page');
       [].forEach.call(group.querySelectorAll('.fs-chip'), function (x) { x.setAttribute('aria-pressed', String(x === chip)); });
-      if (group.classList.contains('md-sounds')) pg.dataset.sound = chip.dataset.sound; else pg.dataset.minutes = chip.dataset.minutes;
+      if (group.classList.contains('md-sounds')) pg.dataset.sound = chip.dataset.sound;
     }
   });
 })();

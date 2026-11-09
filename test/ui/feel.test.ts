@@ -32,7 +32,8 @@ const TICKS: Record<string, string[]> = {
   album: ['src/ui/music/'],
   sit: ['src/ui/flow/Meditate.tsx'],
 };
-// Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2).
+// Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2),
+// the bell that closes a sit with an end (Meditate, S2).
 const BELLS: Record<string, string[]> = {
   settle: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
@@ -42,6 +43,7 @@ const BELLS: Record<string, string[]> = {
   unlock: ['src/ui/lock/Lock.tsx'],
   breathIn: ['src/ui/flow/breath.ts'],
   breathOut: ['src/ui/flow/breath.ts'],
+  sitEnd: ['src/ui/flow/Meditate.tsx'],
 };
 
 const allowed = (table: Record<string, string[]>, line: string) => {
@@ -62,7 +64,7 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit']) expect(ticks, t).toContain(t);
-    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut']) expect(bells, b).toContain(b);
+    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut', 'sitEnd']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');

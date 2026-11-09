@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB } from './helpers';
-import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
-describe('schema, version 3', () => {
-  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, and the flows (F1)', async () => {
+describe('schema, version 4', () => {
+  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1) and the sits (S2)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(3);
+    expect(SCHEMA_VERSION).toBe(4);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
-    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes']);
+    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits']);
   });
 
   it('carries the listed indexes', async () => {
@@ -23,6 +23,7 @@ describe('schema, version 3', () => {
     expect(idx('shelves')).toEqual(['playlistId']);
     expect(idx('flows')).toEqual(['order']);
     expect(idx('episodes')).toEqual(['[flowId+startedAt]']);
+    expect(idx('sits')).toEqual(['startedAt']);
     expect(db.table('albums').schema.primKey.name).toBe('albumUri');
     expect(db.table('shelves').schema.primKey.src).toBe('[playlistId+albumUri]');
     expect(db.table('settings').schema.primKey.name).toBe('id');
@@ -46,7 +47,7 @@ describe('the upgrade from version 1 (V7)', () => {
 
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     const shelves = (await db.shelves.where('playlistId').equals(POEMS_ID).toArray()).sort((a, b) => a.order - b.order);
     expect(shelves).toEqual([
       { playlistId: POEMS_ID, albumUri: 'spotify:album:One', order: 0, firstTrackUri: 'spotify:track:1' },
@@ -65,7 +66,7 @@ describe('the upgrade from version 1 (V7)', () => {
 });
 
 describe('the upgrade from version 2 (F1)', () => {
-  it('a version 2 database opens at version 3 with empty flows and episodes, every row kept', async () => {
+  it('a version 2 database opens at the current version with empty flows and episodes, every row kept', async () => {
     const name = `flowstate-v2-${Date.now()}`;
     const v2 = new Dexie(name);
     v2.version(1).stores(STORES_V1);
@@ -75,10 +76,35 @@ describe('the upgrade from version 2 (F1)', () => {
     v2.close();
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.flows.count()).toBe(0);
     expect(await db.episodes.count()).toBe(0);
     expect(await db.pages.get('p1')).toBeTruthy();
+    db.close();
+  });
+});
+
+describe('the upgrade from version 3 (S2)', () => {
+  it('a version 3 database opens at version 4 with an empty sits table, every row kept', async () => {
+    const name = `flowstate-v3-${Date.now()}`;
+    const v3 = new Dexie(name);
+    v3.version(1).stores(STORES_V1);
+    v3.version(2).stores(STORES_V2);
+    v3.version(3).stores(STORES_V3);
+    await v3.open();
+    await v3.table('pages').put({ id: 'p1', kind: 'entry', createdAt: 1, updatedAt: 1, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], flow: { episodeId: 'e1' } });
+    await v3.table('flows').put({ id: 'panic', name: 'Panic', order: 0, createdAt: 1, updatedAt: 1, diagram: 'ring', steps: [], revisions: [] });
+    await v3.table('episodes').put({ id: 'e1', flowId: 'panic', startedAt: 1, marks: [], done: [] });
+    await v3.table('settings').put({ id: 'app', sitSound: 'ocean' });
+    v3.close();
+    const db = openDB(name);
+    await db.open();
+    expect(db.verno).toBe(4);
+    expect(await db.sits.count()).toBe(0);
+    expect(await db.pages.get('p1')).toMatchObject({ flow: { episodeId: 'e1' } });
+    expect(await db.flows.get('panic')).toBeTruthy();
+    expect(await db.episodes.get('e1')).toBeTruthy();
+    expect(await db.settings.get('app')).toMatchObject({ sitSound: 'ocean' });
     db.close();
   });
 });
