@@ -16,7 +16,7 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await threshold(page);
   const body = page.locator('.fs-flowpage');
   await expect(body).toHaveAttribute('data-showing', '4');
-  await expect(page.locator('.fs-cycle[data-diagram="valley"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'The bottom' })).toHaveAttribute('aria-pressed', 'true');
   await expect(body.locator('.fl-said').first()).toContainText('the floor is where it turns');
   const safety = body.locator('.fl-print');
@@ -35,20 +35,20 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
 
   // Energize at rest: the boundary is one printed line on the page, not a step
   await page.goto('/#/flow/energize');
-  await expect(page.locator('.fs-cycle[data-diagram="arc"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="arc"]')).toBeVisible();
   await expect(page.locator('.fs-flowpage .fl-print')).toHaveText('Highs most days for a week without needing sleep: talk to your doctor.');
   await expect(page.getByRole('slider', { name: 'Where you are' })).toHaveAttribute('aria-valuemax', '5');
 
   // Fight: the mountain's two lines across the slope; cooling asks "Slower now?"
   await page.goto('/#/flow/fight/5');
-  await expect(page.locator('.fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
   await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Slower now?');
 
-  // the list: Right now (F5) first, then Panic, Depress, Energize, Fight (F4's five follow, flows-five.spec.ts)
+  // the list: Right now (F5) and Meditate (S1) first, then Panic, Depress, Energize, Fight (F4's five follow, flows-five.spec.ts)
   await page.goto('/#/flow');
-  await expect(page.locator('a.fl-flow:not(.fl-now) .fs-list-line').first()).toHaveText('Panic');
-  await expect(page.locator('a.fl-flow:not(.fl-now) .fs-list-line').nth(3)).toHaveText('Fight');
-  await expect(page.locator('a.fl-flow:not(.fl-now) .fs-list-meta').nth(3)).toHaveText('The mountain');
+  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line').first()).toHaveText('Panic');
+  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line').nth(3)).toHaveText('Fight');
+  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-meta').nth(3)).toHaveText('The mountain');
 });
 
 test('"+ flow" makes a flow from nothing that survives an offline reload', async ({ page }) => {
@@ -74,7 +74,7 @@ test('"+ flow" makes a flow from nothing that survives an offline reload', async
 
   await expect(page).toHaveURL(/#\/flow\/[0-9a-f-]{36}$/);
   const url = page.url();
-  await expect(page.locator('.fs-cycle[data-diagram="valley"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
   await page.getByRole('button', { name: 'name the first step' }).click();
   const step = page.locator('.fs-sheet[data-sheet="The first step"]');
   await step.getByLabel('Name').fill('Facing it');

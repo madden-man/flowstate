@@ -4,7 +4,7 @@
 import { settings } from '../settings';
 
 /** The ticks DESIGN.md rule 19 allows, and nowhere else. */
-export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album';
+export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit';
 
 export function tick(_name: TickName): void {
   if (!settings.value.haptics || typeof document === 'undefined') return;

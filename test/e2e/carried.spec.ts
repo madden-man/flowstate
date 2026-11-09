@@ -131,7 +131,7 @@ test('your own stamps: the morning after a prediction, one tap, and the mark is 
   await expect(page.locator('.fl-stampask')).toHaveCount(0);
   await page.goto(`/#/flow/${flowId}`);
   // F4: the curve draws his mark itself on its flat, and the seeded nine in ten give way to it
-  await expect(page.locator('.fs-cycle[data-diagram="curve"] path.stamp.own')).toHaveCount(1);
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="curve"] path.stamp.own')).toHaveCount(1);
   await expect(page.locator('.fl-stamps')).toHaveCount(0);
   await expect(page.locator('.fl-drawing')).toHaveAttribute('data-own', '');
   await expect(page.locator('.fs-cycle .seedstamp').first()).toBeHidden();

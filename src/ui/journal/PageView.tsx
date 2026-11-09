@@ -519,7 +519,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const count = isQuestion && walk && page?.state === 'open' ? `${walk.at} of ${walk.of} open` : undefined;
 
   return (
-    <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id}
+    <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id} drawn={data !== null}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
       music={page ? {
         id: page.id, music: page.music,
@@ -547,6 +547,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
         )}
         {/* F2: a page written about a flow episode links back to it (page.flow, like page.music) */}
         {page?.flow && <JournalLink episodeId={page.flow.episodeId} />}
+        {/* S2: a page written after a sit links back to it the same way (page.sit) */}
+        {page?.sit && <JournalLink sitId={page.sit.sitId} />}
         {data && blocks.map(b => {
           const m = b.m;
           const dated = m && prevAt !== undefined && dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;

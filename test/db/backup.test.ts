@@ -95,6 +95,30 @@ describe('round trip', () => {
     expect([...await coverBytes((await db.albums.get('spotify:album:1'))!.cover!)]).toEqual([1, 2]);
   });
 
+  it('the sits and a page written after one round-trip, plain and in a merge (S2)', async () => {
+    const sit = { id: 's1', startedAt: 1000, endedAt: 1000 + 12 * 60_000, sound: 'rain' as const, minutes: 10 as const, pageId: 'p1' };
+    const open = { id: 's2', startedAt: 5000, endedAt: 5000 + 3 * 60_000, sound: 'quiet' as const };
+    await store.bulkPut('sits', [sit, open]);
+    await store.put('pages', { id: 'p1', kind: 'entry', createdAt: 2000, updatedAt: 2000, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], sit: { sitId: 's1' } });
+    const file = await roundTrip(db);
+    expect(file.tables.sits).toHaveLength(2);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect((await other.sits.toArray()).sort((a, b) => a.startedAt - b.startedAt)).toEqual([sit, open]);
+    expect((await other.pages.get('p1'))!.sit).toEqual({ sitId: 's1' });
+    // a merge adds a sit this phone has not got, and keeps the ones it has
+    const third = await freshDB();
+    await third.sits.put(open);
+    expect(await importData(file, 'merge', third)).toMatchObject({ added: 2, kept: 1 });
+    expect(await third.sits.count()).toBe(2);
+  });
+
+  it('a version 3 file (before the sits) imports with an empty sits table', async () => {
+    const f = parseBackup('{"app":"flowstate","schemaVersion":3,"exportedAt":1,"tables":{"pages":[]}}');
+    expect(f.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(f.tables.sits).toEqual([]);
+  });
+
   it('replace makes the database the file', async () => {
     await ensureSeeded();
     const file = await roundTrip(db);

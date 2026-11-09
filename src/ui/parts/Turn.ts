@@ -7,14 +7,29 @@
 // Preact renders a signal's change on a microtask, so the new page is not in the DOM when update returns; turn waits
 // one task after update before the browser takes the "after" picture. A caller whose page fills later (a read from
 // the database) passes `ready`, awaited too, but never for longer than WAIT_MS: a turn must not hold a tap up.
+// `settle`, if given, runs once that wait is over, just before the "after" picture: the place to name what travels on
+// the new page (it is there by then, or the cap has run out and it never will be in time).
 
 /** The longest a turn waits for the new page before showing whatever is there. */
 export const WAIT_MS = 120;
 
-type VT = { finished: Promise<void>; skipTransition(): void };
+type VT = { finished: Promise<void>; updateCallbackDone: Promise<void>; skipTransition(): void };
 type Doc = Document & { startViewTransition?: (update: () => void | Promise<void>) => VT };
 
 let running = 0;
+let current: { vt: VT; cut: () => void } | null = null;
+
+/** Ends the turn now running, if there is one, and resolves once its change is in the page (at once, where there is
+ *  none): the page as it now is, with nothing moving over it and no wait left. While a turn runs the browser
+ *  hit-tests its pictures as the document itself, so a touch landing mid-turn ends it first (ui/turns.ts). */
+export function skipTurn(): Promise<void> {
+  const c = current;
+  current = null;
+  if (!c) return Promise.resolve();
+  c.cut();
+  c.vt.skipTransition();
+  return c.vt.updateCallbackDone.then(() => undefined, () => undefined);
+}
 
 export const canTurn = () =>
   typeof document !== 'undefined' && typeof (document as Doc).startViewTransition === 'function'
@@ -24,24 +39,30 @@ const task = () => new Promise<void>(r => setTimeout(r, 0));
 
 /** Runs update as the named turn. vars are set on <html> for its length (where a circle opens from, say). Resolves
  *  when the turn is over (at once, where there is none). */
-export async function turn(kind: string, update: () => void | Promise<void>, opts: { vars?: Record<string, string>; ready?: () => Promise<unknown> } = {}): Promise<void> {
+export async function turn(kind: string, update: () => void | Promise<void>, opts: { vars?: Record<string, string>; ready?: () => Promise<unknown>; settle?: () => void } = {}): Promise<void> {
   if (!canTurn()) { await update(); return; }
   const html = document.documentElement, mine = ++running;
   const vars = Object.entries(opts.vars ?? {});
   html.dataset.turn = kind;
   for (const [k, v] of vars) html.style.setProperty(k, v);
+  // a skipped turn waits for nothing more
+  let cut = () => {};
+  const skipped = new Promise<void>(r => { cut = r; });
   try {
     const vt = (document as Doc).startViewTransition!(async () => {
       await update();
-      await task();
-      if (opts.ready) await Promise.race([opts.ready(), new Promise(r => setTimeout(r, WAIT_MS))]);
+      await Promise.race([task(), skipped]);
+      if (opts.ready) await Promise.race([opts.ready(), new Promise(r => setTimeout(r, WAIT_MS)), skipped]);
+      opts.settle?.();
     });
+    current = { vt, cut };
     await vt.finished;
   } catch {
     // skipped by a newer turn, or the page went away: the change itself has happened
   } finally {
     // a newer turn owns the name now; leave it be
     if (mine === running) {
+      current = null;
       delete html.dataset.turn;
       for (const [k] of vars) html.style.removeProperty(k);
     }

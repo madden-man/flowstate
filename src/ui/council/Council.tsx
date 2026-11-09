@@ -170,7 +170,7 @@ function CouncilList() {
   const shown = (rows ?? []).filter(r => !isStill() || sameDay(r.page.createdAt, now));
   const begin = async () => { const p = await newCouncil(); route(`/council/${p.id}`); };
   return (
-    <Page label="Council">
+    <Page label="Council" drawn={rows !== null}>
       <CouncilSeg here="councils" />
       <div class="fs-council">
         <div class="fs-chat fs-rules">
@@ -347,7 +347,7 @@ function CouncilPage({ id }: { id: string }) {
   const made = async (vid: string) => { await seat(id, vid); await load(); };
 
   return (
-    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined} pageId={id}
+    <Page label="Council" date={data ? new Date(data.page.createdAt) : undefined} pageId={id} drawn={data !== null}
       music={data ? { id: data.page.id, music: data.page.music, onMusic: music => setData(d => (d && d !== 'missing' ? { ...d, page: { ...d.page, music } } : d)) } : undefined}>
       <CouncilSeg />
       <div ref={root} class="fs-council" data-council={id}>

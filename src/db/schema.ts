@@ -1,12 +1,12 @@
-// Dexie tables, version 3 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
-// version 3 is PLAN-FLOWS.md section 5, the flows and their episodes). UI code never imports this file: it reads and writes
+// Dexie tables, version 4 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
+// version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 
 export { POEMS_ID, POEMS_NAME };
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -55,8 +55,20 @@ export type Settings = {
    *  now and the flow pages read-only. Off by default (absent is off). Clear, like the rest of settings, so the
    *  locked gate can read it. */
   flowDoor?: boolean;
+  /** PLAN-MEDITATE.md section 5 (S1): the sound the Meditate page's chips last chose; absent is rain. */
+  sitSound?: SitSound;
+  /** PLAN-MEDITATE.md section 5 (S2): the length the Meditate page's Minutes chips last chose, in minutes; 0 or absent is
+   *  open (no end). A sit begun in Still is open whatever this says. */
+  sitMinutes?: SitMinutes;
+  /** PLAN-MEDITATE.md section 5 (S1): a sit's sound is media and plays with the ringer switch off ('playback'); absent is on. */
+  sitThroughSilent?: boolean;
   sealed?: Sealed;
 };
+
+/** A sit's sound (PLAN-MEDITATE.md 3.1): one of the four scapes parts/Sound makes, or Quiet, the circle alone. */
+export type SitSound = 'rain' | 'ocean' | 'forest' | 'bowl' | 'quiet';
+/** A sit's length (PLAN-MEDITATE.md section 2): open (0), or 5, 10 or 20 minutes. */
+export type SitMinutes = 0 | 5 | 10 | 20;
 
 /** The echo above a new page (DESIGN.md rule 16): one kept line a day, oldest unseen first. Ids only, no text. */
 export type EchoState = { day: string; id?: string; dismissed?: boolean; linked?: boolean; seen: string[] };
@@ -110,6 +122,9 @@ export type Page = {
   /** PLAN-FLOWS.md section 5 (F1): the flow episode this page was written about (F2's Journal helper links it).
    *  Optional and unindexed, like music; an id, clear. */
   flow?: { episodeId: string };
+  /** PLAN-MEDITATE.md section 5 (S2): the sit this page was written after ("Write it down" on the page after a sit).
+   *  Optional and unindexed, like flow; an id, clear. */
+  sit?: { sitId: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
@@ -280,6 +295,15 @@ export type Episode = {
   sealed?: Sealed;
 };
 
+// ---- sits (PLAN-MEDITATE.md section 5, schema version 4) ----
+
+/** One sit of a minute or more on the Meditate page, written when it ends. A date and a sound, never a total: nothing
+ *  here is ever added up (DESIGN.md rule 15). minutes is the chosen length (absent on an open sit); pageId is set when
+ *  "Write it down" opens today's page; episodeId when the sit was reached from a flow's tip (S3). Nothing is sealed. */
+export type Sit = {
+  id: string; startedAt: Millis; endedAt: Millis; sound: SitSound; minutes?: Exclude<SitMinutes, 0>; pageId?: string; episodeId?: string;
+};
+
 export type Tables = {
   settings: Settings;
   voices: Voice;
@@ -294,12 +318,13 @@ export type Tables = {
   shelves: Shelf;
   flows: Flow;
   episodes: Episode;
+  sits: Sit;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -312,7 +337,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes'>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits'>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -320,10 +345,16 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes'>, string>
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES: Record<TableName, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits'>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
+};
+
+/** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V3,
+  sits: 'id, startedAt',
 };
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
@@ -351,6 +382,7 @@ export type FlowDB = Dexie & {
   shelves: Table<Shelf, [string, string]>;
   flows: EntityTable<Flow, 'id'>;
   episodes: EntityTable<Episode, 'id'>;
+  sits: EntityTable<Sit, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -363,7 +395,8 @@ export function openDB(name = DB_NAME): FlowDB {
     await tx.table('shelves').bulkPut(shelvesFromV1(albums));
     await tx.table('playlists').put(poemsPlaylist());
   });
-  db.version(3).stores(STORES);
+  db.version(3).stores(STORES_V3);
+  db.version(4).stores(STORES);
   return db;
 }
 

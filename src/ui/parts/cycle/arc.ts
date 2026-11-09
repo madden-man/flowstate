@@ -41,6 +41,8 @@ export const arc: Shape = {
   restT: () => REST,
   // the page's middle (F2's clock and hold), up and left of the climb (F4: the centre is drawn on)
   mid: { x: 58, y: 56 },
+  // the stream (M5): the quick water lifts off the line toward the tip; most land, a few take the crash and come back
+  stream: () => ({ lift: 4, sides: [{ pieces: [crash, crashBack], pace: 1.2, motes: 5, alpha: 0.6 }] }),
   paths(): Drawn[] {
     const out: Drawn[] = pieces.map(p => ({ kind: 'path', d: pieceD(p), cls: p.cls }));
     out.push({ kind: 'path', d: pieceD(crash), cls: crash.cls }, { kind: 'path', d: pieceD(crashBack), cls: crashBack.cls });

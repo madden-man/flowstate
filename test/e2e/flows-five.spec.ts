@@ -26,7 +26,7 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   await threshold(page);
   const body = page.locator('.fs-flowpage');
   await expect(body).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.fs-cycle[data-diagram="fork"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
   await expect(page.getByRole('button', { name: "I'm worthless" })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.fs-cycle text.hand')).toHaveText(['hide', 'hit back', 'I can fix it']);
   await expect(body.locator('.fl-said').first()).toContainText('has a door in it');
@@ -81,7 +81,7 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   // the link row leads back to the step it left, which reads
   await page.locator('.fl-from a.fs-link').click();
   await expect(page).toHaveURL(/#\/flow\/shame\/3$/);
-  await expect(page.locator('.fs-cycle[data-diagram="fork"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
 });
 
 test('3 a.m. in Still: the clock with no digit on the page; the list of nine scrolls to "+ flow"', async ({ page }) => {
@@ -89,7 +89,7 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   await page.locator('.fs-flowpage').waitFor();
   await threshold(page);
   const body = page.locator('.fs-flowpage');
-  await expect(page.locator('.fs-cycle[data-diagram="clock"]')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="clock"]')).toBeVisible();
   await expect(page.locator('.fs-flowpage .fl-usual.fs-notstill')).toContainText('twenty minutes');
   await expect(page.locator('.fs-cycle text.num')).toHaveText(['12', '7']);
   // the quiet clock (F4): on a live episode the middle reads in words in Day too, never minutes in digits
@@ -111,12 +111,12 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   await expect.poll(() => body.evaluate(el => (el as HTMLElement).innerText)).not.toMatch(/\d/);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
-  // the list: Right now, the nine in order, "+ flow" last, reached by scrolling the page like Pages
+  // the list: Right now, Meditate (S1), the nine in order, "+ flow" last, reached by scrolling the page like Pages
   await page.goto('/#/flow');
   const list = page.locator('.fs-flows');
-  await expect(list.locator('a.fl-flow:not(.fl-now) .fs-list-line')).toHaveText(
+  await expect(list.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line')).toHaveText(
     ['Panic', 'Depress', 'Energize', 'Fight', 'What if', 'Replay', '3 a.m.', 'Shutdown', 'Shame']);
-  await expect(list.locator('a.fl-flow:not(.fl-now) .fs-list-meta').nth(8)).toHaveText('The fork');
+  await expect(list.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-meta').nth(8)).toHaveText('The fork');
   // each row is one name and one line of print, never wrapped
   for (const h of await list.locator('a.fl-flow').evaluateAll(rs => rs.map(r => r.getBoundingClientRect().height))) expect(h).toBeLessThanOrEqual(57);
   expect(await list.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);

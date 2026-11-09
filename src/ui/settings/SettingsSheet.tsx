@@ -178,6 +178,8 @@ function SettingsBody() {
       <Toggle label="Sounds" on={s.sounds} set={v => void saveSettings({ sounds: v })} />
       {/* F2: the breath tone while a finger holds a flow's ring; it follows Sounds (rule 21), so it rests under it */}
       <Toggle label="Breath tone" on={s.sounds && !!s.breathTone} off={!s.sounds} set={v => void saveSettings({ breathTone: v })} />
+      {/* Meditate (S1): a sit is media, so its sound plays with the ringer off; not behind Sounds (the Quiet chip is its switch) */}
+      <Toggle label="Sit sounds with the ringer off" on={s.sitThroughSilent ?? true} set={v => void saveSettings({ sitThroughSilent: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
       <MusicRows />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>

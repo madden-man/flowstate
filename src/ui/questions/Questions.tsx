@@ -34,7 +34,7 @@ export function Questions() {
   const open = (list ?? []).filter(p => p.state === 'open');
   const answered = (list ?? []).filter(p => p.state !== 'open');
   return (
-    <Page label="Questions">
+    <Page label="Questions" drawn={list !== null}>
       <Ruled>
         <div class="fs-qlist">
           {open.map(p => (
