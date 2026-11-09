@@ -35,7 +35,35 @@ export interface Shape {
   mid?: Pt;
   /** F4/F6: the same shape with his outcomes drawn on it (the curve's stamps); a shape without it draws none itself. */
   withStamps?(outcomes: Stamp[]): Shape;
+  /** M5: the shape's own water (the stream, ./stream.ts), for a flow of n steps; a shape without it runs plain. */
+  stream?(n: number): Water;
 }
+
+/** A side road the stream runs along beside the walk (the crash, "say it", "one small thing"): drawn pieces, in
+ *  viewBox units, from where it leaves the walk. Its water has its own pace and a few motes of its own. */
+export type SideRoad = {
+  pieces: { from: Pt; c1?: Pt; c2?: Pt; to: Pt }[];
+  pace: number;
+  /** How many motes run it (the whole layer stays under about ninety). */
+  motes: number;
+  /** How bright, against the main stream's 1. */
+  alpha: number;
+  /** It leads away and its water fades out on the way (the fork's hide and hit back), instead of reaching the end. */
+  fades?: boolean;
+};
+
+/** What a shape may add to the stream (PLAN-MOTION.md M5 item 3). All optional; none is a plain stream. */
+export type Water = {
+  /** It moves in ticks, a second apart (the clock). */
+  ticks?: boolean;
+  /** Slow water hangs this far below the line (the valley), in drawing units. */
+  hang?: number;
+  /** Fast water lifts this far off the line (the arc's crest), in drawing units. */
+  lift?: number;
+  /** Stretches of the walk, as [from, to] in t, where the water runs thin (the ring's dotted way back). */
+  thin?: [number, number][];
+  sides?: SideRoad[];
+};
 
 /** An outcome stamped on a drawing (episodes.prediction): a check for "didn't happen", a cross for "happened". */
 export type Stamp = 'didnt' | 'happened';

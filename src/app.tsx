@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -12,6 +12,7 @@ import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { FlowPage } from './ui/flow/FlowPage';
 import { Now } from './ui/flow/Now';
+import { Meditate, sitting } from './ui/flow/Meditate';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
@@ -103,7 +104,8 @@ function Frame() {
   // A tab change (or any route change) puts the sheet away, and the rail of earlier pages back up (V6).
   useEffect(() => { openSheet.value = null; earlierOpen.value = false; }, [path]);
   return (
-    <div class="fs-app">
+    // a sit on the Meditate page (PLAN-MEDITATE.md, S1): the header, the tabs and the lamp leave on one --t-light
+    <div class="fs-app" data-sitting={sitting.value ? 'true' : undefined}>
       <main class="fs-main">
         {/* an import bumps dataVersion, and every open page reads again */}
         <Router key={dataVersion.value}>
@@ -119,8 +121,10 @@ function Frame() {
           <Route path="/be" component={Be} />
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
-          {/* before /flow/:id, so no flow can ever be called "now" */}
+          {/* before /flow/:id, so no flow can ever be called "now" or "meditate" */}
           <Route path="/flow/now" component={Now} />
+          <Route path="/flow/meditate" component={Meditate} />
+          <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
           <Route path="/flow/:id" component={FlowPage} />
           <Route path="/flow/:id/:step" component={FlowPage} />
           <Route path="/voices" component={Voices} />

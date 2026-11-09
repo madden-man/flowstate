@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Check } from '../parts/Check';
-import { settle } from '../still';
+import { settleFromMoon } from '../still';
 import { tapMusic } from '../music/state';
 import { clockTime } from '../date';
 import { PersonRow, PersonSheet } from './Person';
@@ -102,7 +102,7 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
 
   const run = async (t: Tip) => {
     switch (t.helper) {
-      case 'still': settle(); break;
+      case 'still': settleFromMoon(); break;
       case 'music': tapMusic(); break;
       case 'five': setFiveOpen(true); break;
       case 'prediction': setPredictOpen(true); break;

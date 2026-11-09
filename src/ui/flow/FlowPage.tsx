@@ -36,6 +36,8 @@ import { useBreath, useNow } from './breath';
 import { Ghosts } from './Ghosts';
 import { AskNote, NoteAtStep, RestCarried, useAsk } from './Notes';
 import { StampMarks } from './Stamps';
+import { Stream } from '../parts/Stream';
+import { pacesOf } from '../../model/pace';
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -56,6 +58,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   const [asking, unask] = useAsk(data && data !== 'none' ? data.flow : undefined, data && data !== 'none' ? data.last : undefined,
     !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
   const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
+  // M5: the last landing on a detent, for the stream's ring (a new seq each time)
+  const [landing, setLanding] = useState<{ k: number; seq: number } | null>(null);
   const own = marks.length > 0;
 
   useEffect(() => {
@@ -124,9 +128,11 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
         <div class="fl-drawing" style={midStyle(flow.diagram)} data-own={own ? '' : undefined}>
           {wash > 0 && <Wash left={wash} />}
           {!doorOnly && !flow.locked && <Ghosts flowId={flow.id} diagram={flow.diagram} n={n} version={version} />}
+          {/* M5: the stream, behind parts/Cycle and above the ghost rings; through the door too */}
+          <Stream diagram={flow.diagram} paces={pacesOf(flow)} at={at} landing={landing} since={breath.held ? breath.since : null} />
           {!doorOnly && !flow.locked && <StampMarks flowId={flow.id} diagram={flow.diagram} n={n} version={version} onMarks={setMarks} />}
           <Cycle diagram={flow.diagram} stamps={marks} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
-            disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => void move(v, to)}
+            disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => { setLanding(l => ({ k: to, seq: (l?.seq ?? 0) + 1 })); void move(v, to); }}
             halo={ringy && (onStep || breath.held) ? breath.since ?? 0 : false} held={breath.held} />
           <Clock from={onStep ? clockFrom(flow, live) : undefined} now={now} under={shown?.usualShort} holdable={ringy} breath={breath}
             awake={onStep && !!shown?.peak && !flow.quietClock} quiet={!!flow.quietClock} />

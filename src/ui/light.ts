@@ -3,6 +3,8 @@
 // change the light in one --t-light breath, the token's own duration, so the page, chips, rules and
 // sheets turn together (V5, 2026-11-08: the 40-minute stretch left them in two lights at once). Still is
 // a light the user chooses, by the moon (package 5; the pull shows earlier pages since V6); this file holds the state.
+// The moon's way in and the ring's way out open and close the dark as a circle (still.ts, M4); every other change of
+// light, the sky's and the Settings pin's, stays the one breath.
 import { signal, computed, effect } from '@preact/signals';
 import type { LightPin, Place } from '../db/schema';
 import { settings } from './settings';

@@ -111,12 +111,12 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   await expect.poll(() => body.evaluate(el => (el as HTMLElement).innerText)).not.toMatch(/\d/);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
-  // the list: Right now, the nine in order, "+ flow" last, reached by scrolling the page like Pages
+  // the list: Right now, Meditate (S1), the nine in order, "+ flow" last, reached by scrolling the page like Pages
   await page.goto('/#/flow');
   const list = page.locator('.fs-flows');
-  await expect(list.locator('a.fl-flow:not(.fl-now) .fs-list-line')).toHaveText(
+  await expect(list.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line')).toHaveText(
     ['Panic', 'Depress', 'Energize', 'Fight', 'What if', 'Replay', '3 a.m.', 'Shutdown', 'Shame']);
-  await expect(list.locator('a.fl-flow:not(.fl-now) .fs-list-meta').nth(8)).toHaveText('The fork');
+  await expect(list.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-meta').nth(8)).toHaveText('The fork');
   // each row is one name and one line of print, never wrapped
   for (const h of await list.locator('a.fl-flow').evaluateAll(rs => rs.map(r => r.getBoundingClientRect().height))) expect(h).toBeLessThanOrEqual(57);
   expect(await list.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);

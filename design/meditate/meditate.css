@@ -1,0 +1,14 @@
+/* Meditate (PLAN-MEDITATE.md): the page, the circle, the chips and the sitting state are the app's own since S1, in
+   parts.css (copied here). What is left is only the mocks': S2's minutes, "last sat" and the page after a sit, drawn in
+   steps 6 to 8 until S2 moves them into parts.css. Tokens only. */
+.md-quiet .fl-last, .md-after .fl-last { text-align: center; }
+.md-lengths::before { content: "Minutes"; align-self: center; margin-right: var(--s1); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; color: var(--print); }
+.md-after { position: relative; display: none; min-height: calc(var(--lh-ink) * 5); flex-direction: column; justify-content: flex-end;
+  transition: opacity var(--t-light) var(--ease); }
+.md-after .fs-list-meta { color: var(--print); text-align: left; }
+/* after: the page is back, with what the sit was and the way to the journal */
+.md-page[data-state="after"] .md-quiet { display: none; }
+.md-page[data-state="after"] .md-after { display: flex; }
+/* the mock of a sit with an end (step 6, and step 2 once minutes are chosen) shows the ink stroke; in the app S2 sets data-ending */
+.md-page[data-minutes]:not([data-minutes="0"]) .md-circle .sat { display: inline; }
