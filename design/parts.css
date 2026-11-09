@@ -1098,7 +1098,8 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 .fs-iris {
   position: fixed; z-index: 31; left: var(--iris-x); top: var(--iris-y); width: var(--iris-from); height: var(--iris-from);
   translate: -50% -50%; box-sizing: border-box; border: 1.5px solid var(--print); border-radius: 50%; pointer-events: none;
-  animation: fs-iris var(--t-light) var(--ease) forwards;
+  /* at a steady pace, like Still's circle (M4): --ease would have it at the screen's edge in the first fifth */
+  animation: fs-iris var(--t-light) linear forwards;
 }
 @keyframes fs-unveil { to { opacity: 0; } }
 @keyframes fs-iris { to { width: var(--iris-to); height: var(--iris-to); opacity: 0; } }
