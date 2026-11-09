@@ -16,7 +16,7 @@ export function doorPasses(path: string, doorOn: boolean): boolean {
   const p = path.split('?')[0].replace(/\/+$/, '');
   if (p === '/flow/now') return true;
   const m = /^\/flow\/([^/]+)\/(\d+)$/.exec(p);
-  return !!m && m[1] !== 'now' && Number(m[2]) >= 1;
+  return !!m && m[1] !== 'now' && m[1] !== 'meditate' && Number(m[2]) >= 1;
 }
 
 const blank = (st: Step): Step => ({ id: st.id, name: '', tips: [], spanMin: st.spanMin, peak: st.peak });
