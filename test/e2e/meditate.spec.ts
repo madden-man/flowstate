@@ -71,6 +71,16 @@ test('meditate: the row, a sit and back, the sound kept offline', async ({ page 
   await page.getByRole('button', { name: 'Ocean' }).click();
   await expect(page.getByRole('button', { name: 'Ocean' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Rain' })).toHaveAttribute('aria-pressed', 'false');
+  // written to the settings row before the reload
+  await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((resolve, reject) => {
+    const open = indexedDB.open('flowstate');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const r = open.result.transaction('settings').objectStore('settings').get('app');
+      r.onsuccess = () => { open.result.close(); resolve(r.result?.sitSound); };
+      r.onerror = () => reject(r.error);
+    };
+  }))).toBe('ocean');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
   const t = page.locator('[data-threshold]');
