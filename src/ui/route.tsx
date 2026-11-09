@@ -39,6 +39,9 @@ export function HashLocation({ children }: { children: ComponentChildren }) {
     };
     addEventListener('popstate', pop);
     addEventListener('hashchange', on);
+    // the first render read the hash, but this listener only starts after paint: a hash changed in between (a tap or a
+    // link while the app comes up) fired no event we heard. Catch up to it, without a turn (the app is just up).
+    if (readHash() !== shown.current) setUrl(readHash());
     return () => { removeEventListener('popstate', pop); removeEventListener('hashchange', on); };
   }, []);
   const value = useMemo(() => {
