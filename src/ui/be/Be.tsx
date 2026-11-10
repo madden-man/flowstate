@@ -4,7 +4,9 @@
 // secondary word at the top; "Resting" reveals the paradoxes set aside. Long press a row to lift it and drag it
 // to a new place (V13, as the Voices screen does). #/be/:id opens that one and scrolls
 // to it once it is laid out. Under an active paradox's spread sit its checks due today and its lean (F0, moved
-// from Flow; see Due.tsx), in Day and Night.
+// from Flow; see Due.tsx), in Day and Night. PLAN-SELF.md S3: the creed opens the page above the list (Who.tsx),
+// a tap on a line opening that spread and bringing its row into view as the deep link does; between a spread and
+// its checks sit its "Not me" lines (NotMe.tsx), active or resting, put away in Still.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { Page } from '../parts/Page';
@@ -20,6 +22,8 @@ import { beData, beVersion, openGoal, openParadox, changed } from './state';
 import { GoalSheet } from './GoalSheet';
 import { ParadoxSheet } from './ParadoxSheet';
 import { Due } from './Due';
+import { Who } from './Who';
+import { NotMe } from './NotMe';
 import { moves, tokenMs } from '../turns';
 
 /** A spread under its row grows down from it and folds back up (M2, PLAN-MOTION.md; DESIGN.md rule 11): it is laid
@@ -95,7 +99,9 @@ export function Be({ id }: { id?: string }) {
   };
   const folded = (pid: string) => setClosing(prev => { if (!prev.has(pid)) return prev; const n = new Set(prev); n.delete(pid); return n; });
   const scroller = useRef<HTMLDivElement>(null);
-  const scrolledTo = useRef<string | null>(null);
+  // the row to bring into view once laid out: the deep link's, or a creed line's (n makes each tap a fresh seek)
+  const [seek, setSeek] = useState<{ id: string; n: number } | null>(id ? { id, n: 0 } : null);
+  const sought = useRef<{ id: string; n: number } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -115,21 +121,31 @@ export function Be({ id }: { id?: string }) {
   }, [day, dueVersion, beVersion.value, dataVersion.value]);
 
   // the deep link opens its paradox
-  useEffect(() => { if (id) setOpen(prev => (prev.has(id) ? prev : new Set([...prev, id]))); }, [id]);
-
-  // the deep link: wait until the card has been measured and laid out, then bring it into view
   useEffect(() => {
-    if (!id || !list || scrolledTo.current === id) return;
+    if (!id) return;
+    setOpen(prev => (prev.has(id) ? prev : new Set([...prev, id])));
+    setSeek(prev => (prev?.id === id ? prev : { id, n: (prev?.n ?? 0) + 1 }));
+  }, [id]);
+
+  // a creed line (S3): its spread opens, if it is shut, and its row comes into view
+  const toLine = (pid: string) => {
+    if (!open.has(pid)) flip(pid);
+    setSeek(prev => ({ id: pid, n: (prev?.n ?? 0) + 1 }));
+  };
+
+  // the deep link or a creed line: wait until the card has been measured and laid out, then bring it into view
+  useEffect(() => {
+    if (!seek || !list || sought.current === seek) return;
     let tries = 0, raf = 0;
     const go = () => {
-      const card = document.getElementById(`be-${id}`);
+      const card = document.getElementById(`be-${seek.id}`);
       const laid = card?.querySelector('[data-laid="true"]');
-      if (card && laid) { card.scrollIntoView({ block: 'start' }); scrolledTo.current = id; return; }
+      if (card && laid) { card.scrollIntoView({ block: 'start' }); sought.current = seek; return; }
       if (tries++ < 60) raf = requestAnimationFrame(go);
     };
     raf = requestAnimationFrame(go);
     return () => cancelAnimationFrame(raf);
-  }, [id, list]);
+  }, [seek, list]);
 
   // ---- the drag (V13): long press lifts a row; it rides under the finger and drops into its new place ----
   const [order, setOrder] = useState<string[] | null>(null);
@@ -218,6 +234,7 @@ export function Be({ id }: { id?: string }) {
           <Fold grow={grown.current.has(pid)} closing={folding} onFolded={() => folded(pid)}>
             <div id={`spread-${pid}`}>
               {spread(s)}
+              <NotMe paradox={s.paradox} onWritten={changed} />
               {due.has(pid) && <Due key={`${pid} ${day}`} group={due.get(pid)!} now={t} onWritten={() => setDueVersion(v => v + 1)} />}
             </div>
           </Fold>
@@ -250,6 +267,7 @@ export function Be({ id }: { id?: string }) {
         <button type="button" class="fs-word" onClick={() => openParadox({})}>New paradox</button>
       </div>
       <div ref={scroller} class="fs-sheetof fs-be" {...press}>
+        <Who onLine={toLine} />
         {list && !list.length && <p class="fs-quiet">Fill both.</p>}
         {active.map(card)}
         {resting && asleep.map(card)}

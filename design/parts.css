@@ -348,6 +348,28 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 /* V13: a row lifted by a long press rides under the finger, as a voice does on the Voices screen */
 .fs-be-row.lift { position: relative; z-index: 2; background: var(--page); box-shadow: var(--shadow-tile); }
 .fs-be-row .fs-dichotomy { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* S3 (PLAN-SELF.md 3.3): the creed above the list, a line a held paradox in the title's serif on the rules; a line
+   may wrap and the block ends on a blank rule (rule 5). His own line is ink; the three words, unwritten, print grey */
+.fs-who { padding: var(--s1) 0 var(--lh-ink); border-bottom: 1px solid var(--seam); }
+.fs-who-line, .fs-notme-line {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; display: block; width: 100%; cursor: pointer;
+  text-align: left; font-family: var(--serif); line-height: var(--lh-ink); min-height: var(--lh-ink); overflow-wrap: anywhere;
+  -webkit-tap-highlight-color: transparent;
+}
+.fs-who-line { font-size: var(--fs-title); color: var(--print); }
+.fs-who-line.own { color: var(--ink); }
+/* S3 (3.4.2): "Not me" under a spread, its lines in ink on the rules, a print label over them, "+ Not me" on one rule */
+.fs-notme { padding: var(--s1) 0 0; }
+.fs-notme:last-child { padding-bottom: var(--lh-ink); }
+.fs-notme-head { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+.fs-notme-line { font-size: var(--fs-ink); color: var(--ink); }
+.fs-notme-line:disabled { cursor: default; }
+textarea.fs-notme-line { cursor: text; }
+.fs-notme-line::placeholder { color: var(--print); font-style: italic; }
+.fs-notme-add { position: relative; display: flex; margin-left: calc(var(--s1) * -1); min-height: var(--lh-ink); line-height: var(--lh-ink); }
+.fs-notme-add::before { content: ""; position: absolute; inset: calc((var(--lh-ink) - var(--hit)) / 2) 0; } /* a 44px target on one rule line */
+.fs-who-line:focus-visible, .fs-notme-line:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+textarea.fs-notme-line:focus-visible { outline: none; }
 .fs-dichotomy {
   appearance: none; border: 0; background: transparent; margin: 0; padding: 0; width: 100%; cursor: pointer; color: var(--ink);
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: var(--s2);
