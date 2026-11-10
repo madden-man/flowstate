@@ -7,8 +7,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, h } from 'preact';
 import { act } from 'preact/test-utils';
 import { freshDB } from '../db/helpers';
-import { store } from '../../src/db/fields';
-import { seedParadoxes } from '../../src/db/seed';
+import { store, setKey, lock, unlock } from '../../src/db/fields';
+import { deriveKey, randomSalt } from '../../src/db/crypto';
+import { seedParadoxes, defaultSettings } from '../../src/db/seed';
 import type { Paradox } from '../../src/db/schema';
 import { HELD, spreads } from '../../src/model/paradox';
 
@@ -18,6 +19,7 @@ const { ParadoxSheet } = await import('../../src/ui/be/ParadoxSheet');
 const { GoalSheet } = await import('../../src/ui/be/GoalSheet');
 const { beData, openParadox, openGoal, closeBeSheet } = await import('../../src/ui/be/state');
 const { openSheet } = await import('../../src/ui/sheets');
+const { NotMe } = await import('../../src/ui/be/NotMe');
 
 let host: HTMLElement;
 const settle = async (n = 8) => { for (let k = 0; k < n; k++) await act(async () => { await new Promise(r => setTimeout(r, 0)); }); };
@@ -123,5 +125,70 @@ describe('Delete, two taps', () => {
     const balance = (await store.get('items', 'it-breathing-room'))!;
     expect(balance.pairId).toBeUndefined();
     expect(openSheet.value).toBe(null);
+  });
+
+  async function relocked() {
+    await store.put('settings', defaultSettings(1));
+    const salt = randomSalt();
+    const key = await deriveKey('1', salt, 1000);
+    await setKey(key, { salt, iterations: 1000 });
+    lock();
+    return key;
+  }
+
+  it('a paradox delete refused (locked after a relock) leaves the sheet open, and a later close still saves its edits', async () => {
+    await load();
+    openParadox({ paradoxId: 'px-thoughtful-reactive' });
+    await mount();
+    await type($<HTMLTextAreaElement>('[aria-label="Both, in a sentence"]')!, 'I think, then I answer');
+    const key = await relocked();
+    await click(byText('.fs-delete', 'Delete')!);
+    await click($('.fs-delete')!); // refused: LockedError is caught, nothing unhandled
+    expect(openSheet.value).toBe('paradox');
+    expect($('.fs-delete')!.classList.contains('armed')).toBe(false);
+    expect(await unlock(key)).toBe(true);
+    expect(await store.get('paradoxes', 'px-thoughtful-reactive')).toBeTruthy();
+    await act(() => { closeBeSheet(); });
+    await settle();
+    expect((await store.get('paradoxes', 'px-thoughtful-reactive'))!.creed).toBe('I think, then I answer');
+  });
+
+  it('a goal delete refused leaves the sheet open, and a later close still saves its edits', async () => {
+    await load();
+    openGoal({ paradoxId: 'px-selfless-selfish', goalId: 'it-volunteer' });
+    await mount();
+    const field = $<HTMLTextAreaElement>('[aria-label="selfless goal"]')!;
+    await type(field, 'Volunteer, Saturdays');
+    const key = await relocked();
+    await click(byText('.fs-delete', 'Delete')!);
+    await click($('.fs-delete')!);
+    expect(openSheet.value).toBe('goal');
+    expect(await unlock(key)).toBe(true);
+    expect(await store.get('items', 'it-volunteer')).toBeTruthy();
+    await act(() => { closeBeSheet(); });
+    await settle();
+    expect((await store.get('items', 'it-volunteer'))!.text).toBe('Volunteer, Saturdays');
+  });
+});
+
+describe('Not me, refused', () => {
+  it('a line added while locked after a relock stays in its field, and nothing is unhandled', async () => {
+    await load();
+    const p = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    await store.put('settings', defaultSettings(1));
+    const salt = randomSalt();
+    await setKey(await deriveKey('1', salt, 1000), { salt, iterations: 1000 });
+    const open = (await store.get('paradoxes', p.id))!;
+    lock(); // the key drops with the spread still open on its opened copy
+    Element.prototype.scrollIntoView ??= () => {}; // jsdom draws nothing to scroll
+    await act(() => { render(h(NotMe, { paradox: open, onWritten: () => {} }), host); });
+    await click(byText('button', '+ Not me')!);
+    const field = $<HTMLTextAreaElement>('textarea')!;
+    await type(field, "I don't keep score.");
+    await act(() => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await settle();
+    expect($<HTMLTextAreaElement>('textarea')?.value).toBe("I don't keep score.");
+    expect($$('button.fs-notme-line')).toHaveLength(0);
+    expect($('.fs-notme')!.dataset.saved).toBe('true');
   });
 });

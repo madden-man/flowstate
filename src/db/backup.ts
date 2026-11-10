@@ -3,9 +3,10 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, byParadoxOrder, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
+import { HELD } from '../model/paradox';
 
 export const BACKUP_APP = 'flowstate';
 
@@ -138,7 +139,10 @@ export type ImportResult = { added: number; updated: number; kept: number };
 /**
  * replace: the database becomes the file.
  * merge: keyed on id; a row in the file wins only when it is newer (stamp). Settings stay this phone's,
- * except where this phone has none.
+ * except where this phone has none. A paradox or goal on this phone's deleted list (PLAN-SELF.md section 4) is never
+ * brought back, nor a deleted paradox's goals and leans, and links in the file to a deleted one are dropped. The
+ * file's own list is not merged: merge never deletes this phone's rows, so the list only guards against older files.
+ * Either way, if more than HELD paradoxes come out active, the last by the list's order are set resting.
  */
 export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
   // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
@@ -149,7 +153,9 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     if (!(await checkVerifier(fileKey, fl.verifier))) throw new BackupError('Not that one');
   }
   // This phone's lock stays this phone's: a file's lock settings never replace the ones its rows are sealed with now.
-  const myLock = (await database.settings.get('app'))?.lock;
+  const mine = await database.settings.get('app');
+  const myLock = mine?.lock;
+  const gone = new Set(mode === 'merge' ? mine?.deleted ?? [] : []);
   const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
   for (const t of TABLES) {
     const rows: Record<string, unknown>[] = [];
@@ -171,7 +177,8 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       const tb = database.table(t);
       if (mode === 'replace') {
         // A file without a settings row keeps this phone's, so the seed never runs again over imported pages.
-        if (t === 'settings' && !incoming[t].length) { result.kept++; continue; }
+        // Its deleted list goes all the same: the database becomes the file, and the file's rows come back.
+        if (t === 'settings' && !incoming[t].length) { result.kept++; await tb.update('app', { deleted: undefined }); continue; }
         await tb.clear();
         await tb.bulkAdd(incoming[t]);
         result.added += incoming[t].length;
@@ -179,7 +186,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       }
       const existing = new Map((await tb.toArray()).map(r => [pk(t, r), r as Record<string, unknown>]));
       const write: Record<string, unknown>[] = [];
-      for (const row of incoming[t]) {
+      for (const row of gone.size ? revived(t, incoming[t], gone) : incoming[t]) {
         const mine = existing.get(pk(t, row));
         if (!mine) { write.push(row); result.added++; }
         else if (t !== 'settings' && stamp(row) > stamp(mine)) { write.push(row); result.updated++; }
@@ -187,8 +194,32 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       }
       if (write.length) await tb.bulkPut(write);
     }
+    // five are held (PLAN-SELF.md section 3.4), whatever the file says; status and updatedAt are clear fields
+    const active = (await database.paradoxes.toArray()).filter(p => p.status === 'active').sort(byParadoxOrder);
+    const now = Date.now();
+    for (const p of active.slice(HELD)) await database.paradoxes.update(p.id, { status: 'resting', updatedAt: now });
   });
   return result;
+}
+
+/** The file's rows less what this phone deleted (merge only): a deleted paradox, its goals and its leans; a deleted
+ *  goal; and the links to them (a goal's pairId and nextTo, a page's paradoxIds), all clear fields of the stored form. */
+function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
+  const out = (id: unknown) => typeof id === 'string' && gone.has(id);
+  if (t === 'paradoxes') return rows.filter(r => !out(r.id));
+  if (t === 'leans') return rows.filter(r => !out(r.paradoxId));
+  if (t === 'items') return rows.filter(r => !out(r.id) && !out(r.paradoxId)).map(r => {
+    if (!out(r.pairId) && !out(r.nextTo)) return r;
+    const next = { ...r };
+    if (out(next.pairId)) delete next.pairId;
+    if (out(next.nextTo)) delete next.nextTo;
+    return next;
+  });
+  if (t === 'pages') return rows.map(r => {
+    const ids = r.paradoxIds as string[] | undefined;
+    return ids?.some(out) ? { ...r, paradoxIds: ids.filter(x => !out(x)) } : r;
+  });
+  return rows;
 }
 
 /** Hands the file to the share sheet (Files, iCloud Drive, AirDrop); falls back to a download. */

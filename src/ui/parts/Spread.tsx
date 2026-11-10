@@ -208,8 +208,8 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </svg>
         )}
 
-        {layout && <p ref={ref('pole:a')} class="fs-pole a"><button type="button" class="fs-poleword" onClick={() => onEdit('poleA')}><PoleWord pole={paradox.poleA} /></button></p>}
-        {layout && middle && <span ref={ref('mid')} class="fs-mid" style={{ top: `${layout.tops.mid ?? 0}px` }}><button type="button" class="fs-poleword" onClick={() => onEdit('middle')}>{middle}</button></span>}
+        {layout && <p ref={ref('pole:a')} class="fs-pole a"><button type="button" class="fs-poleword" aria-label={`Edit ${paradox.poleA.value}`} onClick={() => onEdit('poleA')}><PoleWord pole={paradox.poleA} /></button></p>}
+        {layout && middle && <span ref={ref('mid')} class="fs-mid" style={{ top: `${layout.tops.mid ?? 0}px` }}><button type="button" class="fs-poleword" aria-label={`Edit ${middle}`} onClick={() => onEdit('middle')}>{middle}</button></span>}
 
         {layout && live.map(i => (
           <button key={i.id} ref={ref(i.id)} type="button"
@@ -230,14 +230,14 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </button>
         ))}
 
-        {layout && <p ref={ref('pole:b')} class="fs-pole b" style={{ top: `${H - layout.poleB}px` }}><button type="button" class="fs-poleword" onClick={() => onEdit('poleB')}><PoleWord pole={paradox.poleB} /></button></p>}
+        {layout && <p ref={ref('pole:b')} class="fs-pole b" style={{ top: `${H - layout.poleB}px` }}><button type="button" class="fs-poleword" aria-label={`Edit ${paradox.poleB.value}`} onClick={() => onEdit('poleB')}><PoleWord pole={paradox.poleB} /></button></p>}
 
         <div class="fs-spread-words">
           {paradox.status !== 'active' && <span class="fs-state fs-print">{paradox.status}</span>}
           <button type="button" class="fs-word" onClick={() => onEdit()}>Edit</button>
         </div>
       </div>
-      <button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button>
+      <div class="fs-addgoal-foot"><button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button></div>
     </article>
   );
 }

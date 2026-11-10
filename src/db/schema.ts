@@ -44,6 +44,10 @@ export type Settings = {
    *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go); 'fixations' is
    *  seedFixationsOnce (PLAN-ENERGIZE.md section 5, X1), the first three and the deck written once. */
   cleaned?: string[];
+  /** PLAN-SELF.md section 4: the ids of paradoxes and goals deleted on this phone, so a merge import of an older file
+   *  never brings one back (nor a deleted paradox's goals and leans). Ids only, clear like every id; they only grow
+   *  (fields.ts keepLock), and a replace import takes the file's list. */
+  deleted?: string[];
   /** ticked (V8): the named playlists (music/poems.ts NAMED_IDS) already ticked once, so each is ticked only once. */
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */

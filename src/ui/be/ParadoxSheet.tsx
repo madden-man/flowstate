@@ -57,6 +57,8 @@ function ParadoxForm({ open }: { open: boolean }) {
   const [arming, setArming] = useState(false);
   useEffect(() => { if (!arming) return; const t = setTimeout(() => setArming(false), 4000); return () => clearTimeout(t); }, [arming]);
   const done = useRef(false);
+  const isOpen = useRef(open);
+  isOpen.current = open;
   const fields = {
     poleA: useRef<HTMLInputElement>(null), poleB: useRef<HTMLInputElement>(null),
     word: useRef<HTMLInputElement>(null), scene: useRef<HTMLTextAreaElement>(null),
@@ -97,8 +99,15 @@ function ParadoxForm({ open }: { open: boolean }) {
   const remove = async () => {
     if (!existing) return;
     if (!arming) { setArming(true); return; }
-    done.current = true;
-    await deleteParadox(existing.id);
+    done.current = true; // a close while it goes saves nothing over it
+    try { await deleteParadox(existing.id); }
+    catch {
+      // nothing went (locked after a relock, say): the sheet keeps its edits, and a close saves them as before
+      done.current = false;
+      setArming(false);
+      if (!isOpen.current && ok && dirty) void save().catch(() => { done.current = false; });
+      return;
+    }
     changed();
     closeBeSheet();
   };

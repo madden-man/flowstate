@@ -107,3 +107,34 @@ test('Not me: add, reload, empty, three is all, and Still puts it away', async (
   await expect(page.getByRole('region', { name: 'Who' }).locator('.fs-who-line')).toHaveCount(2);
   await expect(page.getByRole('region', { name: 'Who' })).toBeVisible();
 });
+
+test('Not me: the line just added never leaves the page while it saves, and saved means it is stored', async ({ page }) => {
+  await page.goto('/#/be/px-selfless-selfish');
+  await enter(page);
+  const notMe = page.locator('#be-px-selfless-selfish').getByRole('region', { name: 'Not me, selfless and selfish' });
+  for (const [n, text] of [[1, "I don't keep score."], [2, "I don't vanish."]] as const) {
+    await notMe.getByRole('button', { name: '+ Not me' }).click();
+    const field = notMe.getByRole('textbox', { name: 'Not me' });
+    await field.fill(text);
+    // every change to the block from the Enter on: how many lines show, and whether it says saved
+    await notMe.evaluate((el, want) => {
+      const w = window as unknown as { seen: { lines: number; saved: string | null; has: boolean }[] };
+      w.seen = [];
+      const look = () => w.seen.push({
+        lines: el.querySelectorAll('button.fs-notme-line').length,
+        saved: el.getAttribute('data-saved'),
+        has: [...el.querySelectorAll('button.fs-notme-line')].some(b => b.textContent === want),
+      });
+      new MutationObserver(look).observe(el, { subtree: true, childList: true, characterData: true, attributes: true });
+    }, text);
+    await field.press('Enter');
+    await expect(notMe).toHaveAttribute('data-saved', 'true');
+    await expect(notMe.locator('button.fs-notme-line')).toHaveCount(n);
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const seen = await page.evaluate(() => (window as unknown as { seen: { lines: number; saved: string | null; has: boolean }[] }).seen);
+    const from = seen.findIndex(s => s.has);
+    expect(from).toBeGreaterThanOrEqual(0);
+    for (const s of seen.slice(from)) expect(s).toMatchObject({ lines: n, has: true });
+    for (const s of seen) if (s.saved === 'true') expect(s.has).toBe(true);
+  }
+});

@@ -3,8 +3,9 @@
 // maths that turns a goal's weight into its height between the poles, and the antonym lookup. Every read and write goes through the fields layer.
 // Lean detents and the lean line over time are package 4's. PLAN-SELF.md section 4 adds the creed, the five held, the
 // refusals ("Not me") and delete, entire: a deleted paradox or goal is gone, kept nowhere.
-import { byParadoxOrder, type Cadence, type Item, type Middle, type Paradox, type Pole, type Refusal } from '../db/schema';
-import { store, type Read } from '../db/fields';
+import { byParadoxOrder, type Cadence, type Item, type Middle, type Paradox, type Pole, type Refusal, type Settings } from '../db/schema';
+import type { Table } from 'dexie';
+import { store, type Read, type Unit } from '../db/fields';
 import { antonymsOf } from '../db/seed';
 
 export type Status = Paradox['status'];
@@ -132,15 +133,25 @@ export async function saveParadox(p: Paradox, d: ParadoxDraft, status: Status = 
 }
 
 /** Deletes a paradox entirely (PLAN-SELF.md section 3.2): the row with its creed and refusals, its goals, its leans,
- *  and any page's link to it, in one transaction. Kept nowhere; resting and retired are the reversible ways down. */
+ *  and any page's link to it, in one unit of the write queue (store.tx), so a lean, a goal or a page written just
+ *  before is read here and goes too, or keeps its words. Kept nowhere; its id and its goals' ids go on the deleted
+ *  list, so a merge import never brings them back. Resting and retired are the reversible ways down. */
 export async function deleteParadox(id: string): Promise<void> {
-  const [items, leans, pages] = await Promise.all([
-    store.query('items', t => t.where('paradoxId').equals(id)),
-    store.query('leans', t => t.where('[paradoxId+at]').between([id, -Infinity], [id, Infinity], true, true)),
-    store.query('pages', t => t.where('paradoxIds').equals(id)),
-  ]);
-  const scrubbed = pages.map(pg => strip({ ...pg, paradoxIds: pg.paradoxIds.filter(x => x !== id) }));
-  await store.many({ pages: scrubbed }, { paradoxes: [id], items: items.map(i => i.id), leans: leans.map(l => l.id) });
+  await store.tx(['paradoxes', 'items', 'leans', 'pages', 'settings'], async tb => {
+    const goals = await tb('items').where('paradoxId').equals(id).primaryKeys();
+    await tb('items').where('paradoxId').equals(id).delete();
+    await tb('leans').where('[paradoxId+at]').between([id, -Infinity], [id, Infinity], true, true).delete();
+    await tb('pages').where('paradoxIds').equals(id).modify(pg => { pg.paradoxIds = pg.paradoxIds.filter(x => x !== id); });
+    await tb('paradoxes').delete(id);
+    await forget(tb('settings'), [id, ...goals]);
+  });
+}
+
+/** Puts ids on the settings row's deleted list (a clear field), inside the delete's own transaction. */
+async function forget(settings: Table<Settings, string>, ids: string[]): Promise<void> {
+  const s = await settings.get('app');
+  if (!s) return; // no settings row yet: nothing has been imported or seeded, so nothing can come back
+  await settings.update('app', { deleted: [...new Set([...(s.deleted ?? []), ...ids])] });
 }
 
 // ---- not me (PLAN-SELF.md section 3.4) ----
@@ -148,24 +159,29 @@ export async function deleteParadox(id: string): Promise<void> {
 /** Adds a "Not me" line to a paradox. Undefined when the line is empty, REFUSALS are written, or there is no paradox. */
 export async function addRefusal(paradoxId: string, text: string, now = Date.now()): Promise<Refusal | undefined> {
   const line = tidy(text);
-  const p = await store.get('paradoxes', paradoxId);
-  if (!line || !p || (p.refusals?.length ?? 0) >= REFUSALS) return undefined;
-  const r: Refusal = { id: crypto.randomUUID(), text: line, at: now };
-  await store.put('paradoxes', strip({ ...p, refusals: [...(p.refusals ?? []), r], updatedAt: now }));
-  return r;
+  if (!line) return undefined;
+  // read inside the write queue (store.unit), so two adds at once both count the lines already written
+  return store.unit(async u => {
+    const p = await u.get('paradoxes', paradoxId);
+    if (!p || (p.refusals?.length ?? 0) >= REFUSALS) return undefined;
+    const r: Refusal = { id: crypto.randomUUID(), text: line, at: now };
+    await u.put('paradoxes', strip({ ...p, refusals: [...(p.refusals ?? []), r], updatedAt: now }));
+    return r;
+  });
 }
 
 /** Edits a "Not me" line in place; emptied, it is removed. */
 export async function saveRefusal(paradoxId: string, id: string, text: string, now = Date.now()): Promise<void> {
-  const p = await store.get('paradoxes', paradoxId);
-  const old = p?.refusals?.find(r => r.id === id);
-  if (!p || !old) return;
   const line = tidy(text);
-  if (line === old.text) return;
-  const refusals = line ? p.refusals!.map(r => (r.id === id ? { ...r, text: line } : r)) : p.refusals!.filter(r => r.id !== id);
-  const next: Paradox = strip({ ...p, refusals, updatedAt: now });
-  if (!refusals.length) delete next.refusals;
-  await store.put('paradoxes', next);
+  await store.unit(async u => {
+    const p = await u.get('paradoxes', paradoxId);
+    const old = p?.refusals?.find(r => r.id === id);
+    if (!p || !old || line === old.text) return;
+    const refusals = line ? p.refusals!.map(r => (r.id === id ? { ...r, text: line } : r)) : p.refusals!.filter(r => r.id !== id);
+    const next: Paradox = strip({ ...p, refusals, updatedAt: now });
+    if (!refusals.length) delete next.refusals;
+    await u.put('paradoxes', next);
+  });
 }
 
 /** Antonyms from the seed's small list, offered as chips under pole B; never the one already written. */
@@ -402,10 +418,15 @@ export type GoalDraft = { a?: string; b?: string; cadence?: Cadence; nextTo?: st
 
 /** Saves one or two goals. Both: the pair lands linked at the same height. One: its slot opens on the other page. */
 export async function addGoals(paradoxId: string, d: GoalDraft): Promise<Item[]> {
-  const existing = await store.query('items', t => t.where('paradoxId').equals(paradoxId));
   const texts = { a: tidy(d.a), b: tidy(d.b) };
   const sides = (['a', 'b'] as const).filter(s => texts[s]);
   if (!sides.length) return [];
+  // read and written in one unit of the write queue, so a delete called after lands after and takes these too
+  return store.unit(u => addGoalsIn(u, paradoxId, d, texts, sides));
+}
+
+async function addGoalsIn(u: Unit, paradoxId: string, d: GoalDraft, texts: { a: string; b: string }, sides: ('a' | 'b')[]): Promise<Item[]> {
+  const existing = await u.query('items', t => t.where('paradoxId').equals(paradoxId));
   const lean = d.lean === undefined ? nextFreeLean(existing) : round(clampLean(d.lean));
   let order = existing.reduce((m, i) => Math.max(m, i.order), -1) + 1;
   const rows: Item[] = sides.map(pole => {
@@ -419,7 +440,7 @@ export async function addGoals(paradoxId: string, d: GoalDraft): Promise<Item[]>
     rows[1].pairId = rows[0].id;
     delete rows[1].nextTo; // the arrow runs from the goal that follows on its own page; the balance just sits level
   }
-  await store.bulkPut('items', rows);
+  await u.bulkPut('items', rows);
   return rows;
 }
 
@@ -461,19 +482,20 @@ export async function archiveGoal(id: string): Promise<void> {
   await store.put('items', strip({ ...g, archived: true }));
 }
 
-/** Deletes a goal entirely (PLAN-SELF.md section 3.2), in one transaction: its balance stays and shows its open slot
- *  again, and a goal that followed it follows nothing. */
+/** Deletes a goal entirely (PLAN-SELF.md section 3.2), in one unit of the write queue (store.tx): its balance stays
+ *  and shows its open slot again, and a goal that followed it follows nothing, read and loosened in that same unit so a
+ *  goal or a check written just before is neither orphaned nor overwritten. Its id goes on the deleted list. */
 export async function deleteGoal(id: string): Promise<void> {
-  const g = await store.get('items', id);
-  if (!g) return;
-  const items = await store.query('items', t => t.where('paradoxId').equals(g.paradoxId));
-  const loosened = items.filter(i => i.id !== id && (i.pairId === id || i.nextTo === id)).map(i => {
-    const next = strip({ ...i });
-    if (next.pairId === id) delete next.pairId;
-    if (next.nextTo === id) delete next.nextTo;
-    return next;
+  await store.tx(['items', 'settings'], async tb => {
+    const g = await tb('items').get(id);
+    if (!g) return;
+    await tb('items').where('paradoxId').equals(g.paradoxId).modify(i => {
+      if (i.pairId === id) delete i.pairId;
+      if (i.nextTo === id) delete i.nextTo;
+    });
+    await tb('items').delete(id);
+    await forget(tb('settings'), [id]);
   });
-  await store.many({ items: loosened }, { items: [id] });
 }
 
 /** Goals this one may follow (the "follows" picker): every other goal on the spread but itself. */

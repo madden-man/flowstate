@@ -5,6 +5,7 @@ import type { FlowDB, Paradox } from '../../src/db/schema';
 import { store, setKey, lock, unlock, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { defaultSettings } from '../../src/db/seed';
+import { addLean, setDone } from '../../src/model/flow';
 import {
   HELD, REFUSALS, HeldError, canHold, createParadox, saveParadox, sameVersion, sameCreed, deleteParadox, deleteGoal,
   addGoals, goalsOf, openSlots, addRefusal, saveRefusal, who, moveParadox, threeWords,
@@ -137,7 +138,64 @@ describe('delete, entirely', () => {
   });
 });
 
+describe('delete in the write queue', () => {
+  it('a lean, a goal and a page edit called just before a paradox delete go with it or keep their words', async () => {
+    const [p, q] = await make(2);
+    const page = { id: 'pg', kind: 'entry' as const, createdAt: 1, updatedAt: 1, state: 'open' as const, tags: [], linkedPageIds: [], paradoxIds: [p.id, q.id] };
+    await store.put('pages', page);
+    const lean = addLean(p.id, 0.4, { note: 'just now' });
+    const goals = addGoals(p.id, { a: 'one', b: 'two' });
+    const edit = store.put('pages', { ...page, title: 'written just before', updatedAt: 2 });
+    await Promise.all([lean, goals, edit, deleteParadox(p.id)]);
+    expect(await db.leans.count()).toBe(0);
+    expect(await db.items.count()).toBe(0);
+    const pg = (await store.get('pages', 'pg'))!;
+    expect(pg.title).toBe('written just before'); // the edit is not overwritten by a stale copy
+    expect(pg.paradoxIds).toEqual([q.id]);
+  });
+
+  it('a check on a follower and a goal added just before a goal delete: no link to it survives, no check is lost', async () => {
+    const [p] = await make(1);
+    const [a, b] = await addGoals(p.id, { a: 'one', b: 'two' });
+    const [c] = await addGoals(p.id, { a: 'three', nextTo: b.id });
+    const check = setDone(c.id, true, 50);
+    const added = addGoals(p.id, { b: 'four', nextTo: b.id });
+    await Promise.all([check, added, deleteGoal(b.id)]);
+    const left = await goalsOf(p.id);
+    expect(left.some(i => i.id === b.id || i.pairId === b.id || i.nextTo === b.id)).toBe(false);
+    expect(left.find(i => i.id === c.id)!.doneLog).toEqual([{ at: 50 }]);
+    expect(left.find(i => i.id === a.id)!.pairId).toBeUndefined();
+    expect(left.map(i => i.text)).toEqual(['one', 'three', 'four']);
+  });
+
+  it('a delete while locked still refuses, and seals nothing new: a sealed goal\'s words open after a loosen', async () => {
+    const [p] = await make(1);
+    const [, b] = await addGoals(p.id, { a: 'one', b: 'two' });
+    const [c] = await addGoals(p.id, { a: 'three', nextTo: b.id });
+    const salt = randomSalt();
+    const key = await deriveKey('1', salt, 1000);
+    await db.settings.put(defaultSettings(1));
+    await setKey(key, { salt, iterations: 1000 });
+    lock();
+    await expect(deleteGoal(b.id)).rejects.toBeInstanceOf(LockedError);
+    expect(await unlock(key)).toBe(true);
+    await deleteGoal(b.id);
+    const row = (await store.get('items', c.id))!;
+    expect(row.text).toBe('three');
+    expect(row.nextTo).toBeUndefined();
+  });
+});
+
 describe('not me', () => {
+  it('adds fired at once all count: three lines, and a fourth is refused', async () => {
+    const [p] = await make(1);
+    const r = await Promise.all(['one', 'two', 'three', 'four'].map(t => addRefusal(p.id, t)));
+    expect(r.slice(0, 3).every(Boolean)).toBe(true);
+    expect(r[3]).toBeUndefined();
+    expect((await store.get('paradoxes', p.id))!.refusals!.map(x => x.text)).toEqual(['one', 'two', 'three']);
+  });
+
+
   it('adds up to REFUSALS lines, tidied; an empty line adds nothing', async () => {
     const [p] = await make(1);
     expect(REFUSALS).toBe(3);

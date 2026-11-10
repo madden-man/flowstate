@@ -88,9 +88,11 @@ saveRefusal(paradoxId, id, text): Promise<void>             // empty text remove
 who(): Promise<{ paradox: Read<Paradox>; line: string; own: boolean }[]>  // active, byParadoxOrder; creed, else threeWords; own = a creed is written
 ```
 
-Writes that must land together go through `store.many(writes, drops)` in `src/db/fields.ts`: the rows written and then the primary keys dropped, in one transaction (`deleteParadox`, `deleteGoal`). `sameCreed(p, d)` says the draft leaves the creed as it is, so the sheet's dirty check and `saveParadox` treat the creed apart from `sameVersion` (the creed is written over, never a revision).
+Writes that must land together go through `store.many(writes, drops)` in `src/db/fields.ts`: the rows written and then the primary keys dropped, in one transaction; `deleteParadox` and `deleteGoal` use `store.tx` (below). `sameCreed(p, d)` says the draft leaves the creed as it is, so the sheet's dirty check and `saveParadox` treat the creed apart from `sameVersion` (the creed is written over, never a revision).
 
 Backup exports and imports the new fields as part of the paradox row; a file without them imports as before.
+
+Fixed at review (2026-11-10). A delete puts the paradox's id and its goals' ids, or the goal's id, on `settings.deleted` (clear, only grows: `keepLock` keeps it past a stale settings write), so a merge import never brings them back, nor a deleted paradox's goals and leans, and drops links to them; a replace import takes the file's list. After any import, past `HELD` active the last by the list's order rest. `store.tx(tables, fn)` runs a delete's reads and writes as one unit in the write queue, on clear fields only (`.modify()`, `.delete()` by index; AAD is table and key, so sealed blobs still open); `store.unit(fn)` does the same for a read and its sealed rewrite (`addRefusal`, `saveRefusal`, `addGoals`, `setDone`).
 
 ## 5. Packages
 

@@ -76,12 +76,16 @@ export const withoutToday = (log: Item['doneLog'], now: number): Item['doneLog']
 
 /** Draws or un-draws today's check on an item. Returns the item as written. */
 export async function setDone(id: string, done: boolean, now = Date.now()): Promise<Read<Item>> {
-  const item = await store.get('items', id);
-  if (!item) throw new Error('No such item');
-  const doneLog = done ? withCheck(item.doneLog, now) : withoutToday(item.doneLog, now);
-  const next = { ...item, doneLog };
-  await store.put('items', next);
-  return next;
+  // read and written in one unit of the write queue (PLAN-SELF.md section 4), so a goal deleted just after it lands
+  // after it, and the check never writes back a link the delete has loosened
+  return store.unit(async u => {
+    const item = await u.get('items', id);
+    if (!item) throw new Error('No such item');
+    const doneLog = done ? withCheck(item.doneLog, now) : withoutToday(item.doneLog, now);
+    const next = { ...item, doneLog };
+    await u.put('items', next);
+    return next;
+  });
 }
 
 // ---------------------------------------------------------------- today

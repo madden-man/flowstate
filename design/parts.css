@@ -361,7 +361,9 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 /* S3 (3.4.2): "Not me" under a spread, its lines in ink on the rules, a print label over them, "+ Not me" on one rule */
 .fs-notme { padding: var(--s1) 0 0; }
 .fs-notme:last-child { padding-bottom: var(--lh-ink); }
-.fs-notme-head { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+/* the label takes a whole rule, so every line under it, and "+ Not me" last, sits on its own rule (rule 5); the
+   doubled class outranks .fs-print's line height, which is declared later */
+.fs-notme-head.fs-print { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
 .fs-notme-line { font-size: var(--fs-ink); color: var(--ink); }
 .fs-notme-line:disabled { cursor: default; }
 textarea.fs-notme-line { cursor: text; }
@@ -402,10 +404,18 @@ textarea.fs-notme-line:focus-visible { outline: none; }
 /* PLAN-SELF.md 3.1: the pole words and the middle word are taps onto their own field, drawn as the ink they were.
    The button takes its look from the rule it sits on; pressed, the word sits 1px down as the print words do. */
 .fs-poleword {
-  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer;
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer; position: relative;
   font: inherit; letter-spacing: inherit; line-height: inherit; color: inherit; text-align: inherit;
   touch-action: manipulation; transition: translate var(--t-ui) var(--ease);
 }
+/* the word is drawn its own size; its tap reaches the full 44px, as the chips' does. Goals and slots sit above it
+   (z-index), so where a reach overlaps a goal the goal still takes the tap; the reach is absolute, so nothing measures it */
+.fs-poleword::after {
+  content: ""; position: absolute;
+  top: calc(50% - max(50%, var(--hit) / 2)); bottom: calc(50% - max(50%, var(--hit) / 2));
+  left: calc(50% - max(50%, var(--hit) / 2)); right: calc(50% - max(50%, var(--hit) / 2));
+}
+.fs-goal, .fs-slot { z-index: 1; }
 .fs-poleword[data-down] { translate: 0 1px; transition: none; }
 .fs-poleword:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 /* the middle word on the seam, on a patch of page so the line breaks around it; the patch relights with the page */
@@ -736,8 +746,13 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   left: calc(50% - max(50%, var(--hit) / 2)); right: calc(50% - max(50%, var(--hit) / 2));
 }
 .fs-musicword { min-width: var(--hit); justify-content: center; }
-/* "+ Goal" stays under the thumb while its spread scrolls past (DESIGN.md rule 6) */
-.fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
+/* "+ Goal" stays under the thumb while its spread scrolls past (DESIGN.md rule 6), on a footer of page the width of
+   the screen with a rule on top, as the rail's All pages is: a long goal passes behind an edge, not under a pill */
+.fs-addgoal-foot {
+  /* the scroller's padding foot (.fs-sheetof, --s3) would leave a strip of spread showing under it: stick past it */
+  position: sticky; bottom: calc(var(--s3) * -1); z-index: 2; margin: 0 calc(var(--gutter) * -1); padding: var(--s1) var(--gutter);
+  background-color: var(--page); border-top: 1px solid var(--rule); transition: background-color var(--t-light) var(--ease);
+}
 /* the lean before the first drag: the mark waits at the middle in print grey */
 .fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
 
@@ -1215,7 +1230,7 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 }
 /* a chosen pill is already ink: it only gives */
 .fs-chip[aria-pressed="true"][data-down], .fs-opt[aria-pressed="true"][data-down] { background-color: var(--ink); }
-/* + Goal rides over the spread, so its wash is mixed into the page, not into what scrolls under it */
+/* + Goal rides on its footer over the spread, so its wash is mixed into the page, not into what scrolls under it */
 .fs-addgoal[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, var(--page)); translate: 0 1px; transition: none; }
 
 /* rows: a 6% ink wash, on at the touch, easing out over --t-page */
@@ -1380,7 +1395,7 @@ html[data-turn="close"]::view-transition-new(fs-drawing) { animation: fs-turn-in
 .fs-be-fold[data-fold] { overflow: hidden; transition: height var(--t-page) var(--ease-settle); }
 .fs-be-fold[data-fold="shut"] { height: 0; transition: none; }
 /* "+ Goal" keeps to the spread's foot while it moves, not to the fold's edge */
-.fs-be-fold[data-fold] .fs-addgoal { position: relative; bottom: auto; }
+.fs-be-fold[data-fold] .fs-addgoal-foot { position: relative; bottom: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .fs-tab-mark, .fs-tab-mark[data-drawing], .fs-be-fold[data-fold] { transition: none; }

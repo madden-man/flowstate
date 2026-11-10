@@ -254,7 +254,11 @@ async function keepLock<K extends TableName>(t: K, rows: Tables[K][]): Promise<T
     const s = r as Settings;
     const stored = await database.settings.get(s.id);
     if (!stored) return r;
-    return { ...s, lock: { ...stored.lock, relockAfterMin: s.lock?.relockAfterMin ?? stored.lock.relockAfterMin } } as Tables[K];
+    const next = { ...s, lock: { ...stored.lock, relockAfterMin: s.lock?.relockAfterMin ?? stored.lock.relockAfterMin } };
+    // the deleted ids (PLAN-SELF.md section 4) only grow, so a stale copy can never drop one either
+    const gone = [...new Set([...(stored.deleted ?? []), ...(s.deleted ?? [])])];
+    if (gone.length) next.deleted = gone;
+    return next as Tables[K];
   }));
 }
 
@@ -262,7 +266,9 @@ function writable() {
   if (keyState() === 'locked') throw new LockedError();
 }
 
-export const store = {
+/** The reads and writes themselves, outside the queue: store wraps the writes in it, and store.unit hands these to a
+ *  function already running in it, so its reads and writes are one unit. */
+const direct = {
   async get<K extends TableName>(t: K, id: string): Promise<Read<Tables[K]> | undefined> {
     const row = await table(t).get(id);
     return row && fromStored(t, row, key);
@@ -276,18 +282,35 @@ export const store = {
     const rows = await build(table(t)).toArray();
     return Promise.all(rows.map(r => fromStored(t, r, key)));
   },
+  async put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
+    writable();
+    const [kept] = await keepLock(t, [row]);
+    await table(t).put(await toStored(t, kept, key));
+  },
+  async bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
+    writable();
+    const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
+    await table(t).bulkPut(stored);
+  },
+};
+export type Unit = typeof direct;
+
+export const store = {
+  get: direct.get,
+  all: direct.all,
+  query: direct.query,
   put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
-    return serial(async () => {
-      writable();
-      const [kept] = await keepLock(t, [row]);
-      await table(t).put(await toStored(t, kept, key));
-    });
+    return serial(() => direct.put(t, row));
   },
   bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
+    return serial(() => direct.bulkPut(t, rows));
+  },
+  /** A read and the writes that follow from it as one unit in the write queue (PLAN-SELF.md section 4): fn reads and
+   *  writes through u, the same calls as store's, and no other write can land between them. Refuses while locked. */
+  unit<T>(fn: (u: Unit) => Promise<T>): Promise<T> {
     return serial(async () => {
       writable();
-      const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
-      await table(t).bulkPut(stored);
+      return fn(direct);
     });
   },
   delete(t: TableName, id: string): Promise<void> {
@@ -301,6 +324,17 @@ export const store = {
     return serial(async () => {
       writable();
       await (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys);
+    });
+  },
+  /** Reads and writes of clear fields as one unit (PLAN-SELF.md section 4, deleteParadox and deleteGoal): fn runs in
+   *  the write queue, inside one transaction over tables, on the raw tables. It may read rows, .delete() them (by key
+   *  or by index) and .modify() their clear fields (ids, links, status, settings.deleted); it must never write a sealed
+   *  field, and it cannot seal (WebCrypto does not run inside an IndexedDB transaction). A sealed row's AAD is its table
+   *  and primary key alone (aad above), so a row whose clear fields were modified still opens. */
+  tx<T>(tables: TableName[], fn: (tb: <K extends TableName>(t: K) => Table<Tables[K], string>) => Promise<T>): Promise<T> {
+    return serial(async () => {
+      writable();
+      return database.transaction('rw', tables.map(t => database.table(t)), () => fn(table));
     });
   },
   /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).

@@ -34,6 +34,8 @@ function GoalForm({ open }: { open: boolean }) {
   const [cadence, setCadence] = useState<Cadence | undefined>(goal?.cadence);
   const [nextTo, setNextTo] = useState<string | undefined>(goal?.nextTo);
   const done = useRef(false);
+  const isOpen = useRef(open);
+  isOpen.current = open;
   // Delete asks once more on the same row, and lets go of the ask after a few seconds
   const [arming, setArming] = useState(false);
   useEffect(() => { if (!arming) return; const id = setTimeout(() => setArming(false), 4000); return () => clearTimeout(id); }, [arming]);
@@ -109,8 +111,15 @@ function GoalForm({ open }: { open: boolean }) {
       {goal && (
         <button type="button" class={`fs-row fs-delete${arming ? ' armed' : ''}`} onClick={async () => {
           if (!arming) { setArming(true); return; }
-          done.current = true;
-          await deleteGoal(goal.id);
+          done.current = true; // a close while it goes saves nothing over it
+          try { await deleteGoal(goal.id); }
+          catch {
+            // nothing went (locked after a relock, say): the sheet keeps its edits, and a close saves them as before
+            done.current = false;
+            setArming(false);
+            if (!isOpen.current && dirty) void save().catch(() => { done.current = false; });
+            return;
+          }
           changed();
           closeBeSheet();
         }}><span>{arming ? 'Delete it' : 'Delete'}</span>{arming && <small>Tap again</small>}</button>

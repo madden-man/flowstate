@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
 import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
-import { ensureSeeded, seedFixationsOnce } from '../../src/db/seed';
+import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
+import { HELD, createParadox, addGoals, deleteParadox, deleteGoal, goalsOf, openSlots, moveParadox } from '../../src/model/paradox';
 import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
@@ -234,6 +235,89 @@ describe('merge', () => {
     expect(stamp({ revisions: [{ at: 3 }, { at: 8 }] })).toBe(8);
     expect(stamp({ createdAt: 2 })).toBe(2);
     expect(stamp({})).toBe(0);
+  });
+});
+
+describe('deleted stays deleted (PLAN-SELF.md section 4)', () => {
+  const pole = (value: string) => ({ value, aspect: '' });
+  async function journal() {
+    await db.settings.put(defaultSettings(1));
+    const p = await createParadox({ poleA: pole('selfless'), poleB: pole('selfish') }, 1);
+    const q = await createParadox({ poleA: pole('thoughtful'), poleB: pole('reactive') }, 2);
+    const [x, y] = await addGoals(q.id, { a: 'Sit with it first', b: 'Answer within the hour' });
+    await store.put('leans', { id: 'l1', paradoxId: p.id, at: 3, lean: 0.2, note: 'a lean' });
+    await store.put('pages', { id: 'pg', kind: 'entry', createdAt: 4, updatedAt: 4, state: 'open', tags: [], paradoxIds: [p.id, q.id], linkedPageIds: [] });
+    await addGoals(p.id, { a: 'Give an hour', b: 'Keep an hour' });
+    return { p, q, x, y, file: await roundTrip(db) };
+  }
+
+  it('a merge of a file taken before the delete brings back no paradox, goal, lean or link', async () => {
+    const { p, q, x, y, file } = await journal();
+    await deleteParadox(p.id);
+    await deleteGoal(x.id);
+    expect((await db.settings.get('app'))!.deleted).toEqual(expect.arrayContaining([p.id, x.id]));
+    await importData(file, 'merge', db);
+    expect(await db.paradoxes.get(p.id)).toBeUndefined();
+    expect(await db.items.where('paradoxId').equals(p.id).count()).toBe(0);
+    expect(await db.leans.get('l1')).toBeUndefined();
+    expect((await db.pages.get('pg'))!.paradoxIds).toEqual([q.id]);
+    expect(await db.items.get(x.id)).toBeUndefined();
+    const goals = await goalsOf(q.id);
+    expect(goals.map(g => g.id)).toEqual([y.id]);
+    expect(goals[0].pairId).toBeUndefined();
+    expect(openSlots(goals)).toEqual([{ forId: y.id, pole: 'a', lean: y.lean }]);
+  });
+
+  it('the list survives a stale settings write', async () => {
+    const { p } = await journal();
+    const stale = (await store.get('settings', 'app'))!;
+    await deleteParadox(p.id);
+    await store.put('settings', { ...stale, light: 'night' });
+    expect((await db.settings.get('app'))!.deleted).toContain(p.id);
+  });
+
+  it('a replace import clears the list and restores what the file holds', async () => {
+    const { p, x, file } = await journal();
+    await deleteParadox(p.id);
+    await deleteGoal(x.id);
+    await importData(file, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.paradoxes.get(p.id)).toBeDefined();
+    expect(await db.items.get(x.id)).toBeDefined();
+    expect(await db.leans.get('l1')).toBeDefined();
+    // and a merge after it may bring them back too: the phone no longer remembers deleting them
+    await deleteParadox(p.id);
+    await importData(file, 'replace', db);
+    await importData(file, 'merge', db);
+    expect(await db.paradoxes.get(p.id)).toBeDefined();
+  });
+
+  it('a replace from a file with no settings row clears the list as well', async () => {
+    const { p, file } = await journal();
+    await deleteParadox(p.id);
+    await importData({ ...file, tables: { ...file.tables, settings: [] } }, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.paradoxes.get(p.id)).toBeDefined();
+  });
+
+  it('after any import at most HELD are active; the last in the list\'s order rest', async () => {
+    await db.settings.put(defaultSettings(1));
+    const ps = [];
+    for (let i = 0; i < HELD; i++) ps.push(await createParadox({ poleA: pole(`a${i}`), poleB: pole(`b${i}`) }, i + 1));
+    const file = await roundTrip(db);
+    const extra = (file.tables.paradoxes as { id: string; status: string; createdAt: number }[]);
+    extra.push({ ...extra[0], id: 'six', createdAt: 0, status: 'active' }, { ...extra[0], id: 'seven', createdAt: 99, status: 'active' });
+    await moveParadox([...ps.map(p => p.id)], ps[0].id, HELD); // the first now sits last of the five
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    const active = (await other.paradoxes.toArray()).filter(p => p.status === 'active').map(p => p.id);
+    expect(active).toHaveLength(HELD);
+    await init(db);
+    await importData(file, 'merge', db);
+    const rows = await db.paradoxes.toArray();
+    expect(rows.filter(p => p.status === 'active')).toHaveLength(HELD);
+    // order beats createdAt: the five ordered stay, the two with no order rest
+    expect(rows.filter(p => p.status === 'resting').map(p => p.id).sort()).toEqual(['seven', 'six']);
   });
 });
 
