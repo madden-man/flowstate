@@ -7,17 +7,24 @@ import type { SitSound } from '../../db/schema';
 
 export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd';
 
-let ac: AudioContext | null = null;
-function ctx(): AudioContext | null {
+/** A new AudioContext, woken: null where there is no Web Audio. Only a tap leads here (rule 21). */
+function make(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  if (!ac) {
-    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return null;
-    try { ac = new AC(); } catch { return null; }
-  }
-  // 'suspended' before the first tap, and on the iPhone 'interrupted' after a call or a lock: both wake the same way
-  if (ac.state !== 'running') void ac.resume().catch(() => undefined);
-  return ac;
+  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return null;
+  try { return wake(new AC()); } catch { return null; }
+}
+/** 'suspended' before the first tap, and on the iPhone 'interrupted' after a call, a lock or Spotify: both wake the same way. */
+function wake(a: AudioContext): AudioContext {
+  if (a.state !== 'running') void a.resume().catch(() => undefined);
+  return a;
+}
+
+let ac: AudioContext | null = null;
+/** The bells' context, kept for the session. One the phone has closed is made again. */
+function ctx(): AudioContext | null {
+  if (!ac || ac.state === 'closed') ac = make();
+  return ac && wake(ac);
 }
 
 /** A struck bell: a sine with one inharmonic partial, a fast attack and a long exponential fall. */
@@ -96,7 +103,8 @@ const BREATH: BellName[] = ['breathIn', 'breathOut'];
 export function bell(name: BellName): void {
   if (!settings.value.sounds) return;
   if (BREATH.includes(name) && !settings.value.breathTone) return;
-  const a = ctx();
+  // while a sit sounds, its bells ring on the sit's own context: that one is known to be awake and heard as media
+  const a = sounding ?? ctx();
   if (a) BELLS[name](a);
 }
 
@@ -399,38 +407,54 @@ function sessionType(type: 'playback' | 'auto'): void {
 
 const wallClock = () => performance.now() / 1000;
 let playing: Sit | null = null;
+/** The context of the sit now sounding (not one fading out), for its bells. */
+let sounding: AudioContext | null = null;
 /** The sit holding the 'playback' session, if one does: only it sets the session back when it has faded. */
 let holding: Sit | null = null;
-/** Once a sit has faded: the session goes back to 'auto', unless a newer sit holds it. */
-const release = (s: Sit) => () => { if (holding === s) { holding = null; sessionType('auto'); } };
+/** Once a sit has faded: its context is closed, and the session goes back to 'auto' unless a newer sit holds it. */
+const release = (s: Sit, a?: AudioContext) => () => {
+  if (a) { if (sounding === a) sounding = null; try { void a.close?.()?.catch?.(() => undefined); } catch { /* gone */ } }
+  if (holding === s) { holding = null; sessionType('auto'); }
+};
 
 /**
  * Begins a sit's sound (only from the tap on the circle). Quiet makes no nodes and no AudioContext: the circle breathes
  * on the wall clock. Null where there is no Web Audio. A scape already playing is ended first. With
  * settings.sitThroughSilent on, the audio session is 'playback' for the sit and goes back to 'auto' once it has faded.
+ *
+ * Every sit has an AudioContext of its own, made inside the tap after the session is named and closed once it has
+ * faded. The bells' context will not do: it was made under the 'auto' session, and the iPhone leaves it interrupted
+ * (silent, whatever its state says) after Spotify has played, a call, or the app coming back from behind another.
  */
 export function scape(name: SitSound): Scape | null {
-  playing?.end(OUT_S, release(playing));
+  playing?.end(OUT_S, release(playing, playing.a as AudioContext));
   playing = null;
+  sounding = null;
   if (name === 'quiet') { const t0 = wallClock(); return { t0, now: wallClock, end: () => undefined }; }
-  // the session is named before the context is made or woken, so the first sound of a sit is already media
+  // the session is named before the context is made, so the first sound of a sit is already media
   const media = settings.value.sitThroughSilent ?? true;
   if (media) sessionType('playback');
-  const a = ctx();
+  const a = make();
   if (!a) { if (media && !holding) sessionType('auto'); return null; }
   const s = buildScape(a, name)!;
   playing = s;
+  sounding = a;
   if (media) holding = s;
   let ended = false;
+  // interrupted mid-sit (a notification, Siri): it wakes itself once the phone lets it, while the page is in front
+  const rewake = () => { if (!ended && a.state !== 'running' && a.state !== 'closed' && typeof document !== 'undefined' && document.visibilityState === 'visible') wake(a); };
+  a.addEventListener?.('statechange', rewake);
   return {
     t0: s.t0,
     now: () => a.currentTime,
     end: seconds => {
       if (ended) return;
       ended = true;
+      a.removeEventListener?.('statechange', rewake);
       if (playing === s) playing = null;
-      s.end(seconds, release(s));
+      // a bell struck from here on rings on the bells' own context: this one closes when the fade is done
+      if (sounding === a) sounding = null;
+      s.end(seconds, release(s, a));
     },
   };
 }
-

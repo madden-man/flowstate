@@ -70,7 +70,15 @@ async function mockSpotify(page: Page, base: string, playing: () => object | nul
     }
     const items = url.match(/\/playlists\/(\w+)\/items/);
     if (items) return route.fulfill({ json: { next: null, items: ITEMS[items[1]] ?? [] } });
-    if (url.endsWith('/me/player/play')) {
+    // a tap always asks for the devices first and plays on the phone by its id, with another device active or not
+    if (url.endsWith('/me/player/devices')) {
+      return route.fulfill({ json: { devices: [
+        { id: 'ba6e', name: 'Babe', type: 'Speaker', is_active: true, is_restricted: false },
+        { id: 'c7f4', name: 'iPhone', type: 'Smartphone', is_active: false, is_restricted: false },
+      ] } });
+    }
+    if (url.includes('/me/player/play')) {
+      expect(url).toContain('device_id=c7f4');
       played.push(route.request().postData() ?? '');
       if (!answer) return route.fulfill({ status: 204 });
       return answer().then(a => route.fulfill(a));
