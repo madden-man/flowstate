@@ -26,6 +26,8 @@ describe('the route gate', () => {
   it('Meditate passes itself, never as a flow\'s step, and not with the door off (S3)', () => {
     expect(doorPasses('/flow/meditate', true)).toBe(true);
     expect(doorPasses('/flow/meditate/1', true)).toBe(false);
+    // What stuck (PLAN-ENERGIZE.md X4) is behind the PIN always: its names are sealed
+    expect(doorPasses('/flow/energize/stuck', true)).toBe(false);
     expect(doorPasses('/flow/meditate', false)).toBe(false);
   });
   it('a query does not change the answer', () => {

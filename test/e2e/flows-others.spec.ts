@@ -1,6 +1,6 @@
 // The other three and your own flows (F3, PLAN-FLOWS.md section 6): a deep link to Depress's bottom shows the step on
-// the valley's floor with its printed safety line (a line, never a check), in Still too; Energize at rest prints its
-// boundary line; "+ flow" makes a flow that opens on an empty drawing, its first step is named in the sheet, and the
+// the valley's floor with its printed safety line (a line, never a check), in Still too; Energize at rest is the three
+// (X2); "+ flow" makes a flow that opens on an empty drawing, its first step is named in the sheet, and the
 // flow survives an offline reload.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -33,10 +33,12 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await expect(body.locator('.fs-stillonly')).toHaveText('The floor is where it turns.');
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
-  // Energize at rest: the boundary is one printed line on the page, not a step
+  // Energize at rest: the three (PLAN-ENERGIZE.md X2) in place of the rest page; the boundary line stays in the data
+  // (X5 moves it to The tip) and is not on the rest page
   await page.goto('/#/flow/energize');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="arc"]')).toBeVisible();
-  await expect(page.locator('.fs-flowpage .fl-print')).toHaveText('Highs most days for a week without needing sleep: talk to your doctor.');
+  await expect(page.locator('.fs-flowpage .fx-card .fx-name')).toHaveText(['FlowState', 'East Winds', 'Japan Trip']);
+  await expect(page.locator('.fs-flowpage .fl-print')).toHaveCount(0);
   await expect(page.getByRole('slider', { name: 'Where you are' })).toHaveAttribute('aria-valuemax', '5');
 
   // Fight: the mountain's two lines across the slope; cooling asks "Slower now?"

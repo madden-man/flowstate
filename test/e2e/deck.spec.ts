@@ -11,8 +11,7 @@ async function open(page: Page, hash: string) {
   await expect(t).toHaveCount(0);
 }
 
-// enabled when X2 is merged
-test.fixme('deck: the third card swaps for Jazz piano, and Japan Trip goes back on deck', async ({ page }) => {
+test('deck: the third card swaps for Jazz piano, and Japan Trip goes back on deck', async ({ page }) => {
   await open(page, '#/flow/energize');
   const cards = page.locator('.fx-cards .fx-card');
   await expect(cards).toHaveCount(3);

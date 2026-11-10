@@ -1007,6 +1007,87 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .md-breath { animation: none; } }
 /* ==== Meditate ends ==== */
 
+/* ==== Fixations: the three (PLAN-ENERGIZE.md X2) ==== */
+/* Energize at rest: three cards under the drawing, the deck peeking as chips, What stuck. A card is two rules (the
+   name, its print line), a blank rule between cards; the hue is a voice's (--vc, set inline from the stored angle by
+   ui/voice.ts, rule 3), as its 3px rule and its wash at --tint (rule 9). Tokens only; ported from design/energize. */
+.fx-cards { display: grid; row-gap: var(--lh-ink); }
+.fx-card {
+  --vc: var(--ink);
+  appearance: none; display: block; width: 100%; margin: 0; padding: 0 var(--s2); border: 0; border-radius: 0;
+  border-left: 3px solid var(--vc); background: color-mix(in oklch, var(--vc) var(--tint), transparent);
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--t-ui) var(--ease);
+}
+/* Press (rule 26): the wash deepens at the touch, with no transition going down, and eases back over --t-ui */
+.fx-card[data-down] { background: color-mix(in oklch, var(--vc) calc(var(--tint) * 2.4), transparent); transition: none; }
+.fx-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fx-name { display: block; font-size: var(--fs-manifesto); line-height: var(--lh-ink); min-height: var(--lh-ink); white-space: nowrap; }
+/* the name's own box, as wide as its words (cut with an ellipsis when long), so the stroke under it is too */
+.fx-name > span { position: relative; display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* the stroke under a name, in its hue, drawn like a pen when the card appears (rule 27) and again when one lands */
+.fx-under { position: absolute; left: 0; bottom: 1px; width: 100%; height: 7px; overflow: visible; pointer-events: none; }
+.fx-under path { fill: none; stroke: var(--vc); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1; vector-effect: non-scaling-stroke; animation: fx-draw var(--t-draw) var(--ease) both; }
+/* one landed in its slot (X3's sheet): it rises into place and lands (--ease-settle, no overshoot, rule 18) */
+.fx-card.fresh { animation: fx-land var(--t-page) var(--ease-settle) both; }
+@keyframes fx-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fx-land { from { transform: translateY(calc(var(--lh-ink) * 2)); opacity: 0; } }
+.fx-meta, .fx-label {
+  display: block; margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; line-height: var(--lh-ink); color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* an empty slot is a dashed slot, as on the Be spread (rule 11) */
+.fx-card.fx-empty { border-left-style: dashed; border-left-color: var(--seam); background: transparent; color: var(--print); }
+/* on deck, peeking under the three: one blank rule above, the chips on the next */
+.fx-deckpeek { display: flex; align-items: center; gap: var(--s1); margin-top: var(--lh-ink); height: var(--lh-ink); }
+.fx-deckpeek .fx-label { flex: none; }
+.fx-deckpeek .fs-chips { padding: 0; flex: 1; min-width: 0; mask-image: linear-gradient(to right, black calc(100% - var(--s3)), transparent); }
+.fx-deckpeek .fs-chip { padding: 5px 9px; }
+.fx-foot { display: flex; justify-content: space-between; margin: 0; min-height: var(--lh-ink); line-height: var(--lh-ink); }
+.fx-foot .fs-word { padding: 0; }
+/* the stream in the three hues (rule 30): one lane a fixation (parts/Stream sets h0 to h2 and --fx0 to --fx2); a
+   fixation landing sends its ring out in its hue. Every other flow's lines carry no class and stay ink. */
+.fl-stream line.h0 { stroke: var(--fx0); }
+.fl-stream line.h1 { stroke: var(--fx1); }
+.fl-stream line.h2 { stroke: var(--fx2); }
+.fl-stream .fl-ripple-hue { stroke: var(--fxr); }
+/* Still (rule 13): the water in ink, the cards' rules in the seam (FlowPage renders the names only) */
+[data-light="still"] .fl-stream line[class], [data-light="still"] .fl-stream .fl-ripple-hue { stroke: var(--ink); }
+[data-light="still"] .fx-card { border-left-color: var(--seam); }
+[data-light="still"] .fx-under, [data-light="still"] .fx-meta, [data-light="still"] .fx-deckpeek, [data-light="still"] .fx-foot { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fx-card.fresh, .fx-under path { animation: none; }
+}
+/* ==== end Fixations: the three ==== */
+
+/* ==== Fixations: what stuck (PLAN-ENERGIZE.md X4) ==== */
+/* #/flow/energize/stuck: a print row of months, then two rules a fixation, its name with the print line at the right,
+   then its ribbons, one rounded line a stint, in its hue (--vc, set inline by ui/voice.ts, rule 3) while it is on and
+   in print grey once closed. The line runs between the two ends of the track, inset by half a ribbon so the caps and a
+   one-day dot are never cut; --x and --w (set inline, model/stuck.ts) place each ribbon. A hairline marks now at the
+   right end of every track. A drawing, no number on it (rule 15); gone in Still, which keeps the names (rule 13). */
+.fx-stuck { --rib: 7px; display: grid; }
+.fx-axis, .fx-track { position: relative; height: var(--lh-ink); margin: 0 calc(var(--rib) / 2); }
+.fx-axis span, .fx-stuck-none {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; line-height: var(--lh-ink); color: var(--print); white-space: nowrap;
+}
+.fx-axis span { position: absolute; top: 0; }
+.fx-axis .fx-axis-now { right: 0; }
+.fx-rib { --vc: var(--ink); }
+.fx-rib-name { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s1); margin: 0; line-height: var(--lh-ink); }
+.fx-rib-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-rib-name .fx-meta { flex: none; }
+.fx-track i {
+  position: absolute; top: 50%; left: calc(var(--x) - var(--rib) / 2); width: calc(var(--w) + var(--rib)); height: var(--rib);
+  transform: translateY(-50%); border-radius: var(--rib); background: var(--print); opacity: .55;
+}
+.fx-track i.on { background: var(--vc); opacity: 1; }
+.fx-track::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; border-right: 1px solid var(--seam); }
+.fx-stuck-none { margin: 0; }
+[data-light="still"] .fx-axis, [data-light="still"] .fx-track, [data-light="still"] .fx-rib-name .fx-meta { display: none; }
+/* ==== end Fixations: what stuck ==== */
+
 /* ==== Fixations: the deck (PLAN-ENERGIZE.md X3) ==== */
 /* The sheet a fixation's card or a deck chip opens (ui/flow/DeckSheet.tsx), ported from design/energize/energize.css.
    .fx-sheet wraps parts/Sheet without a box of its own, so the sheet still sits on the page and the hue (--vc, a voice's
