@@ -42,11 +42,12 @@ On an open spread the two pole words and the middle word are buttons: a tap open
 ### 3.2 Delete, entirely
 
 - **A paradox.** The paradox sheet ends on a Delete row: a second tap on the same row within four seconds (rule 8, the council line's pattern). It removes the paradox, its goals, its leans and its refusals in one write, and any page's link to it. It is not kept anywhere. Resting and retired stay as the reversible ways to put one down.
+- **Fixed on the way (2026-11-10).** A paradox now saves on its two words; the aspects may wait: the seeded thoughtful and reactive has no aspects, so every edit to it was silently dropped (`canSaveParadox`).
 - **A goal.** The goal sheet's Archive becomes Delete, the same two taps. The goal is removed; its balance stays and shows its dashed slot again; a goal that followed it follows nothing. Goals archived before today stay archived and unseen (no screen ever showed them); a backup still carries them.
 
 ### 3.3 Who: the top of Be
 
-Be opens on his own lines, one per held paradox, in the order of the list, in ink on the page's rules: the creed. Each line is a new optional field on the paradox, written in the paradox sheet under the print label "Both" (placeholder "Both, in a sentence"). A paradox with no line yet shows its three words ("selfless · compassionate self-awareness · selfish"). A tap on a line opens that paradox's spread below. The app writes none of it. Still shows the lines and nothing else of Be's states.
+Be opens on his own lines, one per held paradox, in the order of the list, in ink on the page's rules: the creed. Each line is a new optional field on the paradox, written in the paradox sheet under the print label "Both" (placeholder "Both, in a sentence"). A paradox with no line yet shows its three words, the middle left out when it has none: the seeded paradoxes have no current middle word (both of selfless and selfish's middles are struck revisions), so their fallback lines are "selfless · selfish" and "thoughtful (obsessive) · reactive". A tap on a line opens that paradox's spread below. The app writes none of it. Still shows the lines and nothing else of Be's states.
 
 ### 3.4 Exclusion, three ways
 
@@ -87,6 +88,8 @@ saveRefusal(paradoxId, id, text): Promise<void>             // empty text remove
 who(): Promise<{ paradox: Read<Paradox>; line: string; own: boolean }[]>  // active, byParadoxOrder; creed, else threeWords; own = a creed is written
 ```
 
+Writes that must land together go through `store.many(writes, drops)` in `src/db/fields.ts`: the rows written and then the primary keys dropped, in one transaction (`deleteParadox`, `deleteGoal`). `sameCreed(p, d)` says the draft leaves the creed as it is, so the sheet's dirty check and `saveParadox` treat the creed apart from `sameVersion` (the creed is written over, never a revision).
+
 Backup exports and imports the new fields as part of the paradox row; a file without them imports as before.
 
 ## 5. Packages
@@ -100,6 +103,8 @@ Backup exports and imports the new fields as part of the paradox row; a file wit
 
 S1 first; S2 and S3 side by side on it; S4 after both.
 
+The walkthrough is its own artifact, "FlowState Be: who, in his words": `design/be/` (the page, its driver and seed under `design/be/src`), built by `npm run walkthrough:be` (`script/build-be-walkthrough.mjs`) into `design/be/dist/`, the directory to publish, and checked by `test/e2e/walkthrough-be.spec.ts`. Ten steps, each the real app loaded afresh with its own example data. `design/walkthrough.html` is at its 300-word budget, so it gains no steps.
+
 ## 6. Open, for Tommy to overturn
 
 1. Five held. Three would match Energize; seven is the top of the range.
@@ -110,4 +115,8 @@ S1 first; S2 and S3 side by side on it; S4 after both.
 
 ## 7. Only the iPhone can say
 
-The caret landing in the tapped field with the keyboard up; the two-tap Delete under a thumb; the creed's line height against the page rules in each light.
+The caret landing in the tapped field with the keyboard up; the two-tap Delete under a thumb; the creed's line height against the page rules in each light. From the builders:
+
+- The keyboard rising when the caret lands in a tapped pole or middle word's field, and in a Not me line (`useKeyboardFit` keeps the line in view; headless Chrome has no keyboard).
+- The 28px Not me lines and the word-wide pole buttons as tap targets: a thumb on the right line, and a pole word not taken for the spread's drag.
+- The inert dashed "active" option in each light, when five are held: it should read as unavailable, not as chosen.

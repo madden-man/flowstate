@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState Be: who, in his words</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState Be</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="creed" data-name="Be opens on who I am">
+  <h2>Be opens on who I am</h2>
+  <p class="line">My own line in ink; a paradox I have not written yet shows its three words in grey. Example data, live.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Creed</td><td><code>ui/be/Who.tsx</code> above the list in <code>ui/be/Be.tsx</code>: one line per held paradox, in list order, from <code>who()</code> in <code>model/paradox.ts</code> (the creed, else <code>threeWords</code>; <code>own</code> sets ink).</td></tr>
+    <tr><td>Data</td><td><code>Paradox.creed</code>, optional and sealed (<code>db/fields.ts</code>); no Dexie version bump.</td></tr>
+    <tr><td>Why</td><td>Self-concept clarity is a few beliefs held confidently and stably, in his words (Campbell 1996). PLAN-SELF.md 2, 3.3.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 5, 11</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/be/src</code>), storage in memory, no network, "today" pinned to 11 / 10. Each step loads it afresh, so it starts from its own state.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="line" data-name="A line opens its spread">
+  <h2>A line opens its spread</h2>
+  <p class="line">Tapping my line for selfless and selfish opens that spread below it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Tap</td><td><code>Who</code>'s <code>onLine</code> is <code>toLine</code> in <code>Be.tsx</code>: it flips the spread open if it is shut and seeks its row once laid out, as the <code>#/be/:id</code> deep link does.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 11</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="word" data-name="I tap the word to change it">
+  <h2>I tap the word to change it</h2>
+  <p class="line">Selfish opens the paradox sheet with the caret already in its field.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Words</td><td><code>ui/parts/Spread.tsx</code>: the poles and the middle are <code>.fs-poleword</code> buttons calling <code>onEdit('poleA' | 'poleB' | 'middle')</code>; "Edit" stays.</td></tr>
+    <tr><td>Sheet</td><td><code>openParadox({ paradoxId, focus })</code> (<code>ui/be/state.ts</code>); <code>ui/be/ParadoxSheet.tsx</code> puts the caret at the end of that field.</td></tr>
+    <tr><td>Save</td><td><code>saveParadox</code>: the old words go onto revisions, struck through. It saves on the two words; the aspects may wait.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 10, 11</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="both" data-name="Both, in my own sentence">
+  <h2>Both, in my own sentence</h2>
+  <p class="line">One line for holding the two together, written in the sheet and kept as I leave.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Field</td><td>"Both" in <code>ParadoxSheet.tsx</code>, placeholder "Both, in a sentence". Saved plainly, never a revision (<code>sameCreed</code>, <code>withCreed</code>); emptied, it goes.</td></tr>
+    <tr><td>Why</td><td>Writing why a value matters, in one's own words, lowers defensiveness (Cohen and Sherman 2014); the app suggests nothing.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 6, 16</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="notme" data-name="Not me, under the spread">
+  <h2>Not me, under the spread</h2>
+  <p class="line">What I refuse for this paradox sits after its goals and before today's checks.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Lines</td><td><code>ui/be/NotMe.tsx</code> between the spread and <code>Due</code> in <code>Be.tsx</code>: <code>Paradox.refusals</code>, one ink line each on its rule. No cadence, no check, no count.</td></tr>
+    <tr><td>Why</td><td>A feared self works beside a wanted one in the same domain, concrete and about behaviour (Oyserman and Markus 1990; Ogilvie 1987). PLAN-SELF.md 3.4.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 11</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="addnot" data-name="One more refusal">
+  <h2>One more refusal</h2>
+  <p class="line">+ Not me opens a line where it stands; at three the word goes.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Write</td><td><code>addRefusal(paradoxId, text)</code>, at most <code>REFUSALS</code> (3); a tap on a line edits it in place through <code>saveRefusal</code>, and an emptied line is removed.</td></tr>
+    <tr><td>Field</td><td>The council's edit line: Return or leaving keeps it, Escape puts it back; <code>useKeyboardFit</code> keeps it above the keyboard.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 5, 6</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="held" data-name="Five are held">
+  <h2>Five are held</h2>
+  <p class="line">A sixth paradox is saved resting until one of the five rests.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Cap</td><td><code>HELD = 5</code> and <code>canHold</code> in <code>model/paradox.ts</code>; <code>createParadox</code> lands resting past it, <code>saveParadox</code> throws <code>HeldError</code>, and the sheet's "active" option is inert.</td></tr>
+    <tr><td>Why</td><td>Card sorts narrow to a top five to ten; more facets is not better (Miller 2001; Rafaeli-Mor and Steinberg 2002).</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 11</td></tr>
+    <tr><td>Demo</td><td>Three more held paradoxes seeded for this step only: steady, private, proud.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="goal" data-name="A goal goes entirely">
+  <h2>A goal goes entirely</h2>
+  <p class="line">Delete, then Delete it on the same row; its balance keeps a dashed slot.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>ui/be/GoalSheet.tsx</code>: the Delete row arms for four seconds, the second tap calls <code>deleteGoal(id)</code>.</td></tr>
+    <tr><td>Write</td><td>One <code>store.many(writes, drops)</code>: the row dropped, its balance's <code>pairId</code> and any <code>nextTo</code> on it cleared. Kept nowhere.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 8, 10, 11</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="paradox" data-name="A paradox goes entirely">
+  <h2>A paradox goes entirely</h2>
+  <p class="line">Two taps on Delete, and thoughtful and reactive leaves the list and the creed.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>ParadoxSheet.tsx</code> ends on the same two-tap Delete row.</td></tr>
+    <tr><td>Write</td><td><code>deleteParadox(id)</code>, one transaction: the paradox with its creed and refusals, its goals, its leans, and every page's link to it. Resting and retired stay the reversible ways down.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 8, 10</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="still" data-name="In Still, my lines stay">
+  <h2>In Still, my lines stay</h2>
+  <p class="line">The creed shows; under the open spread, Not me and today's checks are put away.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td><code>Who</code> has no Still rule: these are his words, not states. <code>NotMe</code> carries <code>.fs-notstill</code>.</td></tr>
+    <tr><td>Why</td><td>Suppression rebounds, so a refusal is decided once and then out of sight (Wenzlaff and Wegner 2000).</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

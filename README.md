@@ -36,5 +36,6 @@ The first runs in `npm test` and the pre-commit hook. `npm run tokens:check` kee
 - `DESIGN.md`: the design standard, 25 rules, each marked lint or review.
 - `PLAN.md`: the architecture, the data model and the build order.
 - `design/walkthrough.html`: the walkthrough of every screen in the three lights, built from the app's own CSS.
+- `design/motion/`, `design/energize/`, `design/be/`: feature walkthroughs that run the real app, each its own artifact, built by `npm run walkthrough:motion`, `walkthrough:energize`, `walkthrough:be` into that directory's `dist/` (the files to publish). Be's plan is `PLAN-SELF.md`.
 - `CLAUDE.md`: the rules for anyone building here.
 - `docs/SPOTIFY.md`: the Spotify setup (the app, the redirect URIs, Premium) for the music sheet.
