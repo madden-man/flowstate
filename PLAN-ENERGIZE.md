@@ -1,8 +1,8 @@
 # FlowState Energize: three fixations and a deck
 
-Date: 2026-11-10. Status: building from main 686787f with Opus agents (Tommy, 2026-11-10: "build with opus agents"); section 7's unanswered questions are built on their stated assumptions. Packages are X1 to X6 (X for fixation: E is the eyes plan's letter). Tommy's ask: "make a plan to rework the energize flow. keep the diagram with the particle animation, but everything below should change to be focused on my latest fixations: FlowState being one, East Winds being another (my book), and Japan Trip being the third. Then, set it up so that I can click any of those and replace it with a fixation that's 'on deck' (there will be a ton..jazz piano, conduit, learning chinese, studying philosophy, etc). this will give us tracking as to what fixations stick around, and also help me to find new things to do when i get bored of something. make it all very fun and energetic, since i want this to inspire me and get me going."
+Date: 2026-11-10. Status: built (Tommy, 2026-11-10: "build with opus agents"): X1 #52, X2 #53, X3 #55, X4 #54, X5 #56, X6 this PR; section 7's unanswered questions are built on their stated assumptions. Packages are X1 to X6 (X for fixation: E is the eyes plan's letter). Tommy's ask: "make a plan to rework the energize flow. keep the diagram with the particle animation, but everything below should change to be focused on my latest fixations: FlowState being one, East Winds being another (my book), and Japan Trip being the third. Then, set it up so that I can click any of those and replace it with a fixation that's 'on deck' (there will be a ton..jazz piano, conduit, learning chinese, studying philosophy, etc). this will give us tracking as to what fixations stick around, and also help me to find new things to do when i get bored of something. make it all very fun and energetic, since i want this to inspire me and get me going."
 
-`PLAN.md` stays the architecture, `PLAN-FLOWS.md` the Flow tab, `PLAN-MOTION.md` how things move. The proposal walkthrough is `design/energize/index.html`: nine phones, the first four live (tap a card, tap a deck row, Deal me one).
+`PLAN.md` stays the architecture, `PLAN-FLOWS.md` the Flow tab, `PLAN-MOTION.md` how things move. The walkthrough is `design/energize/index.html`: nine steps, every phone the real app running live (section 8).
 
 ## 1. What is there today (main a63e37b)
 
@@ -34,7 +34,7 @@ Assumed for the build, say so if wrong (each is one small change to overturn):
 
 ## 3. The shape (one line per walkthrough step)
 
-`design/energize/index.html`, nine steps, on `energize.css` and `energize.js` with copies of `tokens.css`, `parts.css`, `flows.css` and `flows.js`. The phones are built from the app's own rendered Energize page.
+`design/energize/index.html`, nine steps, one phone: the real app, loaded afresh for each step and driven to it (section 8).
 
 1. **Energize is what I am into right now.** The arc with three colours in the water; FlowState, East Winds, Japan Trip under it; the deck peeking as chips; "What stuck".
 2. **I tap the one I am done with.** The sheet: its name, "Spark it", the deck rows, "Deal me one", "+ fixation", "Finished instead".
@@ -89,6 +89,17 @@ Order: X1, then X2 and X3 in parallel (X3 against X2's card markup), then X4 and
 
 iPhone-only checks: the tick on a swap; the fifth with the ringer on and off; the stream's three colours at night on the real screen; whether 1.1 at rest reads as lively or as nervous.
 
+### What the build changed
+
+Gathered from the merged PR bodies and the code; each differs from sections 2 to 5 as stated.
+
+- **X1** (#52): a fixation also carries `updatedAt`, so a merge import keeps the newest; the span helper is `stintWords` (calendar days: "today", "3 days", "12 weeks", "about 7 months").
+- **X2** (#53): Energize's rest page no longer asks the note to the next one of you; there is no Edit word in the foot (Edit is on the sheet). Rules 13 and 30 amended, rule 32 added.
+- **X3** (#55): "+ fixation" and Edit are screens inside the one sheet, behind its back word, never a second sheet; the wheel starts on the hue furthest from those in use.
+- **X4** (#54): a month too close to "now" is left unnamed; a row read locked is left out whole; a same-day stint is a dot; years are named past three years.
+- **X5** (#56): on a live ride Spark it only names it, the dot left where it is; Next is written on the ride's card (kept on a pause, no save word) and in Edit, and shows on the card at rest; the doctor line moves once (`'energize-doctor'`), and a rest line he rewrote is kept.
+- **X6** (this PR): the walkthrough's phone is the real app, as design/motion's is; each step loads it afresh rather than driving one app from step to step, so no step shows what the last one left.
+
 ## 7. Open questions for Tommy
 
 1. **The step rows.** Keep them under the ridden fixation on a step (assumed: they are the guard on a high, and the picks rows sit on them), or should every step be the three cards and nothing else?
@@ -103,4 +114,6 @@ iPhone-only checks: the tick on a swap; the fifth with the ringer on and off; th
 
 ## 8. Artifact
 
-`design/energize/index.html`, published 2026-11-10 as https://claude.ai/artifact/BB33Xy1uQpZDtmm82z8RLz (slug 52621571-c546-4fdf-b920-d160cd1b28ef), private until shared, from the seven files in `design/energize/`. Steps 1 to 4 are live. The stream in the phones is a small stand-in written for the page (`energize.js`), not `parts/Stream`; X6 replaces it with the real one.
+`design/energize/index.html`, published 2026-11-10 as https://claude.ai/artifact/BB33Xy1uQpZDtmm82z8RLz (slug 52621571-c546-4fdf-b920-d160cd1b28ef), private until shared. Since X6 every phone is the real app, not a mock: `design/energize/src` boots `src/main.tsx` as one classic script (`design/energize/vite.config.ts`, the motion walkthrough's seams), with storage in memory, no network, no PIN and "today" pinned to 2026-11-10. Each step loads `app.html?step=<id>` afresh under the shown phone and swaps it in once it has drawn, then makes the step's taps (the card, the Jazz piano row, Deal me one, "+ fixation"); the history for What stuck is written through the store first.
+
+Build with `npm run walkthrough:energize` (`script/build-energize-walkthrough.mjs`; it runs the artifact lint and check-dist). `design/energize/dist/` is ignored by git, as `design/motion/dist/` is. Republish the seven files of `design/energize/dist/`, each at its own name: `index.html`, `walk.css`, `walk.js`, `tokens.css`, `app.html`, `app.js`, `app.css`, and remove the old `energize.css`, `energize.js`, `flows.css`, `flows.js` and `parts.css`. `test/e2e/walkthrough-energize.spec.ts` checks it in a sandboxed frame.
