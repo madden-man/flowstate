@@ -1,5 +1,5 @@
 // New paradox, and editing one (PLAN.md section 6). The save word stays print-grey and inert until both
-// values and both aspects are written; nothing pops up to say so. Each pole may carry its shadow word,
+// words are written (the aspects may wait); nothing pops up to say so. Each pole may carry its shadow word,
 // drawn in brackets after it on its rule. The middle is optional, offered with the notebook's own doubt.
 // Antonyms from the seed list sit as chips under pole B once pole A is written, never filled in.
 // An edit pushes the old version onto the paradox's revisions; the earlier versions of the three words

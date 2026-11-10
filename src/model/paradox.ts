@@ -40,9 +40,10 @@ export function cleanMiddle(m?: Middle): Middle | undefined {
   return out;
 }
 
-/** A paradox cannot be saved with one pole: both values and both aspects must be written. */
+/** A paradox cannot be saved with one pole: both words must be written. The aspects may wait (the seeded
+ *  thoughtful and reactive has none, and until 2026-11-10 that kept every edit to it from saving). */
 export function canSaveParadox(d: ParadoxDraft): boolean {
-  return [d.poleA.value, d.poleA.aspect, d.poleB.value, d.poleB.aspect].every(s => tidy(s).length > 0);
+  return [d.poleA.value, d.poleB.value].every(s => tidy(s).length > 0);
 }
 
 const samePole = (a: Pole, b: Pole) => a.value === b.value && a.aspect === b.aspect && (a.shadow ?? '') === (b.shadow ?? '');
@@ -81,7 +82,7 @@ export function revise(p: Paradox, d: ParadoxDraft, now = Date.now()): Paradox {
 }
 
 export class OnePoleError extends Error {
-  constructor() { super('A paradox needs both poles: both values and both aspects'); this.name = 'OnePoleError'; }
+  constructor() { super('A paradox needs both poles: both words'); this.name = 'OnePoleError'; }
 }
 
 // ---- five are held (PLAN-SELF.md section 3.4) ----

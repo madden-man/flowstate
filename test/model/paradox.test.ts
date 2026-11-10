@@ -16,10 +16,11 @@ const goal = (id: string, pole: 'a' | 'b', lean: number, extra: Partial<Item> = 
   ({ id, paradoxId: 'p', pole, text: id, lean, doneLog: [], order: 0, ...extra });
 
 describe('the paradox rule', () => {
-  it('will not save with one pole: both values and both aspects are needed', () => {
+  it('will not save with one pole: both words are needed, the aspects may wait', () => {
     const full = { poleA: pole('selfless', 'vegetable chopping'), poleB: pole('selfish', 'breathing room') };
     expect(canSaveParadox(full)).toBe(true);
-    expect(canSaveParadox({ ...full, poleB: pole('selfish', '  ') })).toBe(false);
+    expect(canSaveParadox({ ...full, poleB: pole('selfish', '  ') })).toBe(true);
+    expect(canSaveParadox({ ...full, poleB: pole('  ', 'breathing room') })).toBe(false);
     expect(canSaveParadox({ ...full, poleA: pole('', 'x') })).toBe(false);
     expect(canSaveParadox({ poleA: pole('a', 'b'), poleB: pole('', '') })).toBe(false);
   });
@@ -32,7 +33,7 @@ describe('the paradox rule', () => {
   });
 
   it('creates through the store and refuses one pole', async () => {
-    await expect(createParadox({ poleA: pole('patient', 'x'), poleB: pole('urgent', '') })).rejects.toBeInstanceOf(OnePoleError);
+    await expect(createParadox({ poleA: pole('patient', 'x'), poleB: pole('', 'now') })).rejects.toBeInstanceOf(OnePoleError);
     const p = await createParadox({ poleA: pole('patient', 'waiting it out'), poleB: pole('urgent', 'now'), middle: { word: 'ready' } }, 5);
     expect(await store.get('paradoxes', p.id)).toMatchObject({ status: 'active', middle: { word: 'ready' }, revisions: [], createdAt: 5 });
   });
@@ -48,7 +49,7 @@ describe('the paradox rule', () => {
     const v3 = await saveParadox(v2, { poleA: v2.poleA, poleB: v2.poleB }, 'resting', 3);
     expect(v3.revisions).toHaveLength(1); // status alone is not a new version
     expect((await store.get('paradoxes', p.id))!.status).toBe('resting');
-    await expect(saveParadox(v3, { poleA: pole('a', ''), poleB: v3.poleB })).rejects.toBeInstanceOf(OnePoleError);
+    await expect(saveParadox(v3, { poleA: pole('', 'x'), poleB: v3.poleB })).rejects.toBeInstanceOf(OnePoleError);
   });
 
   it('offers antonyms from the seed list, never the word already written', () => {
