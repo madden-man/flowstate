@@ -3,6 +3,8 @@
 // with an episode open carries the dot on its little drawing. No counts anywhere (DESIGN.md rule 15); Still keeps
 // the rows and drops "last time" (rule 13). Right now and Meditate are the two fixed rows above the flows; Meditate's
 // meta line says when the last sit was ("The circle · last sat 11 / 8", S2), a date only, and drops it in Still.
+// Energize's meta line names the three in slot order in place of the shape's name (PLAN-ENERGIZE.md X2, "FlowState ·
+// East Winds · Japan Trip", cut with an ellipsis when long); a row read locked keeps the shape's name.
 import { useEffect, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Cycle } from '../parts/Cycle';
@@ -14,14 +16,18 @@ import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
 import { flowStates, placeOf, currentStepId, type FlowState } from '../../model/flows';
 import { lastSit } from '../../model/sits';
+import { FIXATION_FLOW, three } from '../../model/fixations';
+import { namesOf } from './Fixations';
 
 export function Flow() {
   const [rows, setRows] = useState<FlowState[] | null>(null);
   const [sat, setSat] = useState<number | undefined>(undefined);
+  const [names, setNames] = useState<string | undefined>(undefined);
   useEffect(() => {
     let live = true;
     flowStates().then(r => { if (live) setRows(r); });
     lastSit().then(s => { if (live) setSat(s?.startedAt); }).catch(() => undefined);
+    three().then(t => { if (live) setNames(namesOf(t)); }).catch(() => undefined);
     return () => { live = false; };
   }, [dataVersion.value]);
 
@@ -48,7 +54,7 @@ export function Flow() {
           <a key={flow.id} class="fs-row fs-list-row fl-flow" href={`#/flow/${flow.id}`} data-live={live ? 'true' : undefined}>
             <span class="fs-list-line">{flow.name}</span>
             <small class="fs-list-meta">
-              {shapeOf(flow.diagram).title}
+              {(flow.id === FIXATION_FLOW && !flow.locked && names) || shapeOf(flow.diagram).title}
               {last && <span class="fs-notstill"> · last time {shortDate(new Date(last.startedAt))}</span>}
             </small>
             <span class="fl-mini" aria-hidden="true">

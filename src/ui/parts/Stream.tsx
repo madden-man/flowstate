@@ -15,13 +15,21 @@
 // Where I am, a landing, hold the ring: the page passes the dot (at), each landing on a detent (landing, with a new
 // seq each time) and the held breath (since, breath.ts's own clock). A landing sends one ring out from the dot over
 // twice --t-page (parts.css, fl-ripple) and pushes the water near it on; the tick stays parts/Cycle's.
+//
+// The three hues (PLAN-ENERGIZE.md X2, DESIGN.md rule 30 amended). Given hues (Energize only: the three fixations' hue
+// angles in slot order, null for an empty slot), the water runs as three lanes across the line (cycle/stream.ts
+// laneOf), a mote's line taking its lane's class (h0 to h2) and the svg carrying each lane's colour as --fx0 to --fx2,
+// made the way a voice's is (ui/voice.ts, rule 3). An empty slot's lane keeps no class and stays ink; Still puts every
+// lane back in ink (parts.css). Without hues nothing here is touched: every other flow's water is as it was. A landing
+// may carry a hue too, and its ring goes out in it.
 import { useEffect, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import type { DiagramName } from '../../db/schema';
 import { light } from '../light';
 import { IN_MS, OUT_MS } from '../flow/breath';
 import { shapeOf } from './cycle/index';
-import { Water, type Paces } from './cycle/stream';
+import { Water, laneOf, LANES, type Mote, type Paces } from './cycle/stream';
+import { voiceColour } from '../voice';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** A frame longer than this (a stall, a tab coming back) moves the water no further than this, in seconds. */
@@ -44,6 +52,10 @@ class Layer {
   private mq?: MediaQueryList;
   private unlight?: () => void;
   private live = false;
+  /** The three hues' colours by lane (null: ink), or null for a flow in ink; and each line's lane class now. */
+  private hues: (string | null)[] | null = null;
+  private motes: Mote[] = [];
+  private lane: Int8Array;
 
   constructor(private svg: SVGSVGElement, diagram: DiagramName, n: number, paces: Paces) {
     this.water = new Water(shapeOf(diagram), n, paces);
@@ -56,6 +68,8 @@ class Layer {
     // each lane's widths, set once
     let i = 0;
     for (const lane of this.water.lanes) for (const m of lane.motes) this.lines[i++].setAttribute('stroke-width', m.w.toFixed(2));
+    for (const lane of this.water.lanes) this.motes.push(...lane.motes);
+    this.lane = new Int8Array(this.water.size).fill(-1);
     this.buf = new Float32Array(this.water.size * 5);
     this.last = new Array(this.water.size).fill('');
     svg.replaceChildren(this.g);
@@ -85,6 +99,31 @@ class Layer {
     document.removeEventListener('visibilitychange', this.wake);
     this.mq?.removeEventListener?.('change', this.reread);
     this.unlight?.();
+  }
+
+  /** The lanes' colours (X2): a colour string per lane, null for ink; null for none at all (the flow in ink). */
+  setHues(hues: (string | null)[] | null) {
+    const on = hues && hues.some(Boolean) ? hues : null;
+    if (!on && !this.hues) return;
+    for (let k = 0; k < LANES; k++) {
+      const c = on?.[k];
+      if (c) this.svg.style.setProperty(`--fx${k}`, c); else this.svg.style.removeProperty(`--fx${k}`);
+    }
+    if (!on && this.hues) for (let i = 0; i < this.lines.length; i++) { this.lines[i].removeAttribute('class'); this.lane[i] = -1; }
+    this.hues = on;
+    if (on) { this.lane.fill(-1); this.classes(); }
+  }
+  /** Each line's lane class, written only when its mote has changed lanes (an open lane's mote starts again across
+   *  the line at its faded start, so the change is never seen). An empty slot's lane has no class: ink. */
+  private classes() {
+    const hues = this.hues;
+    if (!hues) return;
+    for (let i = 0; i < this.motes.length; i++) {
+      const k = laneOf(this.motes[i].off);
+      if (k === this.lane[i]) continue;
+      this.lane[i] = k;
+      if (hues[k]) this.lines[i].setAttribute('class', `h${k}`); else this.lines[i].removeAttribute('class');
+    }
   }
 
   /** --stream and --t-page, read from the style: never inside a frame. */
@@ -124,6 +163,7 @@ class Layer {
   private paint(wall: number) {
     const b = this.buf;
     this.water.draw(b, wall);
+    this.classes();
     for (let i = 0; i < this.lines.length; i++) {
       const o = i * 5, el = this.lines[i];
       const op = b[o + 4];
@@ -136,12 +176,13 @@ class Layer {
   }
 
   /** One ring goes out from where the dot landed (one at a time), and the water near it is pushed on. */
-  land(k: number) {
+  land(k: number, colour?: string) {
     if (this.water.k <= 0) return;
     const p = this.water.land(k, this.ripplesLife);
     this.svg.querySelector('.fl-ripple')?.remove();
     const c = document.createElementNS(NS, 'circle');
-    c.setAttribute('class', 'fl-ripple');
+    c.setAttribute('class', colour ? 'fl-ripple fl-ripple-hue' : 'fl-ripple');
+    if (colour) c.style.setProperty('--fxr', colour);
     c.setAttribute('cx', p.x.toFixed(1)); c.setAttribute('cy', p.y.toFixed(1)); c.setAttribute('r', '10');
     c.addEventListener('animationend', () => c.remove());
     this.svg.append(c);
@@ -154,13 +195,18 @@ type Props = {
   paces: Paces;
   /** Where the dot is: 0 at rest, 1 to n on a step. */
   at: number;
-  /** The last landing on a detent: which (0 is rest), and a new seq for each. */
-  landing?: { k: number; seq: number } | null;
+  /** The last landing on a detent: which (0 is rest), and a new seq for each; a hue (X2: a fixation landing in its
+   *  slot) sends the ring out in that colour. */
+  landing?: { k: number; seq: number; hue?: number } | null;
+  /** Energize's lanes (X2): the three fixations' hue angles in slot order, null for an empty slot. Absent: ink. */
+  hues?: (number | null)[];
   /** A thumb holds the middle: when it landed (breath.ts's since), or null. */
   since?: number | null;
 };
 
-export function Stream({ diagram, paces, at, landing, since = null }: Props) {
+const colourOf = (hue: number | null | undefined) => (hue === null || hue === undefined ? null : voiceColour({ hue }, 'light'));
+
+export function Stream({ diagram, paces, at, landing, since = null, hues }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const layer = useRef<Layer | null>(null);
   const n = paces.steps.length;
@@ -169,12 +215,15 @@ export function Stream({ diagram, paces, at, landing, since = null }: Props) {
     const l = new Layer(svg.current!, diagram, n, paces);
     l.water.setAt(at);
     l.water.setHold(since, IN_MS, OUT_MS);
+    if (hues) l.setHues(hues.map(colourOf));
     l.start();
     layer.current = l;
     return () => { l.stop(); layer.current = null; };
   }, [diagram, key]);
   useEffect(() => { layer.current?.water.setAt(at); }, [at]);
-  useEffect(() => { if (landing) layer.current?.land(landing.k); }, [landing?.seq]);
+  useEffect(() => { if (landing) layer.current?.land(landing.k, colourOf(landing.hue) ?? undefined); }, [landing?.seq]);
+  const hueKey = hues ? hues.join(',') : '';
+  useEffect(() => { layer.current?.setHues(hues ? hues.map(colourOf) : null); }, [hueKey]);
   useEffect(() => { layer.current?.water.setHold(since, IN_MS, OUT_MS); }, [since]);
   const shape = shapeOf(diagram);
   return (

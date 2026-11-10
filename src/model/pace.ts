@@ -18,8 +18,9 @@ export const REST_PACE: Record<string, number> = {
   panic: 1,
   // ordinary ground before the slide is already a little slow
   depress: 0.6,
-  // the baseline: an ordinary day, unhurried
-  energize: 0.6,
+  // the baseline, already moving: Energize is the loud page (PLAN-ENERGIZE.md section 4, X2; DESIGN.md rule 32), so the
+  // water is running when it opens, a little quicker than a walk
+  energize: 1.1,
   // the floor before anything has happened
   fight: 0.5,
   // the level line before the dread has a date: barely moving

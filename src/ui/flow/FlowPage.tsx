@@ -11,6 +11,11 @@
 // written until the PIN; "last time" stays behind the PIN, and the header's moon and Flow word ask for it. Anything
 // added under the step (F2's tip rows, the clock, the journal link; F6's notes and ghost rings) reads doorOnly too:
 // behind the PIN go kept lines, notes, "last time", ghost rings, the journal link, the Edit word and every write.
+//
+// The three (PLAN-ENERGIZE.md X2): on the flow named FIXATION_FLOW, at rest, ./Fixations takes the place of all of the
+// rest page (the flow's line, the rest line, last time, what helped, carried notes, the ask, "+ step"), and the stream
+// runs in the three hues there and on every step. Its sheet landing one in a slot sends the stream's ring out in that
+// hue. Through the door the page at rest is the drawing alone, and the water ink: nothing comes from the fixations.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
@@ -38,6 +43,8 @@ import { AskNote, NoteAtStep, RestCarried, useAsk } from './Notes';
 import { StampMarks } from './Stamps';
 import { Stream } from '../parts/Stream';
 import { pacesOf } from '../../model/pace';
+import { FIXATION_FLOW } from '../../model/fixations';
+import { Fixations, huesOf, useFixations, type Landed } from './Fixations';
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -55,11 +62,14 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   const breath = useBreath();
   const [editing, setEditing] = useState(false);
   // F6: the question to the next one of you (asked once per ended episode), and whether his own stamps are drawn
+  // the three (X2): Energize's rest page is the fixations, so it never asks there (asking marks the episode asked)
+  const fixing = id === FIXATION_FLOW;
+  const { fixed, reload } = useFixations(fixing && !doorOnly);
   const [asking, unask] = useAsk(data && data !== 'none' ? data.flow : undefined, data && data !== 'none' ? data.last : undefined,
-    !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
+    !fixing && !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
   const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
-  // M5: the last landing on a detent, for the stream's ring (a new seq each time)
-  const [landing, setLanding] = useState<{ k: number; seq: number } | null>(null);
+  // M5: the last landing on a detent, for the stream's ring (a new seq each time); X2: a fixation landing gives it a hue
+  const [landing, setLanding] = useState<{ k: number; seq: number; hue?: number } | null>(null);
   const own = marks.length > 0;
 
   useEffect(() => {
@@ -120,6 +130,12 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   const helped = !doorOnly && last ? whatHelped(flow, last) : [];
   // the step sheet (F2) edits a step read at rest, and "+ step" opens it empty; neither comes through the door
   const sheets = !doorOnly && !flow.locked;
+  // the three (X2): the stream's lanes in their hues, and the rest page; through the door neither
+  const hues = fixing && fixed ? huesOf(fixed.three) : undefined;
+  const landed = async (l?: Landed) => {
+    await reload();
+    if (l) setLanding(was => ({ k: at, seq: (was?.seq ?? 0) + 1, hue: l.hue }));
+  };
 
   return (
     <Page label={flow.name} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}>
@@ -129,7 +145,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
           {wash > 0 && <Wash left={wash} />}
           {!doorOnly && !flow.locked && <Ghosts flowId={flow.id} diagram={flow.diagram} n={n} version={version} />}
           {/* M5: the stream, behind parts/Cycle and above the ghost rings; through the door too */}
-          <Stream diagram={flow.diagram} paces={pacesOf(flow)} at={at} landing={landing} since={breath.held ? breath.since : null} />
+          <Stream diagram={flow.diagram} paces={pacesOf(flow)} at={at} landing={landing} since={breath.held ? breath.since : null} hues={hues} />
           {!doorOnly && !flow.locked && <StampMarks flowId={flow.id} diagram={flow.diagram} n={n} version={version} onMarks={setMarks} />}
           <Cycle diagram={flow.diagram} stamps={marks} steps={flow.steps} at={at} showing={showing} live={(!!live || held > 0) && moved !== 0}
             disabled={!doorOnly && !!flow.locked} onRead={read} onMove={(v, to) => { setLanding(l => ({ k: to, seq: (l?.seq ?? 0) + 1 })); void move(v, to); }}
@@ -149,6 +165,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
                 onChanged={() => setVersion(v => v + 1)} />
             )}
           </section>
+        ) : fixing ? (
+          fixed && !doorOnly && <Fixations three={fixed.three} deck={fixed.deck} now={now} onChanged={landed} />
         ) : (
           <section class="fl-step-page" aria-label="At rest">
             {flow.line && <p class="fl-line">{flow.line}</p>}
@@ -166,7 +184,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
         )}
         {shown && <PrintLines step={shown} onHandOff={t => void followHandOff(t, shown.id, live, to => route(to), doorOnly)} />}
         {shown && sheets && !live && <p class="fl-edit fs-notstill"><button type="button" class="fs-word" onClick={() => { tickSheet(); setEditing(true); }}>Edit</button></p>}
-        {!shown && sheets && <AddStep flow={flow} onSaved={() => setVersion(v => v + 1)} />}
+        {!shown && sheets && !fixing && <AddStep flow={flow} onSaved={() => setVersion(v => v + 1)} />}
       </div>
       {shown && sheets && (
         <StepSheet flow={flow} step={shown} open={editing} onClose={() => setEditing(false)} onSaved={() => setVersion(v => v + 1)} />
