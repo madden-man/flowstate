@@ -152,18 +152,27 @@ describe('the scapes, on a fake context', () => {
   });
 });
 
-describe('scape(): the one AudioContext, and the ringer', () => {
+describe('scape(): a context of its own, and the ringer', () => {
   let made: FakeContext[] = [];
   // a fresh module each time, so each test meets parts/Sound before its one AudioContext is made
   let scape: typeof import('../../src/ui/parts/Sound').scape;
+  let bell: typeof import('../../src/ui/parts/Sound').bell;
   let settings: typeof import('../../src/ui/settings').settings;
+  type Made = FakeContext & { state: string; resumed: number; closed: number; heard: (() => void)[] };
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.resetModules();
     made = [];
-    class AC extends FakeContext { state = 'running'; resume() { return Promise.resolve(); } constructor() { super(); made.push(this); } }
+    class AC extends FakeContext {
+      state = 'running'; resumed = 0; closed = 0; heard: (() => void)[] = [];
+      resume() { this.resumed++; return Promise.resolve(); }
+      close() { this.closed++; this.state = 'closed'; return Promise.resolve(); }
+      addEventListener(_: string, fn: () => void) { this.heard.push(fn); }
+      removeEventListener(_: string, fn: () => void) { this.heard = this.heard.filter(f => f !== fn); }
+      constructor() { super(); made.push(this); }
+    }
     vi.stubGlobal('window', { AudioContext: AC });
-    ({ scape } = await import('../../src/ui/parts/Sound'));
+    ({ scape, bell } = await import('../../src/ui/parts/Sound'));
     ({ settings } = await import('../../src/ui/settings'));
   });
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -206,16 +215,53 @@ describe('scape(): the one AudioContext, and the ringer', () => {
     expect(s.type).toBe('ambient');
   });
 
-  it('a scape does not follow the Sounds switch (the Quiet chip is its switch), and one context serves every sit', () => {
+  it('a scape does not follow the Sounds switch (the Quiet chip is its switch), and every sit has a context of its own, closed once it has faded', () => {
     settings.value = { ...defaultSettings(0), sounds: false };
     session();
     const a = scape('forest')!;
     expect(made).toHaveLength(1);
     expect(made[0].nodes.length).toBeGreaterThan(0);
-    const b = scape('bowl')!; // a new sit ends the one before it
-    expect(made).toHaveLength(1);
-    a.end(0); b.end(0);
+    const b = scape('bowl')!; // a new sit ends the one before it, on a new context
+    expect(made).toHaveLength(2);
+    expect((made[0] as Made).closed).toBe(0);
     vi.advanceTimersByTime(6_400);
+    expect((made[0] as Made).closed).toBe(1);
+    a.end(0); b.end(0);
+    vi.advanceTimersByTime(400);
+    expect((made[1] as Made).closed).toBe(1);
+  });
+
+  it('a sit never plays on the bells\' context, which the iPhone may have left silent', () => {
+    settings.value = { ...defaultSettings(0), sounds: true };
+    session();
+    bell('keep');
+    expect(made).toHaveLength(1);
+    const sit = scape('rain')!;
+    expect(made).toHaveLength(2);
+    expect(sit.now()).toBe(made[1].currentTime);
+    // the closing bell rings on the sit's context, which is awake
+    const before = made[1].nodes.length;
+    bell('sitEnd');
+    expect(made[1].nodes.length).toBeGreaterThan(before);
+    sit.end(6);
+    vi.advanceTimersByTime(6_400);
+    // afterwards the bells are back on their own
+    const own = made[0].nodes.length;
+    bell('keep');
+    expect(made[0].nodes.length).toBeGreaterThan(own);
+  });
+
+  it('interrupted mid-sit, the context is woken again while the page is in front, and not once the sit has ended', () => {
+    session();
+    vi.stubGlobal('document', { visibilityState: 'visible' });
+    const sit = scape('ocean')!;
+    const c = made[0] as Made;
+    c.state = 'interrupted';
+    c.heard.forEach(fn => fn());
+    expect(c.resumed).toBe(1);
+    sit.end(0);
+    expect(c.heard).toHaveLength(0);
+    vi.advanceTimersByTime(400);
   });
 
   it('a newer sit keeps the session when the older one finishes fading', () => {
