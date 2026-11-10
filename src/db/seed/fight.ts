@@ -4,8 +4,9 @@
 // imperatives, one idea per said line. Softened (PLAN-FLOWS.md 3.7): the cooling step reads "Slower now?", never a
 // pulse under a hundred. Nothing on this flow says "calm down", and nothing is scored.
 import type { FlowSeed } from '../seed-flows';
+import { withPicks } from './picks';
 
-export const FIGHT: FlowSeed = {
+export const FIGHT: FlowSeed = withPicks({
   id: 'fight',
   name: 'Fight',
   order: 4,
@@ -53,6 +54,8 @@ export const FIGHT: FlowSeed = {
         { id: 'fight-3-going', text: `Say "I'm going, back at 7:40"`, short: "Say you're going, and when", helper: 'timer' },
         { id: 'fight-3-none', text: 'No texts, no venting, not yet.' },
         { id: 'fight-3-walk', text: 'Walk, music, a shower, slow breathing', short: 'Walk, or music', helper: 'ring' },
+        // PLAN-PICKS.md 3.4 (P0): an album is a clock that is not a timer
+        { id: 'fight-3-on', text: "One album: that's the twenty minutes", helper: 'on' },
         // F6 (3.7): the "I'm going" line may go as a text to the person it is for; {time} is the return time
         { id: 'fight-3-tell', text: 'Tell them, written when calm', short: 'Tell them', helper: 'person', person: { name: '', text: "I'm going. Back at {time}." } },
         { id: 'fight-3-hot', text: 'Hot. Leave now.', wise: true },
@@ -82,7 +85,7 @@ export const FIGHT: FlowSeed = {
       tips: [
         { id: 'fight-5-want', text: 'What did Tommy want, in there?', wise: true },
         { id: 'fight-5-side', text: 'Look at it once from the side, then let it be', short: 'Once, from the side' },
-        { id: 'fight-5-distract', text: 'If you catch the replay, distract on purpose', short: 'Distract on purpose', helper: 'music' },
+        { id: 'fight-5-distract', text: 'If you catch the replay, distract on purpose', short: 'Distract on purpose', helper: 'on' },
         { id: 'fight-5-write', text: 'Write it later, from a distance: what happened, and what next time', short: 'Write it later', helper: 'journal' },
       ],
     },
@@ -95,8 +98,8 @@ export const FIGHT: FlowSeed = {
       tips: [
         { id: 'fight-6-back', text: '"Can I take that back?" or "Let me try again"', short: 'Can I take that back?' },
         { id: 'fight-6-part', text: `"I'm sorry," and your part, in a few short words`, short: 'Own your part' },
-        { id: 'fight-6-between', text: 'Between fights, the friendship is what makes repairs work', short: 'The friendship does the work' },
+        { id: 'fight-6-between', text: 'Between fights, the friendship is what makes repairs work', short: 'The friendship does the work', helper: 'on' },
       ],
     },
   ],
-};
+});

@@ -229,7 +229,13 @@ export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'co
 /** prediction (F6, not in PLAN-FLOWS.md section 5): one rule under the row for the worry written as a prediction,
  *  kept on the episode (episodes.prediction), so the morning after can ask for its outcome. sit (PLAN-MEDITATE.md
  *  section 5, S3): the row opens Meditate carrying the episode, and a sit of a minute or more ends by ticking it. */
-export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit';
+export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit' | 'on';
+/** What a pick is (PLAN-PICKS.md section 6): an album is a cover, the rest are written lines with their kind word. */
+export type PickKind = 'album' | 'show' | 'film' | 'switch' | 'phone';
+/** Something to put on at a step (PLAN-PICKS.md section 6, P0): a title and its kind, nothing more; no note (Tommy,
+ *  2026-11-10). by is an album's artist, albumId its Spotify album id. struck stays struck (rule 10), never deleted.
+ *  Sealed with the step. Named OnPick, not the plan's Pick, so it never shadows TypeScript's own Pick in this file. */
+export type OnPick = { id: string; kind: PickKind; title: string; by?: string; albumId?: string; struck?: boolean };
 /** A thing to do at a step. text is the row; short the Still row; wise sets it in italic as the wiser second person
  *  (DESIGN.md rule 17); struck stays struck (rule 10), never deleted. */
 export type Tip = {
@@ -255,6 +261,10 @@ export type Step = {
   spanMin?: number;
   /** Not in PLAN-FLOWS.md section 5 (F1): the peak, where "last time" counts from ("48 minutes from the peak to clear"). */
   peak?: boolean;
+  /** PLAN-PICKS.md section 6 (P0): what the step's On row offers, in its order, and the one line its sheet prints.
+   *  Optional, so no Dexie version bump; sealed with the step like its tips. */
+  picks?: OnPick[];
+  onLine?: string;
 };
 /** A note to the next one of you (PLAN-FLOWS.md 3.7, F6): Tommy's line, the step it shows at, sealed. struck (F6, not
  *  in section 5) is when he struck it in the step sheet's Earlier (rule 10: struck, never deleted). */
@@ -293,6 +303,8 @@ export type Episode = {
   /** Not in PLAN-FLOWS.md section 5 (F6): when the page asked "Anything to tell the next one of you who's here?" for
    *  this episode. It asks once per episode, so set the first time it shows, and a swipe only hides it. */
   asked?: Millis;
+  /** PLAN-PICKS.md section 6 (P0): the line ticked on the On sheet, by id, with its title as it read then (sealed). */
+  on?: { pickId: string; title: string; at: Millis };
   sealed?: Sealed;
 };
 

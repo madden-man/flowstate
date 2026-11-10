@@ -6,6 +6,7 @@ import type { Flow, Item, Message, Page, Paradox, Settings, Voice, VoiceColour }
 import type { Read } from './fields';
 import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
+import { PICKS } from './seed/picks';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -112,7 +113,7 @@ export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
     lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
-    flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark)],
+    flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark), ...PICKS.map(p => picksMark(p.stepId))],
     sitSound: 'rain', sitMinutes: 0, sitThroughSilent: true,
   };
 }
@@ -189,6 +190,57 @@ function withLaterTips(flow: Read<Flow>, tipIds: string[]): Flow[] {
   if (!changed) return [];
   const at = Date.now();
   return [{ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] }];
+}
+
+// ---- the picks (PLAN-PICKS.md section 6, P0) ----
+
+/** How a step's seed picks are marked in settings.flowsSeeded once they have been given (a flow id has no colon). */
+const picksMark = (stepId: string) => `picks:${stepId}`;
+
+let picksPass: Promise<string[] | null> | null = null;
+
+/**
+ * Once per step, for a journal that had the flows before the picks (P0): the step's On row gets its helper, and the step
+ * its seed picks and printed line, as one new revision of its flow. Runs after seedFlowsOnce, which brings the four new
+ * On rows (SEED_TIPS_LATER). Never brings anything back: a step he deleted gets nothing; an On row he struck or deleted
+ * gets no helper and no picks; a row he gave another helper keeps it; picks or a printed line already on the step (his
+ * own, from the step sheet) are left alone; a step marked once is never touched again. A locked journal returns null and
+ * tries on the next open. Returns the step ids given picks.
+ */
+export function seedPicksOnce(): Promise<string[] | null> {
+  picksPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    const done = new Set(s.flowsSeeded ?? []);
+    const todo = PICKS.filter(p => !done.has(picksMark(p.stepId)));
+    if (!todo.length) return [];
+    const stored = await store.all('flows');
+    if (stored.some(f => f.locked)) return null;
+    const given: string[] = [];
+    const at = Date.now();
+    const grown: Flow[] = [];
+    for (const flow of stored) {
+      let changed = false;
+      const steps = flow.steps.map(st => {
+        const p = todo.find(x => x.stepId === st.id);
+        const row = p && st.tips.find(t => t.id === p.tipId);
+        if (!p || !row || row.struck) return st;
+        const helper = row.helper === undefined || row.helper === 'music' ? 'on' : row.helper;
+        const tips = helper === row.helper ? st.tips : st.tips.map(t => (t.id === row.id ? { ...t, helper } : t));
+        const picks = st.picks ?? structuredClone(p.picks);
+        const onLine = st.onLine ?? p.onLine;
+        if (tips === st.tips && picks === st.picks && onLine === st.onLine) return st;
+        changed = true;
+        given.push(st.id);
+        return { ...st, tips, picks, ...(onLine !== undefined ? { onLine } : {}) };
+      });
+      if (changed) grown.push({ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] });
+    }
+    await store.many({ flows: grown, settings: [{ ...s, flowsSeeded: [...done, ...todo.map(p => picksMark(p.stepId))] }] });
+    return given;
+  })().finally(() => { picksPass = null; });
+  return picksPass;
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----

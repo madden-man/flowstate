@@ -2,8 +2,8 @@
 // here, so no UI code ever touches a stored string:
 //   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
-//   flows: name, line, restLine, every step's name, line, said, usual, usualShort and tips (text, short, person), the revisions'
-//   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines and the prediction's text.
+//   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
+//   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -129,15 +129,22 @@ const flowSpec: Spec<Tables['flows']> = {
   },
 };
 
-type ESecret = { lines?: string[]; prediction?: string };
+/** on (PLAN-PICKS.md, P0): the title of what was put on is his, so it is sealed; its id and time stay clear. */
+type ESecret = { lines?: string[]; prediction?: string; on?: string };
 const episodeSpec: Spec<Tables['episodes']> = {
   take: row => ({
-    clear: { ...row, lines: undefined, prediction: row.prediction ? { ...row.prediction, text: '' } : undefined },
-    secret: { lines: row.lines, prediction: row.prediction?.text } satisfies ESecret,
+    clear: {
+      ...row, lines: undefined, prediction: row.prediction ? { ...row.prediction, text: '' } : undefined,
+      on: row.on ? { ...row.on, title: '' } : undefined,
+    },
+    secret: { lines: row.lines, prediction: row.prediction?.text, on: row.on?.title } satisfies ESecret,
   }),
   give: (clear, raw) => {
     const s = (raw ?? {}) as ESecret;
-    return { ...clear, lines: s.lines, prediction: clear.prediction ? { ...clear.prediction, text: s.prediction ?? '' } : undefined };
+    return {
+      ...clear, lines: s.lines, prediction: clear.prediction ? { ...clear.prediction, text: s.prediction ?? '' } : undefined,
+      on: clear.on ? { ...clear.on, title: s.on ?? '' } : undefined,
+    };
   },
 };
 

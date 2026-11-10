@@ -38,7 +38,7 @@ import {
 
 /** The helper's word at the row's end, as the flows proposal prints it. */
 export const HELPER_WORD: Record<TipHelper, string> = {
-  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person', prediction: 'Predict', sit: 'Sit',
+  still: 'Still', music: '♪', ring: 'Ring', five: 'Five', journal: 'Journal', timer: 'Timer', person: 'Person', prediction: 'Predict', sit: 'Sit', on: 'On',
 };
 
 type Props = {
