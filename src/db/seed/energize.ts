@@ -1,17 +1,22 @@
 // Energize, the landing arc (PLAN-FLOWS.md 3.3): five steps up to the crest and down one of two paths. The page's
 // print from the research, with the language audit applied (PLAN-FLOWS-WORDS.md): speech register, one idea per said
 // line, no instruction the rows already hold. No line in Tommy's own words in the plan, so `line` is left for him.
-// The boundary (hypomania) is not a step: it is the flow's restLine, one gentle print line on the page at rest, in
-// every light, with "doctor" for the audit's "GP". The flow is never called mania.
+// The boundary (hypomania) is not a step: it is one gentle print line, in every light, with "doctor" for the audit's
+// "GP". It was the flow's restLine until PLAN-ENERGIZE.md X5 moved it under The tip's rows (the rest page is the three
+// now); seed.ts moveDoctorLineOnce does the same once for the flow already on the phone. The flow is never called mania.
 import type { FlowSeed } from '../seed-flows';
 import { withPicks } from './picks';
+
+/** The boundary line (X5), and its tip's id on The tip. */
+export const DOCTOR_LINE = 'Highs most days for a week without needing sleep: talk to your doctor.';
+export const DOCTOR_TIP = 'energize-4-doctor';
+export const DOCTOR_STEP = 'energize-4';
 
 export const ENERGIZE: FlowSeed = withPicks({
   id: 'energize',
   name: 'Energize',
   order: 3,
   diagram: 'arc',
-  restLine: 'Highs most days for a week without needing sleep: talk to your doctor.',
   steps: [
     {
       id: 'energize-1',
@@ -65,6 +70,8 @@ export const ENERGIZE: FlowSeed = withPicks({
         { id: 'energize-4-ideas', text: 'Write the extra ideas down, each with a when', short: 'Write the ideas down', helper: 'journal' },
         { id: 'energize-4-double', text: 'Double any time estimate before you say yes', short: 'Double the estimate' },
         { id: 'energize-4-sleep', text: 'Big messages and decisions after sleep.', wise: true },
+        // X5: the boundary, printed under the rows (a print line is no row, so it counts toward no cap)
+        { id: DOCTOR_TIP, text: DOCTOR_LINE, print: true },
       ],
     },
     {

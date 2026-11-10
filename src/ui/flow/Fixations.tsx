@@ -12,17 +12,26 @@
 //
 // Still (rule 13): the names only; no since line, no stroke, no deck, no foot. Through the door without the PIN the
 // page is the drawing alone (FlowPage renders none of this), since the names are sealed (section 2).
-import { useEffect, useState } from 'preact/hooks';
+//
+// Spark it (X5): a card with a Next line shows it as a third rule under the since line, italic, after the print word
+// "Next"; it is written in the sheet's Edit or on the ride, never here. The ride's card (FlowPage on a step, when the
+// live episode names a fixation) is the same card, alone and not a button (a tap on it does nothing while riding), its
+// Next an open line on a rule that keeps itself on blur or a pause (setNext), no save word (rule 6). Still hides Next.
+import { useEffect, useRef, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 import type { Fixation } from '../../db/schema';
 import type { Read } from '../../db/fields';
-import { FIXATION_FLOW, deck as readDeck, openStint, spanOfStint, three as readThree, type Three } from '../../model/fixations';
+import {
+  FIXATION_FLOW, deck as readDeck, fixationById, openStint, setNext, spanOfStint, three as readThree, type Sparked, type Three,
+} from '../../model/fixations';
 import { dataVersion } from '../sheets';
 import { shortDate } from '../date';
 import { light } from '../light';
 import { voiceColour } from '../voice';
 import { DeckSheet } from './DeckSheet';
 
-export type Fixed = { three: Three; deck: Read<Fixation>[] };
+/** ride (X5): the fixation the live episode names, when one does and it can show. */
+export type Fixed = { three: Three; deck: Read<Fixation>[]; ride?: Read<Fixation> };
 /** What the sheet is open on: one of the three slots, or a deck fixation looking for a slot. */
 export type DeckOpen = { slot: number } | { id: string } | null;
 /** A fixation that has landed in a slot, as the sheet tells it. */
@@ -31,22 +40,28 @@ export type Landed = { slot: number; hue: number };
 /** A row the page may show: there, and not read locked. */
 const shown = (f: Read<Fixation> | undefined): f is Read<Fixation> => !!f && !f.locked;
 
-/** The three and the deck, read again on an import (dataVersion) and on reload(). Nothing is read while off (any other
- *  flow, or through the door). */
-export function useFixations(on: boolean): { fixed: Fixed | null; reload: () => Promise<void> } {
+/** The three and the deck, and the ridden one when rideId names it (X5), read again on an import (dataVersion), when
+ *  the ride changes and on reload(). Nothing is read while off (any other flow, or through the door). */
+export function useFixations(on: boolean, rideId?: string): { fixed: Fixed | null; reload: () => Promise<void> } {
   const [fixed, setFixed] = useState<Fixed | null>(null);
-  const read = async () => { const [three, deck] = await Promise.all([readThree(), readDeck()]); return { three, deck }; };
+  const read = async (): Promise<Fixed> => {
+    const [three, deck, ride] = await Promise.all([readThree(), readDeck(), rideId ? fixationById(rideId) : undefined]);
+    return { three, deck, ride: shown(ride) ? ride : undefined };
+  };
   useEffect(() => {
     if (!on) { setFixed(null); return; }
     let live = true;
     void read().then(f => { if (live) setFixed(f); });
     return () => { live = false; };
-  }, [on, dataVersion.value]);
+  }, [on, rideId, dataVersion.value]);
   return { fixed, reload: async () => { if (on) setFixed(await read()); } };
 }
 
 /** The three's hue angles in slot order, for the stream's lanes (null for an empty slot: its lane stays ink). */
 export const huesOf = (three: Three): (number | null)[] => three.map(f => (shown(f) ? f.hue : null));
+
+/** The stream's lanes on Energize (rule 30): a ride named by Spark it runs in its one hue, every lane; else the three. */
+export const laneHues = (fixed: Fixed): (number | null)[] => (fixed.ride ? [fixed.ride.hue, fixed.ride.hue, fixed.ride.hue] : huesOf(fixed.three));
 
 /** The Flow list's meta line for Energize: the three names in slot order (X2); undefined when none can show. */
 export function namesOf(three: Three): string | undefined {
@@ -63,14 +78,75 @@ const Under = () => (
   </svg>
 );
 
+/** One of the three, as at rest; the ride's card when ride is set. */
+export function FixationCard({ f, now, slot, fresh, onOpen, ride }: {
+  f: Read<Fixation>; now: number; slot?: number; fresh?: boolean; onOpen?: () => void;
+  /** X5: the ride's card, not a button, its Next written here. */
+  ride?: boolean;
+}) {
+  const still = light.value === 'still';
+  const stint = openStint(f);
+  const inner = (
+    <>
+      <span class="fx-name"><span>{f.name}{!still && <Under />}</span></span>
+      {!still && stint && (
+        <small class="fx-meta">
+          Since {shortDate(new Date(stint.from))}<span class="fs-notstill"> · {spanOfStint(stint, now)}</span>
+        </small>
+      )}
+      {!still && (ride ? <NextLine f={f} /> : f.next && <span class="fx-next fs-notstill"><small>Next</small>{f.next}</span>)}
+    </>
+  );
+  if (ride) return <div class="fx-card fx-ride" data-ride="" style={colour(f.hue)}>{inner}</div>;
+  return (
+    <button type="button" class={`fx-card${fresh ? ' fresh' : ''}`} data-slot={slot} data-fx-slot={slot} style={colour(f.hue)} onClick={onOpen}>
+      {inner}
+    </button>
+  );
+}
+
+/** A pause in the typing this long keeps the Next line, as a page keeps a block (journal/PageView's SAVE_AFTER_MS). */
+const NEXT_AFTER_MS = 600;
+
+/** The ride's Next line (X5): an open line on a rule, kept on blur and after a pause; an empty line takes it away. */
+function NextLine({ f }: { f: Read<Fixation> }) {
+  const [text, setText] = useState(f.next ?? '');
+  const kept = useRef(f.next ?? '');
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => { setText(f.next ?? ''); kept.current = f.next ?? ''; }, [f.id]);
+  const keep = (v: string) => {
+    clearTimeout(timer.current);
+    if (v.trim() === kept.current) return;
+    kept.current = v.trim();
+    void setNext(f.id, v);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return (
+    <label class="fx-next fx-next-edit fs-notstill">
+      <small>Next</small>
+      <input class="fx-next-input" value={text} placeholder="The next small step" aria-label="Next" autocomplete="off" enterKeyHint="done"
+        onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => {
+          const v = e.currentTarget.value;
+          setText(v);
+          clearTimeout(timer.current);
+          timer.current = setTimeout(() => keep(v), NEXT_AFTER_MS);
+        }}
+        onBlur={e => keep(e.currentTarget.value)}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+    </label>
+  );
+}
+
 type Props = Fixed & {
   /** The minute now (FlowPage's useNow), for the span. */
   now: number;
   /** The sheet changed something: read again, then (if one landed) send the ring. Resolves once the page has the new rows. */
   onChanged: (landed?: Landed) => Promise<void> | void;
+  /** Spark it (X5) named the ride: the page routes to the dot's step. */
+  onSpark?: (sparked: Sparked) => void;
 };
 
-export function Fixations({ three, deck, now, onChanged }: Props) {
+export function Fixations({ three, deck, now, onChanged, onSpark }: Props) {
   const [open, setOpen] = useState<DeckOpen>(null);
   // the card that last landed, drawn fresh: a new seq remounts it so its stroke is drawn again
   const [fresh, setFresh] = useState<{ slot: number; seq: number } | null>(null);
@@ -95,17 +171,7 @@ export function Fixations({ three, deck, now, onChanged }: Props) {
               </button>
             );
           }
-          const stint = openStint(f);
-          return (
-            <button key={key} type="button" class={`fx-card${isFresh ? ' fresh' : ''}`} data-slot={slot} data-fx-slot={slot} style={colour(f.hue)} onClick={() => setOpen({ slot })}>
-              <span class="fx-name"><span>{f.name}{!still && <Under />}</span></span>
-              {!still && stint && (
-                <small class="fx-meta">
-                  Since {shortDate(new Date(stint.from))}<span class="fs-notstill"> · {spanOfStint(stint, now)}</span>
-                </small>
-              )}
-            </button>
-          );
+          return <FixationCard key={key} f={f} now={now} slot={slot} fresh={isFresh} onOpen={() => setOpen({ slot })} />;
         })}
       </div>
       {!still && deck.some(shown) && (
@@ -121,7 +187,7 @@ export function Fixations({ three, deck, now, onChanged }: Props) {
         </div>
       )}
       {!still && <p class="fx-foot"><a class="fs-word" href={`#/flow/${FIXATION_FLOW}/stuck`}>What stuck</a></p>}
-      <DeckSheet open={open} onClose={() => setOpen(null)} onChanged={landed => { void changed(landed); }} />
+      <DeckSheet open={open} onClose={() => setOpen(null)} onChanged={landed => { void changed(landed); }} onSpark={onSpark} />
     </section>
   );
 }

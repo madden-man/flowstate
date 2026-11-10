@@ -19,7 +19,9 @@ vi.mock('../../src/ui/flow/DeckSheet', () => ({
   DeckSheet: (props: (typeof sheet.calls)[number]) => { sheet.calls.push(props); return null; },
 }));
 
-import { Fixations, namesOf, huesOf } from '../../src/ui/flow/Fixations';
+import { Fixations, FixationCard, namesOf, huesOf, laneHues } from '../../src/ui/flow/Fixations';
+import { spark, setNext, fixationById } from '../../src/model/fixations';
+import { moveDot } from '../../src/model/flows';
 import { FlowPage } from '../../src/ui/flow/FlowPage';
 import { Flow } from '../../src/ui/flow/Flow';
 
@@ -165,5 +167,124 @@ describe('the Energize page and the Flow list, from the database', () => {
     await flush();
     const row = [...root.querySelectorAll('a.fl-flow')].find(a => a.querySelector('.fs-list-line')!.textContent === 'Energize')!;
     expect(row.querySelector('.fs-list-meta')!.textContent).toBe('The landing arc');
+  });
+});
+
+describe('Next on a card at rest (X5)', () => {
+  it('is a third rule under the since line, italic after the print word, only when it has one; not in Still', () => {
+    const withNext = { ...EAST, next: 'Chapter nine, the harbor at dawn' } as Read<Fixation>;
+    act(() => { render(h(Fixations, { three: [FLOWSTATE, withNext, JAPAN], deck: DECK, now: NOW, onChanged: () => undefined }), root); });
+    const cards = root.querySelectorAll('.fx-card');
+    expect(cards[0].querySelector('.fx-next')).toBeNull();
+    const next = cards[1].querySelector('.fx-next')!;
+    expect(next.textContent).toBe('NextChapter nine, the harbor at dawn');
+    expect(next.querySelector('small')!.textContent).toBe('Next');
+    expect(next.querySelector('input')).toBeNull();
+    expect(next.classList.contains('fs-notstill')).toBe(true);
+    still.value = { since: Date.now() };
+    act(() => { render(h(Fixations, { three: [FLOWSTATE, withNext, JAPAN], deck: DECK, now: NOW, onChanged: () => undefined }), root); });
+    expect(root.querySelector('.fx-next')).toBeNull();
+  });
+
+  it('the ride\'s card is not a button and its Next is an open line', () => {
+    act(() => { render(h(FixationCard, { f: EAST, now: NOW, ride: true }), root); });
+    const card = root.querySelector('.fx-card')!;
+    expect(card.tagName).toBe('DIV');
+    expect(card.hasAttribute('data-fx-slot')).toBe(false);
+    const input = card.querySelector<HTMLInputElement>('.fx-next input')!;
+    expect(input.placeholder).toBe('The next small step');
+  });
+
+  it('a ride runs in one hue on every lane; without one, the three', () => {
+    expect(laneHues({ three: [FLOWSTATE, EAST, JAPAN], deck: [], ride: EAST })).toEqual([150, 150, 150]);
+    expect(laneHues({ three: [FLOWSTATE, undefined, JAPAN], deck: [] })).toEqual([250, null, 25]);
+  });
+});
+
+describe('the Energize step page (X5), from the database', () => {
+  beforeEach(async () => {
+    await freshDB();
+    await ensureSeeded();
+    await seedFlowsOnce();
+    await seedFixationsOnce();
+  });
+  const page = (props: { id: string; step?: string; doorOnly?: boolean }) =>
+    act(() => { render(h(LocationProvider, null, h(FlowPage, props)), root); });
+  const lanes = () => [...root.querySelectorAll('.fl-stream line[class]')].map(l => l.getAttribute('class'));
+  const svgStyle = () => root.querySelector<SVGSVGElement>('.fl-stream svg')!.style;
+
+  it('on a named ride: the ridden card alone, then the rows; no said or Usually paragraph; the water in its one hue', async () => {
+    await spark('fx-east-winds');
+    await moveDot('energize', [], 'energize-3');
+    page({ id: 'energize', step: '3' });
+    await flush();
+    const step = root.querySelector('.fl-step-page')!;
+    expect([...step.querySelectorAll('.fx-card .fx-name')].map(e => e.textContent)).toEqual(['East Winds']);
+    // the card comes before the rows
+    const card = step.querySelector('.fx-card')!;
+    const firstRow = step.querySelector('.fl-tip, .fl-tips, [data-tip]')!;
+    expect(firstRow).not.toBeNull();
+    expect(card.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(step.textContent).toContain('A timer, 25 to 50 minutes');
+    expect(root.querySelector('.fl-said:not(.fl-print)')).toBeNull();
+    expect(root.textContent).not.toMatch(/This is the sweet spot|Usually:/);
+    // Still's words-only usual stays
+    expect(root.querySelector('.fl-usual.fs-stillonly')!.textContent).toBe('The sweet spot, for a while.');
+    // one hue on every lane (East Winds is green, 150)
+    expect(svgStyle().getPropertyValue('--fx0')).toMatch(/ 150\)$/);
+    expect(svgStyle().getPropertyValue('--fx1')).toMatch(/ 150\)$/);
+    expect(svgStyle().getPropertyValue('--fx2')).toMatch(/ 150\)$/);
+  });
+
+  it('the ride\'s Next line keeps itself on blur', async () => {
+    await spark('fx-east-winds');
+    page({ id: 'energize', step: '1' });
+    await flush();
+    const input = root.querySelector<HTMLInputElement>('.fx-ride .fx-next input')!;
+    await act(async () => { input.value = 'Chapter nine'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+    await act(async () => { input.dispatchEvent(new FocusEvent('blur')); });
+    await flush();
+    expect((await fixationById('fx-east-winds'))!.next).toBe('Chapter nine');
+  });
+
+  it('a ride dragged off rest names nothing: no card, the three hues', async () => {
+    await moveDot('energize', [], 'energize-1');
+    page({ id: 'energize', step: '1' });
+    await flush();
+    expect(root.querySelector('.fx-card')).toBeNull();
+    expect(root.textContent).toContain('One task, and its next small step');
+    expect(root.querySelector('.fl-said:not(.fl-print)')).toBeNull();
+    expect(svgStyle().getPropertyValue('--fx0')).toMatch(/ 250\)$/);
+    expect(svgStyle().getPropertyValue('--fx1')).toMatch(/ 150\)$/);
+    expect(new Set(lanes()).size).toBe(3);
+  });
+
+  it('a step only read, with no live episode, has no card; The tip prints the doctor line', async () => {
+    page({ id: 'energize', step: '4' });
+    await flush();
+    expect(root.querySelector('.fx-card')).toBeNull();
+    expect(root.querySelector('.fl-prints')!.textContent).toBe('Highs most days for a week without needing sleep: talk to your doctor.');
+    expect(root.textContent).not.toMatch(/Wired and scattered/);
+  });
+
+  it('through the door: no card, nothing from the fixations, the rows as today, the water ink', async () => {
+    await spark('fx-east-winds');
+    await setNext('fx-east-winds', 'Chapter nine');
+    page({ id: 'energize', step: '1', doorOnly: true });
+    await flush();
+    expect(root.querySelector('.fx-card')).toBeNull();
+    expect(root.textContent).not.toMatch(/East Winds|Chapter nine|FlowState/);
+    expect(root.textContent).toContain('One task, and its next small step');
+    expect(root.querySelector('.fl-stream line[class]')).toBeNull();
+  });
+
+  it('back at rest the three colours return', async () => {
+    await spark('fx-east-winds');
+    await moveDot('energize', [], 'rest');
+    page({ id: 'energize' });
+    await flush();
+    expect(svgStyle().getPropertyValue('--fx0')).toMatch(/ 250\)$/);
+    expect(svgStyle().getPropertyValue('--fx2')).toMatch(/ 25\)$/);
+    expect(root.querySelectorAll('.fx-cards .fx-card')).toHaveLength(3);
   });
 });

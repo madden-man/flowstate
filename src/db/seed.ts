@@ -7,6 +7,7 @@ import type { Read } from './fields';
 import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
 import { PICKS } from './seed/picks';
+import { DOCTOR_LINE, DOCTOR_STEP, DOCTOR_TIP } from './seed/energize';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -295,6 +296,47 @@ export function seedFixationsOnce(now = Date.now()): Promise<string[] | null> {
     return write.map(f => f.id);
   })().finally(() => { fixationsPass = null; });
   return fixationsPass;
+}
+
+// ---- the doctor line moves (PLAN-ENERGIZE.md section 5, X5) ----
+
+/** The name the pass leaves in settings.cleaned once it has run. */
+export const DOCTOR_PASS = 'energize-doctor';
+
+let doctorPass: Promise<boolean | null> | null = null;
+
+/**
+ * Once per journal (X5): on the Energize flow row, the doctor line goes from restLine (the rest page is the three now)
+ * to a print line under The tip's rows, in every light, as one new revision. Safe on a flow he has edited: the line
+ * is added only if The tip has no tip with its id or its words; restLine is cleared only when it is still the seed's
+ * words (a line he rewrote stays his, unseen); a step he deleted gets nothing and keeps restLine as it is; every
+ * other edit stands. The flow gone: nothing is written but the mark. A fresh journal is seeded in this shape
+ * (seed/energize.ts), so it is a no-op there. Runs where the journal is open, like seedFlowsOnce, after it; a locked
+ * journal returns null and tries on the next open. Returns whether the flow was written.
+ */
+export function moveDoctorLineOnce(): Promise<boolean | null> {
+  doctorPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    if (s.cleaned?.includes(DOCTOR_PASS)) return false;
+    const done = { ...s, cleaned: [...(s.cleaned ?? []), DOCTOR_PASS] };
+    const flow = await store.get('flows', 'energize');
+    if (flow?.locked) return null;
+    const step = flow?.steps.find(st => st.id === DOCTOR_STEP);
+    if (!flow || !step) { await store.put('settings', done); return false; }
+    const there = step.tips.some(t => t.id === DOCTOR_TIP || t.text.trim() === DOCTOR_LINE);
+    const clear = flow.restLine?.trim() === DOCTOR_LINE;
+    if (there && !clear) { await store.put('settings', done); return false; }
+    const steps = there ? flow.steps : flow.steps.map(st => (st.id === DOCTOR_STEP
+      ? { ...st, tips: [...st.tips, { id: DOCTOR_TIP, text: DOCTOR_LINE, print: true }] } : st));
+    const { restLine: _was, ...rest } = flow;
+    const at = Date.now();
+    const row: Flow = { ...(clear ? rest : flow), steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] };
+    await store.many({ flows: [row], settings: [done] });
+    return true;
+  })().finally(() => { doctorPass = null; });
+  return doctorPass;
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----
