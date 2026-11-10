@@ -153,6 +153,8 @@ export type Message = {
 };
 
 export type Pole = { value: string; aspect: string; shadow?: string };
+/** One "Not me" line under a spread (PLAN-SELF.md section 3.4): his words, kept on the paradox and gone with it. */
+export type Refusal = { id: string; text: string; at: Millis };
 export type Middle = { word?: string; scenario?: string };
 export type Paradox = {
   id: string;
@@ -166,6 +168,11 @@ export type Paradox = {
   /** V13: its place on the Be list, as Tommy dragged it. Optional, so no Dexie version bump: a paradox never
    *  placed (an older one, or a new one) sorts after the placed ones, oldest first. */
   order?: number;
+  /** PLAN-SELF.md section 4: his own line for the paradox ("Both"), the creed at the top of Be. Optional and
+   *  unindexed, so no Dexie version bump; sealed. Written plainly, never a revision. */
+  creed?: string;
+  /** PLAN-SELF.md section 4: at most REFUSALS "Not me" lines, in the order he added them. Optional, unindexed, sealed. */
+  refusals?: Refusal[];
   sealed?: Sealed;
 };
 
@@ -186,8 +193,9 @@ export type Item = {
   nextTo?: string;
   doneLog: { at: Millis }[];
   order: number;
-  /** Not in PLAN.md section 4 (package 3): a goal is archived, never deleted. Missing means false, so
-   *  no migration is needed; an archived goal leaves the spread and its balance shows an open slot. */
+  /** Not in PLAN.md section 4 (package 3): a goal was archived, not deleted, until PLAN-SELF.md made delete
+   *  entire (deleteGoal). Missing means false, so no migration is needed; a goal archived before then stays off
+   *  the spread and its balance shows an open slot. */
   archived?: boolean;
   sealed?: Sealed;
 };

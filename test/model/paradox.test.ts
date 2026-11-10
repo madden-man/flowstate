@@ -293,7 +293,7 @@ describe('adding and editing goals', () => {
     expect(await saveGoal('missing', { text: 'x' })).toEqual([]);
   });
 
-  it('archives instead of deleting; the balance shows its slot again', async () => {
+  it('archive (kept for rows written before delete) hides a goal; the balance shows its slot again', async () => {
     const [a, b] = await addGoals('p', { a: 'one', b: 'two' });
     await archiveGoal(b.id);
     expect((await store.get('items', b.id))!.archived).toBe(true);

@@ -1,6 +1,7 @@
 // The one typed door to the database (PLAN.md section 7). Every secret text field is written and read
 // here, so no UI code ever touches a stored string:
 //   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
+//   the paradox's creed and its refusals' text (PLAN-SELF.md section 4),
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
@@ -42,7 +43,9 @@ const messageSpec: Spec<Tables['messages']> = {
   },
 };
 
-type PSecret = { a: string; b: string; s?: string; r: [string, string, string | undefined][] };
+/** c and f (PLAN-SELF.md section 4) are the creed and the refusals' text; a row sealed before them has neither
+ *  and reads back without them. A locked read keeps the refusals' ids and dates and an empty creed when one is written. */
+type PSecret = { a: string; b: string; s?: string; r: [string, string, string | undefined][]; c?: string; f?: string[] };
 const paradoxSpec: Spec<Tables['paradoxes']> = {
   take: row => {
     const secret: PSecret = {
@@ -51,23 +54,25 @@ const paradoxSpec: Spec<Tables['paradoxes']> = {
       s: row.middle?.scenario,
       r: row.revisions.map(r => [r.poleA.aspect, r.poleB.aspect, r.middle?.scenario]),
     };
+    if (row.creed !== undefined) secret.c = row.creed;
+    if (row.refusals) secret.f = row.refusals.map(f => f.text);
     const blankMiddle = (m?: { word?: string; scenario?: string }) => (m ? { ...m, scenario: undefined } : undefined);
-    return {
-      clear: {
-        ...row,
-        poleA: { ...row.poleA, aspect: '' },
-        poleB: { ...row.poleB, aspect: '' },
-        middle: blankMiddle(row.middle),
-        revisions: row.revisions.map(r => ({ ...r, poleA: { ...r.poleA, aspect: '' }, poleB: { ...r.poleB, aspect: '' }, middle: blankMiddle(r.middle) })),
-      },
-      secret,
+    const clear: Tables['paradoxes'] = {
+      ...row,
+      poleA: { ...row.poleA, aspect: '' },
+      poleB: { ...row.poleB, aspect: '' },
+      middle: blankMiddle(row.middle),
+      revisions: row.revisions.map(r => ({ ...r, poleA: { ...r.poleA, aspect: '' }, poleB: { ...r.poleB, aspect: '' }, middle: blankMiddle(r.middle) })),
     };
+    if (row.creed !== undefined) clear.creed = '';
+    if (row.refusals) clear.refusals = row.refusals.map(f => ({ ...f, text: '' }));
+    return { clear, secret };
   },
   give: (clear, raw) => {
     const s = raw as PSecret;
     const withScenario = (m: { word?: string; scenario?: string } | undefined, sc?: string) =>
       m ? { ...m, scenario: sc } : sc !== undefined ? { scenario: sc } : undefined;
-    return {
+    const out: Tables['paradoxes'] = {
       ...clear,
       poleA: { ...clear.poleA, aspect: s.a },
       poleB: { ...clear.poleB, aspect: s.b },
@@ -79,6 +84,9 @@ const paradoxSpec: Spec<Tables['paradoxes']> = {
         middle: withScenario(r.middle, s.r[i]?.[2]),
       })),
     };
+    if (s.c !== undefined) out.creed = s.c; else delete out.creed;
+    if (clear.refusals) out.refusals = clear.refusals.map((f, i) => ({ ...f, text: s.f?.[i] ?? '' }));
+    return out;
   },
 };
 
@@ -295,15 +303,20 @@ export const store = {
       await (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys);
     });
   },
-  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction). */
-  many(writes: { [K in TableName]?: Tables[K][] }): Promise<void> {
+  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
+   *  drops (PLAN-SELF.md, deleteParadox) are primary keys deleted in that same transaction, after the writes. */
+  many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
     return serial(async () => {
       writable();
       const prepared = await Promise.all(
         (Object.keys(writes) as TableName[]).map(async t => [t, await Promise.all((await keepLock(t, writes[t] as Tables[TableName][])).map(r => toStored(t, r as never, key)))] as const),
       );
-      await database.transaction('rw', prepared.map(([t]) => database.table(t)), async () => {
+      const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
+      const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
+      if (!tables.length) return;
+      await database.transaction('rw', tables.map(t => database.table(t)), async () => {
         for (const [t, rows] of prepared) await database.table(t).bulkPut(rows);
+        for (const t of gone) await database.table(t).bulkDelete(drops[t]!);
       });
     });
   },

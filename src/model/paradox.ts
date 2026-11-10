@@ -1,8 +1,9 @@
 // The Be tab's model (PLAN.md sections 4 and 6, DESIGN.md rule 11): two-pole validation, revisions,
 // goals and their balances (pairs, open slots and the rows they share on the upright spread), the lean
 // maths that turns a goal's weight into its height between the poles, and the antonym lookup. Every read and write goes through the fields layer.
-// Lean detents and the lean line over time are package 4's.
-import { byParadoxOrder, type Cadence, type Item, type Middle, type Paradox, type Pole } from '../db/schema';
+// Lean detents and the lean line over time are package 4's. PLAN-SELF.md section 4 adds the creed, the five held, the
+// refusals ("Not me") and delete, entire: a deleted paradox or goal is gone, kept nowhere.
+import { byParadoxOrder, type Cadence, type Item, type Middle, type Paradox, type Pole, type Refusal } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { antonymsOf } from '../db/seed';
 
@@ -12,9 +13,16 @@ export const CADENCES: Cadence[] = ['daily', 'weekly', 'monthly', 'yearly', 'onc
 
 // ---- the paradox rule ----
 
-export type ParadoxDraft = { poleA: Pole; poleB: Pole; middle?: Middle };
+/** creed (PLAN-SELF.md section 4) is saved plainly, never a revision; left out, the paradox keeps the creed it has. */
+export type ParadoxDraft = { poleA: Pole; poleB: Pole; middle?: Middle; creed?: string };
 
 const tidy = (s?: string) => (s ?? '').trim();
+
+const strip = <T>(row: T): T => {
+  const copy = { ...(row as Record<string, unknown>) };
+  delete copy.locked;
+  return copy as T;
+};
 
 export function cleanPole(p: Pole): Pole {
   const out: Pole = { value: tidy(p.value), aspect: tidy(p.aspect) };
@@ -40,9 +48,24 @@ export function canSaveParadox(d: ParadoxDraft): boolean {
 const samePole = (a: Pole, b: Pole) => a.value === b.value && a.aspect === b.aspect && (a.shadow ?? '') === (b.shadow ?? '');
 const sameMiddle = (a?: Middle, b?: Middle) => (a?.word ?? '') === (b?.word ?? '') && (a?.scenario ?? '') === (b?.scenario ?? '');
 
-/** True when the draft says what the paradox already says. */
+/** True when the draft says what the paradox already says: the poles and the middle (the creed is sameCreed's). */
 export function sameVersion(p: Pick<Paradox, 'poleA' | 'poleB' | 'middle'>, d: ParadoxDraft): boolean {
   return samePole(p.poleA, cleanPole(d.poleA)) && samePole(p.poleB, cleanPole(d.poleB)) && sameMiddle(p.middle, cleanMiddle(d.middle));
+}
+
+/** True when the draft leaves the creed as it is: the same line, or no creed in the draft at all. */
+export function sameCreed(p: Pick<Paradox, 'creed'>, d: Pick<ParadoxDraft, 'creed'>): boolean {
+  return d.creed === undefined || (p.creed ?? '') === tidy(d.creed);
+}
+
+/** The paradox with the draft's creed, written over the old one (no revision); an empty line removes it. */
+function withCreed(p: Paradox, d: ParadoxDraft, now: number): Paradox {
+  if (sameCreed(p, d)) return p;
+  const next: Paradox = { ...p, updatedAt: now };
+  const creed = tidy(d.creed);
+  if (creed) next.creed = creed;
+  else delete next.creed;
+  return next;
 }
 
 /** The edited paradox: the old version goes onto revisions (struck through, never lost). */
@@ -61,25 +84,87 @@ export class OnePoleError extends Error {
   constructor() { super('A paradox needs both poles: both values and both aspects'); this.name = 'OnePoleError'; }
 }
 
+// ---- five are held (PLAN-SELF.md section 3.4) ----
+
+/** At most this many paradoxes are active; choosing what to hold is choosing what not to. */
+export const HELD = 5;
+/** At most this many "Not me" lines under one paradox. */
+export const REFUSALS = 3;
+
+/** True when this paradox may be active: fewer than HELD others are. id is the paradox itself, left out of the count. */
+export function canHold(all: Pick<Paradox, 'id' | 'status'>[], id?: string): boolean {
+  return all.filter(p => p.status === 'active' && p.id !== id).length < HELD;
+}
+
+export class HeldError extends Error {
+  constructor() { super(`${HELD} paradoxes are held: one must rest before another is active`); this.name = 'HeldError'; }
+}
+
+/** A new paradox is active, or resting when HELD are already active. */
 export async function createParadox(d: ParadoxDraft, now = Date.now()): Promise<Paradox> {
   if (!canSaveParadox(d)) throw new OnePoleError();
+  const held = canHold(await store.all('paradoxes'));
   const p: Paradox = {
-    id: crypto.randomUUID(), createdAt: now, updatedAt: now, status: 'active',
+    id: crypto.randomUUID(), createdAt: now, updatedAt: now, status: held ? 'active' : 'resting',
     poleA: cleanPole(d.poleA), poleB: cleanPole(d.poleB), revisions: [],
   };
   const middle = cleanMiddle(d.middle);
   if (middle) p.middle = middle;
+  const creed = tidy(d.creed);
+  if (creed) p.creed = creed;
   await store.put('paradoxes', p);
   return p;
 }
 
-/** Saves an edit (a new revision when anything changed) and the status. Both poles still required. */
+/**
+ * Saves an edit (a new revision when the poles or the middle changed), the creed (written over, no revision) and the
+ * status. Both poles still required. Going active while HELD others are throws HeldError and writes nothing; a
+ * paradox already active stays saveable.
+ */
 export async function saveParadox(p: Paradox, d: ParadoxDraft, status: Status = p.status, now = Date.now()): Promise<Paradox> {
   if (!canSaveParadox(d)) throw new OnePoleError();
-  let next = revise(p, d, now);
+  if (status === 'active' && p.status !== 'active' && !canHold(await store.all('paradoxes'), p.id)) throw new HeldError();
+  let next = withCreed(revise(p, d, now), d, now);
   if (status !== p.status) next = { ...next, status, updatedAt: now };
   if (next !== p) await store.put('paradoxes', strip(next));
   return next;
+}
+
+/** Deletes a paradox entirely (PLAN-SELF.md section 3.2): the row with its creed and refusals, its goals, its leans,
+ *  and any page's link to it, in one transaction. Kept nowhere; resting and retired are the reversible ways down. */
+export async function deleteParadox(id: string): Promise<void> {
+  const [items, leans, pages] = await Promise.all([
+    store.query('items', t => t.where('paradoxId').equals(id)),
+    store.query('leans', t => t.where('[paradoxId+at]').between([id, -Infinity], [id, Infinity], true, true)),
+    store.query('pages', t => t.where('paradoxIds').equals(id)),
+  ]);
+  const scrubbed = pages.map(pg => strip({ ...pg, paradoxIds: pg.paradoxIds.filter(x => x !== id) }));
+  await store.many({ pages: scrubbed }, { paradoxes: [id], items: items.map(i => i.id), leans: leans.map(l => l.id) });
+}
+
+// ---- not me (PLAN-SELF.md section 3.4) ----
+
+/** Adds a "Not me" line to a paradox. Undefined when the line is empty, REFUSALS are written, or there is no paradox. */
+export async function addRefusal(paradoxId: string, text: string, now = Date.now()): Promise<Refusal | undefined> {
+  const line = tidy(text);
+  const p = await store.get('paradoxes', paradoxId);
+  if (!line || !p || (p.refusals?.length ?? 0) >= REFUSALS) return undefined;
+  const r: Refusal = { id: crypto.randomUUID(), text: line, at: now };
+  await store.put('paradoxes', strip({ ...p, refusals: [...(p.refusals ?? []), r], updatedAt: now }));
+  return r;
+}
+
+/** Edits a "Not me" line in place; emptied, it is removed. */
+export async function saveRefusal(paradoxId: string, id: string, text: string, now = Date.now()): Promise<void> {
+  const p = await store.get('paradoxes', paradoxId);
+  const old = p?.refusals?.find(r => r.id === id);
+  if (!p || !old) return;
+  const line = tidy(text);
+  if (line === old.text) return;
+  const refusals = line ? p.refusals!.map(r => (r.id === id ? { ...r, text: line } : r)) : p.refusals!.filter(r => r.id !== id);
+  const next: Paradox = strip({ ...p, refusals, updatedAt: now });
+  if (!refusals.length) delete next.refusals;
+  await store.put('paradoxes', next);
 }
 
 /** Antonyms from the seed's small list, offered as chips under pole B; never the one already written. */
@@ -112,17 +197,20 @@ export function threeWordLines(p: Pick<Paradox, 'poleA' | 'poleB' | 'middle' | '
   return { current, struck };
 }
 
+// ---- who: the top of Be (PLAN-SELF.md section 3.3) ----
+
+/** One creed line per held paradox, in the order of the list: his own line, else its three words. own is true when
+ *  a creed is written (a locked read keeps it written but withheld, so its line falls back to the three words). */
+export async function who(): Promise<{ paradox: Read<Paradox>; line: string; own: boolean }[]> {
+  const held = (await store.all('paradoxes')).filter(p => p.status === 'active').sort(byParadoxOrder);
+  return held.map(paradox => ({ paradox, line: paradox.creed || threeWords(paradox), own: paradox.creed !== undefined }));
+}
+
 // ---- reading the spreads ----
 
 export type SpreadData = { paradox: Read<Paradox>; items: Read<Item>[] };
 
-const strip = <T>(row: T): T => {
-  const copy = { ...(row as Record<string, unknown>) };
-  delete copy.locked;
-  return copy as T;
-};
-
-/** Every paradox with its goals (archived goals left out), oldest first. */
+/** Every paradox with its goals (goals archived before delete existed left out), in the order of the list. */
 export async function spreads(): Promise<SpreadData[]> {
   const all = (await store.all('paradoxes')).sort(byParadoxOrder);
   return Promise.all(all.map(async paradox => ({ paradox, items: await goalsOf(paradox.id) })));
@@ -339,7 +427,7 @@ export type GoalEdit = { text: string; other?: string; cadence?: Cadence; nextTo
 /**
  * Edits a goal from its sheet: its text, cadence and what it follows, and its balance on the other page.
  * Writing into an open slot makes the balance at the same height and links the two.
- * A goal emptied of text is left as it was (archive it instead; nothing is deleted).
+ * A goal emptied of text is left as it was (delete it instead, from its sheet).
  */
 export async function saveGoal(id: string, e: GoalEdit): Promise<Item[]> {
   const g = await store.get('items', id);
@@ -364,11 +452,27 @@ export async function saveGoal(id: string, e: GoalEdit): Promise<Item[]> {
   return out;
 }
 
-/** Archived, never deleted. Its balance stays and shows an open slot again. */
+/** Archived (the way down before PLAN-SELF.md): the row stays, hidden. Its balance stays and shows an open slot again.
+ *  deleteGoal is the sheet's way now; archived rows already written stay archived and unseen. */
 export async function archiveGoal(id: string): Promise<void> {
   const g = await store.get('items', id);
   if (!g) return;
   await store.put('items', strip({ ...g, archived: true }));
+}
+
+/** Deletes a goal entirely (PLAN-SELF.md section 3.2), in one transaction: its balance stays and shows its open slot
+ *  again, and a goal that followed it follows nothing. */
+export async function deleteGoal(id: string): Promise<void> {
+  const g = await store.get('items', id);
+  if (!g) return;
+  const items = await store.query('items', t => t.where('paradoxId').equals(g.paradoxId));
+  const loosened = items.filter(i => i.id !== id && (i.pairId === id || i.nextTo === id)).map(i => {
+    const next = strip({ ...i });
+    if (next.pairId === id) delete next.pairId;
+    if (next.nextTo === id) delete next.nextTo;
+    return next;
+  });
+  await store.many({ items: loosened }, { items: [id] });
 }
 
 /** Goals this one may follow (the "follows" picker): every other goal on the spread but itself. */

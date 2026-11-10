@@ -119,6 +119,32 @@ describe('round trip', () => {
     expect(f.tables.sits).toEqual([]);
   });
 
+  it('a paradox\'s creed and refusals round-trip, plain and sealed; a paradox without them imports as before (PLAN-SELF.md)', async () => {
+    await ensureSeeded();
+    const base = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    const own = { ...base, id: 'px-own', creed: 'I give from a full cup', refusals: [{ id: 'r1', text: "I don't keep score", at: 3 }] };
+    await store.put('paradoxes', own);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect(await store.get('paradoxes', 'px-own')).toEqual(own);
+    const bare = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    expect(bare).toEqual(base);
+    expect('creed' in bare || 'refusals' in bare).toBe(false);
+    // sealed: the words leave the file sealed and come back whole with the file's PIN
+    const salt = randomSalt();
+    await setKey(await deriveKey('3569', salt, 1000), { salt, iterations: 1000 });
+    const sealed = await roundTrip(other);
+    const text = JSON.stringify(sealed);
+    expect(text).not.toContain('full cup');
+    expect(text).not.toContain('keep score');
+    const third = await freshDB();
+    await importData(sealed, 'replace', third, await deriveKey('3569', sealed.salt!, sealed.iterations!));
+    expect(await store.get('paradoxes', 'px-own')).toMatchObject({ creed: own.creed, refusals: own.refusals });
+    const bareAgain = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    expect('creed' in bareAgain || 'refusals' in bareAgain).toBe(false);
+  });
+
   it('the fixations and a ride for one round-trip, plain and in a merge (X1)', async () => {
     const on = { id: 'fx-a', name: 'FlowState', hue: 250, createdAt: 100, stints: [{ from: 100, to: 200, slot: 0 }, { from: 300, slot: 1 }], next: 'the deck sheet', updatedAt: 300 };
     const done = { id: 'fx-b', name: 'East Winds', hue: 150, createdAt: 50, stints: [{ from: 50, to: 400, slot: 1 }], finishedAt: 400, updatedAt: 400 };

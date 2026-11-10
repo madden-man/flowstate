@@ -129,6 +129,35 @@ describe('page titles', () => {
   });
 });
 
+describe('the creed and the refusals (PLAN-SELF.md section 4)', () => {
+  it('are sealed at rest once a key is set; a locked read withholds them and keeps their shape', async () => {
+    await ensureSeeded();
+    const p: Paradox = { ...(await store.get('paradoxes', 'px-thoughtful-reactive'))!, creed: 'I answer when I am ready', refusals: [{ id: 'r1', text: "I don't fire back", at: 4 }] };
+    delete (p as { locked?: true }).locked;
+    await store.put('paradoxes', p);
+    expect(JSON.stringify(await db.paradoxes.get(p.id))).toContain('fire back');
+    const salt = randomSalt();
+    const key = await deriveKey('1', salt, FAST);
+    await setKey(key, { salt, iterations: FAST });
+    const raw = JSON.stringify(await db.paradoxes.get(p.id));
+    expect(raw).not.toContain('ready');
+    expect(raw).not.toContain('fire back');
+    expect(raw).toContain('r1');
+    expect(await store.get('paradoxes', p.id)).toEqual(p);
+    // a paradox sealed without them reads back without them
+    const bare = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    expect('creed' in bare || 'refusals' in bare).toBe(false);
+    lock();
+    const shut = (await store.get('paradoxes', p.id))!;
+    expect(shut).toMatchObject({ locked: true, creed: '', refusals: [{ id: 'r1', text: '', at: 4 }] });
+    expect(shut.poleA.aspect).toBe(''); // like the paradox's other sealed words
+    const shutBare = (await store.get('paradoxes', 'px-selfless-selfish'))!;
+    expect('creed' in shutBare || 'refusals' in shutBare).toBe(false);
+    expect(await unlock(key)).toBe(true);
+    expect(await store.get('paradoxes', p.id)).toEqual(p);
+  });
+});
+
 describe('locked', () => {
   it('reads come back marked locked with the text withheld, and writes refuse', async () => {
     await ensureSeeded();
