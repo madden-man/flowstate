@@ -55,7 +55,9 @@ async function mockSpotify(page: Page, base: string, played: string[]) {
       ] } });
     }
     if (url.includes(`/playlists/${POEMS}/items`)) return route.fulfill({ json: { next: null, items: ITEMS } });
-    if (url.endsWith('/me/player/play')) { played.push(route.request().postData() ?? ''); return route.fulfill({ status: 204 }); }
+    // a tap asks for the devices first and plays on the phone by its id (PR #49)
+    if (url.endsWith('/me/player/devices')) return route.fulfill({ json: { devices: [{ id: 'c7f4', name: 'iPhone', type: 'Smartphone', is_active: false, is_restricted: false }] } });
+    if (url.includes('/me/player/play')) { played.push(route.request().postData() ?? ''); return route.fulfill({ status: 204 }); }
     if (url.endsWith('/me/player/currently-playing')) return route.fulfill({ status: 204 });
     return route.fulfill({ status: 404 });
   });

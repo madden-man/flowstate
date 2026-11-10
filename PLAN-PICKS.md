@@ -1,6 +1,6 @@
 # FlowState picks: something on, at the steps that ask for it
 
-Date: 2026-11-09. Status: decided by Tommy 2026-11-10 (section 8), building P0 to P2. Tommy's ask: "look at semper dulce / tommysthoughts.com/darts and my letterboxd list for what shows and movies would be the best recommendations for each of the flows on flowstate, then make a plan for how we'll show those. also do the same for music albums (looking at for the poems and the prose and master for inspiration)", then "also include switch games", then "make sure your plan for showing all these entries fits within the design standard and doesn't detract from the very human, and fits well."
+Date: 2026-11-09. Status: decided by Tommy 2026-11-10 (section 8); P0 to P2 built the same day. Tommy's ask: "look at semper dulce / tommysthoughts.com/darts and my letterboxd list for what shows and movies would be the best recommendations for each of the flows on flowstate, then make a plan for how we'll show those. also do the same for music albums (looking at for the poems and the prose and master for inspiration)", then "also include switch games", then "make sure your plan for showing all these entries fits within the design standard and doesn't detract from the very human, and fits well."
 
 `PLAN-FLOWS.md` stays the flows' plan and research; `DESIGN.md` the standard. This file records where the picks come from, every pick for every step, the steps left empty on purpose, the screen, the check against the standard, the data and the packages. The proposal walkthrough is `design/flows/picks.html` (section 10).
 
@@ -219,14 +219,14 @@ export type Episode = /* existing */ & { on?: { pickId: string; title: string; a
 
 P1 reuses the motion pass's `Tile` (M3, the album tap, on main since 2026-11-09). Every PR: `npm test`, `npm run e2e`, three lights, both lints PASS in the body, no em dashes.
 
-## 8. Tommy's answers (2026-11-10) and what is still open
+## 8. Tommy's answers (2026-11-10)
 
 1. Heartlighted: 7 is the lightest. Confirmed; the picks stand.
 2. The empty steps (Pulling in, Far away, all of Shame) stay empty. Tommy: "if you don't have ideas for a flow, i can recommend". Shame's bench is not seeded; his recommendations go in when he gives them.
 3. The three new rows: kept as worded.
 4. Covers: wordless, as in ♪.
 5. Darts notes: none, anywhere on the sheet.
-6. **Still open:** Repair's lines for two are his picks, not Ali's; swap any she would not choose.
+6. Repair's lines for two: Tommy, "throw in my picks". They ship as his (KPop Demon Hunters, The Big Sick, Spiritfarer).
 7. The saved film: only Wake Up Dead Man and The Holdovers, on It was fine (not a row at Something's coming). Thunderbolts* is dropped.
 
 ## 9. Sources
