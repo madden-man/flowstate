@@ -230,6 +230,18 @@ export async function albumRow(albumUri: string): Promise<Row | undefined> {
   return store.get('albums', albumUri);
 }
 
+/** The On sheet's albums (PLAN-PICKS.md P1), from what the ♪ grid has already kept, never fetched: each album's row (its
+ *  cover, when one is kept) and the first shelf it sits on among the chosen playlists, so it plays as a ♪ tile does. */
+export async function keptAlbums(albumUris: string[]): Promise<Map<string, { row: Row; shelf?: Shelf }>> {
+  const want = new Set(albumUris);
+  const rows = await store.query('albums', tb => tb.where('albumUri').anyOf(albumUris));
+  const chosen = (await playlistRows()).filter(p => p.chosen);
+  const place = new Map(chosen.map((p, i) => [p.id, i]));
+  const on = (await store.query('shelves', tb => tb.filter(s => want.has(s.albumUri) && place.has(s.playlistId))))
+    .sort((a, b) => place.get(a.playlistId)! - place.get(b.playlistId)!);
+  return new Map(rows.map(row => [row.albumUri, { row, shelf: on.find(s => s.albumUri === row.albumUri) }]));
+}
+
 /** The cover for what is playing: from the albums table when it is there, else fetched once and kept (on no
  *  shelf). Returns the page's music record, coverId set when a cover is kept. */
 export async function keepCover(np: NonNullable<NowPlaying>, getCover: (url: string) => Promise<Blob> = fetchCover): Promise<PageMusic> {

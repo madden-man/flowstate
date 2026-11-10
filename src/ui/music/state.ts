@@ -277,7 +277,9 @@ export async function play(playlist: Tapped['playlist'], row: Tapped['row'], aga
   // the bell and the tick inside the tap itself: iOS fires the haptic only there
   if (!again) { bell('album'); tick('album'); asked.value = row.albumUri; }
   playNote.value = null;
-  if (!row.firstTrackUri && row.firstTrackAt === undefined) { asked.value = null; playNote.value = 'Read again in Settings, then tap'; return; }
+  // an album played as itself (an On pick on no read playlist, PLAN-PICKS.md P1) needs no first song
+  const whole = playlist.uri.startsWith('spotify:album:');
+  if (!whole && !row.firstTrackUri && row.firstTrackAt === undefined) { asked.value = null; playNote.value = 'Read again in Settings, then tap'; return; }
   try {
     const r = await withTokens(keep, t => playAlbum(t, playlist.uri, row));
     if (r === 'playing') {

@@ -12,6 +12,9 @@
 // lines) wait for a live episode. A print tip (F3, the 988 line) is never a row: PrintLines prints it under these.
 // F6: the person row (./Person.tsx) opens Messages with his text, or the person sheet while it has no name; the
 // prediction row (./Stamps.tsx) opens one rule for the worry written as a prediction, kept on the episode.
+// PLAN-PICKS.md P1: On opens the On sheet (./On.tsx). A tap never ticks it: a line ticked there, or a cover Spotify
+// plays, does, and the row then reads its pick ("An album, or the TV: New Girl"). A tap on a ticked On row opens the
+// sheet again, where the line is un-ticked. On stays behind the PIN, like ♪: what he puts on is his.
 // Meditate S3: Sit opens #/flow/meditate. A tap does not tick it: with a live episode the row puts the episode and the
 // tip in Meditate's sitFrom (in memory, read once by the page), and a sit there of a minute or more ticks the row when
 // it ends; at rest it carries nothing. A tap on a ticked Sit row un-ticks it like any row.
@@ -28,11 +31,13 @@ import { clockTime } from '../date';
 import { PersonRow, PersonSheet } from './Person';
 import { sitFrom } from './Meditate';
 import { Prediction } from './Stamps';
+import { OnSheet, showOn } from './On';
+import { openSheet } from '../sheets';
 import { savePerson } from '../../model/carried';
-import type { Episode, Step, Tip, TipHelper } from '../../db/schema';
+import type { Episode, OnPick, Step, Tip, TipHelper } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import {
-  doneIds, earliestReturn, linkToday, returnFor, returnPhase, setDone, setLines, setReturnAt, shownTips, tipText,
+  doneIds, earliestReturn, linkToday, onTitle, returnFor, returnPhase, setDone, setLines, setReturnAt, shownTips, tipText,
   RETURN_MIN_MS,
 } from '../../model/tips';
 
@@ -57,8 +62,9 @@ type Props = {
   flowId?: string;
 };
 
-/** The helpers that stay behind the PIN: they write (Journal, Timer, Five's lines) or leave the page for an account (♪). */
-const BEHIND_PIN: TipHelper[] = ['journal', 'timer', 'music', 'five', 'person', 'prediction'];
+/** The helpers that stay behind the PIN: they write (Journal, Timer, Five's lines) or leave the page for an account (♪),
+ *  and On (PLAN-PICKS.md P1), since what he puts on is his. */
+export const BEHIND_PIN: TipHelper[] = ['journal', 'timer', 'music', 'five', 'person', 'prediction', 'on'];
 
 const SWIPE_SLOP_PX = 12;
 const SWIPE_PX = 60;
@@ -98,7 +104,10 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
   const [predictOpen, setPredictOpen] = useState(false);
   const [filling, setFilling] = useState<Tip | null>(null);
   const [fillOpen, setFillOpen] = useState(false);
-  useEffect(() => { setDrawn({}); setFiveOpen(false); setPredictOpen(false); setOne(0); }, [step.id, live?.id]);
+  // the On sheet (P1): which On row it is up for, and the line drawn on it at rest (in memory only)
+  const [onFor, setOnFor] = useState<Tip | null>(null);
+  const [restOn, setRestOn] = useState<OnPick | null>(null);
+  useEffect(() => { setDrawn({}); setFiveOpen(false); setPredictOpen(false); setOne(0); setRestOn(null); }, [step.id, live?.id]);
   const done = doneIds(stored);
   const isDone = (t: Tip) => drawn[t.id] ?? done.has(t.id);
   const swipe = useSwipe(dir => setOne(i => (i + dir + tips.length) % tips.length));
@@ -119,7 +128,13 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
       default:
     }
   };
+  const openOn = (t: Tip) => {
+    setOnFor(t);
+    // the Check under the thumb felt its own tick when the row was not ticked; ticked, the sheet's opening is felt
+    showOn(!isDone(t));
+  };
   const toggle = async (t: Tip, on: boolean) => {
+    if (t.helper === 'on') { openOn(t); return; }
     if (t.helper === 'sit' && on) {
       // the sit ticks it, not the tap
       sitFrom.value = live ? { episodeId: live.id, tipId: t.id } : null;
@@ -141,7 +156,7 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
     ) : (
       <div key={t.id} class="fl-tip" data-tip={t.id}>
         <Check checked={isDone(t)} onChange={on => void toggle(t, on)} word={t.helper ? HELPER_WORD[t.helper] : undefined}>
-          {tipText(t, still)}
+          {tipText(t, still)}{t.helper === 'on' && picked(t) ? `: ${picked(t)}` : ''}
         </Check>
         {t.helper === 'five' && (fiveOpen || !!live?.lines?.length) && <Five live={live} onChanged={onChanged} />}
         {t.helper === 'timer' && live?.returnAt !== undefined && <Timer live={live} now={now} onChanged={onChanged} />}
@@ -157,6 +172,13 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
       setFillOpen(false);
       if (p.name) void savePerson(flowId, step.id, t.id, p).then(onChanged);
     }} />
+  );
+
+  // an On row reads its pick once one is put on: the live episode's, or the one drawn at rest
+  const picked = (t: Tip) => (live ? onTitle(step, live) : restOn && isDone(t) ? restOn.title : undefined);
+  const on = onFor && (
+    <OnSheet open={openSheet.value === 'on'} onClose={() => { openSheet.value = null; }} step={step} tip={onFor} live={live}
+      rest={restOn} onRest={p => { setRestOn(p); setDrawn(d => ({ ...d, [onFor.id]: !!p })); }} onChanged={onChanged} />
   );
 
   const back = live?.returnAt !== undefined ? <Return live={live} returnAt={live.returnAt} now={now} still={still} tips={flowTips} /> : null;
@@ -176,10 +198,11 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
         )}
       </div>
       {fill}
+      {on}
       </>
     );
   }
-  return <><div class="fl-tips" aria-label="What to do">{back}{tips.map(row)}</div>{fill}</>;
+  return <><div class="fl-tips" aria-label="What to do">{back}{tips.map(row)}</div>{fill}{on}</>;
 }
 
 /** Five things you can see: five rules, the caret on the first; each line kept on the live episode (sealed). At rest

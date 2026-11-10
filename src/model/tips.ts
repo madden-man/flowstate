@@ -2,7 +2,7 @@
 // time, the journal link, the clock in the middle of the drawing, "what helped", and the step sheet's edits. Every
 // read and write goes through store, so sealing works. No UI. Nothing here counts or compares episodes (rule 15):
 // the clock is minutes since this episode's own peak, and "what helped" is the last episode's ticks, as words.
-import type { Episode, Flow, Page, Step, Tip } from '../db/schema';
+import type { Episode, Flow, OnPick, Page, PageMusic, Step, Tip } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { todayLinked } from './pages';
 import { currentStepId, spanOfEpisode } from './flows';
@@ -27,6 +27,37 @@ export async function setDone(episodeId: string, tipId: string, on: boolean, at 
   const next = { ...e, done };
   await store.put('episodes', next);
   return next;
+}
+
+/** The On sheet (PLAN-PICKS.md P1): a line ticked writes episodes.on and ticks the On row; un-ticked (pick null), both
+ *  go. One pick on at a time: ticking another replaces it. */
+export async function setOn(episodeId: string, tipId: string, pick: Pick<OnPick, 'id' | 'title'> | null, at = Date.now()): Promise<Episode | undefined> {
+  const e = await liveRow(episodeId);
+  if (!e) return undefined;
+  const had = e.done.some(d => d.tipId === tipId);
+  const done = pick ? (had ? e.done : [...e.done, { tipId, at }]) : e.done.filter(d => d.tipId !== tipId);
+  const next: Episode = { ...e, done, on: pick ? { pickId: pick.id, title: pick.title, at } : undefined };
+  await store.put('episodes', next);
+  return next;
+}
+
+/** A cover on the On sheet that Spotify said yes to (P1): episodes.music is the album, and the On row is ticked. */
+export async function setOnAlbum(episodeId: string, tipId: string, music: Omit<PageMusic, 'coverId'>, at = Date.now()): Promise<Episode | undefined> {
+  const e = await liveRow(episodeId);
+  if (!e) return undefined;
+  const done = e.done.some(d => d.tipId === tipId) ? e.done : [...e.done, { tipId, at }];
+  const next: Episode = { ...e, done, music: { albumUri: music.albumUri, album: music.album, artist: music.artist } };
+  await store.put('episodes', next);
+  return next;
+}
+
+/** The picks a step's On sheet offers (P1): struck ones never (they stay in the step sheet, rule 10). */
+export const livePicks = (step: Pick<Step, 'picks'>): OnPick[] => (step.picks ?? []).filter(p => !p.struck);
+
+/** The line an On row reads once a line is put on ("An album, or the TV: New Girl"): the episode's pick, when it is one
+ *  of this step's. */
+export function onTitle(step: Pick<Step, 'picks'>, e: Pick<Episode, 'on'> | undefined): string | undefined {
+  return e?.on && step.picks?.some(p => p.id === e.on!.pickId) ? e.on.title : undefined;
 }
 
 /** The ids ticked on an episode. */

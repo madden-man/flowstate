@@ -17,6 +17,7 @@ function calls(kind: 'tick' | 'bell'): string[] {
 // Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening,
 // the ring's turn points while a thumb holds it (F2), a cover chosen on the music sheet (M3), beginning and ending a
 // sit (Meditate, S1).
+// PLAN-PICKS.md P1: the On sheet opening is a sheet opening (On.tsx showOn); its covers tick through music/state.ts play.
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
@@ -25,7 +26,7 @@ const TICKS: Record<string, string[]> = {
   detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx'],
+  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   breath: ['src/ui/flow/breath.ts'],
   // M3: beside bell('album'), inside the tap

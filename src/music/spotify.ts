@@ -213,6 +213,8 @@ export async function fetchCover(url: string): Promise<Blob> {
 export const PLAYLIST_URI = `spotify:playlist:${PLAYLIST_ID}`;
 
 export function playBody(playlistUri: string, firstTrackUri: string, firstTrackAt?: number) {
+  // an album on no read playlist (an On pick, PLAN-PICKS.md P1) plays the album itself from its first song: no offset
+  if (!firstTrackUri && firstTrackAt === undefined) return { context_uri: playlistUri };
   return { context_uri: playlistUri, offset: firstTrackAt === undefined ? { uri: firstTrackUri } : { position: firstTrackAt } };
 }
 

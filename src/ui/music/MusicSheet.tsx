@@ -97,16 +97,7 @@ function Grid({ playlist }: { playlist: Playlist }) {
   useLayoutEffect(() => {
     if (from && tiles.current) dealInto([...tiles.current.querySelectorAll<HTMLElement>('.fs-tile')], from);
   }, []);
-  // the hush holds while the tap waits on Spotify, and lets go the moment it is not waiting on this album any more
-  // (playing, refused, an error, another cover); the page hidden (a hop out to Spotify) or this grid gone (closed,
-  // back to the list, another playlist) lets go at once, so it can never be left on
-  useEffect(() => {
-    const off = effect(() => { if (hushOf.value && asked.value !== hushOf.value) unhush(); });
-    const hidden = () => { if (document.visibilityState === 'hidden') unhush(true); };
-    document.addEventListener('visibilitychange', hidden);
-    return () => { off(); document.removeEventListener('visibilitychange', hidden); unhush(true); };
-  }, []);
-  const hushed = hushOf.value;
+  const hushed = useHush();
   return (
     <div class={`fs-music-screen${from ? ' deal' : ''}`}>
       {albums && !albums.length && !reading.value && <p class="fs-note">Read again in Settings</p>}
@@ -118,6 +109,20 @@ function Grid({ playlist }: { playlist: Playlist }) {
       </div>
     </div>
   );
+}
+
+/** The hush, for a screen of tiles (this grid, and the On sheet's covers, PLAN-PICKS.md P1): it holds while the tap
+ *  waits on Spotify, and lets go the moment it is not waiting on this album any more (playing, refused, an error,
+ *  another cover); the page hidden (a hop out to Spotify) or the tiles gone (closed, back to the list, another
+ *  playlist) lets go at once, so it can never be left on. Returns the album hushed for, if any. */
+export function useHush(): string | null {
+  useEffect(() => {
+    const off = effect(() => { if (hushOf.value && asked.value !== hushOf.value) unhush(); });
+    const hidden = () => { if (document.visibilityState === 'hidden') unhush(true); };
+    document.addEventListener('visibilitychange', hidden);
+    return () => { off(); document.removeEventListener('visibilitychange', hidden); unhush(true); };
+  }, []);
+  return hushOf.value;
 }
 
 /** The ring round the playing album: there already when the grid opens on it, drawn in one stroke when Spotify
@@ -143,7 +148,12 @@ function Ring({ on }: { on: boolean }) {
   );
 }
 
-function Tile({ playlist, album, pressed, chosen, row }: { playlist: Playlist; album: ShelfAlbum; pressed: boolean; chosen: boolean; row: number }) {
+/** One cover: a tap plays it (play), drops, hushes the rest; Spotify's yes draws its ring and flies it to the ♪ (M3).
+ *  The On sheet (PLAN-PICKS.md P1) uses the same tile, so the same motion comes with it: playlist is the one the album
+ *  plays on (an album on no read playlist plays as itself, its own uri for the playlist's), and onTap hears the play. */
+export function Tile({ playlist, album, pressed, chosen, row, onTap }: {
+  playlist: Pick<Playlist, 'id' | 'uri'>; album: ShelfAlbum; pressed: boolean; chosen: boolean; row: number; onTap?: (played: Promise<void>) => void;
+}) {
   const ref = useRef<HTMLButtonElement>(null);
   // Spotify said yes to this tile's tap: the cover travels to the ♪ (only then; a refusal draws nothing)
   useEffect(() => {
@@ -172,7 +182,8 @@ function Tile({ playlist, album, pressed, chosen, row }: { playlist: Playlist; a
       <button ref={ref} type="button" class="fs-tile" aria-label={`${album.album}, ${album.artist}`} aria-pressed={pressed}
         data-album={album.albumUri} onClick={e => {
           // the request leaves first, exactly as it did; the motion runs alongside it
-          void play(playlist, album);
+          const played = play(playlist, album);
+          if (onTap) onTap(played); else void played;
           drop(e.currentTarget, e);
           hush(album.albumUri);
         }}>
