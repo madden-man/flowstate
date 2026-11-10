@@ -8,11 +8,12 @@
 // Spans are tens of minutes (the night is lived in twenty-minute stretches); the alarm's hour closes the episode.
 // The peak is Lying there, the trying.
 import type { FlowSeed } from '../seed-flows';
+import { withPicks } from './picks';
 
 /** The Still row, first on every step (3.7, Still first). */
 const still = (step: string) => ({ id: `${step}-still`, text: 'Dim the page', helper: 'still' as const });
 
-export const NIGHT: FlowSeed = {
+export const NIGHT: FlowSeed = withPicks({
   id: 'night',
   name: '3 a.m.',
   order: 7,
@@ -65,7 +66,7 @@ export const NIGHT: FlowSeed = {
       spanMin: 30,
       tips: [
         still('night-4'),
-        { id: 'night-4-dull', text: 'Something dull in dim light, away from bright screens', short: 'Something dull, in dim light' },
+        { id: 'night-4-dull', text: 'Something dull in dim light, away from bright screens', short: 'Something dull, in dim light', helper: 'on' },
         { id: 'night-4-back', text: 'Back to bed when sleepy', short: 'Back when sleepy' },
       ],
     },
@@ -82,4 +83,4 @@ export const NIGHT: FlowSeed = {
       ],
     },
   ],
-};
+});

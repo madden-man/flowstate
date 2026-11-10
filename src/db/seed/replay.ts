@@ -5,8 +5,9 @@
 // own words, so `line` is left for him. The peak is Heavier, the tightest turn.
 // Spans: minutes for the sting, an hour of whys, hours heavier, a couple of hours to write it and be done.
 import type { FlowSeed } from '../seed-flows';
+import { withPicks } from './picks';
 
-export const REPLAY: FlowSeed = {
+export const REPLAY: FlowSeed = withPicks({
   id: 'replay',
   name: 'Replay',
   order: 6,
@@ -42,7 +43,7 @@ export const REPLAY: FlowSeed = {
       spanMin: 4 * 60,
       peak: true,
       tips: [
-        { id: 'replay-3-absorb', text: 'Eight minutes of something absorbing', short: 'Something absorbing' },
+        { id: 'replay-3-absorb', text: 'Eight minutes of something absorbing', short: 'Something absorbing', helper: 'on' },
         { id: 'replay-3-album', text: 'An album', helper: 'music' },
         { id: 'replay-3-you', text: 'Talk to yourself by your name, or as "you"', short: 'Talk to yourself as "you"' },
       ],
@@ -58,4 +59,4 @@ export const REPLAY: FlowSeed = {
       ],
     },
   ],
-};
+});

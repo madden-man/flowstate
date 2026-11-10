@@ -48,6 +48,14 @@ export const playingFrom = signal<string | null>(null);
 export const playNote = signal<string | null>(null);
 /** The album a tap asked for, until Spotify answers: playing it, the cover travels to the ♪ (M3); a refusal clears it. */
 export const asked = signal<string | null>(null);
+/** The step sheet's "+ album" (PLAN-PICKS.md P2): while set, a cover tapped on the ♪ sheet is chosen for the step's On
+ *  row instead of played (no Spotify call, no bell), and the sheet goes down. Cleared when the sheet closes. */
+export const choosing = signal<((a: ShelfAlbum) => void) | null>(null);
+/** "+ album": the ♪ sheet rises on its list, to choose a cover from (only offered connected: unconnected, ♪ leaves the app). */
+export function chooseAlbum(then: (a: ShelfAlbum) => void) {
+  tapMusic();
+  choosing.value = then;
+}
 /** The album whose pages the "Pages with this album" sheet lists. */
 export const albumFor = signal<PageMusic | null>(null);
 
@@ -277,7 +285,9 @@ export async function play(playlist: Tapped['playlist'], row: Tapped['row'], aga
   // the bell and the tick inside the tap itself: iOS fires the haptic only there
   if (!again) { bell('album'); tick('album'); asked.value = row.albumUri; }
   playNote.value = null;
-  if (!row.firstTrackUri && row.firstTrackAt === undefined) { asked.value = null; playNote.value = 'Read again in Settings, then tap'; return; }
+  // an album played as itself (an On pick on no read playlist, PLAN-PICKS.md P1) needs no first song
+  const whole = playlist.uri.startsWith('spotify:album:');
+  if (!whole && !row.firstTrackUri && row.firstTrackAt === undefined) { asked.value = null; playNote.value = 'Read again in Settings, then tap'; return; }
   try {
     const r = await withTokens(keep, t => playAlbum(t, playlist.uri, row));
     if (r === 'playing') {

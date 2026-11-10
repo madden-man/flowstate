@@ -4,8 +4,9 @@
 // The boundary (hypomania) is not a step: it is the flow's restLine, one gentle print line on the page at rest, in
 // every light, with "doctor" for the audit's "GP". The flow is never called mania.
 import type { FlowSeed } from '../seed-flows';
+import { withPicks } from './picks';
 
-export const ENERGIZE: FlowSeed = {
+export const ENERGIZE: FlowSeed = withPicks({
   id: 'energize',
   name: 'Energize',
   order: 3,
@@ -46,6 +47,8 @@ export const ENERGIZE: FlowSeed = {
         { id: 'energize-3-timer', text: 'A timer, 25 to 50 minutes; extend it once', short: 'A timer', helper: 'timer' },
         { id: 'energize-3-park', text: 'Park new ideas on the page, each with a when', short: 'Park new ideas', helper: 'journal' },
         { id: 'energize-3-cap', text: 'Stop the block near ninety minutes, the day near four hours', short: "Stop while it's good" },
+        // PLAN-PICKS.md 3.3 (P0): lyrics cost reading and writing more than instrumental music does
+        { id: 'energize-3-on', text: 'One wordless record', helper: 'on' },
       ],
     },
     {
@@ -79,10 +82,10 @@ export const ENERGIZE: FlowSeed = {
         { id: 'energize-5-sit', text: 'Sit with the rain', helper: 'sit' },
         { id: 'energize-5-list', text: "Five minutes of tomorrow's list at bedtime", short: "Tomorrow's list", helper: 'journal' },
         { id: 'energize-5-night', text: 'Protect the night: sleep comes first', short: 'Sleep first' },
-        { id: 'energize-5-crash', text: 'In the crash: something easy on, the usual coffee, and judge it after sleep', short: 'Something easy on', helper: 'music' },
+        { id: 'energize-5-crash', text: 'In the crash: something easy on, the usual coffee, and judge it after sleep', short: 'Something easy on', helper: 'on' },
         // a hand-off (PLAN-FLOWS.md 3.7: Energize's crash into Depress; burnout is Energize leading into Depress, 3.5)
         { id: 'energize-5-depress', text: 'If the crash runs on for days: the Depress flow.', print: true, handoff: { flowId: 'depress', stepId: 'depress-1' } },
       ],
     },
   ],
-};
+});

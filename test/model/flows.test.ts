@@ -4,6 +4,7 @@ import type { FlowDB, Flow } from '../../src/db/schema';
 import { ensureSeeded, seedFlowsOnce } from '../../src/db/seed';
 import { PANIC, SEED_FLOWS, SEED_FLOWS_AT, SEED_TIPS_LATER, seedFlow } from '../../src/db/seed-flows';
 import { store, setKey, lock } from '../../src/db/fields';
+import { PICKS } from '../../src/db/seed/picks';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { exportData, importData, parseBackup, stamp } from '../../src/db/backup';
 import {
@@ -25,7 +26,9 @@ describe('the seed flows', () => {
     expect(panic.diagram).toBe('ring');
     expect(panic.steps.map(s => s.name)).toEqual(['Overstimulated', 'The wave', 'Settling', 'Under the skin']);
     expect(panic.revisions).toEqual([{ at: SEED_FLOWS_AT, name: 'Panic', steps: panic.steps }]);
-    expect((await store.get('settings', 'app'))!.flowsSeeded).toEqual([...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(id => `tip:${id}`)]);
+    expect((await store.get('settings', 'app'))!.flowsSeeded).toEqual([
+      ...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(id => `tip:${id}`), ...PICKS.map(p => `picks:${p.stepId}`),
+    ]);
     expect(await seedFlowsOnce()).toEqual([]);
   });
 

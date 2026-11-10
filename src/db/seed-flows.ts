@@ -9,6 +9,8 @@
 //
 // Adding a flow (F3, F4): a new file under ./seed/ (F3: depress, energize, fight; F4: whatif, replay, night, shutdown,
 // shame), its import, and one line in SEED_FLOWS. A tip added to a flow already seeded goes in SEED_TIPS_LATER too.
+// The picks (PLAN-PICKS.md, P0) are laid on each seed by withPicks (./seed/picks.ts); a journal seeded before them
+// gets them from seed.ts seedPicksOnce.
 import type { Flow } from './schema';
 import { DEPRESS } from './seed/depress';
 import { ENERGIZE } from './seed/energize';
@@ -18,6 +20,7 @@ import { REPLAY } from './seed/replay';
 import { NIGHT } from './seed/night';
 import { SHUTDOWN } from './seed/shutdown';
 import { SHAME } from './seed/shame';
+import { withPicks } from './seed/picks';
 
 /** A seed flow as written here: the row without its dates and first revision, which seedFlow adds. */
 export type FlowSeed = Omit<Flow, 'createdAt' | 'updatedAt' | 'revisions' | 'sealed'>;
@@ -26,7 +29,7 @@ export type FlowSeed = Omit<Flow, 'createdAt' | 'updatedAt' | 'revisions' | 'sea
 export const SEED_FLOWS_AT = Date.UTC(2026, 10, 8, 12);
 
 /** Panic, the ring (PLAN-FLOWS.md 3.1). Four steps; the dotted arc from the last back to the first carries no step. */
-export const PANIC: FlowSeed = {
+export const PANIC: FlowSeed = withPicks({
   id: 'panic',
   name: 'Panic',
   order: 1,
@@ -43,7 +46,7 @@ export const PANIC: FlowSeed = {
       spanMin: 30,
       tips: [
         { id: 'panic-1-less', text: 'Less coming in: leave the room, lights and sound off, or dim this page', short: 'Less coming in', helper: 'still' },
-        { id: 'panic-1-album', text: 'Earplugs, or one quiet album', short: 'One quiet album', helper: 'music' },
+        { id: 'panic-1-album', text: 'Earplugs, or one quiet album', short: 'One quiet album', helper: 'on' },
         { id: 'panic-1-out', text: 'Out longer than in: four in, six out', short: 'Out longer than in', helper: 'ring' },
         { id: 'panic-1-cold', text: 'Cold water on your wrists and face', short: 'Cold water on your wrists' },
         { id: 'panic-1-name', text: 'Name it: too much in, not danger.', wise: true },
@@ -103,7 +106,7 @@ export const PANIC: FlowSeed = {
       spanMin: 360,
       tips: [
         { id: 'panic-4-water', text: 'Water, then something to eat', short: 'Water, then food' },
-        { id: 'panic-4-album', text: 'An album, or the TV', helper: 'music' },
+        { id: 'panic-4-album', text: 'An album, or the TV', helper: 'on' },
         { id: 'panic-4-shower', text: 'A warm shower' },
         // Meditate S3 (PLAN-MEDITATE.md): the row opens the circle, and a sit of a minute or more ticks it
         { id: 'panic-4-sit', text: 'Sit with the rain', helper: 'sit' },
@@ -115,7 +118,7 @@ export const PANIC: FlowSeed = {
       ],
     },
   ],
-};
+});
 
 /** Every seed flow, in the list's order. F3 and F4 add theirs here, one line each. */
 export const SEED_FLOWS: FlowSeed[] = [
@@ -138,6 +141,8 @@ export const SEED_FLOWS: FlowSeed[] = [
 export const SEED_TIPS_LATER: string[] = [
   'panic-3-avoid', 'panic-4-depress', 'depress-2-avoid', 'energize-5-depress', 'fight-1-depress',
   'panic-4-sit', 'whatif-2-sit', 'energize-5-sit',
+  // PLAN-PICKS.md (P0): the four new On rows; their picks come with seed.ts seedPicksOnce
+  'energize-3-on', 'fight-3-on', 'whatif-3-on', 'whatif-5-on',
 ];
 
 /** A seed as a flows row: dated, with its seed text as the first revision. */

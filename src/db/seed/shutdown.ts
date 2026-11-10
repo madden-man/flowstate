@@ -6,11 +6,12 @@
 // Tommy's own words, so `line` is left for him. No source times a shutdown: the spans are minutes down the stairs
 // and up to an hour on the ramp. The peak is Far away, the bottom step.
 import type { FlowSeed } from '../seed-flows';
+import { withPicks } from './picks';
 
 /** The Still row, first on every step (3.7, Still first). */
 const still = (step: string) => ({ id: `${step}-still`, text: 'Less coming in: dim the page', short: 'Dim the page', helper: 'still' as const });
 
-export const SHUTDOWN: FlowSeed = {
+export const SHUTDOWN: FlowSeed = withPicks({
   id: 'shutdown',
   name: 'Shutdown',
   order: 8,
@@ -61,8 +62,8 @@ export const SHUTDOWN: FlowSeed = {
       tips: [
         still('shutdown-4'),
         { id: 'shutdown-4-rest', text: 'Rest, with nothing to finish', short: 'Rest' },
-        { id: 'shutdown-4-album', text: 'An album, or the TV', helper: 'music' },
+        { id: 'shutdown-4-album', text: 'An album, or the TV', helper: 'on' },
       ],
     },
   ],
-};
+});

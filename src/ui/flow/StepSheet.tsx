@@ -8,6 +8,9 @@
 // nothing): it opens empty, and closing it (Save, inert until there is a name, or Done) with a name written adds the step (model/flow-make.ts addStep), then
 // keeps whatever else was written (usually, the tips) with saveStep. With no name, nothing is written. Still keeps
 // the page to its words (rule 13), so "+ step" waits for Day or Night; "name the first step" stays.
+// PLAN-PICKS.md P2: a step with an On row gains the On block: the line its sheet prints, the picks in their order (a
+// long press lifts one to its place, as with the tips), Strike (struck, never deleted: it goes to Earlier), "+ album"
+// from the ♪ grid (connected only) and "+ line" as a title and its kind. Every change is a revision with the step's.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { Sheet } from '../parts/Sheet';
@@ -16,12 +19,14 @@ import { useHold } from '../parts/Hold';
 import { tick } from '../parts/Haptic';
 import { shortDate } from '../date';
 import { HELPER_WORD } from './Tips';
+import { KIND_WORD } from './On';
+import { chooseAlbum, connected } from '../music/state';
 import { PersonSheet } from './Person';
 import { EarlierNotes } from './Notes';
 import { personRowText } from '../../model/carried';
-import type { Flow, Step, Tip, TipHelper } from '../../db/schema';
+import type { Flow, OnPick, PickKind, Step, Tip, TipHelper } from '../../db/schema';
 import type { Read } from '../../db/fields';
-import { earlierOf, moveTip, newTip, saveStep, type StepDraft } from '../../model/tips';
+import { albumPick, earlierOf, moveTip, newLine, newTip, saveStep, type StepDraft } from '../../model/tips';
 import { addStep, isUnnamed } from '../../model/flow-make';
 
 /** A sheet opening is felt (rule 19): the Edit word and "+ step". */
@@ -47,13 +52,16 @@ export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => vo
 /** The helpers a tip can carry from this sheet. Person (F6) opens the person sheet over this one: who, the number,
  *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode; Sit
  *  (PLAN-MEDITATE.md S3) opens Meditate and is ticked by a sit of a minute or more. */
-export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit'];
+export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit', 'on'];
+/** The kinds a written line can be (P2): an album comes only from the ♪ grid. */
+const LINE_KINDS: Exclude<PickKind, 'album'>[] = ['show', 'film', 'switch', 'phone'];
 
 /** step: the step to edit; none to add one (first: it names the flow's unnamed step). */
 type Props = { flow: Read<Flow>; step?: Step; first?: boolean; open: boolean; onClose: () => void; onSaved: () => void };
 
 const draftOf = (s: Step | undefined): StepDraft => ({
   name: s?.name ?? '', line: s?.line ?? '', said: s?.said ?? '', usual: s?.usual ?? '', tips: structuredClone(s?.tips ?? []),
+  picks: s?.picks ? structuredClone(s.picks) : undefined, onLine: s?.onLine ?? '',
 });
 
 /** A new step: added by name, then the rest of what was written kept on it. */
@@ -84,33 +92,39 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
     wasOpen.current = open;
   }, [open]);
 
-  const set = (k: 'name' | 'line' | 'said' | 'usual') => (e: JSX.TargetedEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const set = (k: 'name' | 'line' | 'said' | 'usual' | 'onLine') => (e: JSX.TargetedEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const v = e.currentTarget.value;
     setD(p => ({ ...p, [k]: v }));
   };
   const setTip = (id: string, patch: Partial<Tip>) => setD(p => ({ ...p, tips: p.tips.map(t => (t.id === id ? { ...t, ...patch } : t)) }));
+  const setPick = (id: string, patch: Partial<OnPick>) => setD(p => ({ ...p, picks: (p.picks ?? []).map(x => (x.id === id ? { ...x, ...patch } : x)) }));
+  const addPick = (x: OnPick) => setD(p => ({ ...p, picks: [...(p.picks ?? []), x] }));
 
-  // ---- the drag: a long press lifts a tip; it rides under the finger and drops into its place ----
+  // ---- the drag: a long press lifts a tip (or a pick, P2); it rides under the finger and drops into its place ----
   const list = useRef<HTMLDivElement>(null);
+  const pickList = useRef<HTMLDivElement>(null);
   const [lifted, setLifted] = useState<string | null>(null);
-  const drag = useRef<{ id: string; y: number; dy: number } | null>(null);
+  const drag = useRef<{ id: string; y: number; dy: number; picks: boolean } | null>(null);
   useEffect(() => {
     if (!lifted) return;
-    const rowOf = (id: string) => list.current?.querySelector<HTMLElement>(`[data-tip="${id}"]`) ?? null;
+    const picks = !!drag.current?.picks;
+    const rowOf = (id: string) => (picks ? pickList : list).current?.querySelector<HTMLElement>(`[data-${picks ? 'pick' : 'tip'}="${id}"]`) ?? null;
+    const items = (): { id: string; struck?: boolean }[] => (picks ? dRef.current.picks ?? [] : dRef.current.tips);
     const hold = (e: TouchEvent) => e.preventDefault();
     const move = (e: PointerEvent) => {
       const g = drag.current, el = rowOf(lifted);
       if (!g || !el) return;
       g.dy = e.clientY - g.y;
-      const live = dRef.current.tips.filter(t => !t.struck);
+      const live = items().filter(t => !t.struck);
       const i = live.findIndex(t => t.id === g.id), half = el.offsetHeight / 2;
       const j = g.dy > half && i < live.length - 1 ? i + 1 : g.dy < -half && i > 0 ? i - 1 : i;
       if (j !== i) {
         const h = rowOf(live[j].id)?.offsetHeight ?? 0;
         g.y += j > i ? h : -h;
         g.dy -= j > i ? h : -h;
-        const all = dRef.current.tips;
-        setD(p => ({ ...p, tips: moveTip(all, g.id, all.findIndex(t => t.id === live[j].id)) }));
+        const all = items();
+        const to = all.findIndex(t => t.id === live[j].id);
+        setD(p => (picks ? { ...p, picks: moveTip(p.picks ?? [], g.id, to) } : { ...p, tips: moveTip(p.tips, g.id, to) }));
       }
       el.style.transform = `translateY(${g.dy - 2}px)`;
     };
@@ -132,7 +146,7 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
       removeEventListener('pointercancel', up);
     };
   }, [lifted]);
-  const lift = (id: string, y: number) => { drag.current = { id, y, dy: 0 }; setLifted(id); };
+  const lift = (id: string, y: number, picks = false) => { drag.current = { id, y, dy: 0, picks }; setLifted(id); };
 
   // the person sheet (F6), over this one, for one tip: closing it keeps the person on the draft (saved with the step)
   const [personFor, setPersonFor] = useState<string | null>(null);
@@ -142,6 +156,9 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
 
   const earlier = step ? earlierOf({ revisions: flow.revisions, steps: flow.steps.map(s => (s.id === step.id ? { ...s, ...d } : s)) }, step.id) : [];
   const tips = d.tips.filter(t => !t.struck);
+  // P2: the On block shows on a step with an On row, or with picks already (a row he struck keeps its picks readable)
+  const onRow = d.tips.some(t => t.helper === 'on' && !t.struck) || !!d.picks?.length;
+  const picks = (d.picks ?? []).filter(x => !x.struck);
 
   return (
     <>
@@ -178,6 +195,29 @@ export function StepSheet({ flow, step, first, open, onClose, onSaved }: Props) 
             <button type="button" class="fs-chip add" onClick={() => setD(p => ({ ...p, tips: [...p.tips, newTip()] }))}>+ thing</button>
           </div>
         </div>
+        {onRow && (
+          <>
+            <label class="fs-row stack">
+              <span class="fs-print">What the On sheet says</span>
+              <input class="fs-input fl-said-field" value={d.onLine} aria-label="What the On sheet says" autocomplete="off" onInput={set('onLine')} />
+            </label>
+            <div class="fs-row stack">
+              <span class="fs-print">On</span>
+              <div ref={pickList} class="fl-tiplist" role="list" aria-label="On">
+                {picks.map(x => (
+                  <PickRow key={x.id} p={x} lifted={lifted === x.id} onLift={y => lift(x.id, y, true)}
+                    onTitle={title => setPick(x.id, { title })} onKind={kind => setPick(x.id, { kind })} onStrike={() => setPick(x.id, { struck: true })} />
+                ))}
+              </div>
+              <div class="fs-opts">
+                {connected.value && (
+                  <button type="button" class="fs-chip add" onClick={() => chooseAlbum(a => addPick(albumPick(a)))}>+ album</button>
+                )}
+                <button type="button" class="fs-chip add" onClick={() => addPick(newLine())}>+ line</button>
+              </div>
+            </div>
+          </>
+        )}
         {step && (earlier.length > 0 || flow.notes?.some(n => n.stepId === step.id && n.text.trim())) && (
           <div class="fs-row stack" aria-label="Earlier">
             <span class="fs-print">Earlier</span>
@@ -240,6 +280,45 @@ function TipRow({ t, lifted, onLift, onText, onHelper, onStrike, onPerson }: Row
           <button type="button" class="fs-opt" aria-pressed={!t.helper} onClick={() => { onHelper(undefined); setHelpers(false); }}>none</button>
           {HELPERS.map(h => (
             <button key={h} type="button" class="fs-opt" aria-pressed={t.helper === h} onClick={() => { onHelper(h); setHelpers(false); }}>{HELPER_WORD[h]}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One pick in the On block (P2): its title (a tap writes in a line's; an album is its title and artist, from the ♪
+ *  grid), its kind as a chip (a line's chooses among the four; an album's is only a word), Strike. A long press on the
+ *  words lifts it. */
+function PickRow({ p, lifted, onLift, onTitle, onKind, onStrike }: {
+  p: OnPick; lifted: boolean; onLift: (y: number) => void; onTitle: (t: string) => void; onKind: (k: Exclude<PickKind, 'album'>) => void; onStrike: () => void;
+}) {
+  const album = p.kind === 'album';
+  const [edit, setEdit] = useState(!album && !p.title);
+  const [kinds, setKinds] = useState(false);
+  const y = useRef(0);
+  const hold = useHold(() => onLift(y.current), () => { if (!album) setEdit(true); });
+  const area = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { if (edit) area.current?.focus({ preventScroll: true }); }, [edit]);
+  const words = album && p.by ? `${p.title}, ${p.by}` : p.title;
+  return (
+    <div class={`fl-tiprow${lifted ? ' lift' : ''}`} role="listitem" data-pick={p.id}>
+      {edit ? (
+        <textarea ref={area} class="fs-input fs-area" rows={1} value={p.title} aria-label="A title" placeholder="A title"
+          onInput={e => onTitle(e.currentTarget.value)} onBlur={() => { if (p.title.trim()) setEdit(false); }} />
+      ) : (
+        <p class="fl-tiptext fs-hold" {...hold} onPointerDown={e => { y.current = e.clientY; hold.onPointerDown(e); }}>{words}</p>
+      )}
+      <div class="fl-tipacts">
+        {album
+          ? <span class="fs-print">{KIND_WORD.album}</span>
+          : <button type="button" class="fs-chip" aria-expanded={kinds} onClick={() => setKinds(!kinds)}>{KIND_WORD[p.kind]}</button>}
+        <button type="button" class="fs-word" onClick={onStrike} aria-label={`Strike ${words}`}>Strike</button>
+      </div>
+      {kinds && !album && (
+        <div class="fs-opts" role="group" aria-label="Kind">
+          {LINE_KINDS.map(k => (
+            <button key={k} type="button" class="fs-opt" aria-pressed={p.kind === k} onClick={() => { onKind(k); setKinds(false); }}>{KIND_WORD[k]}</button>
           ))}
         </div>
       )}
