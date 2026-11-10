@@ -102,7 +102,9 @@ export function parseBackup(text: string): BackupFile {
 /** Older files are brought up to the current version here. A version 1 file (one playlist) gets what the
  *  Dexie upgrade gives a version 1 database: its ordered albums as the Poems playlist's shelf, and that
  *  playlist ticked. A version 2 file has no flows or episodes (both tables come in empty, above); its settings
- *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. */
+ *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. A version 4 file has no
+ *  fixations (the table comes in empty, above); its settings.cleaned has no 'fixations', so seed.ts seedFixationsOnce
+ *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };

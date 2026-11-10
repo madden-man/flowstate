@@ -24,7 +24,7 @@ import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
-import { cleanSeedPages, seedFlowsOnce, seedPicksOnce } from './db/seed';
+import { cleanSeedPages, seedFixationsOnce, seedFlowsOnce, seedPicksOnce } from './db/seed';
 import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
@@ -207,7 +207,9 @@ function Gate({ children }: { children: ComponentChildren }) {
         const written = await seedFlowsOnce();
         // the picks (PLAN-PICKS.md, P0) after the flows, so the four new On rows are there to give theirs
         const picked = await seedPicksOnce();
-        if (wrote || written?.length || picked?.length) dataVersion.value++;
+        // the fixations (PLAN-ENERGIZE.md section 5, X1): the first three and the deck, once, sealed like the flows
+        const fixed = await seedFixationsOnce();
+        if (wrote || written?.length || picked?.length || fixed?.length) dataVersion.value++;
         if (openedOnce) return;
         openedOnce = true;
         const live = await onOpen();

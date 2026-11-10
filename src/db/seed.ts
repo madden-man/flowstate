@@ -2,7 +2,7 @@
 // items, and the small antonym list. Runs once, on an empty database. No pages (V5, 2026-11-08): the
 // manifesto is the threshold's copy (MANIFESTO below), not a journal entry.
 // Every line here is the notebook's own; nothing is generated.
-import type { Flow, Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
+import type { Fixation, Flow, Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
 import type { Read } from './fields';
 import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
@@ -241,6 +241,60 @@ export function seedPicksOnce(): Promise<string[] | null> {
     return given;
   })().finally(() => { picksPass = null; });
   return picksPass;
+}
+
+// ---- the fixations (PLAN-ENERGIZE.md section 5, X1) ----
+
+/** The name the pass leaves in settings.cleaned once it has run. */
+export const FIXATIONS_PASS = 'fixations';
+
+/** A local-midnight date (section 5: the since dates are days, by the phone's own calendar). */
+const localDay = (y: number, m: number, d: number) => new Date(y, m - 1, d).getTime();
+
+/** Decided by Tommy, 2026-11-10: the three on, in slot order, with the day each went on; then the deck, never on, in
+ *  the order he named them. Hues are the voices' wheel (HUES): FlowState blue, East Winds green, Japan Trip red. */
+export const SEED_FIXATIONS_ON: { id: string; name: string; hue: number; since: number }[] = [
+  { id: 'fx-flowstate', name: 'FlowState', hue: HUES.blue, since: localDay(2026, 11, 7) },
+  { id: 'fx-east-winds', name: 'East Winds', hue: HUES.green, since: localDay(2026, 8, 20) },
+  { id: 'fx-japan-trip', name: 'Japan Trip', hue: HUES.red, since: localDay(2026, 10, 28) },
+];
+export const SEED_FIXATIONS_DECK: { id: string; name: string; hue: number }[] = [
+  { id: 'fx-jazz-piano', name: 'Jazz piano', hue: HUES.purple },
+  { id: 'fx-conduit', name: 'Conduit', hue: HUES.orange },
+  { id: 'fx-learning-chinese', name: 'Learning Chinese', hue: HUES.pink },
+  { id: 'fx-studying-philosophy', name: 'Studying philosophy', hue: HUES.yellow },
+];
+
+/** The seed rows. An on one was made the day it went on; the deck was made now, a millisecond apart, so the deck's
+ *  longest waiting first (model/fixations.ts deck) reads in the order he named them. */
+export function seedFixations(now = Date.now()): Fixation[] {
+  return [
+    ...SEED_FIXATIONS_ON.map((f, slot) => ({ id: f.id, name: f.name, hue: f.hue, createdAt: f.since, stints: [{ from: f.since, slot }], updatedAt: f.since })),
+    ...SEED_FIXATIONS_DECK.map((f, i) => ({ id: f.id, name: f.name, hue: f.hue, createdAt: now + i, stints: [], updatedAt: now + i })),
+  ];
+}
+
+let fixationsPass: Promise<string[] | null> | null = null;
+
+/**
+ * Once per journal (PLAN-ENERGIZE.md section 5): writes the first three and the deck, and records 'fixations' in
+ * settings.cleaned, so a fixation he finishes or a row that goes never comes back. A seed row whose id is already
+ * there (an import) is left as it is. A name is sealed, so like seedFlowsOnce it runs where the journal is open: at
+ * boot with no lock, and again once the PIN opens it; a locked journal returns null and tries on the next open.
+ * The Energize flow row is not touched (X5 moves its doctor line). Returns the ids written.
+ */
+export function seedFixationsOnce(now = Date.now()): Promise<string[] | null> {
+  fixationsPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    if (s.cleaned?.includes(FIXATIONS_PASS)) return [];
+    const have = new Set((await store.all('fixations')).map(f => f.id));
+    const write = seedFixations(now).filter(f => !have.has(f.id));
+    await store.many({ fixations: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), FIXATIONS_PASS] }] });
+    return write.map(f => f.id);
+  })().finally(() => { fixationsPass = null; });
+  return fixationsPass;
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----
