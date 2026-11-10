@@ -23,10 +23,11 @@ export function tokenMs(name: string): number {
 
 /** An optional word beside Done (a save that stays print-grey and inert until it can act). */
 export type SheetAction = { label: string; inert?: boolean; onPress: () => void };
-/** back (V7): a word above the title that goes back a screen inside the same sheet ("Playlists"). */
-type Props = { open: boolean; onClose: () => void; title: string; action?: SheetAction; back?: SheetAction; children?: ComponentChildren };
+/** back (V7): a word above the title that goes back a screen inside the same sheet ("Playlists"). lead
+ *  (PLAN-ENERGIZE.md X5): one more word in the title row, before action ("Spark it" before Edit). */
+type Props = { open: boolean; onClose: () => void; title: string; action?: SheetAction; lead?: SheetAction; back?: SheetAction; children?: ComponentChildren };
 
-export function Sheet({ open, onClose, title, action, back, children }: Props) {
+export function Sheet({ open, onClose, title, action, lead, back, children }: Props) {
   const [shown, setShown] = useState(open);
   const [leaving, setLeaving] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -111,6 +112,7 @@ export function Sheet({ open, onClose, title, action, back, children }: Props) {
           <div class="fs-sheet-title">
             <h2>{title}</h2>
             <span class="fs-sheet-words">
+              {lead && <button type="button" class="fs-word fs-lead" onClick={lead.onPress}>{lead.label}</button>}
               {action && (
                 <button type="button" class={`fs-word fs-go${action.inert ? ' inert' : ''}`} aria-disabled={action.inert ? 'true' : undefined}
                   onClick={() => { if (!action.inert) action.onPress(); }}>{action.label}</button>

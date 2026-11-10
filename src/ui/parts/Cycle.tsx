@@ -34,6 +34,10 @@ import { nearestT, slotPoint, walkDistance, type Drawn, type Shape, type Stamp }
 
 export type CycleStep = { id: string; name: string };
 
+/** The dot's detent tick (rule 19), for the one place the dot is put on a step from outside the drawing: Spark it on
+ *  Energize's deck sheet (PLAN-ENERGIZE.md X5). Called inside the tap, like every tick. */
+export const detentTick = () => tick('detent');
+
 type Props = {
   diagram: DiagramName;
   steps: CycleStep[];

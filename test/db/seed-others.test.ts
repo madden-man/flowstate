@@ -60,9 +60,11 @@ describe('the three as the plan has them', () => {
     expect(last.text).not.toMatch(/111|NHS/);
     expect(bottom.tips.filter(t => t.print)).toEqual([last]);
   });
-  it('the hypomania line is Energize\'s line at rest, not a step', () => {
-    expect(ENERGIZE.restLine).toBe('Highs most days for a week without needing sleep: talk to your doctor.');
-    expect(JSON.stringify(ENERGIZE.steps)).not.toMatch(/mania|doctor/i);
+  it('the hypomania line is a print line under The tip\'s rows (X5), not a row and not a step', () => {
+    expect(ENERGIZE.restLine).toBeUndefined();
+    const tip = ENERGIZE.steps.find(s => s.id === 'energize-4')!;
+    expect(tip.tips.filter(t => t.print)).toEqual([{ id: 'energize-4-doctor', text: 'Highs most days for a week without needing sleep: talk to your doctor.', print: true }]);
+    expect(JSON.stringify(ENERGIZE.steps.filter(s => s.id !== 'energize-4'))).not.toMatch(/doctor/i);
     expect(JSON.stringify(ENERGIZE)).not.toMatch(/\bmania/i);
   });
   it('Fight: the flooded step carries the return time, cooling asks "slower now?", nobody counts a pulse there', () => {
@@ -86,6 +88,6 @@ describe('seeded and sealed', () => {
     const raw = JSON.stringify(await db.flows.get('energize')) + JSON.stringify(await db.flows.get('depress'));
     for (const word of ['Highs most days', 'call or text', 'The bottom', 'Locked in']) expect(raw).not.toContain(word);
     expect(raw).toContain('"print":true');
-    expect((await store.get('flows', 'energize'))!.restLine).toMatch(/^Highs most days/);
+    expect((await store.get('flows', 'energize'))!.steps[3].tips.at(-1)!.text).toMatch(/^Highs most days/);
   });
 });

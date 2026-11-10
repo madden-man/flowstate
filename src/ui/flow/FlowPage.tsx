@@ -16,6 +16,12 @@
 // rest page (the flow's line, the rest line, last time, what helped, carried notes, the ask, "+ step"), and the stream
 // runs in the three hues there and on every step. Its sheet landing one in a slot sends the stream's ring out in that
 // hue. Through the door the page at rest is the drawing alone, and the water ink: nothing comes from the fixations.
+//
+// Spark it (X5): the sheet's word names the ride and routes here, to the dot's step. While the live episode names a
+// fixation the water runs in its one hue on every step (rule 30), and the step page is that fixation's card alone
+// (Fixations.tsx FixationCard, not a button, its Next line open) and then the step's rows as they are. On this flow
+// the said and "Usually:" paragraphs are not drawn in any light: the usualShort by the drawing (and in Still under
+// it) says the step. A ride dragged off rest names nothing: no card, the three hues. Through the door: no card.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
@@ -43,8 +49,8 @@ import { AskNote, NoteAtStep, RestCarried, useAsk } from './Notes';
 import { StampMarks } from './Stamps';
 import { Stream } from '../parts/Stream';
 import { pacesOf } from '../../model/pace';
-import { FIXATION_FLOW } from '../../model/fixations';
-import { Fixations, huesOf, useFixations, type Landed } from './Fixations';
+import { FIXATION_FLOW, type Sparked } from '../../model/fixations';
+import { FixationCard, Fixations, laneHues, useFixations, type Landed } from './Fixations';
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -64,7 +70,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   // F6: the question to the next one of you (asked once per ended episode), and whether his own stamps are drawn
   // the three (X2): Energize's rest page is the fixations, so it never asks there (asking marks the episode asked)
   const fixing = id === FIXATION_FLOW;
-  const { fixed, reload } = useFixations(fixing && !doorOnly);
+  const rideId = data && data !== 'none' ? data.live?.fixationId : undefined;
+  const { fixed, reload } = useFixations(fixing && !doorOnly, rideId);
   const [asking, unask] = useAsk(data && data !== 'none' ? data.flow : undefined, data && data !== 'none' ? data.last : undefined,
     !fixing && !(step && Number(step) >= 1) && !(data && data !== 'none' && data.live), !!doorOnly);
   const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
@@ -131,7 +138,15 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   // the step sheet (F2) edits a step read at rest, and "+ step" opens it empty; neither comes through the door
   const sheets = !doorOnly && !flow.locked;
   // the three (X2): the stream's lanes in their hues, and the rest page; through the door neither
-  const hues = fixing && fixed ? huesOf(fixed.three) : undefined;
+  // X5: a ride Spark it named runs in its one hue (laneHues), only while that episode is live
+  const ride = live && fixed?.ride && fixed.ride.id === live.fixationId ? fixed.ride : undefined;
+  const hues = fixing && fixed ? laneHues({ ...fixed, ride }) : undefined;
+  const sparked = (s: Sparked) => {
+    const hue = fixed?.three.find(f => f?.id === s.episode.fixationId && !f?.locked)?.hue;
+    setLanding(was => ({ k: s.step, seq: (was?.seq ?? 0) + 1, hue }));
+    route(`/flow/${flow.id}/${s.step}`, true);
+    setVersion(v => v + 1);
+  };
   const landed = async (l?: Landed) => {
     await reload();
     if (l) setLanding(was => ({ k: at, seq: (was?.seq ?? 0) + 1, hue: l.hue }));
@@ -155,10 +170,11 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
         </div>
         {shown ? (
           <section class="fl-step-page" aria-label={shown.name}>
+            {ride && !doorOnly && <div class="fx-cards fx-riding"><FixationCard f={ride} now={now} ride /></div>}
             {shown.line && <p class="fl-line">{shown.line}</p>}
             {!doorOnly && <NoteAtStep flow={flow} step={shown} />}
-            {shown.said && <p class="fl-said fs-notstill">{shown.said}</p>}
-            {shown.usual && <p class="fl-usual fs-notstill">Usually: {shown.usual}</p>}
+            {!fixing && shown.said && <p class="fl-said fs-notstill">{shown.said}</p>}
+            {!fixing && shown.usual && <p class="fl-usual fs-notstill">Usually: {shown.usual}</p>}
             {shown.usualShort && <p class="fl-usual fs-stillonly">{shown.usualShort}</p>}
             {(doorOnly || !flow.locked) && (
               <Tips step={shown} flowId={flow.id} flowTips={flow.steps.flatMap(s => s.tips)} live={live} still={still} now={now} door={doorOnly}
@@ -166,7 +182,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             )}
           </section>
         ) : fixing ? (
-          fixed && !doorOnly && <Fixations three={fixed.three} deck={fixed.deck} now={now} onChanged={landed} />
+          fixed && !doorOnly && <Fixations three={fixed.three} deck={fixed.deck} now={now} onChanged={landed} onSpark={sparked} />
         ) : (
           <section class="fl-step-page" aria-label="At rest">
             {flow.line && <p class="fl-line">{flow.line}</p>}

@@ -2,13 +2,15 @@
 // instead, Deal me one, the span words on a card and the ribbons for What stuck. Every read and write goes through
 // store, so a name and a next line are sealed. No UI. A span is a duration, never a run of days (DESIGN.md rule 15): nothing
 // here counts days done, has a day to miss or adds anything up for show; the total held only orders the ribbons.
-import type { Fixation, Millis, Stint } from '../db/schema';
+import type { Episode, Fixation, Millis, Stint } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { startOfDay } from './flow';
-import { spanWords } from './flows';
+import { currentStepId, flowById, liveEpisode, placeOf, spanWords } from './flows';
 
 /** The flow the three sit under, keyed by id in code as model/pace.ts keys paces (section 5). */
 export const FIXATION_FLOW = 'energize';
+/** The step Spark it puts the dot on (section 2, X5): Spark, by its seed id; the first step if he has taken it away. */
+export const SPARK_STEP = 'energize-1';
 /** Three slots, always (section 2): 0, 1 and 2, the cards in their order. */
 export const SLOTS = 3;
 
@@ -198,4 +200,34 @@ export async function deal(exclude: string[] = [], random: () => number = Math.r
   const pool = (await deck()).filter(f => !out.has(f.id));
   if (!pool.length) return undefined;
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
+}
+
+// ---------------------------------------------------------------- Spark it (X5)
+
+/** What Spark it did: the episode it started or named, and the step the dot is on (1 for the first), for the route. */
+export type Sparked = { episode: Episode; step: number };
+
+/**
+ * Spark it (section 2, X5): the word on a fixation's sheet names the ride. With no episode live on Energize one starts
+ * with the dot on Spark and fixationId set; with one live it is only named (fixationId set, or set again to this one),
+ * the dot left where it is. Ending the episode later touches nothing here: the fixation keeps its stints and its Next.
+ * Undefined, and nothing written, when the fixation is unknown, finished or read locked, or the flow is gone or read
+ * locked (Spark's step is unknown then).
+ */
+export async function spark(id: string, at = Date.now()): Promise<Sparked | undefined> {
+  const f = await fixationById(id);
+  if (!usable(f) || f.finishedAt !== undefined) return undefined;
+  const flow = await flowById(FIXATION_FLOW);
+  if (!flow || flow.locked || !flow.steps.length) return undefined;
+  const live = await liveEpisode(FIXATION_FLOW);
+  if (live) {
+    if (live.locked) return undefined;
+    const named: Episode = { ...live, fixationId: id };
+    await store.put('episodes', named);
+    return { episode: named, step: Math.max(1, placeOf(flow, currentStepId(named))) };
+  }
+  const stepId = flow.steps.some(s => s.id === SPARK_STEP) ? SPARK_STEP : flow.steps[0].id;
+  const e: Episode = { id: crypto.randomUUID(), flowId: FIXATION_FLOW, startedAt: at, marks: [{ stepId, at }], done: [], fixationId: id };
+  await store.put('episodes', e);
+  return { episode: e, step: placeOf(flow, stepId) };
 }

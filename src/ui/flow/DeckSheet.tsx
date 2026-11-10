@@ -17,11 +17,17 @@
 // markup), so the row is seen landing in its slot on --ease-settle. Where the card has no such mark, or there are no
 // view transitions, or Reduce Motion is on, the change just happens. One tick and the rising fifth on a swap, one tick
 // on a deal (rules 19 and 21). Still drops the dates (rule 13); a row read locked shows nothing.
+//
+// Spark it (X5): from a card that holds a fixation (never from a chip, never on an empty slot) the title row carries
+// "Spark it" before Edit. A tap names the ride (model/fixations.ts spark: the dot on Spark, or the live episode only
+// named), puts the sheet away and hands the step up for the route; its one tick is the dot's detent (rule 19), since
+// the dot lands on a step. Edit gains the Next line (section 2): his own, one line, never required; Still hides it.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { Sheet } from '../parts/Sheet';
 import { HueWheel } from '../parts/HueWheel';
 import { tick } from '../parts/Haptic';
+import { detentTick } from '../parts/Cycle';
 import { bell } from '../parts/Sound';
 import { turn, WAIT_MS } from '../parts/Turn';
 import { shortDate } from '../date';
@@ -29,7 +35,8 @@ import { voiceColour } from '../voice';
 import type { Fixation } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import {
-  SLOTS, three, deck, swap, finish, add, rename, recolour, setSince, deal, lastOn, openStint, fixationById, type Three,
+  SLOTS, three, deck, swap, finish, add, rename, recolour, setSince, setNext, deal, lastOn, openStint, fixationById, spark,
+  type Sparked, type Three,
 } from '../../model/fixations';
 
 export type DeckOpen = { slot: number } | { id: string } | null;
@@ -37,6 +44,8 @@ type Props = {
   open: DeckOpen;
   onClose: () => void;
   onChanged: (landed?: { slot: number; hue: number }) => void;
+  /** Spark it named the ride (X5): the page routes to the dot's step. */
+  onSpark?: (sparked: Sparked) => void;
 };
 
 /** A fixation's colour, exactly as a voice's (DESIGN.md rule 3): the hue on the light's lightness and chroma. */
@@ -69,18 +78,18 @@ const dayOf = (v: string): number | undefined => {
 
 type Loaded = { three: Three; deck: Read<Fixation>[]; subject?: Read<Fixation> };
 type View = 'deck' | 'edit' | 'new';
-type EditDraft = { name: string; hue: number; since: string };
+type EditDraft = { name: string; hue: number; since: string; next: string };
 
 const usable = (f: Read<Fixation> | undefined): f is Read<Fixation> => !!f && !f.locked;
 
-export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | null {
+export function DeckSheet({ open, onClose, onChanged, onSpark }: Props): JSX.Element | null {
   // what the sheet was opened for, kept while it goes down so its words do not empty under the thumb
   const [asked, setAsked] = useState<Exclude<DeckOpen, null> | null>(open);
   const [data, setData] = useState<Loaded | null>(null);
   const [view, setView] = useState<View>('deck');
   const [dealt, setDealt] = useState<string | undefined>(undefined);
   const [riffle, setRiffle] = useState(0);
-  const [edit, setEdit] = useState<EditDraft>({ name: '', hue: 0, since: '' });
+  const [edit, setEdit] = useState<EditDraft>({ name: '', hue: 0, since: '', next: '' });
   const [fresh, setFresh] = useState({ name: '', hue: 0 });
   // the sheet session (section 2): the one just taken off and the last one dealt are never dealt
   const takenOff = useRef<string | undefined>(undefined);
@@ -132,6 +141,7 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
       if (edit.hue !== f.hue) wrote = !!(await recolour(f.id, edit.hue)) || wrote;
       const since = dayOf(edit.since), on = openStint(f);
       if (on && since !== undefined && dayValue(on.from) !== edit.since) wrote = !!(await setSince(f.id, since)) || wrote;
+      if (edit.next.trim() !== (f.next ?? '')) wrote = !!(await setNext(f.id, edit.next)) || wrote;
       return wrote;
     }
     if (view === 'new' && fresh.name.trim()) return !!(await add(fresh.name, fresh.hue));
@@ -150,7 +160,7 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
   const openEdit = () => {
     if (!f) return;
     const on = openStint(f);
-    setEdit({ name: f.name, hue: f.hue, since: on ? dayValue(on.from) : '' });
+    setEdit({ name: f.name, hue: f.hue, since: on ? dayValue(on.from) : '', next: f.next ?? '' });
     setView('edit');
   };
   const openNew = () => {
@@ -208,6 +218,17 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
     setRiffle(n => n + 1);
   };
 
+  /** Spark it (X5): the tick goes inside the tap (parts/Haptic), the write after it. */
+  const sparkIt = () => {
+    if (!f || busy.current) return;
+    busy.current = true;
+    detentTick();
+    void spark(f.id).then(s => {
+      onClose();
+      if (s) onSpark?.(s);
+    });
+  };
+
   const finished = async () => {
     if (!f || busy.current) return;
     busy.current = true;
@@ -223,6 +244,7 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
   // ---- the three screens ----
   let title: string, body: JSX.Element | null, action: { label: string; inert?: boolean; onPress: () => void } | undefined;
   let backWord: { label: string; onPress: () => void } | undefined;
+  let lead: { label: string; onPress: () => void } | undefined;
   let hue: number | undefined = f?.hue;
 
   if (view === 'edit' && f) {
@@ -248,6 +270,11 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
               onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => { const v = e.currentTarget.value; setEdit(p => ({ ...p, since: v })); }} />
           </label>
         )}
+        <label class="fs-row stack fs-notstill">
+          <span>Next</span>
+          <input class="fs-input" value={edit.next} aria-label="Next" placeholder="The next small step" autocomplete="off" enterKeyHint="done"
+            onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => { const v = e.currentTarget.value; setEdit(p => ({ ...p, next: v })); }} />
+        </label>
       </div>
     );
   } else if (view === 'new') {
@@ -266,6 +293,7 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
   } else if (bySlot) {
     title = f ? f.name : 'Empty';
     action = f ? { label: 'Edit', onPress: openEdit } : undefined;
+    lead = f ? { label: 'Spark it', onPress: sparkIt } : undefined;
     const on = f && openStint(f);
     body = (
       <>
@@ -325,7 +353,7 @@ export function DeckSheet({ open, onClose, onChanged }: Props): JSX.Element | nu
 
   return (
     <div class="fx-sheet" data-hue={hue === undefined ? undefined : ''} style={dot(hue)}>
-      <Sheet open={!!open && !!data} onClose={close} title={title} action={action} back={backWord}>
+      <Sheet open={!!open && !!data} onClose={close} title={title} action={action} lead={lead} back={backWord}>
         {body}
       </Sheet>
     </div>

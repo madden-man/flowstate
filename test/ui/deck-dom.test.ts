@@ -277,3 +277,56 @@ describe('the deck sheet, small parts', () => {
     expect(src).toMatch(/\[data-fx-slot="\$\{into\}"\]/);
   });
 });
+
+describe('Spark it (X5)', () => {
+  it('sits in the title row before Edit on a card that holds one; never on an empty slot or from a chip', async () => {
+    await mount({ slot: 1 });
+    expect($$('.fs-sheet-words .fs-word').map(w => w.textContent)).toEqual(['Spark it', 'Edit', 'Done']);
+    await mount(null);
+    await mount({ id: 'fx-conduit' });
+    expect($$('.fs-sheet-words .fs-word').map(w => w.textContent)).toEqual(['Edit', 'Done']);
+    await mount(null);
+    await mount({ slot: 2 });
+    await click(byText('.fx-fate .fs-word', 'Finished instead'));
+    await mount(null);
+    await mount({ slot: 2 });
+    expect($$('.fs-sheet-words .fs-word').map(w => w.textContent)).toEqual(['Done']);
+  });
+
+  it('a tap names the ride, ticks once on the dot\'s detent, closes the sheet and hands up the step', async () => {
+    const { ensureSeeded } = await import('../../src/db/seed');
+    const { liveEpisode } = await import('../../src/model/flows');
+    await ensureSeeded();
+    const sparked: number[] = [];
+    closed = 0;
+    await act(() => {
+      render(h(DeckSheet, { open: { slot: 1 }, onClose: () => { closed++; }, onChanged: () => undefined, onSpark: s => { sparked.push(s.step); } }), host);
+    });
+    await settle();
+    await click(byText('.fs-sheet-words .fs-word', 'Spark it'));
+    await settle();
+    expect(ticks).toEqual(['detent']);
+    expect(bells).toEqual([]);
+    expect(closed).toBe(1);
+    expect(sparked).toEqual([1]);
+    expect((await liveEpisode('energize'))!.fixationId).toBe('fx-east-winds');
+  });
+
+  it('Edit writes the Next line, his own; an empty one takes it away', async () => {
+    await mount({ slot: 1 });
+    await click(byText('.fs-sheet-words .fs-word', 'Edit'));
+    const next = $<HTMLInputElement>('.fx-edit input[aria-label="Next"]')!;
+    expect(next.value).toBe('');
+    expect(next.placeholder).toBe('The next small step');
+    expect(next.closest('.fs-notstill')).not.toBeNull();
+    await type(next, 'Chapter nine, the harbor at dawn');
+    await click($('.fs-sheet-back')!);
+    expect((await fixationById('fx-east-winds'))!.next).toBe('Chapter nine, the harbor at dawn');
+    await click(byText('.fs-sheet-words .fs-word', 'Edit'));
+    const again = $<HTMLInputElement>('.fx-edit input[aria-label="Next"]')!;
+    expect(again.value).toBe('Chapter nine, the harbor at dawn');
+    await type(again, '');
+    await click($('.fs-sheet-back')!);
+    expect((await fixationById('fx-east-winds'))!.next).toBeUndefined();
+  });
+});

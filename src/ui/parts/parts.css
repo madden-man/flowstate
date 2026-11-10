@@ -1055,6 +1055,20 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 [data-light="still"] .fl-stream line[class], [data-light="still"] .fl-stream .fl-ripple-hue { stroke: var(--ink); }
 [data-light="still"] .fx-card { border-left-color: var(--seam); }
 [data-light="still"] .fx-under, [data-light="still"] .fx-meta, [data-light="still"] .fx-deckpeek, [data-light="still"] .fx-foot { display: none; }
+/* Next (X5): a third rule under the since line, his own small step in italic after the print word; on the ride's card
+   an open line on that rule (no box, the rule is the page's), its placeholder in print italic. Gone in Still. */
+.fx-next { display: flex; align-items: baseline; gap: var(--s1); margin: 0; line-height: var(--lh-ink); min-height: var(--lh-ink); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-next small { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; font-style: normal; color: var(--print); }
+.fx-next-input {
+  flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; outline: none;
+  color: var(--ink); font: inherit; font-style: italic; line-height: var(--lh-ink); height: var(--lh-ink);
+}
+.fx-next-input::placeholder { color: var(--print); font-style: italic; }
+.fx-next-edit { cursor: text; }
+/* the ride (X5): the one card alone above the step's rows, not a button; a blank rule under it before the rows */
+.fx-riding { margin-bottom: var(--lh-ink); }
+.fx-card.fx-ride { cursor: default; }
+[data-light="still"] .fx-next { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .fx-card.fresh, .fx-under path { animation: none; }
 }
