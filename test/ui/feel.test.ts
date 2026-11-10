@@ -16,7 +16,7 @@ function calls(kind: 'tick' | 'bell'): string[] {
 
 // Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening,
 // the ring's turn points while a thumb holds it (F2), a cover chosen on the music sheet (M3), beginning and ending a
-// sit (Meditate, S1).
+// sit (Meditate, S1), a swap and a deal on the deck sheet (PLAN-ENERGIZE.md X3).
 // PLAN-PICKS.md P1: the On sheet opening is a sheet opening (On.tsx showOn); its covers tick through music/state.ts play.
 const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
@@ -32,9 +32,12 @@ const TICKS: Record<string, string[]> = {
   // M3: beside bell('album'), inside the tap
   album: ['src/ui/music/'],
   sit: ['src/ui/flow/Meditate.tsx'],
+  // PLAN-ENERGIZE.md X3: a fixation put in a slot, and Deal me one, both on the deck sheet
+  swap: ['src/ui/flow/DeckSheet.tsx'],
+  deal: ['src/ui/flow/DeckSheet.tsx'],
 };
 // Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2),
-// the bell that closes a sit with an end (Meditate, S2).
+// the bell that closes a sit with an end (Meditate, S2), the rising fifth on a swap (PLAN-ENERGIZE.md X3).
 const BELLS: Record<string, string[]> = {
   settle: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
@@ -45,6 +48,8 @@ const BELLS: Record<string, string[]> = {
   breathIn: ['src/ui/flow/breath.ts'],
   breathOut: ['src/ui/flow/breath.ts'],
   sitEnd: ['src/ui/flow/Meditate.tsx'],
+  // PLAN-ENERGIZE.md X3: the rising fifth on a swap
+  swap: ['src/ui/flow/DeckSheet.tsx'],
 };
 
 const allowed = (table: Record<string, string[]>, line: string) => {
@@ -64,8 +69,8 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('the listed events that exist so far all fire somewhere', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
-    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit']) expect(ticks, t).toContain(t);
-    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut', 'sitEnd']) expect(bells, b).toContain(b);
+    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal']) expect(ticks, t).toContain(t);
+    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');

@@ -89,7 +89,7 @@ export function Fixations({ three, deck, now, onChanged }: Props) {
           const key = `${slot}:${shown(f) ? f.id : ''}:${isFresh ? fresh.seq : 0}`;
           if (!shown(f)) {
             return (
-              <button key={key} type="button" class="fx-card fx-empty" data-slot={slot} aria-label="An empty place" onClick={() => setOpen({ slot })}>
+              <button key={key} type="button" class="fx-card fx-empty" data-slot={slot} data-fx-slot={slot} aria-label="An empty place" onClick={() => setOpen({ slot })}>
                 <span class="fx-name" />
                 {!still && <small class="fx-meta">Empty</small>}
               </button>
@@ -97,7 +97,7 @@ export function Fixations({ three, deck, now, onChanged }: Props) {
           }
           const stint = openStint(f);
           return (
-            <button key={key} type="button" class={`fx-card${isFresh ? ' fresh' : ''}`} data-slot={slot} style={colour(f.hue)} onClick={() => setOpen({ slot })}>
+            <button key={key} type="button" class={`fx-card${isFresh ? ' fresh' : ''}`} data-slot={slot} data-fx-slot={slot} style={colour(f.hue)} onClick={() => setOpen({ slot })}>
               <span class="fx-name"><span>{f.name}{!still && <Under />}</span></span>
               {!still && stint && (
                 <small class="fx-meta">

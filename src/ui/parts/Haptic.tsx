@@ -3,8 +3,9 @@
 // inside a direct tap, silent mode may mute it, and everywhere else it degrades to nothing.
 import { settings } from '../settings';
 
-/** The ticks DESIGN.md rule 19 allows, and nowhere else. */
-export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit';
+/** The ticks DESIGN.md rule 19 allows, and nowhere else. swap and deal: a fixation put in a slot, and Deal me one
+ *  (PLAN-ENERGIZE.md X3, ui/flow/DeckSheet.tsx). */
+export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit' | 'swap' | 'deal';
 
 export function tick(_name: TickName): void {
   if (!settings.value.haptics || typeof document === 'undefined') return;
