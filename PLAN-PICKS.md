@@ -1,6 +1,6 @@
 # FlowState picks: something on, at the steps that ask for it
 
-Date: 2026-11-09. Status: planned, not built. Tommy's ask: "look at semper dulce / tommysthoughts.com/darts and my letterboxd list for what shows and movies would be the best recommendations for each of the flows on flowstate, then make a plan for how we'll show those. also do the same for music albums (looking at for the poems and the prose and master for inspiration)", then "also include switch games", then "make sure your plan for showing all these entries fits within the design standard and doesn't detract from the very human, and fits well."
+Date: 2026-11-09. Status: decided by Tommy 2026-11-10 (section 8), building P0 to P2. Tommy's ask: "look at semper dulce / tommysthoughts.com/darts and my letterboxd list for what shows and movies would be the best recommendations for each of the flows on flowstate, then make a plan for how we'll show those. also do the same for music albums (looking at for the poems and the prose and master for inspiration)", then "also include switch games", then "make sure your plan for showing all these entries fits within the design standard and doesn't detract from the very human, and fits well."
 
 `PLAN-FLOWS.md` stays the flows' plan and research; `DESIGN.md` the standard. This file records where the picks come from, every pick for every step, the steps left empty on purpose, the screen, the check against the standard, the data and the packages. The proposal walkthrough is `design/flows/picks.html` (section 10).
 
@@ -21,19 +21,19 @@ Date: 2026-11-09. Status: planned, not built. Tommy's ask: "look at semper dulce
 
 ## 2. Decisions and assumptions
 
-Nothing here is decided by Tommy yet. Assumed, say so if wrong:
+Tommy's answers of 2026-11-10 are folded in below and listed in section 8. The rest is assumed, say so if wrong:
 
-- **Fewer, not all.** A sheet holds at most three covers and three written lines. Fourteen of the forty-three steps carry one; the rest carry none, and section 3 says why for each flow. A first draft with nine rows, minutes and group labels read like a streaming shelf and was thrown away.
-- **Only his.** Every title is one he rated four or more, liked, put on a list, owns, or put on a playlist himself. The line under a title is his own note from the darts board, verbatim (emoji dropped, since the page has none). A title he left no note on has none. Nothing is written for him and nothing is chosen at run time: no model, no algorithm, no network. The order only ever changes by what he ticks.
-- **On rows that are already there.** The On word goes on rows the flows already have: six of the seven ♪ rows (Replay's "An album" stays ♪), and five plain rows whose words it serves ("Eight minutes of something absorbing" on Depress and on Replay, "A walk, any length", "Something dull in dim light, away from bright screens", "Between fights, the friendship is what makes repairs work"). 3 rows are new. No step goes past six rows.
+- **Fewer, not all.** A sheet holds at most three covers and three written lines. Fifteen of the forty-three steps carry one; the rest carry none, and section 3 says why for each flow. A first draft with nine rows, minutes and group labels read like a streaming shelf and was thrown away.
+- **Only his.** Every title is one he rated four or more, liked, put on a list, owns, or put on a playlist himself. A line is the title and its kind, nothing more: Tommy ruled the darts notes out (2026-11-10), so no note is seeded, stored or shown. Nothing is written for him and nothing is chosen at run time: no model, no algorithm, no network. The order only ever changes by what he ticks.
+- **On rows that are already there.** The On word goes on rows the flows already have: six of the seven ♪ rows (Replay's "An album" stays ♪), and five plain rows whose words it serves ("Eight minutes of something absorbing" on Depress and on Replay, "A walk, any length", "Something dull in dim light, away from bright screens", "Between fights, the friendship is what makes repairs work"). 4 rows are new (the three Tommy kept, and "The film you saved for after" on It was fine). No step goes past six rows.
 - **Where a person is the answer, nothing is offered.** Shutdown's Far away asks for "a trusted voice, or someone's eyes"; Shame's steps are the reword and the repair; Depress's Pulling in is the step where television is what the withdrawal already looks like. A cast is not a person, so those steps get no On row.
-- **How heartlighted was read.** As lightness: The Hangover, Letterkenny and Superbad are 7; The Grey, Fight Club and The Departed are 1. (`recommend_watch.js` describes the field to its model as "how much it moved them"; the values say otherwise.) Light steps drew from 6 and 7; "kept off" from 1 and 2. Question 1 in section 8.
-- **The reasons stay in this file.** The page shows covers, titles and his notes. Why a title is on a step, and which of his titles were kept off it, is recorded here and printed nowhere in the app: naming Grave of the Fireflies at the bottom of the valley, even to say "not now", would be the app putting it in front of him.
+- **How heartlighted was read.** As lightness, confirmed by Tommy 2026-11-10 (7 is the lightest): The Hangover, Letterkenny and Superbad are 7; The Grey, Fight Club and The Departed are 1. (`recommend_watch.js` describes the field to its model as "how much it moved them"; the values say otherwise.) Light steps drew from 6 and 7; "kept off" from 1 and 2.
+- **The reasons stay in this file.** The page shows covers and titles. Why a title is on a step, and which of his titles were kept off it, is recorded here and printed nowhere in the app: naming Grave of the Fireflies at the bottom of the valley, even to say "not now", would be the app putting it in front of him.
 - **Not a treatment.** As PLAN-FLOWS.md section 2. The studies in section 9 are why a kind of thing suits a step; none of them tested these titles, and most are applied by inference.
 
 ## 3. The picks, flow by flow
 
-Per step: the row the On word sits on, why this kind of thing, the covers (with the playlist each is on and its Spotify album id), the lines (with his note where he left one), the bench (fits, not seeded: three and three is the cap) and what was kept off. 14 steps, 27 albums (12 on Poems only, 10 on master only, 5 on both), 23 titles.
+Per step: the row the On word sits on, why this kind of thing, the covers (with the playlist each is on and its Spotify album id), the lines, the bench (fits, not seeded: three and three is the cap) and what was kept off. 15 steps, 27 albums (12 on Poems only, 10 on master only, 5 on both), 25 titles. His darts notes are quoted in this section only under Kept off and the bench, as reasons; none reaches the app.
 
 ### 3.1 Panic
 
@@ -44,7 +44,7 @@ Per step: the row the On word sits on, why this kind of thing, the covers (with 
 **Under the skin** (`panic-4`), on the ♪ row: "An album, or the TV". Drained, for hours. A world he already knows gives back what the effort took (Derrick 2013). The lightest things on his board (heartlighted 6 and 7), short, nothing that raises a pulse.
 
 - Covers: Lord Huron, *Lonesome Dreams* (master; `2ZDjruwuzzzT8JMJRXvLtl`); The Head And The Heart, *The Head and the Heart* (master; `3MhJ8lLj98SPgtiH16ZmXo`); Of Monsters and Men, *My Head Is An Animal (The Cabin Sessions)* (Poems; `1oQYM3uKcmLBHvdO7vzRLo`)
-- Lines: New Girl (show; his note: "its jess"); Ferris Bueller's Day Off (film; his note: "Perfect sick movie!"); A Short Hike (switch)
+- Lines: New Girl (show); Ferris Bueller's Day Off (film); A Short Hike (switch)
 - Bench: Parks & Recreation, Stardew Valley
 - Kept off: The Bear (his note: "stress"), 24 ("heart rate bounce"), A Quiet Place
 
@@ -55,7 +55,7 @@ Nothing on at The wave, Settling. The ring is the whole page at the wave; Settli
 **Head won't stop** (`depress-3`), on an existing row: "Eight minutes of something absorbing". Absorbing beats replaying. Things that take all of the attention: a hard platformer he owns, a whodunit, records with more words than the loop has.
 
 - Covers: Watsky, *x Infinity* (master; `6CcTNttjHJN3WGR5igg4MR`); Logic, *The Incredible True Story* (master; `5dOpbgAmJeyoakKQ0QLWkR`); Lil Dicky, *Professional Rapper* (master; `7IhHBoBPWlCSrr8DCmP5ot`)
-- Lines: Celeste (switch); Knives Out (film; his note: "whodunit tho"); Steins;Gate (show; his note: "One of the cleverest time travel stories ever told!")
+- Lines: Celeste (switch); Knives Out (film); Steins;Gate (show)
 - Bench: Hollow Knight, Chess, Sherlock
 - Kept off: Eternal Sunshine of the Spotless Mind, Memento, BoJack Horseman
 
@@ -76,13 +76,13 @@ Nothing on at Sliding, Pulling in, Climbing out. Pulling in is the one that matt
 **Locked in** (`energize-3`), on a new row: "One wordless record". Lyrics cost reading and writing more than instrumental music does (Vasilev 2018, 65 studies). The Poems playlist is already his wordless shelf. Mr. Bean is his own exception, and it has no words either.
 
 - Covers: Tycho, *Dive* (Poems; `4CBUbnGFz2iKFJjYqRIwst`); Lena Raine, *Celeste (Original Soundtrack)* (Poems and master; `5OZHQ7KG8k04IOkF50fACO`); GoGo Penguin, *v2.0 (Deluxe Edition)* (Poems; `7rXrjbrYcXG8EkqXpt0weK`)
-- Lines: Mr. Bean (show; his note: "great show to code to")
+- Lines: Mr. Bean (show)
 - Bench: C418, Minecraft Volume Alpha, Christopher Larkin, Hollow Knight
 
 **Landing, or the crash** (`energize-5`), on the ♪ row: "In the crash: something easy on, the usual coffee, and judge it after sleep". Flat and foggy is the sleep. The easiest things he owns: heartlighted 7, seen before, and one he filed under a trying time himself.
 
 - Covers: Jack Johnson, *In Between Dreams* (master; `7tTc46dNdE6GGuiQsssWxo`); Bahamas, *Bahamas Is Afie* (master; `2UqlVTULRPG2qm8Bico9CK`)
-- Lines: We're the Millers (film; his note: "This was solid during a trying time haha"); 21 Jump Street (film; his note: "is this a cop movie"); Letterkenny (show; his note: "hicks ftw")
+- Lines: We're the Millers (film); 21 Jump Street (film); Letterkenny (show)
 - Bench: A Short Hike, Super Mario Bros.
 
 Nothing on at Spark, Build, The tip. The header ♪ is enough on the way up; at the tip the rows are about stopping.
@@ -96,7 +96,7 @@ Nothing on at Spark, Build, The tip. The header ♪ is enough on the way up; at 
 
 **Cooling** (`fight-5`), on the ♪ row: "If you catch the replay, distract on purpose". About an hour, alone, and the replay is what keeps it up. One absurd half hour, or a game that needs both hands. Nothing about couples coming apart.
 
-- Lines: Cunk on Earth (show; his note: "Teehee"); What We Do in the Shadows (show; his note: "The office vampire edition"); Celeste (switch)
+- Lines: Cunk on Earth (show); What We Do in the Shadows (show); Celeste (switch)
 - Bench: Derry Girls, Death's Door, Chess
 - Kept off: Beef, Marriage Story, The Roses
 
@@ -111,16 +111,20 @@ Nothing on at Trigger, Climb, Said it or left. Leaving comes first.
 
 **Night before** (`whatif-3`), on a new row: "A film you know the ending of". The peak of the curve, and the future is the unknown. A rewatch is the one evening with a known ending (Russell and Levy 2012 on why people re-watch). Films he says get him every time. The sheet prints: "You know how this one ends."
 
-- Lines: Back to the Future (film; his note: "80's movie rick and morty"); Elf (film; his note: "Laugh every time"); Iron Man (film; his note: "Omg gets me every time")
+- Lines: Back to the Future (film); Elf (film); Iron Man (film)
 - Bench: Groundhog Day, The Princess Bride
 
-Nothing on at Something's coming, What if, The thing, It was fine. The prediction is the work. A film saved for after the date is on the bench (section 7).
+**It was fine** (`whatif-5`), on a new row: "The film you saved for after". Tommy's call (2026-11-10): the saved film belongs here, on the far side of the thing, not as a row at Something's coming. Two films he has not seen yet, kept for the evening the thing is over. No covers, no printed line.
+
+- Lines: Wake Up Dead Man (film); The Holdovers (film)
+
+Nothing on at Something's coming, What if, The thing. The prediction is the work.
 
 ### 3.6 Replay
 
 **Heavier** (`replay-3`), on an existing row: "Eight minutes of something absorbing". Eight minutes of something absorbing beat eight of replaying. Short and fast: a level, dialogue too quick to think over, six guesses. "An album" under it stays a ♪ row. Nothing built on second-hand embarrassment.
 
-- Lines: Super Mario Bros. (switch); Letterkenny (show; his note: "hicks ftw"); Wordle (phone)
+- Lines: Super Mario Bros. (switch); Letterkenny (show); Wordle (phone)
 - Bench: Cunk on Earth, Doodle Jump
 - Kept off: Nathan For You, The Office
 
@@ -140,7 +144,7 @@ Nothing on at Awake again, What time is it, Lying there, Same alarm. The bed is 
 **Thawing** (`shutdown-4`), on the ♪ row: "An album, or the TV". Rest is the task. Slow and beautiful, little plot to hold.
 
 - Covers: Novo Amor, *Birthplace* (Poems and master; `0tWckYjFI6ioZptLr42J3p`); S. Carey, *Hundred Acres* (Poems; `4H1xbaXxVDmHnFQ5ifzyM4`)
-- Lines: Over the Garden Wall (show; his note: "fall over the wall"); Frieren: Beyond Journeys End (show; his note: "nostalgia in retrograde"); My Neighbor Totoro (film)
+- Lines: Over the Garden Wall (show); Frieren: Beyond Journeys End (show); My Neighbor Totoro (film)
 - Bench: A Short Hike, Stardew Valley, Song of the Sea
 
 Nothing on at Too much, Stuck, Far away. Far away asks for a trusted voice or someone's eyes. A cast is not that, so the row stays a person's.
@@ -152,77 +156,78 @@ Nothing on at every step. The reword and the repair are the steps, and both are 
 ## 4. The shape (one line per walkthrough step)
 
 1. **A row that says On.** Under the skin: "An album, or the TV" carries the word On where ♪ was.
-2. **Three covers, three lines.** The sheet: his albums by their covers, then New Girl ("its jess"), Ferris Bueller's Day Off ("Perfect sick movie!"), A Short Hike.
+2. **Three covers, three lines.** The sheet: his albums by their covers, then New Girl, Ferris Bueller's Day Off, A Short Hike.
 3. **Tick the one you put on.** The row reads "An album, or the TV: New Girl", ticked.
 4. **Too much coming in.** Overstimulated: three quiet covers, no lines.
 5. **The bottom.** One printed line and three covers.
-6. **Locked in.** Three wordless records and Mr. Bean ("great show to code to").
+6. **Locked in.** Three wordless records and Mr. Bean.
 7. **Flooded.** "Five songs is about twenty minutes." and three covers.
 8. **Cooling.** Three lines, no covers.
 9. **Night before.** "You know how this one ends." and three films.
-10. **Heavier.** Replay at its peak: a level, an episode, six guesses.
-11. **3 a.m., up.** In Still: one line and three covers.
-12. **Thawing.** Two covers, three lines.
-13. **In Still.** Under the skin again: only the covers stay.
-14. **Make it yours.** The step sheet: strike a pick, add an album or a line.
+10. **It was fine.** The film saved for after: two lines.
+11. **Heavier.** Replay at its peak: a level, an episode, six guesses.
+12. **3 a.m., up.** In Still: one line and three covers.
+13. **Thawing.** Two covers, three lines.
+14. **In Still.** Under the skin again: only the covers stay.
+15. **Make it yours.** The step sheet: strike a pick, add an album or a line.
 
 ## 5. Against DESIGN.md
 
 | Rule | How the sheet meets it |
 |---|---|
-| Section 1: the app makes room rather than content | Three and three, on fourteen steps, from his own lists. Twenty-nine steps offer nothing. |
-| 1 to 4, 25: tokens | No new token. One new CSS rule (`.fl-on-lines .fs-check-text i { display: block }`). Covers are `.fs-tiles` and `.fs-tile`; lines are `.fs-check` in `.fl-tip`; the printed line is `.fl-said`. |
-| 5: a row ends on a blank rule | The lines are the page's own check rows, unchanged: title, his note under it, a blank rule. |
+| Section 1: the app makes room rather than content | Three and three, on fifteen steps, from his own lists. Twenty-eight steps offer nothing. |
+| 1 to 4, 25: tokens | No new token and no new CSS rule. Covers are `.fs-tiles` and `.fs-tile`; lines are `.fs-check` in `.fl-tip`; the printed line is `.fl-said`. |
+| 5: a row ends on a blank rule | The lines are the page's own check rows, unchanged: the title, then a blank rule. |
 | 6: one primary act | Put one on. The sheet has no second act; ♪ beside Done reaches the whole grid. |
 | 7: no icons | The row's word is "On", set like Ring and Journal. The kind word on a line (Show, Film, Switch, Phone) is the same small print. No posters, no service logos, no stars. |
 | 8: sheets rise | `parts/Sheet`. No dialog. |
 | 10: struck, never hidden | A pick is struck in the step sheet and stays struck; a seed pick he struck is never brought back. |
 | 13: Still | Covers only, dimmed by the ♪ grid's own Still rule; the lines leave. The printed line stays (words, no digits). |
 | 15: nothing counts | No minutes, ratings, hours played, "most watched" or "3 of 9". Last time's pick comes first; no number says so. |
-| 16: the app never writes a line for you | The italic under a title is his darts note. The one printed line a sheet may carry is stationery like a step's `said`, passes the PLAN-FLOWS-WORDS.md audit, and is his to rewrite or blank in the step sheet. |
-| 17: italic is the wiser second person or his own line | His note is set as `fl-line` is: italic serif, in ink. |
+| 16: the app never writes a line for you | A line is a title. The one printed line a sheet may carry is stationery like a step's `said`, passes the PLAN-FLOWS-WORDS.md audit, and is his to rewrite or blank in the step sheet. |
+| 17: italic is the wiser second person or his own line | No italic on the sheet but the printed line, set as a step's `said` is. |
 | 19, 21: ticks and bells | Existing sites only: a sheet opening, a check, `bell('album')` and M3's `tick('album')` on a cover. No new tick; rule 19's "a cover chosen on the music sheet" gains "or the On sheet" in P1. |
 | 22: no network | Covers come from the cover cache the ♪ grid fills. No JustWatch, no "where to watch", no deep link to a streaming app. An album with no cached cover is a written line instead of a blank tile. |
 | 26 to 31: motion | The covers are `MusicSheet`'s own `Tile`, so M3's press, drop and travel to the small cover by the ♪ come with it (rule 28). A ticked line draws its check (rule 27). Nothing new moves. |
-| Door (PLAN-FLOWS.md 3.7) | The On word is behind the PIN, like ♪ (`BEHIND_PIN`): his notes are his. |
+| Door (PLAN-FLOWS.md 3.7) | The On word is behind the PIN, like ♪ (`BEHIND_PIN`): what he puts on is his. |
 
-What keeps it his, beyond the rules: the notes are the warmest words on the sheet and they are jokes he made ("its jess", "hicks ftw", "This was solid during a trying time haha"); the covers are wordless because he knows these records by sight, as he does in ♪; an album stands in for a clock twice ("Five songs is about twenty minutes", "One album is about one walk") so the page asks for no timer; and the sheet never says why it is offering anything.
+What keeps it his, beyond the rules: every title is one he chose long before the episode; the covers are wordless because he knows these records by sight, as he does in ♪; an album stands in for a clock twice ("Five songs is about twenty minutes", "One album is about one walk") so the page asks for no timer; and the sheet never says why it is offering anything.
 
 ## 6. Data (no schema version change expected: new optional fields inside `flows` and `episodes` rows)
 
 ```ts
 export type TipHelper = /* existing */ | 'on';
 export type PickKind = 'album' | 'show' | 'film' | 'switch' | 'phone';
-/** Something to put on at a step. note is Tommy's own words, never the page's. Sealed with the step. */
-export type Pick = { id: string; kind: PickKind; title: string; by?: string; albumId?: string; note?: string; struck?: boolean };
+/** Something to put on at a step. A title and its kind; no note (Tommy, 2026-11-10). Sealed with the step. */
+export type Pick = { id: string; kind: PickKind; title: string; by?: string; albumId?: string; struck?: boolean };
 export type Step = /* existing */ & { picks?: Pick[]; onLine?: string };
 export type Episode = /* existing */ & { on?: { pickId: string; title: string; at: Millis } };
 ```
 
-- **Seed:** `src/db/seed/picks.ts`, one const per flow, from section 3 (album ids are there). `seedPicksOnce` gives a journal that already has the flows each step's picks, its `onLine`, the helper swap on the named row and the 3 new rows, once, as a new revision; `SEED_TIPS_LATER` carries the new rows. A pick or row he struck or deleted is never brought back.
+- **Seed:** `src/db/seed/picks.ts`, one const per flow, from section 3 (album ids are there). `seedPicksOnce` gives a journal that already has the flows each step's picks, its `onLine`, the helper swap on the named row and the 4 new rows, once, as a new revision; `SEED_TIPS_LATER` carries the new rows. A pick or row he struck or deleted is never brought back.
 - **Albums:** a cover plays as a ♪ tile does: on its playlist at its first song when that playlist has been read (V9), on the album otherwise. `episodes.music` is written as today.
 - **Lines:** ticking a line writes `episodes.on` and ticks the On row, which then reads its pick ("An album, or the TV: New Girl"). At rest, "what helped" names it. Next time at that step, the last one chosen is first.
-- **His words, guarded:** `test/fixtures/darts-notes.json` holds the seeded titles and their notes as read on 2026-11-09; a test fails any seed note that is not in it, and any seeded step with more than six rows, three covers or three lines.
+- **His titles, guarded:** `test/fixtures/picks-titles.json` holds the seeded titles as listed in section 3; a test fails any seeded title that is not in it, any pick carrying a note, and any seeded step with more than six rows, three covers or three lines.
 
 ## 7. Build packages (one PR each, PLAN.md section 10 rules)
 
 | # | Package | Done when |
 |---|---|---|
-| P0 | Data and seed | The types; `seed/picks.ts` from section 3; `seedPicksOnce`; the helper swap and the 3 new rows; the fixture and its two guards; backup and restore carry the new fields |
+| P0 | Data and seed | The types; `seed/picks.ts` from section 3; `seedPicksOnce`; the helper swap and the 4 new rows; the fixture and its guards; backup and restore carry the new fields |
 | P1 | The On sheet | `flow/On.tsx` on `parts/Sheet`: the printed line, `Tile`s, lines as check rows; `'on'` in `Tips.tsx` and `BEHIND_PIN`; `episodes.on` and the row reading its pick; Still; the no-cover fallback; `design/flows/picks.html` rebuilt from the real components; e2e: open, tick a line, reload offline keeps it; a cover plays (mocked) |
-| P2 | Yours | The On block in `StepSheet.tsx` (reorder, strike, "+ album" from the ♪ grid, "+ line" with an optional note, the line it prints); last chosen first; "what helped" names the pick |
+| P2 | Yours | The On block in `StepSheet.tsx` (reorder, strike, "+ album" from the ♪ grid, "+ line" as a title and a kind, the line it prints); last chosen first; "what helped" names the pick |
 
 P1 reuses the motion pass's `Tile` (M3, the album tap, on main since 2026-11-09). Every PR: `npm test`, `npm run e2e`, three lights, both lints PASS in the body, no em dashes.
 
-## 8. Open for Tommy
+## 8. Tommy's answers (2026-11-10) and what is still open
 
-1. Heartlighted: is 7 the lightest, as assumed? If it means "moved me most", the light steps need redrawing.
-2. The empty steps: Pulling in, Far away and all of Shame get nothing on. Right, or do you want Shame's bench (The Good Place, Good Will Hunting, Celeste, Blurryface) on "I did a thing", for the evening after?
-3. The three new rows ("One wordless record", "One album: that's the twenty minutes", "A film you know the ending of"): keep, reword, or drop?
-4. Wordless covers, as in ♪, or the album's name under each?
-5. Your darts notes on the sheet as written, jokes and all? Any you would rather not see mid-episode?
-6. Repair's lines for two are from your with-babiz list and the Yes Pile. They are your picks, not Ali's; swap any she would not choose.
-7. A film saved for after the date (What if, It was fine: Wake Up Dead Man, Thunderbolts*, The Holdovers) is on the bench. Want it as a row at Something's coming, so there is something on the far side of the thing?
+1. Heartlighted: 7 is the lightest. Confirmed; the picks stand.
+2. The empty steps (Pulling in, Far away, all of Shame) stay empty. Tommy: "if you don't have ideas for a flow, i can recommend". Shame's bench is not seeded; his recommendations go in when he gives them.
+3. The three new rows: kept as worded.
+4. Covers: wordless, as in ♪.
+5. Darts notes: none, anywhere on the sheet.
+6. **Still open:** Repair's lines for two are his picks, not Ali's; swap any she would not choose.
+7. The saved film: only Wake Up Dead Man and The Holdovers, on It was fine (not a row at Something's coming). Thunderbolts* is dropped.
 
 ## 9. Sources
 
@@ -240,4 +245,4 @@ Research, each read from its abstract or record on 2026-11-09, not the full text
 
 ## 10. Artifact
 
-`design/flows/picks.html`, fourteen steps on the shared `flows.css`, `flows.js`, `parts.css` and `tokens.css`. The phones are the finished app's own screens from `design/flows/index.html` and `others.html`, with the proposed sheet laid over them in the app's own parts; on three (Heavier, Up, Thawing) the dot was walked to the step by hand, since no capture of those steps existed. P1 rebuilds every step from the real component. Published private on 2026-11-09 as https://claude.ai/artifact/QtGSXokZ5oLE6Scb6Bbt5u (slug c16aa305-bad1-4f07-a31f-26e8f3375258): `picks.html` as `index.html` beside the four shared files. Private until Tommy shares it.
+`design/flows/picks.html`, fourteen steps as proposed (fifteen once P1 rebuilds it with It was fine and without the notes) on the shared `flows.css`, `flows.js`, `parts.css` and `tokens.css`. The phones are the finished app's own screens from `design/flows/index.html` and `others.html`, with the proposed sheet laid over them in the app's own parts; on three (Heavier, Up, Thawing) the dot was walked to the step by hand, since no capture of those steps existed. P1 rebuilds every step from the real component. Published private on 2026-11-09 as https://claude.ai/artifact/QtGSXokZ5oLE6Scb6Bbt5u (slug c16aa305-bad1-4f07-a31f-26e8f3375258): `picks.html` as `index.html` beside the four shared files. Private until Tommy shares it.
