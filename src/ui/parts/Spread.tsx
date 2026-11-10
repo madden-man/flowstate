@@ -6,6 +6,8 @@
 // mid-height and the rows keep clear of it. Drawn arrows join goals that follow one another. Long press
 // lifts a goal and its row; it slides up and down between the poles. Earlier versions of the three words
 // stay struck through in the sheet Edit opens (the poles and the middle now say the current version here).
+// PLAN-SELF.md section 3.1: the two pole words and the middle word are the words to edit, so each is a tap that
+// opens the paradox sheet with the caret in that field; they still read as ink words on their rules. Edit stays.
 //
 // Nothing is laid out while hidden: the width comes from a ResizeObserver (zero while not displayed, so
 // nothing is placed), every goal's height (and the poles' and the middle's) is measured after it is
@@ -33,10 +35,14 @@ export type SpreadProps = {
   onAdd: () => void;
   /** A goal tapped (or its slot: focus is the side to write on). */
   onGoal: (id: string, focus: Item['pole']) => void;
-  onEdit: () => void;
+  /** Edit, or a pole word or the middle word tapped: field is the one to put the caret in (none from Edit). */
+  onEdit: (field?: SpreadField) => void;
   /** A goal let go at a new lean. Resolves when written. */
   onDrop: (id: string, lean: number) => Promise<void>;
 };
+
+/** The words on a spread that open the paradox sheet on their own field. */
+export type SpreadField = 'poleA' | 'poleB' | 'middle';
 
 type Drag = { id: string; row: string; pointer: number; x0: number; y0: number; grab: number; lifted: boolean; top: number; lean: number; timer?: ReturnType<typeof setTimeout> };
 
@@ -202,8 +208,8 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </svg>
         )}
 
-        {layout && <p ref={ref('pole:a')} class="fs-pole a"><PoleWord pole={paradox.poleA} /></p>}
-        {layout && middle && <span ref={ref('mid')} class="fs-mid" style={{ top: `${layout.tops.mid ?? 0}px` }}>{middle}</span>}
+        {layout && <p ref={ref('pole:a')} class="fs-pole a"><button type="button" class="fs-poleword" onClick={() => onEdit('poleA')}><PoleWord pole={paradox.poleA} /></button></p>}
+        {layout && middle && <span ref={ref('mid')} class="fs-mid" style={{ top: `${layout.tops.mid ?? 0}px` }}><button type="button" class="fs-poleword" onClick={() => onEdit('middle')}>{middle}</button></span>}
 
         {layout && live.map(i => (
           <button key={i.id} ref={ref(i.id)} type="button"
@@ -224,11 +230,11 @@ export function Spread({ paradox, items, onAdd, onGoal, onEdit, onDrop }: Spread
           </button>
         ))}
 
-        {layout && <p ref={ref('pole:b')} class="fs-pole b" style={{ top: `${H - layout.poleB}px` }}><PoleWord pole={paradox.poleB} /></p>}
+        {layout && <p ref={ref('pole:b')} class="fs-pole b" style={{ top: `${H - layout.poleB}px` }}><button type="button" class="fs-poleword" onClick={() => onEdit('poleB')}><PoleWord pole={paradox.poleB} /></button></p>}
 
         <div class="fs-spread-words">
           {paradox.status !== 'active' && <span class="fs-state fs-print">{paradox.status}</span>}
-          <button type="button" class="fs-word" onClick={onEdit}>Edit</button>
+          <button type="button" class="fs-word" onClick={() => onEdit()}>Edit</button>
         </div>
       </div>
       <button type="button" class="fs-addgoal" onClick={onAdd}>+ Goal</button>

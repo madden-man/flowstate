@@ -1,4 +1,5 @@
-// The Be tab's shared state: which goal or paradox a sheet is open on, and the spreads as last read.
+// The Be tab's shared state: which goal or paradox a sheet is open on (and which field takes the caret), and the
+// spreads as last read.
 import { signal } from '@preact/signals';
 import type { Item } from '../../db/schema';
 import type { SpreadData } from '../../model/paradox';
@@ -6,7 +7,8 @@ import { openSheet } from '../sheets';
 import { tick } from '../parts/Haptic';
 
 export type GoalTarget = { paradoxId: string; goalId?: string; focus?: Item['pole']; n?: number };
-export type ParadoxTarget = { paradoxId?: string; n?: number };
+/** focus (PLAN-SELF.md section 3.1): the word tapped on the spread, so the caret lands in its field. */
+export type ParadoxTarget = { paradoxId?: string; focus?: 'poleA' | 'poleB' | 'middle'; n?: number };
 
 /** Each opening is a fresh form, even on the same goal. */
 let opened = 0;

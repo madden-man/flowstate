@@ -247,7 +247,7 @@ export function Be({ id }: { id?: string }) {
     <Spread paradox={s.paradox} items={s.items}
       onAdd={() => openGoal({ paradoxId: s.paradox.id })}
       onGoal={(goalId, focus) => openGoal({ paradoxId: s.paradox.id, goalId, focus })}
-      onEdit={() => openParadox({ paradoxId: s.paradox.id })}
+      onEdit={field => openParadox({ paradoxId: s.paradox.id, focus: field })}
       onDrop={async (goalId, lean) => {
         const changedRows = await dropGoal(s.items, goalId, lean);
         if (changedRows.length) {

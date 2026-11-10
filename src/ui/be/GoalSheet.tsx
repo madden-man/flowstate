@@ -1,13 +1,15 @@
 // "+ Goal" (PLAN.md section 5 item 3, section 6): one field per pole, headed by the pole values, a cadence
 // row and a "follows" picker. Save both and the pair lands linked at the same height; save one side and a
 // dashed slot opens on the other page. A goal tapped on the spread opens this same sheet, filled, and a
-// slot tapped opens it with the empty side ready. Closing the sheet keeps what was written.
+// slot tapped opens it with the empty side ready. Closing the sheet keeps what was written. A goal's sheet ends on
+// Delete (PLAN-SELF.md section 3.2), a second tap on the same row within a few seconds, never a dialog (DESIGN.md
+// rule 8): only this goal goes, kept nowhere; its balance stays and shows its dashed slot again.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { Sheet } from '../parts/Sheet';
 import { openSheet } from '../sheets';
 import type { Cadence, Item } from '../../db/schema';
-import { CADENCES, addGoals, archiveGoal, followable, pairOf, saveGoal } from '../../model/paradox';
+import { CADENCES, addGoals, deleteGoal, followable, pairOf, saveGoal } from '../../model/paradox';
 import { beData, changed, closeBeSheet, goalTarget } from './state';
 
 export function GoalSheet() {
@@ -21,7 +23,10 @@ const short = (s: string) => (s.length > 34 ? `${s.slice(0, 33).trimEnd()}…` :
 function GoalForm({ open }: { open: boolean }) {
   const t = goalTarget.value!;
   const spread = beData.value.find(s => s.paradox.id === t.paradoxId);
-  const goal = t.goalId ? spread?.items.find(i => i.id === t.goalId) : undefined;
+  const live = t.goalId ? spread?.items.find(i => i.id === t.goalId) : undefined;
+  // the goal as the sheet opened on it, so a delete does not turn the sheet into a new goal while it goes down
+  const opened = useRef(live);
+  const goal = t.goalId ? live ?? opened.current : undefined;
   const pair = goal && spread ? pairOf(goal, spread.items) : undefined;
   const textOf = (pole: Item['pole']) => (goal?.pole === pole ? goal.text : pair?.pole === pole ? pair.text : '');
   const [a, setA] = useState(textOf('a'));
@@ -29,6 +34,9 @@ function GoalForm({ open }: { open: boolean }) {
   const [cadence, setCadence] = useState<Cadence | undefined>(goal?.cadence);
   const [nextTo, setNextTo] = useState<string | undefined>(goal?.nextTo);
   const done = useRef(false);
+  // Delete asks once more on the same row, and lets go of the ask after a few seconds
+  const [arming, setArming] = useState(false);
+  useEffect(() => { if (!arming) return; const id = setTimeout(() => setArming(false), 4000); return () => clearTimeout(id); }, [arming]);
   const fields = { a: useRef<HTMLTextAreaElement>(null), b: useRef<HTMLTextAreaElement>(null) };
 
   // the side to write on is ready under the caret (the slot's side, or pole A for a new goal)
@@ -99,9 +107,13 @@ function GoalForm({ open }: { open: boolean }) {
         </div>
       )}
       {goal && (
-        <div class="fs-row fs-acts">
-          <button type="button" class="fs-word" onClick={async () => { done.current = true; await archiveGoal(goal.id); changed(); closeBeSheet(); }}>Archive</button>
-        </div>
+        <button type="button" class={`fs-row fs-delete${arming ? ' armed' : ''}`} onClick={async () => {
+          if (!arming) { setArming(true); return; }
+          done.current = true;
+          await deleteGoal(goal.id);
+          changed();
+          closeBeSheet();
+        }}><span>{arming ? 'Delete it' : 'Delete'}</span>{arming && <small>Tap again</small>}</button>
       )}
     </div>
     </Sheet>
