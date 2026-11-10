@@ -177,7 +177,7 @@ export function Tips({ step, flowTips, live: stored, still, now, onChanged, door
   // an On row reads its pick once one is put on: the live episode's, or the one drawn at rest
   const picked = (t: Tip) => (live ? onTitle(step, live) : restOn && isDone(t) ? restOn.title : undefined);
   const on = onFor && (
-    <OnSheet open={openSheet.value === 'on'} onClose={() => { openSheet.value = null; }} step={step} tip={onFor} live={live}
+    <OnSheet open={openSheet.value === 'on'} onClose={() => { openSheet.value = null; }} step={step} tip={onFor} flowId={flowId} live={live}
       rest={restOn} onRest={p => { setRestOn(p); setDrawn(d => ({ ...d, [onFor.id]: !!p })); }} onChanged={onChanged} />
   );
 

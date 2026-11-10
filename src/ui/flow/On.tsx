@@ -12,7 +12,7 @@
 // on a live episode writes episodes.on and ticks the On row, which then reads its pick; ticking another puts that one on
 // instead; un-ticking takes it off. At rest a tick only draws (walk it once, PLAN-FLOWS.md 3.7). In Still (rule 13) the
 // lines leave (fs-notstill, so the light alone decides) and the covers stay, dimmed by the ♪ grid's own Still rule; the printed line stays (words, no digits).
-// ♪ beside Done reaches the whole grid.
+// ♪ beside Done reaches the whole grid. P2: what was put on at this step last time comes first, covers or lines.
 import { useEffect, useState } from 'preact/hooks';
 import { Sheet } from '../parts/Sheet';
 import { tick } from '../parts/Haptic';
@@ -25,7 +25,7 @@ import type { ShelfAlbum } from '../../music/covers';
 import type { Episode, OnPick, PickKind, Step, Tip } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import { albumUriOf } from '../../db/seed/picks';
-import { livePicks, setOn, setOnAlbum } from '../../model/tips';
+import { lastFirst, lastOn, livePicks, setOn, setOnAlbum } from '../../model/tips';
 
 /** The kind word at a line's end, the same small print as a helper's word (rule 7: words, never icons). */
 export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show', film: 'Film', switch: 'Switch', phone: 'Phone' };
@@ -59,6 +59,8 @@ async function keep(picks: OnPick[]): Promise<Kept> {
 type Props = {
   open: boolean; onClose: () => void;
   step: Step; tip: Tip;
+  /** The flow the step is on: what was put on here last time comes first (P2). */
+  flowId?: string;
   /** The live episode, if one is open: a tick writes on it. */
   live?: Read<Episode>;
   /** The line drawn at rest (in memory only), and its setter: the row reads it too. */
@@ -66,8 +68,16 @@ type Props = {
   onChanged: () => void;
 };
 
-export function OnSheet({ open, onClose, step, tip, live, rest, onRest, onChanged }: Props) {
-  const picks = livePicks(step);
+export function OnSheet({ open, onClose, step, tip, flowId, live, rest, onRest, onChanged }: Props) {
+  // P2: the one put on here last time first; nothing says so
+  const [last, setLast] = useState<string | undefined>();
+  useEffect(() => {
+    if (!open || !flowId) return;
+    let on = true;
+    void lastOn(flowId, step, live?.id).then(l => on && setLast(l));
+    return () => { on = false; };
+  }, [open, flowId, step.id, live?.id]);
+  const picks = lastFirst(livePicks(step), last);
   const [kept, setKept] = useState<Kept | null>(null);
   useEffect(() => {
     if (!open) return;

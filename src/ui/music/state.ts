@@ -48,6 +48,14 @@ export const playingFrom = signal<string | null>(null);
 export const playNote = signal<string | null>(null);
 /** The album a tap asked for, until Spotify answers: playing it, the cover travels to the ♪ (M3); a refusal clears it. */
 export const asked = signal<string | null>(null);
+/** The step sheet's "+ album" (PLAN-PICKS.md P2): while set, a cover tapped on the ♪ sheet is chosen for the step's On
+ *  row instead of played (no Spotify call, no bell), and the sheet goes down. Cleared when the sheet closes. */
+export const choosing = signal<((a: ShelfAlbum) => void) | null>(null);
+/** "+ album": the ♪ sheet rises on its list, to choose a cover from (only offered connected: unconnected, ♪ leaves the app). */
+export function chooseAlbum(then: (a: ShelfAlbum) => void) {
+  tapMusic();
+  choosing.value = then;
+}
 /** The album whose pages the "Pages with this album" sheet lists. */
 export const albumFor = signal<PageMusic | null>(null);
 

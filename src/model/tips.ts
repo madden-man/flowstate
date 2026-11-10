@@ -5,7 +5,8 @@
 import type { Episode, Flow, OnPick, Page, PageMusic, Step, Tip } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { todayLinked } from './pages';
-import { currentStepId, spanOfEpisode } from './flows';
+import { currentStepId, episodesOf, spanOfEpisode } from './flows';
+import { albumUriOf } from '../db/seed/picks';
 
 const MIN = 60_000;
 
@@ -175,15 +176,42 @@ export function shownTips(step: Pick<Step, 'tips'>, still: boolean): Tip[] {
 export const tipText = (t: Pick<Tip, 'text' | 'short'>, still: boolean) => (still && t.short ? t.short : t.text);
 
 /** "What helped": the tips ticked in an episode, in the order they were ticked, short where there is a short form.
- *  Words only; a tip since deleted from the flow is left out. */
-export function whatHelped(flow: Pick<Flow, 'steps'>, e: Pick<Episode, 'done'> | undefined): string[] {
+ *  Words only; a tip since deleted from the flow is left out. An On row (PLAN-PICKS.md P2) names the pick put on: the
+ *  line ticked, else the album played from its sheet, else its own words. */
+export function whatHelped(flow: Pick<Flow, 'steps'>, e: Pick<Episode, 'done' | 'on' | 'music'> | undefined): string[] {
   if (!e) return [];
-  const byId = new Map(flow.steps.flatMap(s => s.tips.map(t => [t.id, t] as const)));
+  const byId = new Map(flow.steps.flatMap(s => s.tips.map(t => [t.id, [t, s] as const] as const)));
   return [...e.done].sort((a, b) => a.at - b.at).flatMap(d => {
-    const t = byId.get(d.tipId);
-    return t && !t.wise ? [t.short ?? t.text] : [];
+    const [t, s] = byId.get(d.tipId) ?? [];
+    if (!t || !s || t.wise) return [];
+    if (t.helper === 'on') {
+      const picked = onTitle(s, e) ?? (s.picks ?? []).find(p => p.kind === 'album' && albumUriOf(p) === e.music?.albumUri)?.title;
+      if (picked) return [picked];
+    }
+    return [t.short ?? t.text];
   });
 }
+
+/** What was put on at this step last time (P2), so it comes first next time: the newest episode of the flow, this one
+ *  aside, that put on one of the step's picks (a line ticked, or an album played from its sheet). No number says so. */
+export async function lastOn(flowId: string, step: Pick<Step, 'picks'>, exceptId?: string): Promise<string | undefined> {
+  const picks = step.picks ?? [];
+  if (!picks.length) return undefined;
+  const es = (await episodesOf(flowId)).filter(e => e.id !== exceptId && !e.locked).reverse();
+  for (const e of es) {
+    const line = e.on && picks.find(p => p.id === e.on!.pickId);
+    if (line) return line.id;
+    const album = e.music && picks.find(p => p.kind === 'album' && albumUriOf(p) === e.music!.albumUri);
+    if (album) return album.id;
+  }
+  return undefined;
+}
+
+/** The picks with the one put on last time first; the rest keep his order. */
+export const lastFirst = (picks: OnPick[], last: string | undefined): OnPick[] => {
+  const k = last ? picks.findIndex(p => p.id === last) : -1;
+  return k <= 0 ? picks : [picks[k], ...picks.slice(0, k), ...picks.slice(k + 1)];
+};
 
 // ---------------------------------------------------------------- the journal link (the Journal helper)
 
@@ -221,11 +249,11 @@ export async function flowLinkOf(page: Pick<Page, 'flow'>): Promise<FlowLinkRow 
 
 // ---------------------------------------------------------------- the step sheet
 
-/** The words of a step the sheet edits. */
-export type StepDraft = Pick<Step, 'name' | 'line' | 'said' | 'usual' | 'tips'>;
+/** The words of a step the sheet edits: P2 adds the On row's picks and the line its sheet prints. */
+export type StepDraft = Pick<Step, 'name' | 'line' | 'said' | 'usual' | 'tips' | 'picks' | 'onLine'>;
 
-const same = (a: StepDraft, b: StepDraft) => JSON.stringify([a.name, a.line ?? '', a.said ?? '', a.usual ?? '', a.tips])
-  === JSON.stringify([b.name, b.line ?? '', b.said ?? '', b.usual ?? '', b.tips]);
+const same = (a: StepDraft, b: StepDraft) => JSON.stringify([a.name, a.line ?? '', a.said ?? '', a.usual ?? '', a.tips, a.picks ?? [], a.onLine ?? ''])
+  === JSON.stringify([b.name, b.line ?? '', b.said ?? '', b.usual ?? '', b.tips, b.picks ?? [], b.onLine ?? '']);
 
 /** Saves a step's words. The new version of the flow joins its revisions (the first revision is the seed text, so the
  *  list is every version, oldest first, and the newest is what the page shows). An unchanged draft writes nothing. */
@@ -239,6 +267,13 @@ export async function saveStep(flowId: string, stepId: string, draft: StepDraft,
     ...flow.steps[i], name: draft.name.trim() || flow.steps[i].name, line: clean(draft.line), said: clean(draft.said), usual: clean(draft.usual),
     tips: draft.tips.filter(t => t.text.trim()).map(t => ({ ...t, text: t.text.trim() })),
   };
+  // P2: a pick with no title is dropped, like a tip with no words; a blank printed line is no printed line
+  const picks = (draft.picks ?? flow.steps[i].picks)?.filter(p => p.title.trim()).map(p => ({ ...p, title: p.title.trim() }));
+  if (picks?.length || flow.steps[i].picks) step.picks = picks;
+  else delete step.picks;
+  const onLine = clean(draft.onLine === undefined ? flow.steps[i].onLine : draft.onLine);
+  if (onLine) step.onLine = onLine;
+  else delete step.onLine;
   const steps = flow.steps.map((s, k) => (k === i ? step : s));
   const next: Flow = { ...flow, steps, updatedAt: now, revisions: [...flow.revisions, { at: now, name: flow.name, steps: structuredClone(steps) }] };
   await store.put('flows', next);
@@ -248,8 +283,14 @@ export async function saveStep(flowId: string, stepId: string, draft: StepDraft,
 /** A new tip for the sheet's "+ thing". */
 export const newTip = (): Tip => ({ id: crypto.randomUUID(), text: '' });
 
-/** One tip moved to place `to` in the list. */
-export function moveTip(tips: Tip[], id: string, to: number): Tip[] {
+/** A new line for the On block's "+ line" (P2): a title he writes and its kind, a show until he says otherwise. */
+export const newLine = (): OnPick => ({ id: crypto.randomUUID(), kind: 'show', title: '' });
+/** An album for "+ album", as the ♪ grid gave it: its title, its artist, its Spotify id. */
+export const albumPick = (a: Pick<PageMusic, 'albumUri' | 'album' | 'artist'>): OnPick =>
+  ({ id: crypto.randomUUID(), kind: 'album', title: a.album, by: a.artist, albumId: a.albumUri.replace(/^spotify:album:/, '') });
+
+/** One tip (or one pick, P2) moved to place `to` in the list. */
+export function moveTip<T extends { id: string }>(tips: T[], id: string, to: number): T[] {
   const from = tips.findIndex(t => t.id === id);
   if (from < 0) return tips;
   const out = [...tips];
@@ -265,7 +306,9 @@ export type Earlier = { text: string; at: number };
 export function earlierOf(flow: Pick<Flow, 'revisions' | 'steps'>, stepId: string): Earlier[] {
   const now = flow.steps.find(s => s.id === stepId);
   if (!now) return [];
-  const words = (s: Step | undefined) => (s ? [s.name, s.line, s.said, s.usual, ...s.tips.filter(t => !t.struck).map(t => t.text)]
+  // P2: the printed line and the picks' titles are a step's words too, so a rewrite or a strike shows here
+  const words = (s: Step | undefined) => (s ? [s.name, s.line, s.said, s.usual, ...s.tips.filter(t => !t.struck).map(t => t.text),
+    s.onLine, ...(s.picks ?? []).filter(p => !p.struck).map(p => p.title)]
     .filter((w): w is string => !!w?.trim()) : []);
   const current = new Set(words(now));
   const seen = new Set<string>();
@@ -283,6 +326,10 @@ export function earlierOf(flow: Pick<Flow, 'revisions' | 'steps'>, stepId: strin
   for (const t of now.tips.filter(x => x.struck && !seen.has(x.text))) {
     const first = revs.find(r => r.steps.find(s => s.id === stepId)?.tips.some(x => x.id === t.id && x.struck));
     out.push({ text: t.text, at: first?.at ?? revs.at(-1)?.at ?? 0 });
+  }
+  for (const p of (now.picks ?? []).filter(x => x.struck && !seen.has(x.title))) {
+    const first = revs.find(r => r.steps.find(s => s.id === stepId)?.picks?.some(x => x.id === p.id && x.struck));
+    out.push({ text: p.title, at: first?.at ?? revs.at(-1)?.at ?? 0 });
   }
   return out.sort((a, b) => b.at - a.at);
 }

@@ -18,7 +18,8 @@
     "e2e": "playwright test && node script/check-dist.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
     "check:dist": "node script/check-dist.mjs",
-    "walkthrough:motion": "node script/build-motion-walkthrough.mjs"
+    "walkthrough:motion": "node script/build-motion-walkthrough.mjs",
+    "walkthrough:picks": "node script/build-picks-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

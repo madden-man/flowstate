@@ -182,3 +182,42 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
   // the sheet asked for no cover: every cover fetched was one the read asked for, before the flow page opened
   expect(outside.filter(u => u.startsWith('https://i.scdn.co/')).sort()).toEqual(['https://i.scdn.co/image/blue', 'https://i.scdn.co/image/dusk', 'https://i.scdn.co/image/moss']);
 });
+
+test('make it yours: the step sheet strikes a pick, adds a line with its kind, rewrites the printed line; the On sheet follows', async ({ page }) => {
+  await page.goto('/#/flow/depress/4');
+  const t = page.locator('[data-threshold]');
+  await page.locator('.fs-app').waitFor();
+  if (await t.count()) await t.click();
+  await expect(t).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  const sheet = page.locator('[data-sheet="The bottom"]');
+  await expect(sheet).toBeVisible();
+  const printed = sheet.getByRole('textbox', { name: 'What the On sheet says' });
+  await expect(printed).toHaveValue('One that keeps you company, then one that lifts.');
+  await printed.fill('One that stays.');
+  const on = sheet.getByRole('list', { name: 'On' });
+  await expect(on.getByRole('listitem')).toHaveText([/^Atlas: I, Sleeping At Last/, /^Carrie & Lowell, Sufjan Stevens/, /^Birthplace, Novo Amor/]);
+  // unconnected, "+ album" is not offered (♪ would leave the app); "+ line" is a title and its kind
+  await expect(sheet.getByRole('button', { name: '+ album' })).toHaveCount(0);
+  await on.getByRole('button', { name: 'Strike Carrie & Lowell, Sufjan Stevens' }).click();
+  await sheet.getByRole('button', { name: '+ line' }).click();
+  const title = sheet.getByRole('textbox', { name: 'A title' });
+  await title.fill('Paddington 2');
+  await title.blur();
+  await on.getByRole('listitem').last().getByRole('button', { name: 'Show' }).click();
+  await sheet.getByRole('group', { name: 'Kind' }).getByRole('button', { name: 'Film' }).click();
+  await expect(on.getByRole('listitem')).toHaveText([/^Atlas: I/, /^Birthplace/, /^Paddington 2\s*Film/]);
+  // struck, never deleted: Earlier holds it, struck through
+  await expect(sheet.locator('.fs-was', { hasText: 'Carrie & Lowell' }).locator('s')).toHaveCount(1);
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect(sheet).toHaveCount(0);
+
+  // the On sheet: the new printed line, no struck cover; unconnected, every album is a written line, and so is his.
+  // The bottom is the peak, so its rows come one at a time: Next to the On row.
+  const row = page.locator('[data-tip="depress-4-music"] .fs-check');
+  for (let k = 0; k < 6 && !(await row.count()); k++) await page.getByRole('button', { name: /^Next/ }).click();
+  await row.click({ position: { x: 60, y: 14 } });
+  const onSheet = page.locator('[data-sheet="Music you choose"]');
+  await expect(onSheet.locator('.fl-said')).toHaveText('One that stays.');
+  await expect(onSheet.getByRole('checkbox')).toHaveText([/^Paddington 2\s*Film$/, /^Atlas: I\s*Album$/, /^Birthplace\s*Album$/]);
+});

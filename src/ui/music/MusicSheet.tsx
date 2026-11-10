@@ -17,7 +17,7 @@ import type { Playlist } from '../../db/schema';
 import { isFresh, type ShelfAlbum } from '../../music/covers';
 import { pagesWithAlbum, type AlbumPage } from '../../model/music';
 import { Cover } from './MusicLine';
-import { albumFor, asked, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf } from './state';
+import { albumFor, asked, choosing, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf } from './state';
 import { effect } from '@preact/signals';
 import { deal, dealInto, drop, fly, hush, hushOf, takeDeal, unhush, unlight } from './motion';
 
@@ -35,6 +35,8 @@ export function MusicSheet() {
   const shown = id ? list.find(p => p.id === id) : undefined;
   const close = () => { openSheet.value = null; };
   const open = openSheet.value === 'music';
+  // the step sheet's "+ album" (P2) chooses only while this sheet is up
+  useEffect(() => { if (!open) choosing.value = null; }, [open]);
   // the rows rise in behind the sheet as it opens; back from a grid, the list only fades in
   const was = useRef(false);
   const rise = useRef(false);
@@ -181,6 +183,9 @@ export function Tile({ playlist, album, pressed, chosen, row, onTap }: {
     <div class={`fs-tile-cell${row ? ' rise' : ''}`} style={row ? { '--row': row } : undefined} data-chosen={chosen ? '' : undefined}>
       <button ref={ref} type="button" class="fs-tile" aria-label={`${album.album}, ${album.artist}`} aria-pressed={pressed}
         data-album={album.albumUri} onClick={e => {
+          // the step sheet's "+ album" (P2): the cover is chosen, not played, and the sheet goes down
+          const choose = choosing.peek();
+          if (choose) { choosing.value = null; choose(album); openSheet.value = null; return; }
           // the request leaves first, exactly as it did; the motion runs alongside it
           const played = play(playlist, album);
           if (onTap) onTap(played); else void played;
