@@ -72,31 +72,37 @@ describe('play from an album', () => {
   const mac = { id: 'df43', is_active: false, is_restricted: false, name: 'MacBook Air', type: 'Computer' };
   const album = { firstTrackUri: 'spotify:track:abc', firstTrackAt: 41 };
 
-  it('with Spotify idle in the background, finds the phone by its device and plays there, then turns shuffle off', async () => {
-    const calls = player(c => (c.url === '/me/player/play' ? noDevice()
-      : c.url === '/me/player/devices' ? Response.json({ devices: [mac, phone] })
-      : new Response(null, { status: 204 })));
+  const babe = { id: 'ba6e', is_active: true, is_restricted: false, name: 'Babe', type: 'Speaker' };
+  const listed = (...ds: object[]) => (c: Call) => (c.url === '/me/player/devices' ? Response.json({ devices: ds }) : new Response(null, { status: 204 }));
+
+  it('always plays on the phone by its device id, even with another device active, then turns shuffle off there', async () => {
+    const calls = player(listed(babe, mac, phone));
     expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('playing');
     expect(calls.map(c => `${c.method} ${c.url}`)).toEqual([
-      'PUT /me/player/play', 'GET /me/player/devices', 'PUT /me/player/play?device_id=c7f4', 'PUT /me/player/shuffle?state=false&device_id=c7f4',
+      'GET /me/player/devices', 'PUT /me/player/play?device_id=c7f4', 'PUT /me/player/shuffle?state=false&device_id=c7f4',
     ]);
-    expect(calls[2].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { uri: 'spotify:track:abc' } });
+    expect(calls[1].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { uri: 'spotify:track:abc' } });
     vi.unstubAllGlobals();
   });
 
   it('a song Spotify will not start by uri is started by its place in the playlist', async () => {
-    const calls = player((_c, n) => (n === 0 ? Response.json({ error: { status: 400, message: 'Invalid offset' } }, { status: 400 }) : new Response(null, { status: 204 })));
+    const calls = player((c, n) => (c.url === '/me/player/devices' ? Response.json({ devices: [phone] })
+      : n === 1 ? Response.json({ error: { status: 400, message: 'Invalid offset' } }, { status: 400 }) : new Response(null, { status: 204 })));
     expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('playing');
-    expect(calls[1].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { position: 41 } });
+    expect(calls[2].body).toEqual({ context_uri: 'spotify:playlist:M', offset: { position: 41 } });
     vi.unstubAllGlobals();
   });
 
-  it('says no-device only when Spotify knows none, not-premium on a Premium refusal, and throws the rest with its status', async () => {
-    player(c => (c.url === '/me/player/devices' ? Response.json({ devices: [] }) : noDevice()));
+  it('says no-device when the phone is not listed (never plays on another device), not-premium on a Premium refusal, and throws the rest with its status', async () => {
+    const calls = player(listed(babe, mac));
     expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('no-device');
-    player(() => Response.json({ error: { status: 403, message: 'Premium required', reason: 'PREMIUM_REQUIRED' } }, { status: 403 }));
+    expect(calls.filter(c => c.url.startsWith('/me/player/play'))).toHaveLength(0);
+    const refuse = (r: () => Response) => player(c => (c.url === '/me/player/devices' ? Response.json({ devices: [phone] }) : r()));
+    refuse(noDevice);
+    expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('no-device');
+    refuse(() => Response.json({ error: { status: 403, message: 'Premium required', reason: 'PREMIUM_REQUIRED' } }, { status: 403 }));
     expect(await playAlbum(tokens, 'spotify:playlist:M', album)).toBe('not-premium');
-    player(() => Response.json({ error: { status: 403, message: 'Restriction violated', reason: 'UNKNOWN' } }, { status: 403 }));
+    refuse(() => Response.json({ error: { status: 403, message: 'Restriction violated', reason: 'UNKNOWN' } }, { status: 403 }));
     expect((await playAlbum(tokens, 'spotify:playlist:M', album).catch(e => e)).status).toBe(403);
     vi.unstubAllGlobals();
   });
@@ -106,7 +112,8 @@ describe('play from an album', () => {
   const nowAt = (context: string, album: string) => Response.json({ is_playing: true, context: { uri: context }, item: { album: { uri: album, name: 'X', images: [] }, artists: [] } });
 
   it('a 502 that landed anyway counts as playing, after one look and no second play', async () => {
-    const calls = player(c => (c.url === '/me/player/play' ? gateway()
+    const calls = player(c => (c.url === '/me/player/devices' ? Response.json({ devices: [phone] })
+      : c.url.startsWith('/me/player/play') ? gateway()
       : c.url === '/me/player/currently-playing' ? nowAt('spotify:playlist:M', 'spotify:album:A')
       : new Response(null, { status: 204 })));
     expect(await playAlbum(tokens, 'spotify:playlist:M', { ...album, albumUri: 'spotify:album:A' }, 0)).toBe('playing');
@@ -115,7 +122,8 @@ describe('play from an album', () => {
   });
 
   it('a 502 that did not land is tried once more by the song\'s place in the playlist', async () => {
-    const calls = player((c, n) => (c.url === '/me/player/play' && n === 0 ? gateway()
+    const calls = player((c, n) => (c.url === '/me/player/devices' ? Response.json({ devices: [phone] })
+      : c.url.startsWith('/me/player/play') && n === 1 ? gateway()
       : c.url === '/me/player/currently-playing' ? new Response(null, { status: 204 })
       : new Response(null, { status: 204 })));
     expect(await playAlbum(tokens, 'spotify:playlist:M', album, 0)).toBe('playing');
@@ -128,17 +136,20 @@ describe('play from an album', () => {
   });
 
   it('two 502s in a row are one refusal with its status, never a loop', async () => {
-    const calls = player(c => (c.url === '/me/player/play' ? gateway() : new Response(null, { status: 204 })));
+    const calls = player(c => (c.url === '/me/player/devices' ? Response.json({ devices: [phone] })
+      : c.url.startsWith('/me/player/play') ? gateway() : new Response(null, { status: 204 })));
     expect((await playAlbum(tokens, 'spotify:playlist:M', album, 0).catch(e => e)).status).toBe(502);
     expect(calls.filter(c => c.url.startsWith('/me/player/play'))).toHaveLength(2);
     vi.unstubAllGlobals();
   });
 
-  it('picks the active device, else the phone, else any that takes commands', () => {
-    const d = (id: string, type: string, isActive = false, isRestricted = false) => ({ id, name: id, type, isActive, isRestricted });
+  it('picks this phone: the Smartphone, the one named an iPhone among several, never a speaker or a computer', () => {
+    const d = (id: string, type: string, isActive = false, isRestricted = false, name = id) => ({ id, name, type, isActive, isRestricted });
     expect(pickDevice([d('mac', 'Computer'), d('ph', 'Smartphone')])?.id).toBe('ph');
-    expect(pickDevice([d('mac', 'Computer', true), d('ph', 'Smartphone')])?.id).toBe('mac');
-    expect(pickDevice([d('tv', 'TV', false, true), d('mac', 'Computer')])?.id).toBe('mac');
+    expect(pickDevice([d('babe', 'Speaker', true), d('ph', 'Smartphone')])?.id).toBe('ph');
+    expect(pickDevice([d('babe', 'Smartphone', true, false, 'Babe'), d('ph', 'Smartphone', false, false, "Tommy's iPhone")])?.id).toBe('ph');
+    expect(pickDevice([d('mac', 'Computer', true)])).toBeUndefined();
+    expect(pickDevice([d('ph', 'Smartphone', false, true)])).toBeUndefined();
     expect(pickDevice([])).toBeUndefined();
   });
 });

@@ -73,13 +73,16 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
     const rise = fs.readFileSync('src/ui/still.ts', 'utf8').match(/export function rise\(\)[^}]*\}/)![0];
     expect(rise).not.toMatch(/\b(tick|bell)\(/);
   });
-  it('the AudioContext is made in one place, on the first bell or sit, which only a tap begins', () => {
+  it('an AudioContext is made in one place, for the bells or for a sit, which only a tap begins', () => {
     const sound = fs.readFileSync('src/ui/parts/Sound.ts', 'utf8');
     expect(sound.match(/new AC\(/g)).toHaveLength(1);
-    // its definition, the one call inside bell() and the one inside scape()
-    expect(sound.match(/\bctx\(\)/g)).toHaveLength(3);
-    expect(sound).toMatch(/export function bell[\s\S]*?const a = ctx\(\)/);
-    expect(sound).toMatch(/export function scape[\s\S]*?const a = ctx\(\)/);
+    // make(): its definition, the bells' kept context, and a sit's own
+    expect(sound.match(/\bmake\(\)/g)).toHaveLength(3);
+    expect(sound).toMatch(/function ctx\(\)[\s\S]*?ac = make\(\)/);
+    expect(sound).toMatch(/export function bell[\s\S]*?const a = sounding \?\? ctx\(\)/);
+    // a sit never borrows the bells' context: the iPhone leaves that one silent after Spotify or a lock
+    expect(sound).toMatch(/export function scape[\s\S]*?const a = make\(\)/);
+    expect(sound.slice(sound.indexOf('export function scape'))).not.toMatch(/\bctx\(\)/);
     expect(sound).toMatch(/if \(!settings\.value\.sounds\) return;/);
   });
   it('a sit\'s sound is begun only by the tap on the circle', () => {
