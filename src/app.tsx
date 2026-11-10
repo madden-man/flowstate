@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/:id/:step. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step. The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -12,11 +12,13 @@ import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { FlowPage } from './ui/flow/FlowPage';
 import { Now } from './ui/flow/Now';
+import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
 import { onOpen } from './model/flows';
+import { FIXATION_FLOW } from './model/fixations';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
@@ -126,6 +128,9 @@ function Frame() {
           <Route path="/flow/meditate" component={Meditate} />
           <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
           <Route path="/flow/:id" component={FlowPage} />
+          {/* What stuck (PLAN-ENERGIZE.md X4), before /flow/:id/:step so it is never read as a step; behind the PIN only:
+              the door frame has no such route and model/door.ts doorPasses lets no word step through */}
+          <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={Stuck} />
           <Route path="/flow/:id/:step" component={FlowPage} />
           <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
