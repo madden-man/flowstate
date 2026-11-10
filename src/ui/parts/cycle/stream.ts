@@ -17,6 +17,10 @@
 // The light. k is --stream (1 by day, .85 at night, .4 in Still, 0 under Reduce Motion): it scales the speed and how
 // many motes show. It is read by the layer when the light changes, never here.
 //
+// Lanes in colour (PLAN-ENERGIZE.md X2, DESIGN.md rule 30 amended). On Energize the channel runs as three lanes side by
+// side across the line, one a fixation, in slot order; laneOf says which lane a mote's place across the line is in.
+// Nothing here colours anything and no flow's water changes: the layer reads laneOf only when it is given hues.
+//
 // This is the page he opens in a panic. Nothing flashes: every change is eased, no mote appears or goes except where
 // its lane has faded it to nothing, and the fastest water stays under FASTEST.
 import { walkDistance, type Pt, type Shape, type SideRoad, type Water as ShapeWater } from './shape';
@@ -70,6 +74,21 @@ export const BREATH_GATHER = 0.5;
 /** A landing's push: how much quicker the nearest water runs at its height, and how far along the walk it reaches. */
 export const PUSH = 1.2;
 export const PUSH_REACH = 0.1;
+
+/** Energize's lanes: one a fixation, as many as the slots (model/fixations.ts SLOTS). */
+export const LANES = 3;
+
+/**
+ * Which of `lanes` lanes, side by side across the line, a mote at place off (-1 to 1) runs in, 0 on the negative side.
+ * A mote's place is the sum of two draws (off = r + r - 1, a triangle peaked in the middle), so the edges are cut where
+ * the triangle's area is shared out evenly: each lane carries the same share of the water, the middle one narrowest.
+ */
+export function laneOf(off: number, lanes = LANES): number {
+  if (lanes <= 1) return 0;
+  const x = Math.max(-1, Math.min(1, off));
+  const below = x < 0 ? (x + 1) ** 2 / 2 : 1 - (1 - x) ** 2 / 2;
+  return Math.min(lanes - 1, Math.floor(below * lanes));
+}
 
 const smooth = (u: number) => { const x = Math.max(0, Math.min(1, u)); return x * x * (3 - 2 * x); };
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
