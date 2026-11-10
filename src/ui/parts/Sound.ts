@@ -5,7 +5,7 @@
 import { settings } from '../settings';
 import type { SitSound } from '../../db/schema';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap';
 
 /** A new AudioContext, woken: null where there is no Web Audio. Only a tap leads here (rule 21). */
 function make(): AudioContext | null {
@@ -27,9 +27,9 @@ function ctx(): AudioContext | null {
   return ac && wake(ac);
 }
 
-/** A struck bell: a sine with one inharmonic partial, a fast attack and a long exponential fall. */
-function strike(a: AudioContext, freq: number, seconds: number, gain: number) {
-  const t = a.currentTime;
+/** A struck bell: a sine with one inharmonic partial, a fast attack and a long exponential fall. after: seconds from now. */
+function strike(a: AudioContext, freq: number, seconds: number, gain: number, after = 0) {
+  const t = a.currentTime + after;
   const out = a.createGain();
   out.connect(a.destination);
   out.gain.setValueAtTime(0, t);
@@ -95,6 +95,9 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   breathOut: a => breathTone(a, 294, 196, 6),
   // the one bell that closes a sit with an end (PLAN-MEDITATE.md 3.1, S2): the unlock bell's shape, lower and longer
   sitEnd: a => strike(a, 528, 4, 0.16),
+  // a fixation put in a slot (PLAN-ENERGIZE.md section 4, X3): a rising fifth, G then D, the two ends of the breath
+  // tone struck as two short soft bells
+  swap: a => { strike(a, 196, 0.5, 0.06); strike(a, 294, 0.7, 0.06, 0.11); },
 };
 
 /** The breath tone has its own switch under Sounds, off by default, and follows it (rule 21). */

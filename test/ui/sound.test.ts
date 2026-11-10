@@ -183,6 +183,20 @@ describe('scape(): a context of its own, and the ringer', () => {
     return s;
   };
 
+  it('a swap rings a rising fifth, G then D, a moment apart, and only with Sounds on (PLAN-ENERGIZE.md X3)', () => {
+    settings.value = { ...defaultSettings(0), sounds: false };
+    bell('swap');
+    expect(made).toHaveLength(0);
+    settings.value = { ...defaultSettings(0), sounds: true };
+    bell('swap');
+    const osc = made[0].nodes.filter(n => n.kind === 'oscillator') as unknown as (FakeNode & { frequency: FakeParam })[];
+    const fundamentals = osc.map(o => o.frequency.value).filter(f => f < 400);
+    expect(fundamentals).toEqual([196, 294]);
+    const starts = osc.map(o => o.started?.[0] as number);
+    expect(starts[0]).toBe(0);
+    expect(Math.max(...starts)).toBeGreaterThan(0);
+  });
+
   it('quiet makes no context and no nodes, and keeps the wall clock', () => {
     const s = session();
     const q = scape('quiet')!;
