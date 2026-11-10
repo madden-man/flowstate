@@ -1060,6 +1060,34 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
 }
 /* ==== end Fixations: the three ==== */
 
+/* ==== Fixations: what stuck (PLAN-ENERGIZE.md X4) ==== */
+/* #/flow/energize/stuck: a print row of months, then two rules a fixation, its name with the print line at the right,
+   then its ribbons, one rounded line a stint, in its hue (--vc, set inline by ui/voice.ts, rule 3) while it is on and
+   in print grey once closed. The line runs between the two ends of the track, inset by half a ribbon so the caps and a
+   one-day dot are never cut; --x and --w (set inline, model/stuck.ts) place each ribbon. A hairline marks now at the
+   right end of every track. A drawing, no number on it (rule 15); gone in Still, which keeps the names (rule 13). */
+.fx-stuck { --rib: 7px; display: grid; }
+.fx-axis, .fx-track { position: relative; height: var(--lh-ink); margin: 0 calc(var(--rib) / 2); }
+.fx-axis span, .fx-stuck-none {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; line-height: var(--lh-ink); color: var(--print); white-space: nowrap;
+}
+.fx-axis span { position: absolute; top: 0; }
+.fx-axis .fx-axis-now { right: 0; }
+.fx-rib { --vc: var(--ink); }
+.fx-rib-name { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s1); margin: 0; line-height: var(--lh-ink); }
+.fx-rib-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-rib-name .fx-meta { flex: none; }
+.fx-track i {
+  position: absolute; top: 50%; left: calc(var(--x) - var(--rib) / 2); width: calc(var(--w) + var(--rib)); height: var(--rib);
+  transform: translateY(-50%); border-radius: var(--rib); background: var(--print); opacity: .55;
+}
+.fx-track i.on { background: var(--vc); opacity: 1; }
+.fx-track::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; border-right: 1px solid var(--seam); }
+.fx-stuck-none { margin: 0; }
+[data-light="still"] .fx-axis, [data-light="still"] .fx-track, [data-light="still"] .fx-rib-name .fx-meta { display: none; }
+/* ==== end Fixations: what stuck ==== */
+
 /* ==== Motion (PLAN-MOTION.md). One section per package, written only by that package; each section ends with its
    own prefers-reduced-motion rule. parts/Press sets [data-down] on the thing under the thumb (down is instant, up is
    eased); parts/Turn sets html[data-turn] for one view transition. ==== */
