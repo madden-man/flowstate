@@ -377,6 +377,15 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-pole.a { top: 0; border-bottom: 1px solid var(--rule); }
 .fs-pole.b { border-top: 1px solid var(--rule); }
 .fs-pole i { font-style: italic; color: var(--print); }
+/* PLAN-SELF.md 3.1: the pole words and the middle word are taps onto their own field, drawn as the ink they were.
+   The button takes its look from the rule it sits on; pressed, the word sits 1px down as the print words do. */
+.fs-poleword {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer;
+  font: inherit; letter-spacing: inherit; line-height: inherit; color: inherit; text-align: inherit;
+  touch-action: manipulation; transition: translate var(--t-ui) var(--ease);
+}
+.fs-poleword[data-down] { translate: 0 1px; transition: none; }
+.fs-poleword:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 /* the middle word on the seam, on a patch of page so the line breaks around it; the patch relights with the page */
 .fs-mid {
   position: absolute; left: 50%; transform: translateX(-50%); display: block; width: max-content; max-width: 64%; margin: 0; padding: 0 var(--s1);
@@ -423,6 +432,8 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-go { color: var(--ink); }
 .fs-go.inert { color: var(--print); cursor: default; }
 .fs-area { resize: none; display: block; }
+/* PLAN-SELF.md 3.4.1: "active" while five are held is inert, print-grey, and the note under it says why */
+.fs-opt[aria-disabled="true"] { color: var(--print); border-style: dashed; cursor: default; }
 .fs-shadowfield { font-style: italic; }
 .fs-oneline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter); }
 .fs-oneline::-webkit-scrollbar { display: none; }
