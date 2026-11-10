@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
 import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
-import { ensureSeeded } from '../../src/db/seed';
+import { ensureSeeded, seedFixationsOnce } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
@@ -117,6 +117,46 @@ describe('round trip', () => {
     const f = parseBackup('{"app":"flowstate","schemaVersion":3,"exportedAt":1,"tables":{"pages":[]}}');
     expect(f.schemaVersion).toBe(SCHEMA_VERSION);
     expect(f.tables.sits).toEqual([]);
+  });
+
+  it('the fixations and a ride for one round-trip, plain and in a merge (X1)', async () => {
+    const on = { id: 'fx-a', name: 'FlowState', hue: 250, createdAt: 100, stints: [{ from: 100, to: 200, slot: 0 }, { from: 300, slot: 1 }], next: 'the deck sheet', updatedAt: 300 };
+    const done = { id: 'fx-b', name: 'East Winds', hue: 150, createdAt: 50, stints: [{ from: 50, to: 400, slot: 1 }], finishedAt: 400, updatedAt: 400 };
+    await store.bulkPut('fixations', [on, done]);
+    await store.put('episodes', { id: 'e1', flowId: 'energize', startedAt: 500, marks: [], done: [], fixationId: 'fx-a' });
+    const file = await roundTrip(db);
+    expect(file.tables.fixations).toHaveLength(2);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect(await store.get('fixations', 'fx-a')).toEqual(on);
+    expect(await store.get('fixations', 'fx-b')).toEqual(done);
+    expect((await store.get('episodes', 'e1'))!.fixationId).toBe('fx-a');
+    // a merge: the file's newer row wins, this phone's newer row stays
+    const third = await freshDB();
+    await store.bulkPut('fixations', [{ ...on, name: 'older here', updatedAt: 250 }, { ...done, name: 'newer here', updatedAt: 900 }]);
+    expect(await importData(file, 'merge', third)).toMatchObject({ updated: 1 });
+    expect((await store.get('fixations', 'fx-a'))!.name).toBe('FlowState');
+    expect((await store.get('fixations', 'fx-b'))!.name).toBe('newer here');
+  });
+
+  it('a version 4 file (before the fixations) imports cleanly with none, and the seed pass writes them next open', async () => {
+    const v4 = {
+      app: 'flowstate', schemaVersion: 4, exportedAt: 1,
+      tables: {
+        settings: [{ id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true, lock: { enabled: false, relockAfterMin: 5 }, cleaned: ['seed-pages'] }],
+        voices: [], pages: [], messages: [], paradoxes: [], items: [], leans: [], backups: [], albums: [], playlists: [], shelves: [], flows: [],
+        episodes: [{ id: 'e1', flowId: 'energize', startedAt: 1, marks: [], done: [] }],
+        sits: [{ id: 's1', startedAt: 1, endedAt: 70_001, sound: 'rain' }],
+      },
+    };
+    const f = parseBackup(JSON.stringify(v4));
+    expect(f.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(f.tables.fixations).toEqual([]);
+    await importData(f, 'replace', db);
+    expect(await db.fixations.count()).toBe(0);
+    expect(await db.sits.count()).toBe(1);
+    expect(await db.episodes.get('e1')).toBeTruthy();
+    expect(await seedFixationsOnce()).toHaveLength(7);
   });
 
   it('replace makes the database the file', async () => {

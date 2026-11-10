@@ -3,7 +3,8 @@
 //   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
-//   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title.
+//   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
+//   fixations: name and next (PLAN-ENERGIZE.md section 5).
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -148,6 +149,17 @@ const episodeSpec: Spec<Tables['episodes']> = {
   },
 };
 
+/** A fixation seals its name and its next line (PLAN-ENERGIZE.md section 5); the hue, the stints and the dates stay
+ *  clear, so the deck can sort and the door can draw nothing from it without the key. */
+type XSecret = { name: string; next?: string };
+const fixationSpec: Spec<Tables['fixations']> = {
+  take: row => ({ clear: { ...row, name: '', next: undefined }, secret: { name: row.name, next: row.next } satisfies XSecret }),
+  give: (clear, raw) => {
+    const s = (raw ?? { name: '' }) as XSecret;
+    return { ...clear, name: s.name, ...(s.next !== undefined ? { next: s.next } : {}) };
+  },
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -158,6 +170,7 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   paradoxes: paradoxSpec,
   flows: flowSpec,
   episodes: episodeSpec,
+  fixations: fixationSpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 

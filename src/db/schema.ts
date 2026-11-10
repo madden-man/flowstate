@@ -1,12 +1,13 @@
-// Dexie tables, version 4 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
-// version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits). UI code never imports this file: it reads and writes
+// Dexie tables, version 5 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
+// version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits;
+// version 5 is PLAN-ENERGIZE.md section 5, the fixations). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 
 export { POEMS_ID, POEMS_NAME };
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -40,7 +41,8 @@ export type Settings = {
   /** Not in PLAN.md section 4 (package 8): what navigator.storage.persist() last answered, so Settings reads it offline. */
   persisted?: boolean;
   /** Not in PLAN.md section 4 (V5): one-time passes over old data already run, by name, so each runs once.
-   *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go). */
+   *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go); 'fixations' is
+   *  seedFixationsOnce (PLAN-ENERGIZE.md section 5, X1), the first three and the deck written once. */
   cleaned?: string[];
   /** ticked (V8): the named playlists (music/poems.ts NAMED_IDS) already ticked once, so each is ticked only once. */
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
@@ -305,6 +307,8 @@ export type Episode = {
   asked?: Millis;
   /** PLAN-PICKS.md section 6 (P0): the line ticked on the On sheet, by id, with its title as it read then (sealed). */
   on?: { pickId: string; title: string; at: Millis };
+  /** PLAN-ENERGIZE.md section 5 (X1, set by X5's Spark it): the fixation this ride is for. An id, clear. */
+  fixationId?: string;
   sealed?: Sealed;
 };
 
@@ -315,6 +319,20 @@ export type Episode = {
  *  "Write it down" opens today's page; episodeId when the sit was reached from a flow's tip (S3). Nothing is sealed. */
 export type Sit = {
   id: string; startedAt: Millis; endedAt: Millis; sound: SitSound; minutes?: Exclude<SitMinutes, 0>; pageId?: string; episodeId?: string;
+};
+
+// ---- fixations (PLAN-ENERGIZE.md section 5, schema version 5) ----
+
+/** One time a fixation was on (PLAN-ENERGIZE.md section 2): from when it went into a slot to when it came out. No to
+ *  means it is on now. slot is 0, 1 or 2, the card it sits in. A span in time, never a run of days: nothing to miss or break. */
+export type Stint = { from: Millis; to?: Millis; slot: number };
+/** What Tommy is into (PLAN-ENERGIZE.md section 5): a name and a hue angle on the voices' wheel. On is the last stint
+ *  having no to; on deck is neither on nor finished. next is his one line, the next small step. finishedAt retires it
+ *  ("Finished instead"); nothing is ever deleted. name and next are sealed (fields.ts); the hue, the stints and the
+ *  dates stay clear. updatedAt (not in section 5) is the last change, so a merge import keeps the newest. */
+export type Fixation = {
+  id: string; name: string; hue: number; createdAt: Millis; stints: Stint[];
+  next?: string; finishedAt?: Millis; updatedAt?: Millis; sealed?: Sealed;
 };
 
 export type Tables = {
@@ -332,12 +350,13 @@ export type Tables = {
   flows: Flow;
   episodes: Episode;
   sits: Sit;
+  fixations: Fixation;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -350,7 +369,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits'>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations'>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -358,16 +377,23 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits'>
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES_V3: Record<Exclude<TableName, 'sits'>, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations'>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
 };
 
 /** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V4: Record<Exclude<TableName, 'fixations'>, string> = {
   ...STORES_V3,
   sits: 'id, startedAt',
+};
+
+/** Version 5 adds the fixations (PLAN-ENERGIZE.md section 5). The upgrade writes nothing: a name is sealed and an
+ *  upgrade cannot seal, so the first three and the deck come from seed.ts seedFixationsOnce once the journal is open. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V4,
+  fixations: 'id',
 };
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
@@ -396,6 +422,7 @@ export type FlowDB = Dexie & {
   flows: EntityTable<Flow, 'id'>;
   episodes: EntityTable<Episode, 'id'>;
   sits: EntityTable<Sit, 'id'>;
+  fixations: EntityTable<Fixation, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -409,7 +436,8 @@ export function openDB(name = DB_NAME): FlowDB {
     await tx.table('playlists').put(poemsPlaylist());
   });
   db.version(3).stores(STORES_V3);
-  db.version(4).stores(STORES);
+  db.version(4).stores(STORES_V4);
+  db.version(5).stores(STORES);
   return db;
 }
 
