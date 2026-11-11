@@ -2,7 +2,7 @@
 // a sign's gate is shut, 0 open to 1 shut. A short drawn rule with a mark, dragged sideways: right shuts it.
 //
 // The gesture is parts/RuleDrag (shared with the meter since R2). A touch is not a drag until it is decided. Nothing
-// moves on pointerdown: the touch must travel SLOP_PX sideways, more than it travels down, before the mark is taken (parts/Spread decides a press the same way). A touch that goes down
+// moves on pointerdown: the touch must travel SLOP_PX sideways, more than it travels down, before the mark is taken (as parts/Spread did, before PLAN-VALUES.md C6 took it out). A touch that goes down
 // first is the page's scroll (touch-action pan-y): the gate lets it go, and nothing moves, ticks or is written. Once
 // taken, the mark follows the finger by how far it has moved (it does not jump to the finger), with no transition
 // (DESIGN.md rule 20); onInput says where it is on every move, so the sign and the water answer live, and onCommit says

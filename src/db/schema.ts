@@ -1,7 +1,8 @@
 // Dexie tables, at SCHEMA_VERSION (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
 // version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits;
-// version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the
-// readings and flows.chakra, in the block marked "the mountain" below). UI code never imports this file: it reads and writes
+// version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 is PLAN-VALUES.md section 5, the values; version 7
+// (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the readings and flows.chakra, in the block marked "the mountain"
+// below). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
@@ -9,11 +10,13 @@ import type { ChakraId } from '../model/mountain';
 
 export { POEMS_ID, POEMS_NAME };
 
+/** The values' schema version (PLAN-VALUES.md section 5): the values table. It reached main first. */
+export const VALUES_VERSION = 6;
 /** The mountain's schema version (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra. RENUMBERING IS HERE
- *  AND ONLY HERE: the values build (PLAN-VALUES.md) also takes 6, and whichever reaches main second changes this one
- *  number (and, if the other's stores come first, the STORES_V5 its STORES spread in the "mountain" block below).
- *  Everything else reads it: SCHEMA_VERSION, the Dexie version in that block, backup.ts migrate, and the tests. */
-export const MOUNTAIN_VERSION = 6;
+ *  AND ONLY HERE: it was 6 on its branch and became 7 when the values build reached main first with 6 (its STORES
+ *  spread in the "mountain" block below is now STORES_V6, the values'). Everything else reads it: SCHEMA_VERSION, the
+ *  Dexie version in that block, backup.ts migrate, and the tests. */
+export const MOUNTAIN_VERSION = 7;
 /** The newest version: the mountain's, until a later one comes. */
 export const SCHEMA_VERSION = MOUNTAIN_VERSION;
 export const DB_NAME = 'flowstate';
@@ -50,8 +53,13 @@ export type Settings = {
   persisted?: boolean;
   /** Not in PLAN.md section 4 (V5): one-time passes over old data already run, by name, so each runs once.
    *  'seed-pages' is cleanSeedPages in seed.ts (the untouched manifesto and models pages go); 'fixations' is
-   *  seedFixationsOnce (PLAN-ENERGIZE.md section 5, X1), the first three and the deck written once. */
+   *  seedFixationsOnce (PLAN-ENERGIZE.md section 5, X1), the first three and the deck written once; 'values' is
+   *  valuesFromParadoxesOnce (PLAN-VALUES.md section 5, C1), each paradox made one value once. */
   cleaned?: string[];
+  /** PLAN-VALUES.md C0 (from PLAN-SELF.md section 4): ids of rows deleted on this phone, in any table, so a merge
+   *  import of an older file never brings one back and drops links to it (backup.ts). Ids only, clear like every id;
+   *  added with fields.ts tombstone(), they only grow (fields.ts keepLock), and a replace import takes the file's list. */
+  deleted?: string[];
   /** ticked (V8): the named playlists (music/poems.ts NAMED_IDS) already ticked once, so each is ticked only once. */
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
@@ -139,6 +147,9 @@ export type Page = {
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
   seats?: string[];
+  /** PLAN-VALUES.md section 5 (C1): the value a council was called on ("Call a council"). Ids, clear like paradoxIds;
+   *  optional and unindexed, so older pages simply have none. A deleted value's id is taken out (model/values.ts). */
+  valueIds?: string[];
 };
 
 export type Message = {
@@ -157,6 +168,9 @@ export type Message = {
    *  was written (one per day of editing; at is when that text was replaced). Sealed with text in fields.ts.
    *  Optional, so no Dexie version bump: older rows simply have none. */
   revisions?: { at: Millis; text: string }[];
+  /** PLAN-VALUES.md section 5 (C1): the value (or its shadow) this line was confirmed as spoken for, after it was spoken
+   *  (model/values.ts speakFor); a line is never created with one. Ids, clear like voiceId. */
+  for?: { valueId: string; side: ValueSide };
   sealed?: Sealed;
 };
 
@@ -347,6 +361,70 @@ export type Fixation = {
   next?: string; finishedAt?: Millis; updatedAt?: Millis; sealed?: Sealed;
 };
 
+// ---- values (PLAN-VALUES.md section 5, schema version 6) ----
+
+/** Which side of a value a voice fights for, or a line was spoken for: the value, or its shadow (a value too). */
+export type ValueSide = 'value' | 'shadow';
+/** A voice on a side of a value. voiceId, side and at (when it joined) stay clear; why is his one sentence, sealed. */
+export type Champion = { voiceId: string; side: ValueSide; at: Millis; why?: string };
+/** An earlier version of a value's words, shown struck (rule 10). fromParadox (not in PLAN-VALUES.md section 5) is set
+ *  only on the first revision of a value made from a paradox (seed.ts valuesFromParadoxesOnce), holding what the
+ *  paradox said that the value has no field for: pole A's bracket word (the pole overdone, which is not a shadow) and
+ *  pole B's aspect. Sealed with the rest of the revision. */
+export type ValueRevision = { at: Millis; word: string; shadow?: string; fromParadox?: { overdone?: string; shadowLooks?: string } };
+/** A value he is building (PLAN-VALUES.md section 5). word, shadow, looks, every champion's why and the revisions are
+ *  sealed (fields.ts); ids, status, order, dates and each champion's voiceId, side and at stay clear. */
+export type Value = {
+  id: string; createdAt: Millis; updatedAt: Millis;
+  status: 'held' | 'resting';
+  word: string;
+  shadow?: string;
+  /** What living it looks like. */
+  looks?: string;
+  champions: Champion[];
+  revisions: ValueRevision[];
+  order?: number;
+  /** The paradox it was made from, when it was (seed.ts valuesFromParadoxesOnce). */
+  fromParadoxId?: string;
+  sealed?: Sealed;
+};
+
+/** The one order of the values, as Tommy dragged them: placed ones by order, then by age (as byParadoxOrder). */
+export const byValueOrder = (a: Pick<Value, 'order' | 'createdAt' | 'id'>, b: Pick<Value, 'order' | 'createdAt' | 'id'>) =>
+  (a.order ?? Infinity) - (b.order ?? Infinity) || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
+
+/** The id of the value made from a paradox: fixed, so the pass, an import of an older file and a merge all name the
+ *  same row (a value deleted stays on the deleted list under this id). Prefixed, so it never shares a paradox's id. */
+export const valueIdOf = (paradoxId: string) => `value-${paradoxId}`;
+
+/**
+ * One paradox as one value (PLAN-VALUES.md section 5 and question 1): pole A's value is the word, pole B's value the
+ * shadow, pole A's aspect the looks; held when the paradox was active, resting otherwise; its order and dates kept.
+ * Pole A's bracket word and pole B's aspect, which the value has no field for, go into a first revision so nothing
+ * is lost; with neither there is no revision. The paradox row itself is not touched. Pure: seed.ts and backup.ts
+ * (an older file) both use it.
+ */
+export function valueFromParadox(p: Pick<Paradox, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'poleA' | 'poleB' | 'order'>): Value {
+  const t = (x?: string) => (x ?? '').trim();
+  const word = t(p.poleA.value), shadow = t(p.poleB.value), looks = t(p.poleA.aspect);
+  const overdone = t(p.poleA.shadow), shadowLooks = t(p.poleB.aspect);
+  const v: Value = {
+    id: valueIdOf(p.id), createdAt: p.createdAt, updatedAt: p.updatedAt, status: p.status === 'active' ? 'held' : 'resting',
+    word, champions: [], revisions: [], fromParadoxId: p.id,
+  };
+  if (shadow) v.shadow = shadow;
+  if (looks) v.looks = looks;
+  if (typeof p.order === 'number') v.order = p.order;
+  if (overdone || shadowLooks) {
+    const r: ValueRevision = { at: p.updatedAt, word, fromParadox: {} };
+    if (shadow) r.shadow = shadow;
+    if (overdone) r.fromParadox!.overdone = overdone;
+    if (shadowLooks) r.fromParadox!.shadowLooks = shadowLooks;
+    v.revisions = [r];
+  }
+  return v;
+}
+
 export type Tables = {
   settings: Settings;
   voices: Voice;
@@ -363,13 +441,14 @@ export type Tables = {
   episodes: Episode;
   sits: Sit;
   fixations: Fixation;
+  values: Value;
   readings: Reading;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'readings'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'readings'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -382,7 +461,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'readings'>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -390,28 +469,35 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' 
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'readings'>, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
 };
 
 /** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
-export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'readings'>, string> = {
+export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'values' | 'readings'>, string> = {
   ...STORES_V3,
   sits: 'id, startedAt',
 };
 
 /** Version 5 adds the fixations (PLAN-ENERGIZE.md section 5). The upgrade writes nothing: a name is sealed and an
  *  upgrade cannot seal, so the first three and the deck come from seed.ts seedFixationsOnce once the journal is open. */
-export const STORES_V5: Record<Exclude<TableName, 'readings'>, string> = {
+export const STORES_V5: Record<Exclude<TableName, 'values' | 'readings'>, string> = {
   ...STORES_V4,
   fixations: 'id',
 };
 
+/** Version 6 adds the values (PLAN-VALUES.md section 5). The upgrade writes nothing: a word is sealed and an upgrade
+ *  cannot seal, so each paradox becomes a value in seed.ts valuesFromParadoxesOnce once the journal is open. */
+export const STORES_V6: Record<Exclude<TableName, 'readings'>, string> = {
+  ...STORES_V5,
+  values: 'id',
+};
+
 // ---- the mountain, version MOUNTAIN_VERSION (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra ----
-// Self-contained: renumbering is MOUNTAIN_VERSION at the top of this file (and, if another version lands first, the
-// stores STORES spreads below). openDB calls mountainVersion() after the version before it.
+// Self-contained: renumbering is MOUNTAIN_VERSION at the top of this file (and the stores STORES spreads below, the
+// values' STORES_V6 since they reached main first). openDB calls mountainVersion() after the version before it.
 
 /** One reading of the mountain (the Depression meter) or of one sign's gate, written on release, never edited: value
  *  is 0 (open, or no weather) to 1. The newest per `of` is drawn (model/mountain.ts). value is sealed (fields.ts): how
@@ -420,7 +506,7 @@ export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value
 
 /** The mountain's version adds the readings, by when and by what they are of. */
 export const STORES: Record<TableName, string> = {
-  ...STORES_V5,
+  ...STORES_V6,
   readings: 'id, at, [of+at]',
 };
 
@@ -472,6 +558,7 @@ export type FlowDB = Dexie & {
   episodes: EntityTable<Episode, 'id'>;
   sits: EntityTable<Sit, 'id'>;
   fixations: EntityTable<Fixation, 'id'>;
+  values: EntityTable<Value, 'id'>;
   readings: EntityTable<Reading, 'id'>;
 };
 
@@ -488,6 +575,7 @@ export function openDB(name = DB_NAME): FlowDB {
   db.version(3).stores(STORES_V3);
   db.version(4).stores(STORES_V4);
   db.version(5).stores(STORES_V5);
+  db.version(VALUES_VERSION).stores(STORES_V6);
   mountainVersion(db);
   return db;
 }

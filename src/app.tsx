@@ -27,7 +27,7 @@ import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
-import { cleanSeedPages, moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce } from './db/seed';
+import { cleanSeedPages, moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from './db/seed';
 import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
@@ -220,7 +220,9 @@ function Gate({ children }: { children: ComponentChildren }) {
         const fixed = await seedFixationsOnce();
         // X5: Energize's doctor line moves from the rest page to The tip, once, after the flows are there
         const doctor = await moveDoctorLineOnce();
-        if (wrote || written?.length || picked?.length || fixed?.length || doctor) dataVersion.value++;
+        // PLAN-VALUES.md section 5 (C1): each paradox made one value, once, sealed like the fixations
+        const valued = await valuesFromParadoxesOnce();
+        if (wrote || written?.length || picked?.length || fixed?.length || doctor || valued?.length) dataVersion.value++;
         if (openedOnce) return;
         openedOnce = true;
         const live = await onOpen();

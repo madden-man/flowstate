@@ -2,7 +2,7 @@
 // drawn rule's mark is dragged, so the gate and the meter keep the same touch rules.
 //
 // A touch is not a drag until it is decided. Nothing moves on pointerdown: the touch must travel SLOP_PX sideways, more
-// than it travels down, before the mark is taken (parts/Spread decides a press the same way). A touch that goes down
+// than it travels down, before the mark is taken (as parts/Spread did, before PLAN-VALUES.md C6 took it out). A touch that goes down
 // first is the page's scroll (touch-action pan-y on the rule): it is let go, and nothing moves, ticks or is written.
 // Once taken, the mark follows the finger by how far it has moved (it does not jump to the finger), with no transition
 // (DESIGN.md rule 20); onInput says where it is on every move, and onCommit says where it was let go, once, on release
@@ -19,7 +19,7 @@ const clamp = (x: number) => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) :
 /** Near an end is the end, so both ends can be reached under a thumb. */
 const SNAP = 0.03;
 export const snapRule = (x: number) => { const v = clamp(x); return v < SNAP ? 0 : v > 1 - SNAP ? 1 : v; };
-/** How far a touch travels before it is a drag of the mark or the page's scroll (parts/Spread's SLOP_PX). */
+/** How far a touch travels before it is a drag of the mark or the page's scroll (the old parts/Spread's SLOP_PX). */
 export const SLOP_PX = 8;
 const end = (v: number) => (v === 0 ? 0 : v === 1 ? 1 : null);
 
