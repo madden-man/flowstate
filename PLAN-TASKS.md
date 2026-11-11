@@ -8,7 +8,7 @@ Second pass, the same evening, in his words:
 - "there should be music picks on all of the chakras, clickable and easy to jump to. i can provide, or you can make it editable."
 - "where possible, integrate this with the other three sections, or link out of the app to things that could help (messaging a friend for example)."
 
-This file is the second pass. Nothing is built. Walkthrough: `design/tasks/index.html` (ten steps: the mountain, the seven signs, the music sheet, the sea), private at https://claude.ai/artifact/8XBwpvXuXCWPKeWVo3XMJf.
+This file is the second pass. Built: T0 to T6, as PRs #71 to #76 and #77 (T6), all merged into `acts-plan`, whose draft PR is #69; none of it is on main or deployed. Walkthrough: `design/tasks/` (fifteen steps, the real app running with example data; `npm run walkthrough:tasks` writes the publishable `design/tasks/dist/`), private at https://claude.ai/artifact/8XBwpvXuXCWPKeWVo3XMJf until republished. The standard is DESIGN.md rule 35.
 
 ## 1. The idea
 
@@ -121,6 +121,26 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 5. Crown's Let go keeps nothing; every other written line is kept. Right?
 6. Close the walk (#61)?
 
+## Built: choices taken for Tommy to overturn
+
+- The starter shelves are read from code (`STARTER_TITLES`) until he first changes one; only then is a row written to `signShelves`.
+- The lit word at rest is the data's lead touch, never the last one he used.
+- Three signs show no words through the door: Crown, Throat and Solar plexus have no touch that writes nothing.
+- The rest list left the flow page after Done: at rest the touches are what the page offers.
+- One person for the whole app: Send, Call and both Reaches go to the person chosen once.
+- Two taps to leave the app: the touch word, then the link named for what it opens.
+- I will gives Calendar the time; the line goes to the clipboard, since `calshow:` takes no text.
+- Ask uses Ask this on the line, and the answer stays on today's page.
+- Letter places "Dear " on the next rule, unsaved until he writes after it.
+- Kept line shows one kept line a day, one star.
+- A touch that leaves the app is dropped if he does not come back to its sign.
+- An open gate sends no surge and asks nothing.
+- A touch releases 0.6 of what the gate holds (`SHARE`).
+- Grieve's stones show only while Grieve is the active word.
+- The shelf's plus shows only with Spotify connected, and adds albums only.
+
 ## 11. Only the iPhone can say
 
 A thumb held on a canvas against Safari's scroll and back swipe; the keyboard over a rule drawn on the plate; `sms:` with a body, `tel:` and `calshow:` from the installed app, and what coming back looks like; print words on dark rock under a thumb; the surge read as relief and not as a reward.
+
+Found walking the whole feature (T6): whether the out-of-app rules (Send, I will) raise the keyboard at all, since they rely on `autoFocus` where the in-place rules call `focus()` inside the tap; the header at 390pt once "Solar plexus chakra" or the sign beside the date is on it (the date reaches the screen's edge in the walkthrough); a long press on a cover against iOS's own image callout; and the time field's wheel for I will.
