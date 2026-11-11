@@ -20,7 +20,8 @@
     "check:dist": "node script/check-dist.mjs",
     "walkthrough:motion": "node script/build-motion-walkthrough.mjs",
     "walkthrough:picks": "node script/build-picks-walkthrough.mjs",
-    "walkthrough:energize": "node script/build-energize-walkthrough.mjs"
+    "walkthrough:energize": "node script/build-energize-walkthrough.mjs",
+    "walkthrough:values": "node script/build-values-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

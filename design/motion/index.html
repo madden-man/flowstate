@@ -35,10 +35,10 @@
   <p class="line">The box gives, the ink draws itself, and a held line lifts as I hold it.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Mechanism</td><td>The box scales to .86 while down; the ink's stroke is drawn over <code>--t-draw</code> and lifts over <code>--t-ui</code>. A long press lifts its row over <code>--t-hold</code> from the touch, so the hold is felt building.</td></tr>
-    <tr><td>Files</td><td><code>src/ui/parts/Check.tsx</code>, <code>parts/Hold.ts</code>, <code>be/Be.tsx</code>, parts.css M1</td></tr>
+    <tr><td>Files</td><td><code>src/ui/parts/Check.tsx</code>, <code>parts/Hold.ts</code>, <code>flow/Tips.tsx</code>, parts.css M1</td></tr>
     <tr><td>Tokens</td><td><code>--t-draw</code>, <code>--t-hold</code>, <code>--t-ui</code></td></tr>
     <tr><td>Rule</td><td>DESIGN.md 26, 27</td></tr>
-    <tr><td>Demo</td><td>Today's checks are cleared each time this step opens.</td></tr>
+    <tr><td>Demo</td><td>Panic's first step at rest: a tip's check only draws there, so each visit starts unchecked.</td></tr>
   </table></details>
 </section>
 
