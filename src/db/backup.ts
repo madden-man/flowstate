@@ -3,7 +3,8 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, withSeedChakra, MOUNTAIN_VERSION } from './schema';
+// A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -20,6 +21,9 @@ export type BackupFile = {
   verifier?: Sealed;
   digits?: number;
   tables: { [K in TableName]: unknown[] };
+  /** Set by parseBackup on a file older than this version: the version it was made at, so importData can give it what
+   *  only an open journal can (a version 5 file's paradoxes as values, PLAN-VALUES.md section 5). Never exported. */
+  madeAt?: number;
 };
 
 /** What it takes to open a sealed file: its own salt and iteration count, and its verifier to check a PIN. */
@@ -39,6 +43,20 @@ const pk = (t: TableName, row: Record<string, unknown>) => {
   if (t === 'albums') return String(row.albumUri);
   if (t === 'shelves') return row.playlistId === undefined || row.albumUri === undefined ? 'undefined' : `${row.playlistId} ${row.albumUri}`;
   return String(row.id);
+};
+
+/**
+ * How a row points at another, for the deleted list (PLAN-VALUES.md C0, from PLAN-SELF.md section 4). owner: the row
+ * belongs to the one named, and goes with it (a paradox's goals and leans). link: a single id, dropped from the row.
+ * links: a list of ids, the deleted ones filtered out. inner (PLAN-VALUES.md C1): an object field holding an id under
+ * the key named, the whole field dropped when that id is deleted (a line's `for`, whose valueId names a value). All
+ * are clear fields of the stored form. A row whose own key is deleted never comes back whatever its table.
+ */
+export const LINKS: { [K in TableName]?: { owner?: string[]; link?: string[]; links?: string[]; inner?: Record<string, string> } } = {
+  items: { owner: ['paradoxId'], link: ['pairId', 'nextTo'] },
+  leans: { owner: ['paradoxId'] },
+  pages: { links: ['paradoxIds', 'valueIds'] },
+  messages: { inner: { for: 'valueId' } },
 };
 
 /** Album covers are bytes (a Blob in rows from before V9); the file carries them as base64 with their type. */
@@ -104,9 +122,11 @@ export function parseBackup(text: string): BackupFile {
  *  playlist ticked. A version 2 file has no flows or episodes (both tables come in empty, above); its settings
  *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. A version 4 file has no
  *  fixations (the table comes in empty, above); its settings.cleaned has no 'fixations', so seed.ts seedFixationsOnce
- *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). A file from before MOUNTAIN_VERSION has no readings
- *  (the table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade
- *  gives a stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. */
+ *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). A version 5 file has no values
+ *  (the table comes in empty, above); its paradoxes are opened only in importData, which makes them values there
+ *  (madeAt says it is older). A file from before MOUNTAIN_VERSION (a version 6 file included) has no readings (the
+ *  table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade gives a
+ *  stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -118,7 +138,7 @@ function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < MOUNTAIN_VERSION) {
     f = { ...f, tables: { ...f.tables, flows: (f.tables.flows as Tables['flows'][]).map(withSeedChakra) } };
   }
-  return { ...f, schemaVersion: SCHEMA_VERSION };
+  return { ...f, schemaVersion: SCHEMA_VERSION, ...(f.schemaVersion < SCHEMA_VERSION ? { madeAt: f.madeAt ?? f.schemaVersion } : {}) };
 }
 
 /** The time a row last changed, for merge: updatedAt, else at, else its newest revision, else createdAt, else an
@@ -143,7 +163,10 @@ export type ImportResult = { added: number; updated: number; kept: number };
 /**
  * replace: the database becomes the file.
  * merge: keyed on id; a row in the file wins only when it is newer (stamp). Settings stay this phone's,
- * except where this phone has none.
+ * except where this phone has none. A row whose key is on this phone's deleted list (settings.deleted) is never
+ * brought back, nor a row it owns, and links in the file to a deleted one are dropped (LINKS). The file's own list is
+ * not merged: merge never deletes this phone's rows, so the list only guards against older files. Replace takes the
+ * file's list with the rest of its settings row, and a file with no settings row clears it: the file's rows come back.
  */
 export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
   // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
@@ -154,14 +177,18 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     if (!(await checkVerifier(fileKey, fl.verifier))) throw new BackupError('Not that one');
   }
   // This phone's lock stays this phone's: a file's lock settings never replace the ones its rows are sealed with now.
-  const myLock = (await database.settings.get('app'))?.lock;
+  const mine = await database.settings.get('app');
+  const myLock = mine?.lock;
+  const gone = new Set(mode === 'merge' ? mine?.deleted ?? [] : []);
   const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
+  const openedParadoxes: (Tables['paradoxes'] & { locked?: true })[] = [];
   for (const t of TABLES) {
     const rows: Record<string, unknown>[] = [];
     for (const r of file.tables[t] as Record<string, unknown>[]) {
       let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON), coverType: (r.cover as CoverJSON).type || undefined } : r;
       // open with the file's key (a wrong one throws before anything is written), then store as this journal stores rows
       let opened = (await openRow(t, row as never, fileKey ?? null)) as Record<string, unknown>;
+      if (t === 'paradoxes') openedParadoxes.push(opened as Tables['paradoxes']);
       if (t === 'settings') {
         opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
       }
@@ -170,13 +197,24 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     }
     incoming[t] = rows;
   }
+  // A file from before the values (version 5 or older, PLAN-VALUES.md section 5): each of its paradoxes comes in as the
+  // value seed.ts valuesFromParadoxesOnce would make of it, under the same fixed id, so a merge meets this phone's own
+  // copy (the newer kept) and a value deleted here stays deleted (its id is on the list). The paradoxes come in too.
+  if ((file.madeAt ?? SCHEMA_VERSION) < VALUES_VERSION) {
+    const have = new Set((incoming.values as { fromParadoxId?: string }[]).map(v => v.fromParadoxId).filter(Boolean));
+    for (const p of openedParadoxes) {
+      if (p.locked || have.has(p.id)) continue;
+      incoming.values.push((await storedForm('values', valueFromParadox(p))) as unknown as Record<string, unknown>);
+    }
+  }
   const result: ImportResult = { added: 0, updated: 0, kept: 0 };
   await database.transaction('rw', TABLES.map(t => database.table(t)), async () => {
     for (const t of TABLES) {
       const tb = database.table(t);
       if (mode === 'replace') {
         // A file without a settings row keeps this phone's, so the seed never runs again over imported pages.
-        if (t === 'settings' && !incoming[t].length) { result.kept++; continue; }
+        // Its deleted list goes all the same: the database becomes the file, and the file's rows come back.
+        if (t === 'settings' && !incoming[t].length) { result.kept++; await tb.update('app', { deleted: undefined }); continue; }
         await tb.clear();
         await tb.bulkAdd(incoming[t]);
         result.added += incoming[t].length;
@@ -184,7 +222,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       }
       const existing = new Map((await tb.toArray()).map(r => [pk(t, r), r as Record<string, unknown>]));
       const write: Record<string, unknown>[] = [];
-      for (const row of incoming[t]) {
+      for (const row of gone.size ? revived(t, incoming[t], gone) : incoming[t]) {
         const mine = existing.get(pk(t, row));
         if (!mine) { write.push(row); result.added++; }
         else if (t !== 'settings' && stamp(row) > stamp(mine)) { write.push(row); result.updated++; }
@@ -194,6 +232,21 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     }
   });
   return result;
+}
+
+/** The file's rows less what this phone deleted (merge only): a deleted row, the rows it owns, and the links to it. */
+function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
+  const out = (id: unknown) => typeof id === 'string' && gone.has(id);
+  const { owner = [], link = [], links = [], inner = {} } = LINKS[t] ?? {};
+  return rows.filter(r => !out(pk(t, r)) && !owner.some(f => out(r[f]))).map(r => {
+    const single = [...link.filter(f => out(r[f])), ...Object.entries(inner).filter(([f, k]) => out((r[f] as Record<string, unknown> | undefined)?.[k])).map(([f]) => f)];
+    const lists = links.filter(f => Array.isArray(r[f]) && (r[f] as unknown[]).some(out));
+    if (!single.length && !lists.length) return r;
+    const next = { ...r };
+    for (const f of single) delete next[f];
+    for (const f of lists) next[f] = (r[f] as unknown[]).filter(x => !out(x));
+    return next;
+  });
 }
 
 /** Hands the file to the share sheet (Files, iCloud Drive, AirDrop); falls back to a download. */

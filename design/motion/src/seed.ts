@@ -1,6 +1,6 @@
 // Example data for the walkthrough, written through the app's own model and fields layer (never Dexie directly):
 // today's page with the design mocks' lines, two earlier pages, three questions, a council with a few turns, and the
-// music account connected through the app's own read of (fixture) Spotify. The paradoxes, their goals and the nine
+// music account connected through the app's own read of (fixture) Spotify. The voices, the values and the nine
 // flows are the app's own seed (ensureSeeded, seedFlowsOnce), already written by the time this runs.
 import { writeLine, askQuestion } from '../../../src/model/pages';
 import { newCouncil, seat, speak } from '../../../src/model/council';

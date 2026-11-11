@@ -5,6 +5,9 @@
 // corner taking the last speaker's colour. Turns go round the seats; a chip tap speaks for one line.
 // Tap a message to reply to it; long press it to keep it close, speak it as another voice or link a
 // page; long press a chip for the Voices screen.
+// PLAN-VALUES.md C4: a tapped voiced line also offers "Spoke for" in the reply bar (parts/SpokeFor): a tap confirms
+// the line for a value after it was said, never before, and nothing is armed at the composer. "Who sits?" gains
+// "For what?": a value tapped there seats its champions and the council is about it.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useLocation } from 'preact-iso';
@@ -20,7 +23,7 @@ import type { Read } from '../../db/fields';
 import type { Message, Voice } from '../../db/schema';
 import {
   councilPages, councilById, newCouncil, speak, chipVoices, nextSpeaker, lastSpeaker, startsRun, firstLine,
-  seatedVoices, isSeated, toggleSeat, seat, voiceLabel, editMessage,
+  seatedVoices, isSeated, toggleSeat, seat, voiceLabel, editMessage, aboutValue, notAboutValue,
   type CouncilRow, type CouncilPage as CouncilData,
 } from '../../model/council';
 import { Speaker } from '../parts/Speaker';
@@ -29,6 +32,7 @@ import { useKeyboardFit } from '../parts/Keyboard';
 import { VoiceSheet } from './VoiceSheet';
 import { hrefOf } from '../journal/href';
 import { MessageSheet } from './MessageSheet';
+import { SpokeFor, SpokeForSheet, valueList, reloadValues, spokeLabel } from '../parts/SpokeFor';
 
 const vcOf = (v: Voice): JSX.CSSProperties => ({ '--vc': voiceColour(v.colour, v.shade) } as JSX.CSSProperties);
 const isStill = () => light.value === 'still';
@@ -96,9 +100,11 @@ type Quote = { who: string; text: string; vc?: string };
 type ComposerProps = {
   next: string | undefined; chips: JSX.Element; onSend: (text: string) => Promise<void> | void;
   replying?: Quote | null; onCancelReply?: () => void; focus?: number;
+  /** C4: the tapped line's "Spoke for" row, under the quote */
+  replyFor?: JSX.Element | null;
 };
 
-export function Composer({ next, chips, onSend, replying, onCancelReply, focus }: ComposerProps) {
+export function Composer({ next, chips, onSend, replying, onCancelReply, focus, replyFor }: ComposerProps) {
   const [text, setText] = useState('');
   const area = useRef<HTMLTextAreaElement>(null);
   const who = voiceList.value.find(v => v.id === next);
@@ -126,6 +132,7 @@ export function Composer({ next, chips, onSend, replying, onCancelReply, focus }
           <button type="button" class="fs-word" onClick={onCancelReply}>Cancel</button>
         </div>
       )}
+      {replying && replyFor}
       {chips}
       <div class="fs-composer">
         <textarea ref={area} rows={1} aria-label="Message" value={text} enterkeyhint="send"
@@ -230,10 +237,12 @@ function Line({ m, voice, run, quoted, press, onTap, editing, onEdited }: {
   }
   // a tap replies, so the line answers the touch as a row does (parts/Press); not while it is being edited
   const pressable = editing ? undefined : '';
+  const spoke = voice ? spokeLabel(m, valueList.value) : undefined;
   if (!voice) return <div class={`fs-msg${m.kept ? ' kept' : ''}`} data-id={m.id} data-press={pressable} {...press} onClick={onTap}>{body}</div>;
   return (
     <div class={`fs-msg fs-v${voice.shade === 'deep' ? ' deep' : ''}${m.kept ? ' kept' : ''}`} style={vcOf(voice)} data-id={m.id} data-voice={voice.name} data-press={pressable} {...press} onClick={onTap}>
-      {run && <Speaker v={voice} />}
+      {/* a confirmed line always prints its speaker, mid-run too, with what it spoke for */}
+      {(run || spoke) && <Speaker v={voice} spoke={spoke} />}
       {body}
     </div>
   );
@@ -241,11 +250,14 @@ function Line({ m, voice, run, quoted, press, onTap, editing, onEdited }: {
 
 /** "About": the line (or question) the council was opened from, linking back to its page; then any
  *  other linked page. An older council with no About keeps "From" on its first link. */
-function Links({ data }: { data: CouncilData }) {
+function Links({ data, values = false }: { data: CouncilData; values?: boolean }) {
   const about = data.page.title;
   const [src, ...rest] = data.linked;
+  // C4: a council about a value (page.valueIds) names it, in his word, at the top of the conversation
+  const named = values ? (data.page.valueIds ?? []).map(vid => valueList.value.find(v => v.id === vid)).filter(v => !!v?.word) : [];
   return (
     <>
+      {named.map(v => <p key={v!.id} class="fs-from"><small>About</small> <a href={`#/be/${v!.id}`}>{v!.word}</a></p>)}
       {about && (
         <p class="fs-from"><small>About</small> {src ? <a href={hrefOf(src)}>{about}</a> : <a>{about}</a>}</p>
       )}
@@ -272,6 +284,7 @@ function CouncilPage({ id }: { id: string }) {
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   const load = () => councilById(id).then(d => setData(d ?? 'missing'));
+  useEffect(() => { void reloadValues(); }, [id]);
   useEffect(() => { void load(); setBegun(false); setSeating(false); setReplyTo(null); setEditingId(null); speaker.value = undefined; }, [id]);
 
   const msgs = data && data !== 'missing' ? data.messages : [];
@@ -343,6 +356,19 @@ function CouncilPage({ id }: { id: string }) {
     await queue.current;
   };
   const toggle = async (vid: string) => { await toggleSeat(id, vid); await load(); };
+  // "For what?": a value tapped seats its champions and the council is about it; a second tap leaves the seats
+  const about = async (valueId: string) => {
+    const on = !!data?.page.valueIds?.includes(valueId);
+    await (on ? notAboutValue : aboutValue)(id, valueId);
+    await load();
+  };
+  // a line confirmed for a value shows its label inside the tap; the write lands behind it
+  const spokeFor = (mid: string, f: Message['for']) => setData(d => (d && d !== 'missing'
+    ? { ...d, messages: d.messages.map(x => (x.id === mid ? (f ? { ...x, for: f } : (({ for: _, ...rest }) => rest)(x)) : x)) }
+    : d));
+  const replyLine = replyTo ? msgs.find(x => x.id === replyTo) : undefined;
+  const replyVoice = byId(replyLine?.voiceId);
+  const heldValues = valueList.value.filter(v => v.status === 'held' && v.word);
   // a voice made from "+ voice" here takes a seat at once
   const made = async (vid: string) => { await seat(id, vid); await load(); };
 
@@ -356,6 +382,16 @@ function CouncilPage({ id }: { id: string }) {
             <div class="fs-sheetof fs-rules">
               <p class="fs-quiet">Who sits?</p>
               <SeatChips seats={seats} onToggle={vid => void toggle(vid)} />
+              {!!heldValues.length && (
+                <>
+                  <p class="fs-quiet">For what?</p>
+                  <div class="fs-seats" role="group" aria-label="For what">
+                    {heldValues.map(v => (
+                      <Chip key={v.id} label={v.word} pressed={!!data.page.valueIds?.includes(v.id)} onPress={() => void about(v.id)} />
+                    ))}
+                  </div>
+                </>
+              )}
               <Links data={data} />
             </div>
             <div class="fs-composer-wrap">
@@ -365,7 +401,7 @@ function CouncilPage({ id }: { id: string }) {
         ) : (
           <>
             <div ref={chat} class="fs-chat fs-rules">
-              {data && <Links data={data} />}
+              {data && <Links data={data} values />}
               {msgs.map((m, i) => (
                 <Line key={m.id} m={m} voice={byId(m.voiceId)} run={startsRun(msgs, i)} quoted={quoteOf(m.replyTo)} press={press}
                   onTap={() => { notePlace(); setReplyTo(m.id); setFocus(f => f + 1); }}
@@ -380,6 +416,7 @@ function CouncilPage({ id }: { id: string }) {
             {data && (
               <Composer next={next} onSend={send} focus={focus}
                 replying={quoteOf(replyTo ?? undefined) ?? null} onCancelReply={() => setReplyTo(null)}
+                replyFor={replyLine && replyVoice ? <SpokeFor message={replyLine} voice={replyVoice} onChange={f => spokeFor(replyLine.id, f)} /> : null}
                 chips={seating
                   ? (
                     <div class="fs-seatrow">
@@ -393,6 +430,7 @@ function CouncilPage({ id }: { id: string }) {
         )}
       </div>
       <VoiceSheet onMade={vid => void made(vid)} />
+      <SpokeForSheet />
       {data && (
         <MessageSheet pageId={id} message={msgs.find(m => m.id === pressed) ?? null} onChanged={load}
           onEdit={mid => { if (replyTo === mid) setReplyTo(null); setEditingId(mid); }} />

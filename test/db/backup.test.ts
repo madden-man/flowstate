@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, VALUES_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
-import { ensureSeeded, seedFixationsOnce } from '../../src/db/seed';
-import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
+import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
+import { store, setKey, lock, unlock, init, keyState, LockedError, tombstone } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
 let db: FlowDB;
@@ -161,6 +161,65 @@ describe('round trip', () => {
     expect((await other.flows.get('energize'))!.chakra).toBeUndefined();
   });
 
+  /** What a phone on main's version 6 (the values, before the mountain) exported: values, no readings, flows without chakra. */
+  const asV6File = (f: Awaited<ReturnType<typeof exportData>>) => ({
+    ...f, schemaVersion: VALUES_VERSION,
+    tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) },
+  });
+
+  it('a version 6 file (main\'s values, before the mountain) imports whole: every value as it was, none made again from a paradox', async () => {
+    await ensureSeeded(7);
+    await store.put('values', { id: 'v-mine', createdAt: 3, updatedAt: 4, status: 'held', word: 'Brave', shadow: 'Safe', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }], revisions: [], order: 5 });
+    const f = await exportData(db, 1000);
+    const values = (f.tables.values as { id: string }[]).sort((a, b) => a.id.localeCompare(b.id));
+    expect(values.length).toBeGreaterThan(1);
+    const parsed = parseBackup(JSON.stringify(asV6File(f)));
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.madeAt).toBe(VALUES_VERSION);
+    expect(parsed.tables.readings).toEqual([]);
+    expect(parsed.tables.flows).toEqual(f.tables.flows);
+    for (const mode of ['replace', 'merge'] as const) {
+      const other = await freshDB();
+      // a paradox in the file must not come in as a second value: a version 6 file has its values already
+      await importData(parseBackup(JSON.stringify({ ...asV6File(f), tables: { ...asV6File(f).tables, paradoxes: [{ id: 'px-late', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'a', aspect: '' }, poleB: { value: 'b', aspect: '' }, revisions: [] }] } })), mode, other);
+      const got = (await store.all('values')).filter(v => values.some(w => w.id === v.id)).sort((a, b) => a.id.localeCompare(b.id));
+      expect(got).toEqual(values);
+      expect((await store.all('values')).some(v => v.fromParadoxId === 'px-late')).toBe(false);
+      expect(await other.readings.count()).toBe(0);
+      expect((await other.flows.get('depress'))!.chakra).toBe('heart');
+    }
+  });
+
+  it('a locked version 6 file opens with its PIN: values come back whole, flows under their signs', async () => {
+    await init(db);
+    await ensureSeeded(7);
+    await store.put('values', { id: 'v-mine', createdAt: 3, updatedAt: 4, status: 'held', word: 'Brave', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }], revisions: [] });
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    const f = await exportData(db, 1000);
+    expect(f.encrypted).toBe(true);
+    expect(JSON.stringify(f.tables.values)).not.toMatch(/Brave|first/);
+    const parsed = parseBackup(JSON.stringify(asV6File(f)));
+    const other = await freshDB();
+    await importData(parsed, 'replace', other, await deriveKey('1357', parsed.salt!, parsed.iterations!));
+    expect(await store.get('values', 'v-mine')).toMatchObject({ word: 'Brave', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }] });
+    expect((await store.get('flows', 'depress'))!.chakra).toBe('heart');
+    expect((await store.get('flows', 'panic'))!.name).toBe('Panic');
+  });
+
+  it('a version 5 file (before the values and the mountain) gets both: values from its paradoxes and its seed flows\' signs', async () => {
+    await ensureSeeded(7);
+    const f = await exportData(db, 1000);
+    const { values: _v, readings: _r, ...tables } = f.tables;
+    const px = { id: 'px-old', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'open', aspect: 'saying it' }, poleB: { value: 'guarded', aspect: '' }, revisions: [] };
+    const v5 = { ...f, schemaVersion: 5, tables: { ...tables, paradoxes: [px], flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
+    const other = await freshDB();
+    await importData(parseBackup(JSON.stringify(v5)), 'replace', other);
+    expect((await store.all('values')).find(v => v.fromParadoxId === 'px-old')).toMatchObject({ word: 'open', shadow: 'guarded' });
+    expect((await other.flows.get('night'))!.chakra).toBe('crown');
+    expect(await other.readings.count()).toBe(0);
+  });
+
   it('a version 3 file (before the sits) imports with an empty sits table', async () => {
     const f = parseBackup('{"app":"flowstate","schemaVersion":3,"exportedAt":1,"tables":{"pages":[]}}');
     expect(f.schemaVersion).toBe(SCHEMA_VERSION);
@@ -256,6 +315,96 @@ describe('merge', () => {
     expect(stamp({ revisions: [{ at: 3 }, { at: 8 }] })).toBe(8);
     expect(stamp({ createdAt: 2 })).toBe(2);
     expect(stamp({})).toBe(0);
+  });
+});
+
+describe('deleted stays deleted (PLAN-VALUES.md C0, from PLAN-SELF.md section 4)', () => {
+  const pole = (value: string) => ({ value, aspect: '' });
+  const paradox = (id: string, createdAt: number) => ({ id, poleA: pole('a'), poleB: pole('b'), status: 'active' as const, createdAt, updatedAt: createdAt, revisions: [] });
+  // the delete as a later package writes it: rows gone and ids tombstoned in one store.tx
+  const forget = (ids: string[]) => store.tx(['paradoxes', 'items', 'leans', 'pages', 'fixations', 'settings'], async tb => {
+    for (const id of ids) {
+      await tb('paradoxes').delete(id);
+      await tb('items').delete(id);
+      await tb('items').where('paradoxId').equals(id).delete();
+      await tb('leans').where('paradoxId').equals(id).delete();
+      await tb('fixations').delete(id);
+    }
+    await tombstone(tb, ids);
+  });
+  async function journal() {
+    await db.settings.put(defaultSettings(1));
+    await store.bulkPut('paradoxes', [paradox('p', 1), paradox('q', 2)]);
+    const goal = (id: string, paradoxId: string, pole: 'a' | 'b', pairId?: string) =>
+      ({ id, paradoxId, pole, text: id, lean: 0.5, cadence: 'daily' as const, doneLog: [], order: 0, ...(pairId ? { pairId, nextTo: pairId } : {}) });
+    await store.bulkPut('items', [goal('x', 'q', 'a', 'y'), goal('y', 'q', 'b', 'x'), goal('z', 'p', 'a')]);
+    await store.put('leans', { id: 'l1', paradoxId: 'p', at: 3, lean: 0.2, note: 'a lean' });
+    await store.put('pages', { id: 'pg', kind: 'entry', createdAt: 4, updatedAt: 4, state: 'open', tags: [], paradoxIds: ['p', 'q'], linkedPageIds: [] });
+    await store.put('fixations', { id: 'fx', name: 'FlowState', hue: 250, createdAt: 1, stints: [], updatedAt: 1 });
+    return roundTrip(db);
+  }
+
+  it('a merge of a file taken before the delete brings back no tombstoned row, nothing it owns, and no link to it', async () => {
+    const file = await journal();
+    // the file was edited after (another phone): a newer page still linking p, and a goal new here paired with x
+    const t = file.tables as unknown as Record<string, Record<string, unknown>[]>;
+    t.pages = t.pages.map(pg => ({ ...pg, updatedAt: 9 }));
+    t.items.push({ ...t.items.find(i => i.id === 'y')!, id: 'w', pairId: 'x', nextTo: 'x' });
+    await forget(['p', 'x', 'fx']);
+    expect((await db.settings.get('app'))!.deleted).toEqual(['p', 'x', 'fx']);
+    await importData(file, 'merge', db);
+    expect(await db.paradoxes.get('p')).toBeUndefined();
+    expect(await db.items.get('z')).toBeUndefined(); // owned by p
+    expect(await db.leans.get('l1')).toBeUndefined(); // owned by p
+    expect(await db.items.get('x')).toBeUndefined();
+    expect(await db.fixations.get('fx')).toBeUndefined(); // any table's row id works
+    expect((await db.pages.get('pg'))!.paradoxIds).toEqual(['q']);
+    expect((await db.pages.get('pg'))!.updatedAt).toBe(9); // the newer page won, less its link to p
+    const w = (await store.get('items', 'w'))!;
+    expect(w.paradoxId).toBe('q');
+    expect(w.pairId).toBeUndefined();
+    expect(w.nextTo).toBeUndefined();
+    expect(await db.paradoxes.get('q')).toBeDefined();
+  });
+
+  it('a merge keeps this phone\'s list, not the file\'s', async () => {
+    await journal();
+    await forget(['fx']);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    // the other phone still has fx (the file's list names it) and deleted q (the file holds it)
+    await other.settings.put({ ...defaultSettings(1), deleted: ['q'] });
+    await other.fixations.put({ id: 'fx', name: 'FlowState', hue: 250, createdAt: 1, stints: [], updatedAt: 1 });
+    await importData(file, 'merge', other);
+    expect((await other.settings.get('app'))!.deleted).toEqual(['q']);
+    expect(await other.fixations.get('fx')).toBeDefined();
+    expect(await other.paradoxes.get('q')).toBeUndefined();
+  });
+
+  it('a replace import takes the file\'s list and restores what the file holds', async () => {
+    const before = await journal();
+    await forget(['fx']);
+    const after = await roundTrip(db); // its list holds fx
+    await forget(['p']);
+    await importData(after, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toEqual(['fx']);
+    expect(await db.paradoxes.get('p')).toBeDefined();
+    // the file's list now guards a merge: an older file brings p back (p is not on it) but never fx
+    await importData(before, 'merge', db);
+    expect(await db.paradoxes.get('p')).toBeDefined();
+    expect(await db.fixations.get('fx')).toBeUndefined();
+    // a replace from a file whose list is empty clears it, and the file's rows come back
+    await importData(before, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.fixations.get('fx')).toBeDefined();
+  });
+
+  it('a replace from a file with no settings row clears the list as well', async () => {
+    const file = await journal();
+    await forget(['p']);
+    await importData({ ...file, tables: { ...file.tables, settings: [] } }, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.paradoxes.get('p')).toBeDefined();
   });
 });
 

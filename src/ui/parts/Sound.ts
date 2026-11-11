@@ -5,7 +5,7 @@
 import { settings } from '../settings';
 import type { SitSound } from '../../db/schema';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'leanLow' | 'leanHigh' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap';
 
 /** A new AudioContext, woken: null where there is no Web Audio. Only a tap leads here (rule 21). */
 function make(): AudioContext | null {
@@ -88,8 +88,6 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   unlock: a => strike(a, 880, 1.8, 0.16),
   settle: settleTone,
   keep: a => strike(a, 988, 0.9, 0.07),
-  leanLow: a => strike(a, 440, 0.5, 0.05),
-  leanHigh: a => strike(a, 587, 0.5, 0.05),
   album: a => strike(a, 660, 0.6, 0.06),
   breathIn: a => breathTone(a, 196, 294, 4),
   breathOut: a => breathTone(a, 294, 196, 6),

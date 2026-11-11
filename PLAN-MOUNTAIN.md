@@ -144,7 +144,7 @@ A flow he makes himself asks which sign it belongs under.
 - New table `readings`: `{ id, at, of, value }`, `of` being `'mountain'` or a chakra id, `value` 0 to 1, written on release, never edited. The newest per `of` is drawn; the history is kept for a later drawing.
 - `circles`: the sea's circles in order, each a name and a route. Seeded with Meditate and Energize; kept in `settings` until there is a third.
 - `flows.chakra`: which sign a flow's drawing sits under, seeded from section 6, editable. Flow rows, ids, steps, episodes and routes are otherwise untouched, so nothing on his phone is rewritten. Routes: `#/flow/c/:chakra`; `#/flow/:id` still opens a drawing on its chakra's page, so the door, Right now and hand-offs keep working.
-- **Schema bump.** Main is schema 5. PLAN-VALUES.md (draft PR #59) also plans a bump; whichever merges second rebases its migration. Never deploy a dist built from an older tree.
+- **Schema bump.** The values (PLAN-VALUES.md, PR #59) reached main first as schema 6; the mountain is schema 7 on top of it (`MOUNTAIN_VERSION`). Never deploy a dist built from an older tree.
 - `PickKind` widens in place. Backup and merge import carry `readings` like `sits`.
 
 ## 9. DESIGN.md

@@ -62,7 +62,7 @@ From plan section 10, with pass 5 applied. One PR each, in a worktree of its own
 ## 5. Things that will bite
 
 - **The walk is landing first.** Branch `walk` (worktree `~/dev/flowstate-walk`, PR open the same day) turns a step's rows into a strip of cards walked one at a time (`ui/flow/Tips.tsx`, `model/walk.ts`, DESIGN.md rule 33 there), puts what to do above what the page says, inlines the On picks on a card (`OnCard`, no On sheet any more), trims the seed tips (`db/seed/walk.ts`, pass `walkOnce`), and adds a short list of the flow at rest. R3 and R4 touch the same files: build them on main after `walk` merges, keep the cards, and number the mountain's DESIGN.md rule after the walk's. Plan section 6's "rows, as now" means the cards. Its "one list of up to six at rest" should start from the walk's short list (`shortList`), not a second mechanism.
-- **Schema.** Main is schema 5. PLAN-VALUES.md (draft PR #59, worktrees `flowstate-c2`, `flowstate-c4`, `flowstate-values`) also plans 6. Whichever merges second rebases its migration. Never deploy a dist built from an older tree than the schema on Tommy's phone.
+- **Schema.** The values build (PLAN-VALUES.md, PR #59) reached main first as schema 6, so the mountain is schema 7 (`MOUNTAIN_VERSION` in `src/db/schema.ts`, layered on the values' `STORES_V6`; renumbered when main was merged into this branch, 2026-11-11). Tommy's phone runs 6. Never deploy a dist built from an older tree than the schema on Tommy's phone.
 - **Nothing on his phone is rewritten.** Flow rows, ids, steps, episodes and `#/flow/:id` routes stay; `flows.chakra` is added. The door, Right now and hand-offs must keep working.
 - **Safety lines stay** on every page they are on: 988 (with its Call and Text links from the walk), the doctor lines, the hand-offs.
 - **Still** (rule 13): no meter, no gates, no hues, no snow line, no numbers.
@@ -115,5 +115,5 @@ None of these was checked on a phone: whether a sideways drag on a gate fights S
 - Package PRs target `mountain-plan` (draft PR #60 becomes the build), not `main`. Nothing merges to `main` and nothing deploys until Tommy says so.
 - R0 now also holds `parts/Sign` and the plate tokens, so R1 and R3 run side by side after it. R2 follows R1. R5 is last.
 - `walk` has not merged (it is uncommitted work in `~/dev/flowstate-walk`, another session's). So R3 builds the stop's page as new files beside `FlowPage.tsx` and uses `Tips` through its existing props, touching the walk's files as little as it can; R4's sheet and pick editor wait for the walk. R0 still widens `PickKind`.
-- The values build (`be-values-plan`) is taking schema 6 on its own branch at the same time. The mountain's bump is one small block in `schema.ts` so the second to reach `main` renumbers in one place.
+- The values build (`be-values-plan`) took schema 6 and reached `main` first. The mountain's bump is one small block in `schema.ts`, so it was renumbered to 7 in one place when `main` was merged in.
 - Ports for e2e: R0 4260, R1 4261, R2 4262, R3 4263, R5 4265.
