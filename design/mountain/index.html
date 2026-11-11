@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the mountain</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="parts.css">
+<link rel="stylesheet" href="flows.css">
+<link rel="stylesheet" href="mountain.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the mountain</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+
+<!-- 1 -->
+<section class="step" id="mountain" data-name="Flow opens on a mountain">
+  <h2>Flow opens on a mountain</h2>
+  <p class="line">Seven stops down one stream, crown at the summit, root at the foot.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0" data-b=""></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Screen</td><td><code>ui/flow/Mountain.tsx</code> takes the place of the list in <code>ui/flow/Flow.tsx</code>.</td></tr><tr><td>Stops</td><td>3 a.m., Replay, Fight, Depress, Shame, Shutdown, Panic: each where the tradition puts its block. The order is <code>settings.stops</code>.</td></tr><tr><td>Colour</td><td>A ring in the chakra hue by the voice formula (rule 3); the water stays ink (rule 30). One new token, <code>--h-indigo</code>.</td></tr><tr><td>Water</td><td>A long shape, <code>cycle/river.ts</code>, drawn by <code>parts/Stream</code>: one loop, about 140 lines, only while on screen.</td></tr><tr><td>Here</td><td>This mock runs: drag the meter and any gate.</td></tr><tr><td>Plan</td><td><code>PLAN-MOUNTAIN.md</code>, packages R0 and R1.</td></tr></table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="meter" data-name="I say how heavy today is">
+  <h2>I say how heavy today is</h2>
+  <p class="line">Drag Depression and the whole stream thins and slows.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0.65" data-b=""></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Maths</td><td>The spring gives <code>s = 1 - 0.8 d</code>; it never reaches zero (<code>model/mountain.ts</code>).</td></tr><tr><td>Control</td><td>A mark on a rule, the lean slider's hand; the water answers under the finger and the reading is written on release.</td></tr><tr><td>Data</td><td>A row of <code>readings</code>: <code>{ at, of: 'mountain', value }</code>. The history is kept and shown nowhere yet.</td></tr><tr><td>Plan</td><td>Package R2.</td></tr></table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="gate" data-name="I close a gate where it sticks">
+  <h2>I close a gate where it sticks</h2>
+  <p class="line">Shame at 70 percent: the water pools above it and runs thin below.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0.2" data-b="0,0,0,0,0.7,0,0"></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Maths</td><td>A gate lets through <code>p = 1 - 0.85 b</code>. Below stop i runs <code>q = s × p(1) ... p(i)</code>.</td></tr><tr><td>Seen as</td><td>The share of motes showing, their pace, and the width of the line under them, so Reduce Motion still says it.</td></tr><tr><td>Gesture</td><td>A sideways drag on the short rule under the name; the page still scrolls. A tap on the ring or name opens the flow.</td></tr><tr><td>Stale</td><td>A reading older than a day is drawn dashed until touched.</td></tr><tr><td>Plan</td><td>Package R2.</td></tr></table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="lost" data-name="I see where the energy goes">
+  <h2>I see where the energy goes</h2>
+  <p class="line">Three part-closed gates and a heavy day leave a trickle for the lake.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:40</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0.45" data-b="0,0.5,0,0.6,0,0,0.35"></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Order</td><td>A gate high on the mountain starves every stop below it: energy lost upstream is not there downstream.</td></tr><tr><td>Floor</td><td>No gate and no meter reaches zero, so something always arrives.</td></tr><tr><td>Never</td><td>Nothing moves a gate but his finger; a ticked row does not open it.</td></tr></table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="panic" data-name="I tap a stop for its flow">
+  <h2>I tap a stop for its flow</h2>
+  <p class="line">The drawing, its gate, and what to do: nothing to read.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Panic</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flowpage"><div class="fl-ring" data-ring="2"></div><div class="mt-gate" data-b="0.35" style="--hue:25"><span class="mt-dot"><b></b></span><div class="mt-rule" role="slider" aria-label="Gate" tabindex="0"><i></i></div><small class="mt-pct"></small></div><div class="fl-tips" aria-label="What to do"><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Breathe with the ring: in four, out six</span><small>Ring</small></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Cold water on your face</span></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Tense, then let go on the out-breath</span></button></div></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Kept</td><td>The nine drawings, their water, the dot, episodes, hold the ring, the clock, ghost rings, stamps, hand-offs.</td></tr><tr><td>Leaves the page</td><td>The flow's line, the said paragraph, "Usually", wise lines, last time, the notes. All stay in the data.</td></tr><tr><td>Safety</td><td>The 988 line, the doctor lines and the hand-offs stay as print lines.</td></tr><tr><td>Gate</td><td>The same reading as on the mountain; the drawing's own water runs at its step paces times the gate.</td></tr><tr><td>Plan</td><td>Package R3.</td></tr></table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="depress" data-name="At rest it lists what unblocks">
+  <h2>At rest it lists what unblocks</h2>
+  <p class="line">What I ticked last time comes first, then something to put on.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Depress</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flowpage"><div class="fl-diag" data-diag="valley" data-at="0"></div><div class="mt-gate" data-b="0.6" style="--hue:150"><span class="mt-dot"><b></b></span><div class="mt-rule" role="slider" aria-label="Gate" tabindex="0"><i></i></div><small class="mt-pct"></small></div><div class="fl-tips" aria-label="What to do"><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Daylight early, outside if you can</span></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">One small thing, with a time on it: the dishes at four</span></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Message one person</span></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Music you choose</span><small>On</small></button></div></div><div class="fl-prints"><p class="fl-said fl-print">If you're thinking about suicide, call or text 988. Someone answers, any hour.</p></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>List</td><td>Up to six rows: rows ticked in past episodes first (<code>model/tips.ts whatHelped</code>), the On row, then seed order.</td></tr><tr><td>A step</td><td>A tap on a step word shows that step's rows, as today.</td></tr><tr><td>Plan</td><td>Package R3.</td></tr></table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="on" data-name="Shows, books, games and art">
+  <h2>Shows, books, games and art</h2>
+  <p class="line">On opens three covers and my own lines, with room for a book and a piece of art.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><a class="fs-word">Flow</a><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Depress</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flowpage"><div class="fl-diag" data-diag="valley" data-at="0"></div><div class="mt-gate" data-b="0.6" style="--hue:150"><span class="mt-dot"><b></b></span><div class="mt-rule" role="slider" aria-label="Gate" tabindex="0"><i></i></div><small class="mt-pct"></small></div></div></section></main><div class="mt-sheet fs-rules"><h3>Music you choose</h3><div class="mt-covers"><span class="fs-tile"><img src="covers/1E9iqjfSf5I5hPNfI1DRIh.jpg" alt="Atlas: I, Sleeping At Last"></span><span class="fs-tile"><img src="covers/0U8DeqqKDgIhIiWOdqiQXE.jpg" alt="Carrie and Lowell, Sufjan Stevens"></span><span class="fs-tile"><img src="covers/0tWckYjFI6ioZptLr42J3p.jpg" alt="Birthplace, Novo Amor"></span></div><div class="fl-tips"><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Celeste</span><small>Switch</small></button></div><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">Steins;Gate</span><small>Show</small></button></div><div class="fl-tip mt-slot"><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">a book of yours</span><small>Book</small></button></div></div><div class="fl-tip mt-slot"><div class="fl-tip"><button type="button" role="checkbox" aria-checked="false" class="fs-check"><span class="fs-check-text">a piece of art of yours</span><small>Art</small></button></div></div></div></div><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Kinds</td><td><code>PickKind</code> gains <code>book</code> and <code>art</code>, written lines like a show.</td></tr><tr><td>Titles</td><td>None are seeded: every pick is his. The two grey lines here are empty slots, not suggestions.</td></tr><tr><td>At rest</td><td>The On row gathers the picks of every step of the flow.</td></tr><tr><td>Plan</td><td>Package R4, on <code>PLAN-PICKS.md</code>'s sheet.</td></tr></table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="places" data-name="Energize and Meditate keep their places">
+  <h2>Energize and Meditate keep their places</h2>
+  <p class="line">The arc in the sky and the lake at the foot open their own pages.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0.1" data-b=""></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Energize</td><td>Its own small drawing over the summit; the page with the three fixations is unchanged.</td></tr><tr><td>Meditate</td><td>The stream ends in the circle, and the lake travels into the page's circle (rule 28).</td></tr><tr><td>Rows</td><td>Right now, What if, any flow he made and + flow stay on the rules under the mountain.</td></tr><tr><td>Door</td><td>The ring without the PIN keeps its own list; the mountain stays behind the PIN.</td></tr></table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="still" data-name="Still keeps the names">
+  <h2>Still keeps the names</h2>
+  <p class="line">No meter, no gates, no colour: the water runs slow, in ink.</p>
+  <div class="phone" data-mock><div class="screen" data-light="still"><div class="island"></div>
+    <div class="status"><span>03:10</span><span>Flow</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Flow</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-flows fs-mountain"><div class="mt" data-d="0.65" data-b="0,0.5,0,0.6,0,0,0.35"></div><a class="fs-row fs-list-row fl-flow fl-now"><span class="fs-list-line">Right now</span><small class="fs-list-meta">Your lines; tap the one that fits</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">What if</span><small class="fs-list-meta">The curve</small></a><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line fl-new">+ flow</span></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Rule 13</td><td>Still shows no states, so every stretch runs the same at <code>--stream</code> .4.</td></tr><tr><td>Nothing lost</td><td>Leaving Still brings the meter and gates back as they were set.</td></tr></table></details>
+</section>
+</main>
+</div>
+<script src="flows.js"></script>
+<script src="mountain.js"></script>
+</body>
+</html>
