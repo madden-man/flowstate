@@ -20,9 +20,16 @@
 }
 .mt-plate {
   --u: calc(100cqw / 328);
-  position: relative; overflow: hidden; isolation: isolate;
+  position: relative; overflow: hidden;
   height: calc(100cqw * 476 / 328);
   height: round(up, calc(100cqw * 476 / 328), var(--lh-ink));
+  -webkit-tap-highlight-color: transparent;
+  transition: --plate-inset var(--t-light) var(--ease), --plate-feather var(--t-light) var(--ease);
+}
+/* the art: everything drawn, in the plate's mask (R2 moved the mask here from the plate, so the meter can stand on the
+   plate over its feathered top edge without fading) */
+.mt-art {
+  position: absolute; inset: 0; isolation: isolate;
   background-color: var(--plate);
   --fl: calc(var(--plate-inset) + var(--plate-feather));
   -webkit-mask-image: linear-gradient(to right, transparent var(--plate-inset), black var(--fl), black calc(100% - var(--fl)), transparent calc(100% - var(--plate-inset))),
@@ -31,15 +38,16 @@
   mask-image: linear-gradient(to right, transparent var(--plate-inset), black var(--fl), black calc(100% - var(--fl)), transparent calc(100% - var(--plate-inset))),
     linear-gradient(to bottom, transparent, black var(--plate-feather), black calc(100% - var(--plate-feather) * .5), transparent);
   mask-composite: intersect;
-  -webkit-tap-highlight-color: transparent;
-  transition: --plate-inset var(--t-light) var(--ease), --plate-feather var(--t-light) var(--ease), background-color var(--t-light) var(--ease);
+  transition: background-color var(--t-light) var(--ease);
 }
-.mt-land, .mt-live, .mt-light, .mt-over { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mt-land, .mt-live, .mt-air, .mt-light, .mt-over { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* the land is painted once and kept as its own layer; the live SVG over it is the only part a drag repaints */
 .mt-land { display: block; overflow: visible; will-change: transform; }
 .mt-live { display: block; overflow: visible; pointer-events: none; }
 /* every colour on the plate turns with the page */
 .mt-land *, .mt-live .mt-chan { transition: fill var(--t-light) var(--ease), stroke var(--t-light) var(--ease), stop-color var(--t-light) var(--ease), opacity var(--t-light) var(--ease); }
+/* the air (R2): the snow and the mist stand in front of the rock, laid over it as paint is */
+.mt-air { pointer-events: none; }
 /* the light is added, never laid over: the dark stays dark where no water is */
 .mt-light { mix-blend-mode: screen; pointer-events: none; }
 
@@ -97,8 +105,11 @@
 .mt-stop, .mt-circle { pointer-events: auto; text-decoration: none; color: var(--plate-print); -webkit-tap-highlight-color: transparent; }
 .mt-stop {
   position: absolute; display: flex; align-items: center; gap: calc(var(--s1) / 2);
-  min-height: var(--hit); padding: 0 var(--s1);
-  top: calc(100% - (476 - var(--y)) * var(--u) - var(--hit) / 2);
+  height: var(--hit); padding: 0 var(--s1);
+  /* R2: the box can be lifted (--lift) so its gate fits wholly under it; the sign and name stay where they are, centred
+     on the stop, because the lift is given back as padding above them */
+  top: calc(100% - (476 - var(--y)) * var(--u) - var(--hit) / 2 - var(--lift, 0px));
+  padding-top: calc(2 * var(--lift, 0px));
 }
 .mt-stop[data-side="right"] { left: calc(var(--x) * var(--u) - var(--lh-ink) / 2 - var(--s1)); }
 .mt-stop[data-side="left"] { right: calc((328 - var(--x)) * var(--u) - var(--lh-ink) / 2 - var(--s1) / 2); flex-direction: row-reverse; padding-right: calc(var(--s1) / 2); }
@@ -128,6 +139,85 @@
 .mt-circle .mt-dot { right: 12%; top: 12%; }
 .mt-ring circle, .mt-ring path { fill: none; stroke: var(--glow); stroke-width: 1.2; stroke-linecap: round; opacity: calc(.4 + .6 * var(--sea, 1)); }
 .mt-circle .mt-name { position: absolute; left: 50%; top: calc(100% - var(--s1) / 2); transform: translateX(-50%); }
+
+/* ---- the Depression meter (R2, ./Meter.tsx): the cloud line itself, a chalk line drawn across the top of the sky,
+   with mist heaping along it as far as he draws it (the set share, as the weather it sets); the word small above its
+   start in the plate's print. On the plate, over its masked art, so the feather never fades it. No transition under
+   the finger (rule 20). ---- */
+.mt-meter {
+  position: absolute; z-index: 1; top: 0; left: calc(var(--plate-inset) + var(--gutter)); right: calc(var(--plate-inset) + var(--gutter));
+  height: var(--hit);
+  transition: left var(--t-light) var(--ease), right var(--t-light) var(--ease);
+}
+.mt-meter-name {
+  position: absolute; left: var(--s2); top: calc(var(--s1) / 4); pointer-events: none;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--plate-print); text-shadow: 0 0 6px var(--plate-deep);
+}
+.mt-meter-rule {
+  position: absolute; inset: 0; touch-action: pan-y; cursor: grab; outline: none;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.mt-meter-rule[aria-disabled="true"] { cursor: default; opacity: .5; }
+.mt-meter-rule:focus-visible { outline: 1px solid var(--plate-line); outline-offset: -2px; border-radius: var(--s1); }
+.mt-meter-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+/* the line sits low in the hit target, the word small above its start */
+.mt-meter { --meter-y: calc(var(--hit) * .64); }
+/* the line: chalk, a little stronger the heavier the day */
+.mt-meter-line { stroke: var(--plate-line); stroke-width: 1; opacity: calc(.28 + .2 * var(--d)); }
+/* the mist gathered on it: a row of soft heaps, fuller toward the mark */
+.mt-meter-mist {
+  position: absolute; left: 0; top: calc(var(--meter-y) - var(--s3) / 2); height: var(--s3); width: var(--at); pointer-events: none;
+  /* three rows of soft heaps at different spacings, so they run together into one lumpy bank, never a row of beads */
+  background:
+    radial-gradient(farthest-side, color-mix(in oklch, var(--plate-line) 20%, transparent), transparent) 0 60% / calc(var(--s4) + var(--s2)) 70% repeat-x,
+    radial-gradient(farthest-side, color-mix(in oklch, var(--plate-line) 16%, transparent), transparent) calc(var(--s3) + 3px) 20% / calc(var(--s4) + var(--s1)) 80% repeat-x,
+    radial-gradient(farthest-side, color-mix(in oklch, var(--plate-line) 12%, transparent), transparent) var(--s2) 100% / calc(var(--s4) * 1.7) 60% repeat-x;
+  -webkit-mask-image: linear-gradient(to right, transparent, black var(--s3), black calc(100% - var(--s1)), transparent);
+  mask-image: linear-gradient(to right, transparent, black var(--s3), black calc(100% - var(--s1)), transparent);
+  opacity: calc(.35 + .65 * var(--d));
+}
+.mt-meter[data-stale] .mt-meter-line { stroke-dasharray: 3 4; }
+.mt-meter[data-stale] .mt-meter-mist { opacity: .25; }
+.mt-meter-mark {
+  position: absolute; top: var(--meter-y); height: calc(var(--s2) + var(--s1) / 2); transform: translate(-50%, -50%); overflow: visible; pointer-events: none;
+  transition: left var(--t-ui) var(--ease);
+}
+.mt-meter-mark path { fill: none; stroke: var(--glow); stroke-width: 1.8; stroke-linecap: round; }
+.mt-meter[data-drag] .mt-meter-mark, .mt-meter[data-drag] .mt-meter-mist { transition: none; }
+
+/* ---- the gates on the mountain (R2; parts/Gate compact, R3): wholly under each sign's link (never over it), a target
+   --hit tall, the drawn line --line below the gate's top so it sits the same distance under every name. At rest a
+   fully open gate is a faint short mark near its name; touched, focused, or anything but open, it is the full rule in
+   its hue with its percent. On the plate's colours. ---- */
+.mt-gate {
+  --line: calc(var(--s1) / 2 + var(--lift, 0px));
+  position: absolute; pointer-events: auto;
+  top: calc(100% - (476 - var(--y)) * var(--u) + var(--hit) / 2 - var(--lift, 0px));
+}
+.mt-gate[data-side="right"] { left: calc(var(--x) * var(--u) + var(--lh-ink) / 2 - var(--s1) / 2); }
+.mt-gate[data-side="left"] { right: calc((328 - var(--x)) * var(--u) + var(--lh-ink) / 2 - var(--s1) / 2); }
+.mt-gate .fs-gate.compact { --gc: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--gh, 0)); min-height: var(--hit); align-items: start; }
+.mt-gate .fs-gate.compact .fs-gate-rule { height: var(--hit); }
+.mt-gate .fs-gate-ink { top: calc(var(--line) - var(--lh-ink) / 2); height: var(--lh-ink); pointer-events: none; }
+.mt-gate .fs-gate-mark { top: var(--line); }
+.mt-gate .fs-gate-line { stroke: var(--plate-line); opacity: .45; }
+.mt-gate .fs-gate-end { stroke: var(--plate-line); opacity: .6; }
+.mt-gate .fs-gate-line, .mt-gate .fs-gate-end, .mt-gate .fs-gate-mark path { transition: opacity var(--t-ui) var(--ease); }
+.mt-gate .fs-gate-mark path { stroke: var(--plate-line); stroke-width: 1.8; }
+.mt-gate .fs-gate-pct {
+  pointer-events: none; position: relative; top: calc(var(--line) - var(--lh-ink) / 2); line-height: var(--lh-ink);
+  color: var(--plate-print); text-shadow: 0 0 6px var(--plate-deep);
+}
+.mt-gate .fs-gate-rule:focus-visible { outline-color: var(--plate-line); }
+/* at rest and fully open: only a faint short dash under the name, where the rule begins */
+.mt-gate .fs-gate[data-open]:not([data-press]):not(:focus-within) .fs-gate-line { stroke-dasharray: var(--s2) 100vw; opacity: .3; }
+.mt-gate .fs-gate[data-open] .fs-gate-shut,
+.mt-gate .fs-gate[data-open]:not([data-press]):not(:focus-within) .fs-gate-end,
+.mt-gate .fs-gate[data-open]:not([data-press]):not(:focus-within) .fs-gate-mark path { opacity: 0; }
+/* under the finger the signs answer at once (rule 20) */
+.mt-plate[data-held] .mt-sign .fs-sign { transition: none; }
+.mt-plate[data-arrive="run"] .mt-gate { opacity: 0; }
 
 /* ---- the arrival (./arrival.ts; land.ts gives each mark its --at and --len, fractions of --t-arrive) ---- */
 .mt-plate[data-arrive="run"] .mt-pen {

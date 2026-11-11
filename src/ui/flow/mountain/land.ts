@@ -128,26 +128,38 @@ function nearCourse(x: number, y: number): number {
 }
 
 /** The cap's snow down to line y: the lit side (flank to arete) and the side in shadow (arete to flank), each with a
- *  torn foot and fingers reaching down the gullies. Seeded on its own, so the same line gives the same snow. */
+ *  torn foot and fingers reaching down the gullies. The foot is the same rock at every line (the fingers lie where the
+ *  gullies are, whatever the weather), so the snow coming down the meter reads as one snow growing, not a new shape at
+ *  every step. Pure. */
 export function snowCap(y: number): { lit: string; shade: string; rim: string } {
-  let s = 31;
-  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const { lit, shade, rim } = snowFoot(y);
+  return { lit: `${line(lit)} Z`, shade: `${line(shade)} Z`, rim: `${line(rim[0])} ${line(rim[1])}` };
+}
+
+/** The gullies the snow's foot reaches down (x in box units, width, reach), for snowFoot and the plate's drifts. */
+export const GULLIES: readonly (readonly [number, number, number])[] = [[118, 10, 12], [139, 7, 7], [151, 9, 16], [176, 7, 6], [196, 12, 14], [214, 8, 9], [231, 7, 6], [104, 7, 5]];
+
+/** The cap's outline as points: the lit side and the shadow side (each closed), and the two runs of its foot. */
+export function snowFoot(y: number): { lit: P[]; shade: P[]; rim: [P[], P[]] } {
   const lo = Math.max(PEAK.y + 6, y);
+  // the fingers: where the gullies run down the horn (x in box units), each its own width and reach
+  const FINGERS = GULLIES;
+  // how far the fingers reach grows with the line (a small cap holds no long fingers)
+  const reach = Math.min(1, (lo - PEAK.y) / 90);
   const foot = (x0: number, x1: number) => {
-    const n = Math.max(3, Math.round((x1 - x0) / 3)), pts: P[] = [];
+    const n = Math.max(3, Math.round((x1 - x0) / 2.5)), pts: P[] = [];
     for (let k = 0; k <= n; k++) {
-      const x = x0 + ((x1 - x0) * k) / n, finger = r() < 0.2 ? 6 + r() * 14 : 0;
-      pts.push([x, lo + (k % 2 ? 3.5 : -2.5) + (r() - 0.5) * 4 + finger]);
+      const x = x0 + ((x1 - x0) * k) / n;
+      let dy = 2.2 * Math.sin(x * 0.31) + 1.4 * Math.sin(x * 0.83 + 1.3) + 0.8 * Math.sin(x * 1.9 + 0.4);
+      for (const [fx, fw, fl] of FINGERS) dy += fl * reach * Math.exp(-(((x - fx) / fw) ** 2));
+      pts.push([x, lo + dy]);
     }
     return pts;
   };
   const left: P[] = [], right: P[] = [], ridge: P[] = [];
   for (let yy = PEAK.y; yy <= lo; yy += STEP) { left.push([edge(-1, yy), yy]); right.push([edge(1, yy), yy]); ridge.push([arete(yy), yy]); }
   const a = foot(edge(-1, lo), arete(lo)), b = foot(arete(lo), edge(1, lo));
-  const lit = `${line([...left, ...a, ...ridge.slice().reverse()])} Z`;
-  const shade = `${line([...ridge, ...b, ...right.slice().reverse()])} Z`;
-  const rim = `${line(a)} ${line(b)}`;
-  return { lit, shade, rim };
+  return { lit: [...left, ...a, ...ridge.slice().reverse()], shade: [...ridge, ...b, ...right.slice().reverse()], rim: [a, b] };
 }
 
 export function land(): Land {
