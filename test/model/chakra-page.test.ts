@@ -90,13 +90,13 @@ describe('hand-off words', () => {
     expect(handOffWords('If it runs on: the What if flow.', 'root')).toBe('If it runs on: the Root chakra.');
   });
   it('read as the other drawing\'s place when it is on the same page, never naming the sign he is on', () => {
-    expect(handOffWords('If it tips into panic: the Panic flow.', 'root', 'above')).toBe('If it tips into panic: the drawing above.');
+    expect(handOffWords('If it tips into panic: the Panic flow.', 'root', 'above')).toBe('If it tips into panic: the other steps here.');
     const whatif = FLOWS.find(f => f.id === 'whatif')!;
     const lines = whatif.steps.flatMap(s => safetyLines(under('root'), HOMES, { flowId: 'whatif', stepId: s.id }));
     const toPanic = lines.filter(t => t.handoff?.flowId === 'panic');
     expect(toPanic.length).toBeGreaterThan(0);
     for (const t of toPanic) {
-      expect(t.text).toMatch(/the drawing above\.$/);
+      expect(t.text).toMatch(/the other steps here\.$/);
       expect(t.text).not.toMatch(/Root chakra|Panic/);
     }
   });

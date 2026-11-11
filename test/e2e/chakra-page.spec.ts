@@ -1,5 +1,5 @@
 // A stop's page (PLAN-MOUNTAIN.md section 6 and pass 6, R3): #/flow/c/:chakra opens on its place on the mountain; the
-// drawings under the sign carry no flow name; the gate writes one reading on release; a stale reading is dashed;
+// old flows' drawings are gone from the page (the plate is the drawing) and no flow is named; the gate writes one reading on release; a stale reading is dashed;
 // #/flow/:id for a flow under a sign lands on its sign's page; the safety lines stay; Still hides the gate.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -21,6 +21,16 @@ const readings = (page: Page) => page.evaluate(() => new Promise<{ of: string; v
   };
 }));
 
+const episodes = (page: Page) => page.evaluate(() => new Promise<{ flowId: string; endedAt?: number; from?: unknown }[]>((resolve, reject) => {
+  const req = indexedDB.open('flowstate');
+  req.onerror = () => reject(req.error);
+  req.onsuccess = () => {
+    const r = req.result.transaction('episodes').objectStore('episodes').getAll();
+    r.onsuccess = () => { req.result.close(); resolve(r.result); };
+    r.onerror = () => reject(r.error);
+  };
+}));
+
 /** Every flow name, less any that is also a step's word on the page (What if's second step is "What if"). */
 const FLOW_NAMES = ['Panic', 'What if', 'Depress', 'Fight', 'Shame', 'Replay', 'Shutdown', '3 a.m.', 'Energize'];
 
@@ -34,10 +44,9 @@ test('a stop opens on its place, its drawings unnamed, and the gate writes one r
   await expect(body.locator('.ck-plate.on-plate[data-fx="fireflies"] canvas.ck-light')).toHaveCount(1);
   await expect(body.locator('.ck-sign')).toHaveAttribute('data-travel', 'mt-sign-root');
   await expect(body.locator('.ck-gloss')).toHaveText('Root · feeling safe');
-  // how it gets blocked: the ring, then the curve
-  await expect(body.locator('.ck-drawing')).toHaveCount(2);
-  expect(await body.locator('.ck-drawing').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.flow))).toEqual(['panic', 'whatif']);
-  await expect(body.locator('.ck-drawing .fs-cycle')).toHaveCount(2);
+  // the old flows' drawings are gone: the plate is the drawing, and at rest no step words show
+  await expect(body.locator('.ck-drawing, .fs-cycle, .fl-drawing')).toHaveCount(0);
+  await expect(body.locator('.ck-steps')).toHaveCount(0);
   // the rows at rest: one list of up to six, one On row among them
   const rows = body.locator('.ck-rows .fl-tip');
   expect(await rows.count()).toBeGreaterThan(0);
@@ -45,7 +54,7 @@ test('a stop opens on its place, its drawings unnamed, and the gate writes one r
 
   // no flow name anywhere on the page
   const text = await page.locator('.fs-main').innerText();
-  const stepWords = await body.locator('.fs-cycle').allInnerTexts();
+  const stepWords = await body.locator('.ck-steps').allInnerTexts();
   for (const name of FLOW_NAMES) {
     if (stepWords.some(w => w.includes(name))) continue;
     expect(text, name).not.toContain(name);
@@ -101,18 +110,25 @@ test('#/flow/:id for a flow under a sign lands on its page, that drawing in fron
   await page.goto('/#/flow/whatif/2');
   await expect(page.locator('.ck-page')).toHaveAttribute('data-front', 'whatif');
   await expect(page.locator('.ck-page')).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-drawing[data-flow="whatif"]')).toBeInViewport();
+  await expect(page.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('What if');
   // the step's rows, without its said paragraph, "Usually" or his own line
   await expect(page.locator('.ck-rows')).toHaveAttribute('aria-label', 'What if');
   await expect(page.locator('.ck-rows > .fl-said, .ck-rows > .fl-usual, .ck-rows > .fl-line, .ck-page .fl-note')).toHaveCount(0);
-  // a dot moved keeps the page, and starts an episode on that drawing's flow
-  const dot = page.locator('.ck-drawing[data-flow="panic"]').getByRole('slider', { name: 'Where you are' });
+  // a step word read keeps the page and starts nothing; with an episode live (Right now), a word moves the dot
   const before = await page.locator('.ck-page').elementHandle();
-  await dot.focus();
-  await page.keyboard.press('ArrowRight');
-  await expect(page).toHaveURL(/#\/flow\/panic\/1$/);
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', 'panic');
+  await page.locator('.ck-steps .ck-step').nth(2).click();
+  await expect(page).toHaveURL(/#\/flow\/whatif\/3$/);
   expect(await before!.evaluate(el => el.isConnected)).toBe(true);
+  expect(await episodes(page)).toEqual([]);
+  await page.goto('/#/flow/now');
+  await page.locator('.fl-nowlist a[href="#/flow/panic/1"]').click();
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', 'panic');
+  await page.locator('.ck-steps .ck-step').nth(1).click();
+  await expect(page).toHaveURL(/#\/flow\/panic\/2$/);
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-saved', 'true');
+  expect((await episodes(page)).map(e => [e.flowId, e.endedAt !== undefined])).toEqual([['panic', false]]);
+  await page.locator('.ck-steps .ck-done').click();
+  await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
   // a flow under no sign keeps the flow page
   await page.goto('/#/flow/energize');
   await expect(page.locator('.fs-flowpage')).toHaveCount(1);
@@ -137,7 +153,7 @@ test('the safety lines stay: 988, the doctor line, and hand-offs that read as th
   await expect(page.locator('.ck-page')).toHaveAttribute('data-chakra', 'throat');
 });
 
-test('Still: no gate, no percent, the sign open; the drawings and safety lines stay', async ({ page }) => {
+test('Still: no gate, no percent, the sign open; the safety lines stay', async ({ page }) => {
   await open(page, '#/flow/c/heart');
   await page.getByRole('slider', { name: 'Heart gate' }).focus();
   await page.keyboard.press('End');
@@ -146,7 +162,6 @@ test('Still: no gate, no percent, the sign open; the drawings and safety lines s
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.locator('.fs-gate')).toBeHidden();
   await expect(page.locator('.ck-sign .fs-sign')).toHaveAttribute('data-closed', '0.00');
-  await expect(page.locator('.ck-drawing')).toHaveCount(1);
   await expect(page.locator('.fl-prints')).toContainText('988');
   const digits = await page.locator('.ck-page').evaluate(el => {
     const out: string[] = [];
@@ -157,20 +172,9 @@ test('Still: no gate, no percent, the sign open; the drawings and safety lines s
   expect(digits.replace(/988/g, '')).not.toMatch(/\d/);
 });
 
-const episodes = (page: Page) => page.evaluate(() => new Promise<{ flowId: string; endedAt?: number; from?: unknown }[]>((resolve, reject) => {
-  const req = indexedDB.open('flowstate');
-  req.onerror = () => reject(req.error);
-  req.onsuccess = () => {
-    const r = req.result.transaction('episodes').objectStore('episodes').getAll();
-    r.onsuccess = () => { req.result.close(); resolve(r.result); };
-    r.onerror = () => reject(r.error);
-  };
-}));
-
 test('a touch on the gate that becomes a scroll, or a plain tap, leaves the gate as it was and writes nothing', async ({ page }) => {
   await open(page, '#/flow/c/heart');
   const body = page.locator('.ck-page');
-  await expect(body.locator('.ck-drawing')).toHaveCount(1);
   const probe = (cancel: boolean) => page.evaluate(async (cancel) => {
     const rule = document.querySelector('.fs-gate-rule')!;
     const b = rule.getBoundingClientRect();
@@ -207,101 +211,52 @@ test('a held arrow on the gate writes one reading', async ({ page }) => {
   await expect.poll(async () => (await readings(page)).map(r => r.value)).toEqual([0.4]);
 });
 
-test('a hand-off to the other drawing on the same page shows the new episode at once, and names no flow', async ({ page }) => {
-  await open(page, '#/flow/whatif');
+test('a hand-off to the other flow under the same sign shows the new episode at once, and names no flow', async ({ page }) => {
+  await open(page, '#/flow/now');
+  await page.locator('.fl-nowlist a[href="#/flow/whatif/1"]').click();
   const body = page.locator('.ck-page');
-  const wdot = page.locator('.ck-drawing[data-flow="whatif"]').getByRole('slider', { name: 'Where you are' });
-  const pdot = page.locator('.ck-drawing[data-flow="panic"]').getByRole('slider', { name: 'Where you are' });
-  for (const n of ['1', '2', '3']) {
-    await wdot.focus();
-    await page.keyboard.press('ArrowRight');
-    await expect(wdot).toHaveAttribute('aria-valuenow', n);
+  await expect(body).toHaveAttribute('data-front', 'whatif');
+  for (const n of [2, 3]) {
+    await page.locator('.ck-steps .ck-step').nth(n - 1).click();
+    await expect(page).toHaveURL(new RegExp(`#/flow/whatif/${n}$`));
     await expect(body).toHaveAttribute('data-saved', 'true');
   }
   const link = page.locator('.fl-prints a.fl-handoff');
-  await expect(link).toHaveText('If it tips into panic: the drawing above.');
+  await expect(link).toHaveText('If it tips into panic: the other steps here.');
   await link.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/1$/);
   // no reload: the page shows what was written
-  await expect(pdot).toHaveAttribute('aria-valuenow', '1');
-  await expect(wdot).toHaveAttribute('aria-valuenow', '0');
   await expect(body).toHaveAttribute('data-front', 'panic');
-  await expect(page.locator('.fl-from')).toContainText('From the drawing below');
-  await expect(page.locator('.ck-drawing[data-flow="panic"]')).toBeInViewport();
+  await expect(page.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('Overstimulated');
+  await expect(page.locator('.fl-from')).toContainText('From the other steps here');
   const text = await page.locator('.fs-main').innerText();
   expect(text).not.toContain('Root chakra ·');
   expect(text).not.toMatch(/the (Panic|What if) flow/);
-  // a tick there is kept on the episode it started
   expect((await episodes(page)).map(e => [e.flowId, e.endedAt !== undefined]).sort()).toEqual([['panic', false], ['whatif', true]]);
 });
 
-test('a first move on the second drawing does not scroll the page under the thumb', async ({ page }) => {
-  await open(page, '#/flow/c/root');
-  const scroller = page.locator('.ck-page');
-  // the second drawing is folded until tapped open
-  await page.getByRole('button', { name: 'Open this drawing' }).click();
-  const dot = page.locator('.ck-drawing[data-flow="whatif"]').getByRole('slider', { name: 'Where you are' });
-  await dot.waitFor();
-  const y0 = await page.evaluate(() => {
-    const s = [...document.querySelectorAll<HTMLElement>('.ck-page, .fs-main, html')].find(e => e.scrollHeight > e.clientHeight + 4)!;
-    const d = document.querySelector('.ck-drawing[data-flow="whatif"] [role="slider"]')!;
-    s.dataset.scroller = '';
-    s.scrollTop += d.getBoundingClientRect().top - window.innerHeight + 160;
-    return s.scrollTop;
-  });
-  const top = () => page.evaluate(() => document.querySelector<HTMLElement>('[data-scroller]')!.scrollTop);
-  const before = (await dot.boundingBox())!.y;
-  await dot.evaluate(el => (el as HTMLElement).focus({ preventScroll: true }));
-  expect(await top()).toBe(y0);
-  await page.keyboard.press('ArrowRight');
-  await expect(page).toHaveURL(/#\/flow\/whatif\/1$/);
-  await expect(scroller).toHaveAttribute('data-saved', 'true');
-  await page.waitForTimeout(600);
-  expect(Math.abs((await top()) - y0)).toBeLessThan(2);
-  expect(Math.abs((await dot.boundingBox())!.y - before)).toBeLessThan(40);
-});
-
-test('quick moves never put the dot back a step', async ({ page }) => {
-  await open(page, '#/flow/panic');
-  const dot = page.locator('.ck-drawing[data-flow="panic"]').getByRole('slider', { name: 'Where you are' });
-  await dot.waitFor();
+test('quick moves never put the step back', async ({ page }) => {
+  await open(page, '#/flow/now');
+  await page.locator('.fl-nowlist a[href="#/flow/panic/1"]').click();
+  const body = page.locator('.ck-page');
+  await expect(body).toHaveAttribute('data-front', 'panic');
   await page.evaluate(() => {
     const w = window as unknown as { seen: string[] };
     w.seen = [];
-    new MutationObserver(() => {
-      const d = document.querySelector('.ck-drawing[data-flow="panic"] [role="slider"]');
-      w.seen.push(d?.getAttribute('aria-valuenow') ?? '');
-    }).observe(document.querySelector('.fs-main') ?? document.body, { subtree: true, attributes: true, attributeFilter: ['aria-valuenow'] });
+    new MutationObserver(() => { w.seen.push(document.querySelector('.ck-page')?.getAttribute('data-showing') ?? ''); })
+      .observe(document.querySelector('.fs-main') ?? document.body, { subtree: true, attributes: true, attributeFilter: ['data-showing'] });
   });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-  await dot.focus();
-  for (const n of ['1', '2', '3']) {
-    await page.keyboard.press('ArrowRight');
-    await expect(dot).toHaveAttribute('aria-valuenow', n);
+  for (const n of [2, 3]) {
+    await page.locator('.ck-steps .ck-step').nth(n - 1).click();
+    await expect(body).toHaveAttribute('data-showing', String(n));
   }
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-saved', 'true');
+  await expect(body).toHaveAttribute('data-saved', 'true');
   await page.waitForTimeout(400);
   const seen = (await page.evaluate(() => (window as unknown as { seen: string[] }).seen)).map(Number);
   for (let i = 1; i < seen.length; i++) expect(seen[i], seen.join(',')).toBeGreaterThanOrEqual(seen[i - 1]);
-  await expect(dot).toHaveAttribute('aria-valuenow', '3');
-});
-
-test('Root is calm: the second drawing folded small until tapped, the safety lines all there', async ({ page }) => {
-  await open(page, '#/flow/c/root');
-  const fold = page.locator('.ck-drawing[data-flow="whatif"][data-folded]');
-  await expect(fold).toHaveCount(1);
-  await expect(fold.getByRole('slider')).toHaveCount(0);
-  await expect(page.locator('.ck-drawing[data-flow="panic"]').getByRole('slider', { name: 'Where you are' })).toBeVisible();
-  const lines = () => page.locator('.fl-prints p').allInnerTexts();
-  const before = await lines();
-  await fold.getByRole('button', { name: 'Open this drawing' }).click();
-  await expect(page.locator('.ck-drawing[data-flow="whatif"]')).not.toHaveAttribute('data-folded', '');
-  await expect(page.locator('.ck-drawing[data-flow="whatif"]').getByRole('slider', { name: 'Where you are' })).toBeVisible();
-  expect(await lines()).toEqual(before);
-  // opened on its own route, it is in front and open
-  await page.goto('/#/flow/whatif/2');
-  await expect(page.locator('.ck-drawing[data-flow="whatif"]')).not.toHaveAttribute('data-folded', '');
+  await expect(body).toHaveAttribute('data-showing', '3');
 });
 
 test('#/flow/c with no sign goes to the Flow tab', async ({ page }) => {
@@ -330,7 +285,7 @@ test('a tap on each sign on the mountain opens its page, the sign travelling the
     await expect(page).toHaveURL(new RegExp(`#/flow/c/${id}$`));
     await expect(page.locator('.ck-page')).toHaveAttribute('data-chakra', id);
     await expect(page.locator('.ck-plate canvas.ck-light')).toHaveCount(1);
-    await expect(page.locator('.ck-drawing').first()).toBeVisible();
+    await expect(page.locator('.ck-drawing')).toHaveCount(0);
     await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
     await expect(page).toHaveURL(/#\/flow$/);
     await expect(page.locator(`a.mt-stop[href="#/flow/c/${id}"]`)).toBeVisible();

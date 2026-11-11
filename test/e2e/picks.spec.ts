@@ -112,14 +112,13 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
   await page.locator('[data-sheet="Settings"]').getByRole('button', { name: 'Done' }).click();
 
   // a live episode at Under the skin
-  await page.goto('/#/flow/panic');
-  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
-  await dot.focus();
-  for (const n of ['1', '2', '3', '4']) {
-    await page.keyboard.press('ArrowRight');
-    await expect(dot).toHaveAttribute('aria-valuenow', n);
-    await expect(page.locator('.fs-flowpage')).toHaveAttribute('data-saved', 'true');
-  }
+  // (started from Right now: a sign's page has no drawing to drag, Tommy 2026-11-11)
+  await page.goto('/#/flow/now');
+  await page.locator('.fl-nowlist a[href="#/flow/panic/4"]').click();
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', 'panic');
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-showing', '4');
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-saved', 'true');
+  await expect.poll(async () => (await all(page, 'episodes')).filter(x => x.flowId === 'panic' && x.endedAt === undefined).length).toBe(1);
 
   // the On row: its word is On, and a tap opens the sheet without ticking it
   const row = page.locator('[data-tip="panic-4-album"] .fs-check');

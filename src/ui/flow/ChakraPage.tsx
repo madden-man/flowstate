@@ -1,8 +1,10 @@
 // A stop's page (PLAN-MOUNTAIN.md section 6 and pass 6, R3): #/flow/c/:chakra, and #/flow/:id and #/flow/:id/:step for
 // any flow that sits under a sign, with that flow's drawing in view. Top to bottom: the plate (a close view of this
 // stop's place on the mountain, ./chakra/Plate.tsx), one print line ("Root · feeling safe"), the gate (parts/Gate,
-// written on release), how it gets blocked (the drawings, no flow name anywhere, ./chakra/Drawing.tsx), the rows, the
-// printed safety lines, Edit. Under the plate the page is paper as before.
+// written on release), the rows, the printed safety lines, Edit. The old flows' drawings are gone from here (Tommy,
+// 2026-11-11: "each one shows the new flow diagram alongside the old one..remove the old ones"): the plate is the
+// drawing. A flow in front (Right now, a hand-off, a live episode) shows its step words on one line, .ck-steps; a tap
+// reads that step, or moves the dot there while an episode is live, and Done puts it back at rest. Under the plate the page is paper as before.
 //
 // The rows: with the dot on a step, or a step word tapped, that step's rows as Tips draws them (his own line, the said
 // paragraph, "Usually", the words under the clock, the wise lines and the note to the next one leave the page; the data
@@ -19,7 +21,7 @@
 // or one he made and left on its own) keeps the old FlowPage.
 //
 // Still (rule 13): no gate, no percent, no hue, no ghost rings or stamps, the sign open in the line colour, slow water.
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
 import { Gate } from '../parts/Gate';
@@ -31,7 +33,6 @@ import { followHandOff } from './HandOff';
 import { StepSheet, AddStep, tickSheet } from './StepSheet';
 import { useNow } from './breath';
 import { Plate } from './chakra/Plate';
-import { Drawing } from './chakra/Drawing';
 import { FromRow } from './chakra/From';
 import { readGuard } from './chakra/fresh';
 import { dataVersion } from '../sheets';
@@ -86,16 +87,9 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   const [writing, setWriting] = useState(0);
   /** A read applies only if it is the newest and no write began after it started (./chakra/fresh.ts). */
   const guard = useMemo(readGuard, []);
-  /** A hand-off to another drawing on this page asks for that drawing to come into view; nothing else here scrolls. */
-  const bring = useRef(false);
   const [gateLive, setGateLive] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
-  /** The drawings opened on this visit: the first, whichever was in front, and any he tapped open. The rest stay folded,
-   *  so a sign with two drawings (Root) is one drawing and a small second until he asks for it. */
-  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   const now = useNow();
-  const scrolled = useRef<string | undefined>(undefined);
-  const page = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let on = true;
@@ -110,19 +104,6 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
     })();
     return () => { on = false; };
   }, [chakra, version, dataVersion.value]);
-
-  // the drawing the route named comes into view when the page opens on it (#/flow/whatif/2 from outside), or when a
-  // hand-off on this page goes to another drawing on it. A move or a step read here names its own drawing first
-  // (scrolled), so the page never moves under the thumb that moved the dot (finding 4).
-  useEffect(() => {
-    if (!data || !focus || scrolled.current === focus) return;
-    const first = scrolled.current === undefined, asked = bring.current;
-    scrolled.current = focus;
-    bring.current = false;
-    if (!first && !asked) return;
-    const el = page.current?.querySelector<HTMLElement>(`.ck-drawing[data-flow="${CSS.escape(focus)}"]`);
-    if (el && el !== page.current?.querySelector('.ck-drawing')) el.scrollIntoView({ block: first ? 'center' : 'nearest' });
-  }, [data, focus]);
 
   const back = { word: 'Flow', href: '#/flow' };
   if (!data) return <Page label={c.pageName} back={back} keepSettings drawn={false}><div class="fs-sheetof fs-rules ck-page" /></Page>;
@@ -146,9 +127,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
 
   const move = async (it: Item, visits: number[], to: number) => {
     const f = it.flow;
-    keep(front?.flow.id, f.id);
     setMoved({ flowId: f.id, to });
-    scrolled.current = f.id;
     const done = guard.write();
     route(to ? `/flow/${f.id}/${to}` : `/flow/${f.id}`, true);
     setWriting(w => w + 1);
@@ -173,18 +152,14 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   };
 
   const live = front?.live;
-  const isOpen = (it: Item, k: number) => k === 0 || it === front || !!it.live || opened.has(it.flow.id);
-  // what was in front stays open when something else comes in front (a move, a read, a hand-off)
-  const keep = (...ids: (string | undefined)[]) => setOpened(o => (ids.every(x => !x || o.has(x)) ? o : new Set([...o, ...ids.filter((x): x is string => !!x)])));
   // a hand-off: written, then the page read again (the episode it started is on a drawing this page may already show);
   // to another drawing here it stays this page, with that drawing brought into view, and no turn (a replace)
   const handOff = async (t: Tip, stepId: string) => {
     const here = !!t.handoff && homes.get(t.handoff.flowId) === chakra;
-    keep(front?.flow.id, here ? t.handoff?.flowId : undefined);
     const done = guard.write();
     setWriting(w => w + 1);
     try {
-      await followHandOff(t, stepId, live, to => { if (here) bring.current = true; route(to, here); });
+      await followHandOff(t, stepId, live, to => route(to, here));
     } finally {
       done();
       setWriting(w => w - 1);
@@ -199,28 +174,22 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
 
   return (
     <Page label={c.pageName} back={back} keepSettings>
-      <div ref={page} class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-saved={writing ? 'false' : 'true'}
+      <div class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-saved={writing ? 'false' : 'true'}
         data-front={front?.flow.id} data-showing={showing} data-gating={gateLive !== null ? '' : undefined}>
         <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above} />
         <p class="ck-gloss">{c.gloss}</p>
         <Gate value={gate} hue={c.hue} label={c.name} stale={!!stored && isStale(stored, now)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
         {live && <FromRow live={live} homes={homes} page={{ chakra, order: items.map(x => x.flow.id), front: front!.flow.id }} />}
-        {items.map((it, k) => {
-          const at = placeNow(it);
-          if (!isOpen(it, k)) {
-            return <Drawing key={it.flow.id} flow={it.flow} at={at} showing={0} focused={false} onStep={false} moving={false} version={version} now={now}
-              onRead={() => {}} onMove={() => {}} folded onOpen={() => setOpened(o => new Set([...o, it.flow.id]))} />;
-          }
-          const isFront = it === front;
-          const sh = isFront ? showing : at;
-          return (
-            <Drawing key={it.flow.id} flow={it.flow} live={it.live} at={at} showing={sh} focused={isFront}
-              onStep={!!it.live && moved === null && sh > 0 && sh === at} moving={moved?.flowId === it.flow.id}
-              version={version} now={now}
-              onRead={k => { keep(front?.flow.id, it.flow.id); scrolled.current = it.flow.id; route(`/flow/${it.flow.id}/${k}`, true); }} onMove={(v, to) => void move(it, v, to)} />
-          );
-        })}
+        {front && !front.flow.locked && (
+          <nav class="ck-steps" aria-label="Steps">
+            {front.flow.steps.map((st, k) => (
+              <button key={st.id} type="button" class="ck-step" aria-current={showing === k + 1 ? 'step' : undefined}
+                onClick={() => (live ? void move(front, [], k + 1) : route(`/flow/${front.flow.id}/${k + 1}`, true))}>{st.name}</button>
+            ))}
+            {live && <button type="button" class="ck-step ck-done" onClick={() => void move(front, [], 0)}>Done</button>}
+          </nav>
+        )}
         {front && rows ? (
           <section class="fl-step-page ck-rows" aria-label={rows.name}>
             {!front.flow.locked && (
