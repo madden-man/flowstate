@@ -32,9 +32,9 @@ async function enter(page: Page, url: string) {
   await expect(t).toHaveCount(0);
 }
 
-test('carried forward: the note asked once and shown at its step offline, ghost rings, the person row', async ({ page }) => {
+test('carried forward: ghost rings offline and gone in Still, no note on a sign\'s page, the person row', async ({ page }) => {
   await enter(page, '/#/flow/panic');
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
   await expect(page.locator('.fl-ghosts')).toHaveCount(0);
 
   // an episode: Overstimulated, then back to rest. Ended in front of the page, so nothing asks yet.
@@ -47,48 +47,28 @@ test('carried forward: the note asked once and shown at its step offline, ghost 
   await expect.poll(async () => (await all(page, 'episodes')).map(e => e.endedAt !== undefined)).toEqual([true]);
   await expect(page.locator('.fl-ask')).toHaveCount(0);
 
-  // opened again at rest: the question, once, with the caret on its rule; the ghost ring of the ended episode
+  // opened again at rest: the ghost ring of the ended episode. R3: Panic opens on the Root's page, and the note to the
+  // next one of you leaves the page with the copy (PLAN-MOUNTAIN.md section 6, open question 3): no question asks, and
+  // the notes already kept stay in the data. Notes on a flow with no sign are FlowPage's, as before.
   await page.reload();
-  const ask = page.locator('.fl-ask');
-  await expect(ask.locator('.fl-usual')).toHaveText("Anything to tell the next one of you who's here?");
   await expect(page.locator('.fl-ghosts [data-ghost]')).toHaveCount(1);
   await expect(page.locator('.fl-ghosts')).toBeVisible();
   await expect(page.locator('.fl-ghosts')).not.toContainText(/\d/);
-  const field = page.getByRole('textbox', { name: 'To the next one of you' });
-  await expect(field).toBeFocused();
-  await field.pressSequentially('Leave the kitchen before anything else.', { delay: 2 });
-  // it lands on the step the episode spent longest on; a chip moves it
-  await expect(ask.getByRole('button', { name: 'Overstimulated' })).toHaveAttribute('aria-pressed', 'true');
-  await ask.getByRole('button', { name: 'The wave' }).click();
-  await expect(ask.getByRole('button', { name: 'The wave' })).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(async () => ((await all(page, 'flows')).find(f => f.id === 'panic')!.notes as { stepId: string; text: string }[] | undefined)
-    ?.map(n => [n.stepId, n.text])).toEqual([['panic-2', 'Leave the kitchen before anything else.']]);
+  await expect(page.locator('.fl-ask, .fl-carried, .fl-note')).toHaveCount(0);
 
-  // offline, the question never comes back, and the note is at its step, his line above the said line
+  // offline, the ghost ring is still drawn
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await page.context().setOffline(true);
   await page.reload();
   await expect(page.locator('.fl-step-page')).toBeVisible();
-  await expect(page.locator('.fl-ask')).toHaveCount(0);
-  await expect(page.locator('.fl-carried .fl-line')).toHaveText('Leave the kitchen before anything else.');
-  await page.getByRole('button', { name: 'The wave' }).click();
-  const note = page.locator('.fl-step-page .fl-note');
-  await expect(note.locator('.fl-line')).toHaveText('Leave the kitchen before anything else.');
-  await expect(note.locator('.fl-usual')).toContainText(/^you · \d+ \/ \d+$/);
-  // above the said line
-  expect(await page.evaluate(() => {
-    const n = document.querySelector('.fl-step-page .fl-note')!, s = document.querySelector('.fl-step-page .fl-said')!;
-    return !!(n.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING);
-  })).toBe(true);
+  await expect(page.locator('.fl-ghosts [data-ghost]')).toHaveCount(1);
 
-  // Still: the ghost rings go, the note's words stay without the date
+  // Still: the ghost rings go
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.locator('.fl-ghosts')).toBeHidden();
-  await expect(note.locator('.fl-line')).toBeVisible();
-  await expect(note.locator('.fl-usual')).toBeHidden();
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
   // the person row at Settling: no name yet, so it opens its sheet; filled, it is a link to Messages
@@ -133,6 +113,7 @@ test('your own stamps: the morning after a prediction, one tap, and the mark is 
   // F4: the curve draws his mark itself on its flat, and the seeded nine in ten give way to it
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="curve"] path.stamp.own')).toHaveCount(1);
   await expect(page.locator('.fl-stamps')).toHaveCount(0);
-  await expect(page.locator('.fl-drawing')).toHaveAttribute('data-own', '');
+  // R3: What if's curve is the second drawing on the Root page
+  await expect(page.locator('.ck-drawing[data-flow="whatif"] .fl-drawing')).toHaveAttribute('data-own', '');
   await expect(page.locator('.fs-cycle .seedstamp').first()).toBeHidden();
 });

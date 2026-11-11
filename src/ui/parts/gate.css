@@ -1,0 +1,31 @@
+/* parts/Gate (PLAN-MOUNTAIN.md section 5, R3): a short drawn rule with a mark, the shut share drawn in the sign's hue
+   (the voice formula, rule 3), the percent in print grey at its end. No transition under the finger (rule 20); the mark
+   comes back eased when let go elsewhere. A stale reading's rule is dashed until touched. Not in Still (fs-notstill). */
+.fs-gate {
+  --gc: oklch(var(--voice-l) var(--voice-c) var(--gh, 0));
+  display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--lh-ink) * 1.6); align-items: center; gap: var(--s1);
+  width: calc(100% - var(--lh-ink) * 3); min-height: calc(var(--lh-ink) * 2);
+}
+.fs-gate.compact { width: calc(var(--lh-ink) * 3.2); min-height: var(--lh-ink); grid-template-columns: minmax(0, 1fr) calc(var(--lh-ink) * 1.2); gap: 2px; }
+.fs-gate-rule {
+  position: relative; height: calc(var(--lh-ink) * 2); touch-action: pan-y; cursor: grab; outline: none;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.fs-gate.compact .fs-gate-rule { height: var(--lh-ink); }
+.fs-gate-rule[aria-disabled="true"] { cursor: default; }
+.fs-gate-rule:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+.fs-gate-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fs-gate-line { stroke: var(--print); stroke-width: 1; }
+.fs-gate-end { stroke: var(--print); stroke-width: 1.5; }
+.fs-gate-shut { stroke: var(--gc); stroke-width: 2.4; stroke-linecap: round; }
+.fs-gate[data-stale] .fs-gate-line, .fs-gate[data-stale] .fs-gate-shut { stroke-dasharray: 3 4; }
+.fs-gate-mark {
+  position: absolute; top: 50%; transform: translate(-50%, -50%); overflow: visible; pointer-events: none;
+  transition: left var(--t-ui) var(--ease);
+}
+.fs-gate-mark path { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+.fs-gate[data-drag] .fs-gate-mark { transition: none; }
+.fs-gate-pct {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}

@@ -64,7 +64,7 @@ async function walkEveryRoute(page: Page) {
   await expect(page).toHaveURL(/#\/flow$/);
   await page.locator('a.fl-flow[href="#/flow/panic"]').click();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
-  await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
+  await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle').first()).toBeVisible();
   await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
   await expect(page).toHaveURL(/#\/flow$/);
   await page.locator('.fl-now').click();
@@ -112,7 +112,7 @@ test.describe('with view transitions', () => {
     await tabs(page).getByRole('link', { name: 'Flow' }).click();
     await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
     await page.locator('a.fl-flow[href="#/flow/panic"]').click();
-    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
+    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle').first()).toBeVisible();
     await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
     await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
     expect((await turns(page)).slice(-3)).toEqual(['tab-right', 'open', 'close']);
