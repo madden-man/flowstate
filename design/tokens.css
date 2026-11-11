@@ -110,3 +110,15 @@
 :root, [data-light="day"] { --plate: #1C2030; --plate-deep: #0E1018; --plate-line: #C9C3B4; --plate-print: #8E93A0; --glow: #F1EBD6; }   /* print 5.3:1, line 9.2:1 */
 [data-light="night"]      { --plate: #151720; --plate-deep: #0A0B10; --plate-line: #D8D2C3; --plate-print: #8A8E9A; --glow: #F3EDDA; }   /* print 5.5:1, line 11.9:1 */
 [data-light="still"]      { --plate: #0B0C11; --plate-deep: #07080B; --plate-line: #8E8A82; --plate-print: #666973; --glow: #8E8A82; }   /* the water is the line colour only */
+
+/* the mountain plate's own (R1: the Flow tab's mountain, ui/flow/Mountain.tsx). The lanterns' lightness and chroma on
+   the dark plate (the voice formula's, rule 3, raised so a sign glows on the night in every light); how dim the rock's
+   chalk is where no water lights it; how far the plate runs past the column and how softly its edge goes into the page
+   (by Day a print pasted on the cream, by Night and in Still it runs into the page); how much it shows a state (gates,
+   lit rock, weather: none in Still, rule 13); and the arrival's length (pass 6, once per unlock). */
+:root, [data-light="day"] { --plate-l: 76%; --plate-c: .14; --plate-dim: .4; --plate-bleed: 0px; --plate-feather: 0px; --plate-state: 1; --t-arrive: 4200ms; }
+[data-light="night"]      { --plate-l: 76%; --plate-c: .13; --plate-dim: .36; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 1; }
+[data-light="still"]      { --plate-l: 62%; --plate-c: 0; --plate-dim: .62; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 0; }
+@media (prefers-reduced-motion: reduce) {
+  :root, [data-light] { --t-arrive: 0ms; }
+}
