@@ -1,13 +1,15 @@
-// Dexie tables, version 5 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
+// Dexie tables, version 6 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
 // version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits;
-// version 5 is PLAN-ENERGIZE.md section 5, the fixations). UI code never imports this file: it reads and writes
+// version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 is PLAN-MOUNTAIN.md section 8, the readings and
+// flows.chakra, in the one block marked "version 6" below). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
+import type { ChakraId } from '../model/mountain';
 
 export { POEMS_ID, POEMS_NAME };
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -233,7 +235,8 @@ export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'co
  *  section 5, S3): the row opens Meditate carrying the episode, and a sit of a minute or more ends by ticking it. */
 export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit' | 'on';
 /** What a pick is (PLAN-PICKS.md section 6): an album is a cover, the rest are written lines with their kind word. */
-export type PickKind = 'album' | 'show' | 'film' | 'switch' | 'phone';
+/** book and art (PLAN-MOUNTAIN.md section 7, R0) are written lines like the rest; no titles are seeded. */
+export type PickKind = 'album' | 'show' | 'film' | 'switch' | 'phone' | 'book' | 'art';
 /** Something to put on at a step (PLAN-PICKS.md section 6, P0): a title and its kind, nothing more; no note (Tommy,
  *  2026-11-10). by is an album's artist, albumId its Spotify album id. struck stays struck (rule 10), never deleted.
  *  Sealed with the step. Named OnPick, not the plan's Pick, so it never shadows TypeScript's own Pick in this file. */
@@ -282,6 +285,9 @@ export type Flow = {
    *  not held awake (3 a.m.: the clock is turned away, the bed is for sleeping). A flag, in the clear like diagram. */
   quietClock?: boolean;
   diagram: DiagramName;
+  /** PLAN-MOUNTAIN.md section 8 (schema version 6): which sign on the mountain this flow's drawing sits under. Absent on
+   *  a flow that is not a blockage (Energize floats in the sea) and on one he has not placed. An id, in the clear. */
+  chakra?: ChakraId;
   steps: Step[];
   /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */
   revisions: { at: Millis; name: string; steps: Step[] }[];
@@ -351,12 +357,13 @@ export type Tables = {
   episodes: Episode;
   sits: Sit;
   fixations: Fixation;
+  readings: Reading;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'readings'];
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'readings'>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -369,7 +376,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations'>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'readings'>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -377,24 +384,60 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' 
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations'>, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'readings'>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
 };
 
 /** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
-export const STORES_V4: Record<Exclude<TableName, 'fixations'>, string> = {
+export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'readings'>, string> = {
   ...STORES_V3,
   sits: 'id, startedAt',
 };
 
 /** Version 5 adds the fixations (PLAN-ENERGIZE.md section 5). The upgrade writes nothing: a name is sealed and an
  *  upgrade cannot seal, so the first three and the deck come from seed.ts seedFixationsOnce once the journal is open. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V5: Record<Exclude<TableName, 'readings'>, string> = {
   ...STORES_V4,
   fixations: 'id',
 };
+
+// ---- version 6 (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra ----
+// One self-contained block, so the second branch to take version 6 to main renumbers here and only here: the number in
+// SCHEMA_VERSION, the stores below, and the db.version(6) line in openDB.
+
+/** One reading of the mountain (the Depression meter) or of one sign's gate, written on release, never edited: value
+ *  is 0 (open, or no weather) to 1. The newest per `of` is drawn (model/mountain.ts). Numbers and ids only, so nothing
+ *  is sealed (like the sits). */
+export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value: number };
+
+/** Version 6 adds the readings, by when and by what they are of. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V5,
+  readings: 'id, at, [of+at]',
+};
+
+/** Which sign each seed flow's drawing sits under (PLAN-MOUNTAIN.md section 6). Energize is not a blockage and has none.
+ *  seed-flows.ts seedFlow writes it on a fresh flow; the version 6 upgrade and backup.ts migrate add it to a stored one. */
+export const SEED_CHAKRAS: Readonly<Record<string, ChakraId>> = {
+  night: 'crown', replay: 'third-eye', fight: 'throat', depress: 'heart', shame: 'solar-plexus', shutdown: 'sacral', panic: 'root', whatif: 'root',
+};
+
+/** A stored flow row with its seed chakra added, or the same row when it has one or is not a seed flow. Only the clear
+ *  `chakra` field is added: ids, steps, revisions, dates and any sealed envelope stay exactly as they were. */
+export function withSeedChakra<T extends { id: string; chakra?: ChakraId }>(row: T): T {
+  const chakra = SEED_CHAKRAS[row.id];
+  return chakra && row.chakra === undefined ? { ...row, chakra } : row;
+}
+
+function version6(db: Dexie) {
+  db.version(6).stores(STORES).upgrade(tx => tx.table<Flow, string>('flows').toCollection().modify(f => {
+    const chakra = SEED_CHAKRAS[f.id];
+    if (chakra && f.chakra === undefined) f.chakra = chakra;
+  }));
+}
+// ---- version 6 ends ----
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
 export const poemsPlaylist = (): Playlist => ({
@@ -423,6 +466,7 @@ export type FlowDB = Dexie & {
   episodes: EntityTable<Episode, 'id'>;
   sits: EntityTable<Sit, 'id'>;
   fixations: EntityTable<Fixation, 'id'>;
+  readings: EntityTable<Reading, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -437,7 +481,8 @@ export function openDB(name = DB_NAME): FlowDB {
   });
   db.version(3).stores(STORES_V3);
   db.version(4).stores(STORES_V4);
-  db.version(5).stores(STORES);
+  db.version(5).stores(STORES_V5);
+  version6(db);
   return db;
 }
 

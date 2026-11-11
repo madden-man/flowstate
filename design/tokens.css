@@ -72,6 +72,7 @@
 :root, [data-light] {
   --h-blue: 250; --h-green: 150; --h-red: 25; --h-purple: 305; --h-brown: 60;
   --h-orange: 55; --h-pink: 350; --h-yellow: 95;
+  --h-indigo: 275;   /* the third eye's sign on the mountain (PLAN-MOUNTAIN.md section 9, R0) */
   --v-blue:   oklch(var(--voice-l) var(--voice-c) var(--h-blue));
   --v-green:  oklch(var(--voice-l) var(--voice-c) var(--h-green));
   --v-red:    oklch(var(--voice-l) var(--voice-c) var(--h-red));
@@ -96,3 +97,16 @@
 :root, [data-light="day"]   { --scrim: #2A272433; --shadow-sheet: 0 -14px 40px #2A272426; --shadow-tile: 0 2px 8px #2A272426; }
 [data-light="night"]        { --scrim: #0B0B0E80; --shadow-sheet: 0 -14px 40px #0B0B0E80; --shadow-tile: 0 2px 8px #0B0B0E80; }
 [data-light="still"]        { --scrim: #0B0B0E99; --shadow-sheet: 0 -14px 40px #0B0B0E99; --shadow-tile: none; }
+
+/* the mountain's plate (PLAN-MOUNTAIN.md pass 6, R0: the Flow tab's mountain, and the top of a sign's page). The drawing
+   is its own night plate in every light: by Day a dark aquatint set on the cream page, by Night it runs into the page,
+   in Still it is the deepest and quietest (rule 14: lower luminance, cool-neutral). On --plate, --plate-print is at least
+   3.5:1 and --plate-line at least 4.5:1 in Day and Night.
+     --plate       the night sky of the plate
+     --plate-deep  the shadow face, the darkest thing on the screen
+     --plate-line  the chalk line of the rock
+     --plate-print the names and print on the plate
+     --glow        the water's light, the only light on the mountain */
+:root, [data-light="day"] { --plate: #1C2030; --plate-deep: #0E1018; --plate-line: #C9C3B4; --plate-print: #8E93A0; --glow: #F1EBD6; }   /* print 5.3:1, line 9.2:1 */
+[data-light="night"]      { --plate: #151720; --plate-deep: #0A0B10; --plate-line: #D8D2C3; --plate-print: #8A8E9A; --glow: #F3EDDA; }   /* print 5.5:1, line 11.9:1 */
+[data-light="still"]      { --plate: #0B0C11; --plate-deep: #07080B; --plate-line: #8E8A82; --plate-print: #666973; --glow: #8E8A82; }   /* the water is the line colour only */

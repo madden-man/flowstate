@@ -113,6 +113,46 @@ describe('round trip', () => {
     expect(await third.sits.count()).toBe(2);
   });
 
+  it('the readings round-trip, plain, sealed and in a merge (R0)', async () => {
+    const rows = [
+      { id: 'r1', at: 1000, of: 'mountain' as const, value: 0.6 },
+      { id: 'r2', at: 2000, of: 'heart' as const, value: 0.4 },
+      { id: 'r3', at: 3000, of: 'heart' as const, value: 0 },
+    ];
+    await store.bulkPut('readings', rows);
+    const file = await roundTrip(db);
+    expect(file.tables.readings).toHaveLength(3);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect((await other.readings.toArray()).sort((a, b) => a.at - b.at)).toEqual(rows);
+    // a merge adds the readings this phone has not got and keeps the ones it has (never edited, so never updated)
+    const third = await freshDB();
+    await third.readings.put(rows[1]);
+    expect(await importData(file, 'merge', third)).toMatchObject({ added: 2, updated: 0, kept: 1 });
+    expect(await third.readings.count()).toBe(3);
+    // with the lock on, a reading is numbers and ids only: it stays in the clear, and the sealed file carries it whole
+    await init(db); // freshDB pointed the fields layer at the last journal made
+    await ensureSeeded(7);
+    await setKey(await deriveKey('1357', randomSalt(), 1000), { salt: randomSalt(), iterations: 1000 });
+    const sealed = await exportData(db, 1000);
+    expect(sealed.encrypted).toBe(true);
+    expect((sealed.tables.readings as typeof rows).sort((a, b) => a.at - b.at)).toEqual(rows);
+  });
+
+  it('a version 5 file (before the mountain) imports with empty readings and its seed flows under their signs', async () => {
+    await ensureSeeded(7);
+    const f = await exportData(db, 1000);
+    const v5 = { ...f, schemaVersion: 5, tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
+    const parsed = parseBackup(JSON.stringify(v5));
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.tables.readings).toEqual([]);
+    expect(parsed.tables.flows).toEqual(f.tables.flows);
+    const other = await freshDB();
+    await importData(parsed, 'replace', other);
+    expect((await other.flows.get('whatif'))!.chakra).toBe('root');
+    expect((await other.flows.get('energize'))!.chakra).toBeUndefined();
+  });
+
   it('a version 3 file (before the sits) imports with an empty sits table', async () => {
     const f = parseBackup('{"app":"flowstate","schemaVersion":3,"exportedAt":1,"tables":{"pages":[]}}');
     expect(f.schemaVersion).toBe(SCHEMA_VERSION);

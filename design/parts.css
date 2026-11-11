@@ -1475,3 +1475,32 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 }
 
 /* ---- M5 ends ---- */
+
+
+/* ---- R0: parts/Sign, the mountain's seven signs (PLAN-MOUNTAIN.md pass 6) ---- */
+/* A lantern: open, full of its hue (--sh, the voice formula, rule 3) with a soft glow; as --closed goes to 1 the body
+   empties, the outline goes cold (--sign-cold: print grey on paper; a parent on the plate sets --plate-line) and the
+   glow goes out. The drawing-in to 70 percent is the group's scale (Sign.tsx). Nothing moves here on its own. */
+.fs-sign {
+  --sc: oklch(var(--voice-l) var(--voice-c) var(--sh, 0));
+  --sign-cold: var(--print);
+  --sign-warm: calc((1 - var(--closed, 0)) * 100%);
+  display: inline-block; vertical-align: middle; width: var(--lh-ink); height: var(--lh-ink); overflow: visible;
+  filter: drop-shadow(0 0 3px color-mix(in oklch, var(--sc) calc((1 - var(--closed, 0)) * 70%), transparent));
+}
+.fs-sign[data-size="large"] { width: calc(var(--lh-ink) * 4); height: calc(var(--lh-ink) * 4); }
+.fs-sign path { stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fs-sign-body {
+  fill: var(--sc); fill-opacity: calc(1 - var(--closed, 0));
+  stroke: color-mix(in oklch, var(--sc) var(--sign-warm), var(--sign-cold)); stroke-width: 1.4;
+}
+.fs-sign[data-size="large"] .fs-sign-body { stroke-width: 2; }
+/* the marks drawn over the body: the page's colour while it is full, so they read cut out of the light; cold when empty */
+.fs-sign-line { fill: none; stroke: color-mix(in oklch, var(--page) var(--sign-warm), var(--sign-cold)); stroke-width: 1.2; }
+.fs-sign[data-size="large"] .fs-sign-line { stroke-width: 1.8; }
+/* Still (rule 13): open and without hue, print grey, no glow, whatever the gate says */
+[data-light="still"] .fs-sign, .fs-sign[data-still] { --sc: var(--sign-cold); --closed: 0; filter: none; }
+[data-light="still"] .fs-sign-g, .fs-sign[data-still] .fs-sign-g { transform: none; }
+[data-light="still"] .fs-sign-body, .fs-sign[data-still] .fs-sign-body { fill-opacity: .35; stroke: var(--sign-cold); }
+[data-light="still"] .fs-sign-line, .fs-sign[data-still] .fs-sign-line { stroke: var(--sign-cold); }
+/* ---- R0 ends ---- */
