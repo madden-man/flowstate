@@ -9,6 +9,8 @@ const pairs = [
   ['src/ui/parts/parts.css', 'design/parts.css', 'cp src/ui/parts/parts.css design/parts.css'],
   ['src/ui/flow/mountain/mountain.css', 'design/mountain.css', 'cp src/ui/flow/mountain/mountain.css design/mountain.css'],
   ['src/ui/parts/gate.css', 'design/gate.css', 'cp src/ui/parts/gate.css design/gate.css'],
+  // PLAN-TASKS.md T5: the sign's shelf and the ♪ sheet's Signs segment, for the walkthrough's shelf steps
+  ['src/ui/flow/chakra/SignShelf.css', 'design/sign-shelf.css', 'cp src/ui/flow/chakra/SignShelf.css design/sign-shelf.css'],
   ['design/walkthrough.html', 'design/index.html', 'cp design/walkthrough.html design/index.html'],
 ];
 let bad = 0;
