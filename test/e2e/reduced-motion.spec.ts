@@ -3,6 +3,7 @@
 // appears without rising), check an item on Be (the check draws at once), and at every step no element, nor its
 // ::before or ::after, has a non-zero computed animation-duration or transition-duration.
 import { test, expect, type Page } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 test.use({ reducedMotion: 'reduce' });
 
@@ -23,6 +24,10 @@ const moving = (page: Page) => page.evaluate(() => {
 
 test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a check drawn', async ({ page }) => {
   await page.goto('/');
+  // C1: a fresh install has values and no paradoxes, so the paradoxes Be shows here are written first
+  await expect(page.getByRole('textbox', { name: "Today's page" })).toBeEnabled();
+  await writeParadoxes(page);
+  await page.reload();
   // the threshold's breath is skipped: the page is straight there
   await expect(page.locator('[data-threshold]')).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: "Today's page" })).toBeEnabled();

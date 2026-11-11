@@ -4,7 +4,8 @@
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
-//   fixations: name and next (PLAN-ENERGIZE.md section 5).
+//   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
+//   revisions (PLAN-VALUES.md section 5).
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -160,6 +161,35 @@ const fixationSpec: Spec<Tables['fixations']> = {
   },
 };
 
+/** A value seals its words (PLAN-VALUES.md section 5): word, shadow, looks, the revisions whole, and each champion's
+ *  why, keyed by voice and side so the clear list can be reordered without the whys moving. The clear copy keeps the
+ *  shape: ids, status, order, dates, and every champion's voiceId, side and at, so the list draws its champions'
+ *  rules before unlock; each revision keeps only its date. */
+type VSecret = { word: string; shadow?: string; looks?: string; whys: Record<string, string>; revisions: Tables['values']['revisions'] };
+const whyKey = (c: { voiceId: string; side: string }) => `${c.side}:${c.voiceId}`;
+const valueSpec: Spec<Tables['values']> = {
+  take: row => {
+    const whys: Record<string, string> = {};
+    for (const c of row.champions) if (c.why !== undefined) whys[whyKey(c)] = c.why;
+    return {
+      clear: {
+        ...row, word: '', shadow: undefined, looks: undefined,
+        champions: row.champions.map(({ why: _, ...c }) => c),
+        revisions: row.revisions.map(r => ({ at: r.at, word: '' })),
+      },
+      secret: { word: row.word, shadow: row.shadow, looks: row.looks, whys, revisions: row.revisions } satisfies VSecret,
+    };
+  },
+  give: (clear, raw) => {
+    const s = (raw ?? { word: '', whys: {}, revisions: [] }) as VSecret;
+    const out = { ...clear, word: s.word, revisions: s.revisions ?? [] };
+    if (s.shadow !== undefined) out.shadow = s.shadow; else delete out.shadow;
+    if (s.looks !== undefined) out.looks = s.looks; else delete out.looks;
+    out.champions = clear.champions.map(c => (s.whys?.[whyKey(c)] !== undefined ? { ...c, why: s.whys[whyKey(c)] } : c));
+    return out;
+  },
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -171,6 +201,7 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   flows: flowSpec,
   episodes: episodeSpec,
   fixations: fixationSpec,
+  values: valueSpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 

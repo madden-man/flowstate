@@ -1,6 +1,7 @@
 // The offline smoke (PLAN.md section 10, package 0): load, go offline, reload, write, reload again,
 // the text is still there. Nothing leaves the origin at any point.
 import { test, expect, type Page } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 const page$ = (p: Page) => p.getByRole('textbox', { name: "Today's page" });
 
@@ -35,7 +36,10 @@ test('opens, writes and survives reloads with the network off', async ({ page, c
   // the other tabs open offline too, and a deep link lands on its tab
   await page.getByRole('link', { name: 'Council' }).click();
   await expect(page.getByRole('button', { name: 'New council' })).toBeVisible();
+  // C1: a fresh install has values and no paradoxes, so the paradox this screen shows is written first
+  await writeParadoxes(page);
   await page.goto('/#/be/px-selfless-selfish');
+  await page.reload();
   await expect(page.getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.fs-dichotomy .a', { hasText: 'selfless' })).toBeVisible();
 

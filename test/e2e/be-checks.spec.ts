@@ -3,6 +3,7 @@
 // reload with the network off, and the check and the lean are still there. Still puts the checks and the
 // slider away (counts and states leave in Still). Nothing leaves the origin.
 import { test, expect } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 test('be: check under the spread, lean to a detent, and both survive an offline reload', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
@@ -11,6 +12,8 @@ test('be: check under the spread, lean to a detent, and both survive an offline 
   // a cold load straight onto the deep link
   await page.goto('/#/be/px-selfless-selfish');
   await expect(page.getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
+  // C1: a fresh install has values and no paradoxes, so the paradoxes this screen shows are written first
+  await writeParadoxes(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);

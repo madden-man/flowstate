@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { freshDB } from '../db/helpers';
+import { freshDB, writeSeedParadoxes } from '../db/helpers';
 import { ensureSeeded } from '../../src/db/seed';
 import { store } from '../../src/db/fields';
 import type { Item, Paradox } from '../../src/db/schema';
@@ -67,7 +67,7 @@ describe('the three-word line', () => {
   });
 
   it('is omitted with no middle and no revisions; earlier versions are struck beneath, oldest first', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const [p1, p2] = await spreads();
     expect(threeWordLines(p2.paradox)).toBeNull();
     expect(threeWordLines(p1.paradox)).toEqual({
@@ -86,7 +86,7 @@ describe('the three-word line', () => {
 
 describe('the seed spreads', () => {
   it('both seed paradoxes read back with their goals in the notebook order, top to bottom', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const all = await spreads();
     expect(all.map(s => s.paradox.poleA.value)).toEqual(['selfless', 'thoughtful']);
     for (const { items } of all) {
@@ -103,7 +103,7 @@ describe('the seed spreads', () => {
 
 describe('the order of the paradoxes (V13)', () => {
   it('a dragged paradox keeps its new place on Be and Flow; a new one goes after the placed ones', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const poles = async () => (await spreads()).map(s => s.paradox.poleA.value);
     expect(await poles()).toEqual(['selfless', 'thoughtful']);
     const ids = (await spreads()).map(s => s.paradox.id);
@@ -167,7 +167,7 @@ describe('rows on the upright spread', () => {
   });
 
   it('the seed spread reads as two rows, its pairs level with each other, in the notebook order', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const [p1, p2] = await spreads();
     expect(rowsOf(p1.items).map(r => [r.a, r.b])).toEqual([['it-volunteer', 'it-breathing-room'], ['it-share', 'it-own-sake']]);
     expect(rowsOf(p2.items).map(r => r.slot?.pole)).toEqual(['b', 'b', 'a', 'a']);

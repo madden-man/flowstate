@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { freshDB } from '../db/helpers';
+import { freshDB, writeSeedParadoxes } from '../db/helpers';
 import { ensureSeeded } from '../../src/db/seed';
 import { store } from '../../src/db/fields';
 import type { Cadence, Item } from '../../src/db/schema';
@@ -100,7 +100,7 @@ describe('the done log', () => {
   });
 
   it('writes through the store and survives a re-read', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const now = L(2026, 11, 7, 9);
     await setDone('it-own-sake', true, now);
     expect((await store.get('items', 'it-own-sake'))!.doneLog).toEqual([{ at: now }]);
@@ -109,7 +109,7 @@ describe('the done log', () => {
   });
 
   it("today's page groups the seed items by paradox, and leaves those with no cadence out", async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const now = L(2026, 11, 7, 9);
     const groups = await today(now);
     expect(groups.map(g => g.paradox.id)).toEqual(['px-selfless-selfish', 'px-thoughtful-reactive']);
@@ -130,7 +130,7 @@ describe('leans', () => {
   });
 
   it('a release writes a lean row; the latest is the one shown; a note is one line', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     await addLean('px-selfless-selfish', -0.3, { now: 10 });
     const b = await addLean('px-selfless-selfish', 3, { now: 20 });
     expect(b).toMatchObject({ paradoxId: 'px-selfless-selfish', at: 20, lean: 1, note: '' });

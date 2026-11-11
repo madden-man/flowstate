@@ -4,7 +4,7 @@
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
 // A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -21,6 +21,9 @@ export type BackupFile = {
   verifier?: Sealed;
   digits?: number;
   tables: { [K in TableName]: unknown[] };
+  /** Set by parseBackup on a file older than this version: the version it was made at, so importData can give it what
+   *  only an open journal can (a version 5 file's paradoxes as values, PLAN-VALUES.md section 5). Never exported. */
+  madeAt?: number;
 };
 
 /** What it takes to open a sealed file: its own salt and iteration count, and its verifier to check a PIN. */
@@ -45,14 +48,15 @@ const pk = (t: TableName, row: Record<string, unknown>) => {
 /**
  * How a row points at another, for the deleted list (PLAN-VALUES.md C0, from PLAN-SELF.md section 4). owner: the row
  * belongs to the one named, and goes with it (a paradox's goals and leans). link: a single id, dropped from the row.
- * links: a list of ids, the deleted ones filtered out. All are clear fields of the stored form. A table that adds a
- * link to another row (C1's values and champions) adds its fields here; a row whose own key is deleted never comes
- * back whatever its table.
+ * links: a list of ids, the deleted ones filtered out. inner (PLAN-VALUES.md C1): an object field holding an id under
+ * the key named, the whole field dropped when that id is deleted (a line's `for`, whose valueId names a value). All
+ * are clear fields of the stored form. A row whose own key is deleted never comes back whatever its table.
  */
-export const LINKS: { [K in TableName]?: { owner?: string[]; link?: string[]; links?: string[] } } = {
+export const LINKS: { [K in TableName]?: { owner?: string[]; link?: string[]; links?: string[]; inner?: Record<string, string> } } = {
   items: { owner: ['paradoxId'], link: ['pairId', 'nextTo'] },
   leans: { owner: ['paradoxId'] },
-  pages: { links: ['paradoxIds'] },
+  pages: { links: ['paradoxIds', 'valueIds'] },
+  messages: { inner: { for: 'valueId' } },
 };
 
 /** Album covers are bytes (a Blob in rows from before V9); the file carries them as base64 with their type. */
@@ -118,7 +122,9 @@ export function parseBackup(text: string): BackupFile {
  *  playlist ticked. A version 2 file has no flows or episodes (both tables come in empty, above); its settings
  *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. A version 4 file has no
  *  fixations (the table comes in empty, above); its settings.cleaned has no 'fixations', so seed.ts seedFixationsOnce
- *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). */
+ *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). A version 5 file has no values
+ *  (the table comes in empty, above); its paradoxes are opened only in importData, which makes them values there
+ *  (madeAt says it is older). */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -127,7 +133,7 @@ function migrate(f: BackupFile): BackupFile {
     if (!(tables.playlists as Tables['playlists'][]).some(p => p.id === POEMS_ID)) tables.playlists = [...tables.playlists, poemsPlaylist()];
     f = { ...f, tables };
   }
-  return { ...f, schemaVersion: SCHEMA_VERSION };
+  return { ...f, schemaVersion: SCHEMA_VERSION, ...(f.schemaVersion < SCHEMA_VERSION ? { madeAt: f.madeAt ?? f.schemaVersion } : {}) };
 }
 
 /** The time a row last changed, for merge: updatedAt, else at, else its newest revision, else createdAt, else an
@@ -170,12 +176,14 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
   const myLock = mine?.lock;
   const gone = new Set(mode === 'merge' ? mine?.deleted ?? [] : []);
   const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
+  const openedParadoxes: (Tables['paradoxes'] & { locked?: true })[] = [];
   for (const t of TABLES) {
     const rows: Record<string, unknown>[] = [];
     for (const r of file.tables[t] as Record<string, unknown>[]) {
       let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON), coverType: (r.cover as CoverJSON).type || undefined } : r;
       // open with the file's key (a wrong one throws before anything is written), then store as this journal stores rows
       let opened = (await openRow(t, row as never, fileKey ?? null)) as Record<string, unknown>;
+      if (t === 'paradoxes') openedParadoxes.push(opened as Tables['paradoxes']);
       if (t === 'settings') {
         opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
       }
@@ -183,6 +191,16 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       rows.push(row);
     }
     incoming[t] = rows;
+  }
+  // A file from before the values (version 5 or older, PLAN-VALUES.md section 5): each of its paradoxes comes in as the
+  // value seed.ts valuesFromParadoxesOnce would make of it, under the same fixed id, so a merge meets this phone's own
+  // copy (the newer kept) and a value deleted here stays deleted (its id is on the list). The paradoxes come in too.
+  if ((file.madeAt ?? SCHEMA_VERSION) < 6) {
+    const have = new Set((incoming.values as { fromParadoxId?: string }[]).map(v => v.fromParadoxId).filter(Boolean));
+    for (const p of openedParadoxes) {
+      if (p.locked || have.has(p.id)) continue;
+      incoming.values.push((await storedForm('values', valueFromParadox(p))) as unknown as Record<string, unknown>);
+    }
   }
   const result: ImportResult = { added: 0, updated: 0, kept: 0 };
   await database.transaction('rw', TABLES.map(t => database.table(t)), async () => {
@@ -214,9 +232,9 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
 /** The file's rows less what this phone deleted (merge only): a deleted row, the rows it owns, and the links to it. */
 function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
   const out = (id: unknown) => typeof id === 'string' && gone.has(id);
-  const { owner = [], link = [], links = [] } = LINKS[t] ?? {};
+  const { owner = [], link = [], links = [], inner = {} } = LINKS[t] ?? {};
   return rows.filter(r => !out(pk(t, r)) && !owner.some(f => out(r[f]))).map(r => {
-    const single = link.filter(f => out(r[f]));
+    const single = [...link.filter(f => out(r[f])), ...Object.entries(inner).filter(([f, k]) => out((r[f] as Record<string, unknown> | undefined)?.[k])).map(([f]) => f)];
     const lists = links.filter(f => Array.isArray(r[f]) && (r[f] as unknown[]).some(out));
     if (!single.length && !lists.length) return r;
     const next = { ...r };

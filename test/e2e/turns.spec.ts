@@ -3,10 +3,15 @@
 // once (a press begun mid-turn is handed to the page), the mark under the tab follows, and nothing is left named after. No turn on load or on a deep link. Without
 // startViewTransition every route still works, Be's spread still opens and closes; under Reduce Motion no turn runs.
 import { test, expect, type Page } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 const tabs = (p: Page) => p.getByRole('navigation', { name: 'Sections' });
 
 async function cross(page: Page) {
+  await expect(page.locator('.fs-page')).toBeAttached();
+  // C1: a fresh install has values and no paradoxes, so the paradoxes Be shows here are written first
+  await writeParadoxes(page);
+  await page.reload();
   await expect(page.locator('.fs-page')).toBeAttached();
   const t = page.locator('[data-threshold]');
   if (await t.count()) await t.click();

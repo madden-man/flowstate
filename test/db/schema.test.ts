@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB } from './helpers';
-import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
-describe('schema, version 5', () => {
-  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2) and the fixations (X1)', async () => {
+describe('schema, version 6', () => {
+  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2), the fixations (X1) and the values (C1)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(5);
+    expect(SCHEMA_VERSION).toBe(6);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
-    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations']);
+    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values']);
   });
 
   it('carries the listed indexes', async () => {
@@ -26,6 +26,8 @@ describe('schema, version 5', () => {
     expect(idx('sits')).toEqual(['startedAt']);
     expect(idx('fixations')).toEqual([]);
     expect(db.table('fixations').schema.primKey.name).toBe('id');
+    expect(idx('values')).toEqual([]);
+    expect(db.table('values').schema.primKey.name).toBe('id');
     expect(db.table('albums').schema.primKey.name).toBe('albumUri');
     expect(db.table('shelves').schema.primKey.src).toBe('[playlistId+albumUri]');
     expect(db.table('settings').schema.primKey.name).toBe('id');
@@ -112,7 +114,7 @@ describe('the upgrade from version 3 (S2)', () => {
 });
 
 describe('the upgrade from version 4 (X1)', () => {
-  it('a version 4 database opens at version 5 with an empty fixations table, writing nothing, every row kept', async () => {
+  it('a version 4 database opens at the current version with an empty fixations table, writing nothing, every row kept', async () => {
     const name = `flowstate-v4-${Date.now()}`;
     const v4 = new Dexie(name);
     v4.version(1).stores(STORES_V1);
@@ -126,11 +128,35 @@ describe('the upgrade from version 4 (X1)', () => {
     v4.close();
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.fixations.count()).toBe(0);
     expect(await db.episodes.get('e1')).toEqual({ id: 'e1', flowId: 'energize', startedAt: 1, marks: [], done: [] });
     expect(await db.sits.get('s1')).toBeTruthy();
     expect(await db.settings.get('app')).toEqual({ id: 'app', cleaned: ['seed-pages'] });
+    db.close();
+  });
+});
+
+describe('the upgrade from version 5 (C1)', () => {
+  it('a version 5 database opens at version 6 with an empty values table, writing nothing, every row kept', async () => {
+    const name = `flowstate-v5-${Date.now()}`;
+    const v5 = new Dexie(name);
+    v5.version(1).stores(STORES_V1);
+    v5.version(2).stores(STORES_V2);
+    v5.version(3).stores(STORES_V3);
+    v5.version(4).stores(STORES_V4);
+    v5.version(5).stores(STORES_V5);
+    await v5.open();
+    const px = { id: 'px1', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'a', aspect: 'x' }, poleB: { value: 'b', aspect: 'y' }, revisions: [] };
+    await v5.table('paradoxes').put(px);
+    await v5.table('fixations').put({ id: 'fx1', name: 'FlowState', hue: 250, createdAt: 1, stints: [] });
+    v5.close();
+    const db = openDB(name);
+    await db.open();
+    expect(db.verno).toBe(6);
+    expect(await db.values.count()).toBe(0);
+    expect(await db.paradoxes.get('px1')).toEqual(px);
+    expect(await db.fixations.get('fx1')).toBeTruthy();
     db.close();
   });
 });
