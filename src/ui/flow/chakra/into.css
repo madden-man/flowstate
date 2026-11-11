@@ -1,0 +1,76 @@
+/* Into the app (PLAN-TASKS.md T3): what a touch that goes into the app draws on its sign's plate while its word is
+   active (./handlers/into.tsx), and the sign it carries, printed beside the date on the page it lands (./SignBack.tsx).
+   Every colour is a token: the plate's (R0) on the plate, the page's in the header. */
+
+/* ---- one rule on the plate: his line, written before it is carried (Ask, Bring it, Write from it) ---- */
+.ck-into-rule {
+  position: absolute; left: var(--gutter); right: var(--gutter); top: calc(var(--lh-ink) * 1.5);
+  display: flex; align-items: flex-end; gap: var(--s1); pointer-events: auto;
+  border-bottom: 1px solid var(--plate-line);
+}
+.ck-into-rule input {
+  flex: 1; min-width: 0; appearance: none; border: 0; background: transparent; margin: 0; padding: 0; outline: none;
+  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); height: var(--lh-ink);
+  color: var(--glow); caret-color: var(--glow);
+  text-shadow: 0 0 var(--s1) var(--plate);
+}
+/* the drawn arrow carries the line; it shows once there is a line to carry */
+.ck-into-go {
+  appearance: none; border: 0; background: transparent; padding: 0; cursor: pointer; color: var(--glow);
+  width: var(--hit); height: var(--hit); margin: calc((var(--hit) - var(--lh-ink)) / -2) calc(var(--s1) * -1) calc((var(--hit) - var(--lh-ink)) / -2) 0;
+  display: grid; place-items: center; -webkit-tap-highlight-color: transparent;
+}
+.ck-into-go svg { width: var(--s2); height: var(--s2); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ck-into-go path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ck-into-draw var(--t-draw) var(--ease) forwards; }
+.ck-into-go:focus-visible { outline: 2px solid var(--glow); outline-offset: -4px; border-radius: var(--s1); }
+@keyframes ck-into-draw { to { stroke-dashoffset: 0; } }
+
+/* ---- Crown's Kept line: one star in the sky, his kept line in print beside it; a tap opens the page it was kept on ---- */
+.ck-star {
+  position: absolute; transform: translate(-50%, 0); pointer-events: auto; max-width: 62%;
+  appearance: none; border: 0; background: transparent; padding: 0 var(--s1); margin: 0; cursor: pointer;
+  display: grid; justify-items: center; gap: calc(var(--s1) / 2); min-height: var(--hit);
+  -webkit-tap-highlight-color: transparent; color: var(--plate-line);
+}
+.ck-star-dot {
+  width: calc(var(--s1) * .75); height: calc(var(--s1) * .75); border-radius: 50%; background: var(--glow);
+  box-shadow: 0 0 var(--s1) var(--glow), 0 0 calc(var(--s1) * 2.5) var(--glow);
+  animation: ck-into-in var(--t-draw) var(--ease) backwards;
+}
+.ck-star-line {
+  font-family: var(--serif); font-style: italic; font-size: var(--fs-ink); line-height: var(--lh-ink); text-align: center;
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 var(--s1) var(--plate);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  animation: ck-into-in var(--t-ui) var(--ease) backwards; animation-delay: var(--t-ui);
+}
+.ck-star:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; border-radius: var(--s1); }
+@keyframes ck-into-in { from { opacity: 0; } }
+
+/* ---- Stand on: his held values, his words, on the plate; a tap opens that one on Be ---- */
+.ck-values {
+  position: absolute; right: var(--gutter); top: calc(var(--lh-ink) * .75); pointer-events: none;
+  display: grid; justify-items: end;
+}
+.ck-value {
+  pointer-events: auto; appearance: none; border: 0; background: transparent; margin: 0; padding: 0 var(--s1); cursor: pointer;
+  height: var(--hit); font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--hit); color: var(--glow);
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 var(--s1) var(--plate); white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis;
+  animation: ck-into-in var(--t-ui) var(--ease) backwards;
+}
+.ck-value:focus-visible { outline: 2px solid var(--glow); outline-offset: -4px; border-radius: var(--s1); }
+
+/* ---- the sign carried, beside the date on the page it lands: drawn in print, a thumb's target round it ---- */
+.ck-signback {
+  appearance: none; border: 0; background: transparent; cursor: pointer; color: var(--print);
+  display: inline-grid; place-items: center; vertical-align: middle;
+  width: var(--s3); height: var(--s3); padding: 0; margin: calc(var(--s1) * -1) calc(var(--s1) / 2) calc(var(--s1) * -1) calc(var(--s1) * -1);
+  position: relative; -webkit-tap-highlight-color: transparent;
+}
+/* the hit area is a thumb wide, the mark stays small */
+.ck-signback::before { content: ""; position: absolute; inset: calc((var(--hit) - var(--s3)) / -2); }
+.ck-signback:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; border-radius: var(--s1); }
+.ck-signmark { width: var(--fs-fill); height: var(--fs-fill); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-into-go path, .ck-star-dot, .ck-star-line, .ck-value { animation: none; stroke-dashoffset: 0; }
+}

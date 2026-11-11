@@ -18,6 +18,7 @@ import { notebookDate } from '../date';
 import { tick } from './Haptic';
 import { MusicLine, type MusicPage } from '../music/MusicLine';
 import { useDrawn } from '../turns';
+import { SignBack } from '../flow/chakra/SignBack';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -42,10 +43,13 @@ type Props = {
   door?: { ask: (then: 'still' | 'flow') => void };
   /** False while the page is still reading what it draws (M2): a page turn waits for it, a moment at most. */
   drawn?: boolean;
+  /** The sign this page is linked to (page.sign, PLAN-TASKS.md T3): printed beside the date, a tap goes back to it. A
+   *  page a sign's touch carried him to prints that sign whether or not it is linked (flow/chakra/SignBack.tsx). */
+  sign?: string;
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count, door }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count, door, sign }: Omit<Props, 'children'>) {
   if (door) return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -78,7 +82,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, k
         {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
         {count && <span class="fs-count">{count}</span>}
         {label && <span class="fs-hdr-label">{label}</span>}
-        <span>Date: <b>{notebookDate(date)}</b></span>
+        <span><SignBack sign={sign} />Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>
   );
