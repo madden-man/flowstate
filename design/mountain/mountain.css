@@ -4,7 +4,15 @@
 .mt svg { display: block; width: 100%; height: auto; overflow: visible; }
 .mt .pen { fill: none; stroke: var(--print); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
 .mt .far { opacity: .5; stroke-width: 1; }
-.mt .hatch { opacity: .32; stroke-width: .9; }
+.mt .hatch { opacity: .5; stroke-width: .9; }
+/* pass 5, the mountain in ink: the rock's own line is ink and heavy, heaviest on the side in shadow; the mass hides
+   what is behind it; the shadow is ink at a low tone under the hatching; cracks are ink, thin */
+.mt .rock { stroke: var(--ink); stroke-width: 1.9; stroke-linejoin: miter; }
+.mt .rock.bold { stroke-width: 2.8; }
+.mt .rock.thin { stroke-width: 1.1; stroke-linejoin: round; }
+.mt .crack { stroke: var(--ink); stroke-width: 1; opacity: .7; }
+.mt .mass { fill: var(--page); stroke: none; }
+.mt .shade { fill: var(--ink); opacity: .1; stroke: none; }
 .mt .snow { stroke: var(--ink); stroke-width: 1.4; }
 .mt .flake { stroke: var(--ink); stroke-width: 1.6; opacity: .55; }
 .mt .cloud { stroke: var(--ink); stroke-width: 1.3; }
@@ -12,19 +20,17 @@
 .mt .circle { stroke: var(--ink); stroke-width: 1.4; fill: var(--page); }
 .mt .star { fill: var(--ink); display: none; }
 [data-light="night"] .mt .star { display: block; opacity: .7; }
-[data-light="night"] .mt .sun, [data-light="still"] .mt .sun { display: none; }
 .mt .chan { fill: none; stroke: var(--print); stroke-linecap: round; stroke-linejoin: round; opacity: .4; }
 .mt .mote { stroke: var(--ink); stroke-linecap: round; }
 .mt .name { font-family: var(--serif); font-size: var(--fs-fill); fill: var(--ink); stroke: var(--page); stroke-width: 4; paint-order: stroke; }
 .mt .mt-place .name { font-size: var(--fs-chip); }
 .mt-stop { --c: oklch(var(--voice-l) var(--voice-c) var(--hue)); }
-.mt .ring, .mt-lotus .ring { fill: var(--page); stroke: var(--c); stroke-width: 1.5; }
-.mt .fill, .mt-lotus .fill { fill: var(--c); }
-.mt .petal, .mt-lotus .petal { fill: var(--page); stroke: var(--c); stroke-width: 1.2; stroke-linejoin: round; }
+.sign .ground { fill: var(--page); stroke: none; }
+.sign .body { fill: var(--c); stroke: var(--c); stroke-width: 1.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.sign .line { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+[data-light="still"] .sign .body { fill: var(--print); stroke: var(--print); }
 .mt-lotus { width: 100%; max-width: 328px; margin: 0 auto; height: calc(var(--lh-ink) * 5); flex: none; }
 .mt-lotus svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.mt-lotus .yantra { fill: none; stroke: var(--print); stroke-width: 1; stroke-linejoin: round; }
-.mt-lotus .bija { font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); fill: var(--ink); }
 .mt-gloss { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); text-align: center; margin: 0; line-height: var(--lh-ink); }
 .mt-way { display: flex; align-items: center; gap: var(--s2); min-height: calc(var(--lh-ink) * 2); }
 .mt-way svg { width: 56px; height: 40px; flex: none; overflow: visible; }
@@ -55,3 +61,4 @@
 .mt-sheet { z-index: 5; position: absolute; left: 0; right: 0; bottom: 0; background: var(--page); box-shadow: var(--shadow-sheet); border-radius: var(--s2) var(--s2) 0 0; padding: var(--s2) var(--gutter) calc(var(--s4) * 2); }
 .mt-sheet h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: var(--fs-title); line-height: var(--lh-ink); }
 .mt-slot .fs-check-text { color: var(--print); font-style: italic; }
+.mt-lotus .sign .ground { display: none; }

@@ -1,15 +1,25 @@
-// The mountain, as proposed in PLAN-MOUNTAIN.md: a mock that runs. Meru drawn in pen: snow at the summit, one stream
-// down through seven lotuses to the ocean, and the circle floating there. A meter for the whole mountain (the weather
-// on the peak) and a gate at each lotus (its petals fold). The maths is section 3 of the plan; the real build puts it
+// The mountain, as proposed in PLAN-MOUNTAIN.md: a mock that runs. Meru drawn in pen and ink, a horn with a face in shadow: snow at the summit, one stream
+// down through seven signs to the ocean, and the circles floating there. A meter for the whole mountain (the weather
+// on the peak) and a gate at each sign (it empties and shrinks). The maths is section 3 of the plan; the real build puts it
 // in model/mountain.ts and draws it with parts/Stream. No colour, font or duration is written here: tokens only.
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
   var W = 328, H = 476, PEAK = { x: 164, y: 44 }, SHORE = 394, SEA = { y: 434, r: 15 };
   // the circles afloat in the sea: what he does when the water is running well. Room for more.
   var CIRCLES = [['Meditate', 108, 'places'], ['Energize', 220, 'places']];
-  // the seven, crown to root: name, hue, step id, petals (the thousand drawn as two rings of twenty)
-  var STOPS = [['Sahasrara', 305, 'sahasrara', 1000], ['Ajna', 275, 'ajna', 2], ['Vishuddha', 250, 'vishuddha', 16], ['Anahata', 150, 'anahata', 12],
-    ['Manipura', 95, 'manipura', 10], ['Svadhisthana', 55, 'svadhisthana', 6], ['Muladhara', 25, 'muladhara', 4]];
+  // the seven, crown to root: the part of the body or soul it sits at (its only name: nothing here is borrowed from
+  // the Hindu chakras' own names, lotuses or letters), hue, step id, its sign, and where the stream meets it: x, y and
+  // the side its name and gate go. The course is uneven on purpose, each stop placed by what it is:
+  //   Crown        just under the summit, in the snow the water starts as: letting go
+  //   Third eye    a ledge out on the lit side, close under the crown, where you can see a long way
+  //   Throat       back in tight against the arete, the narrows where the water is loudest: speech
+  //   Heart        the long swing out to the wide hollow at the mountain's middle, where water rests in a tarn
+  //   Solar plexus across to the far flank, a fire kept on the side in shadow: will
+  //   Sacral       a short drop to a pool low on the lit side: feeling
+  //   Root         the foot, in the trees, where the mountain meets the ground: safety
+  var STOPS = [['Crown', 305, 'crown', 'crown', 172, 80, 1], ['Third eye', 275, 'third-eye', 'eye', 138, 112, -1], ['Throat', 250, 'throat', 'voice', 180, 152, 1],
+    ['Heart', 150, 'heart', 'heart', 112, 222, -1], ['Solar plexus', 95, 'solar-plexus', 'sun', 216, 272, 1], ['Sacral', 55, 'sacral', 'drop', 148, 316, -1],
+    ['Root', 25, 'root', 'sprout', 198, 360, 1]];
   var BASE = 30, POOL = 26, N = 130;
   var K = { day: 1, night: 0.85, still: 0.4 };
   var calm = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -24,29 +34,35 @@
   var seed = 7;
   function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
 
-  // ---- the lotus: n petals round a centre, folding in as the gate closes (b from 0, open, to 1, a bud)
-  function Lotus(parent, cx, cy, r0, reach, n) {
-    this.cx = cx; this.cy = cy; this.r0 = r0; this.reach = reach; this.petals = [];
-    var rings = n > 100 ? [[20, 0, 1], [20, 9, 0.62]] : [[n, n === 2 ? 90 : 0, 1]];
-    for (var k = rings.length - 1; k >= 0; k--) for (var i = 0; i < rings[k][0]; i++)
-      this.petals.push({ a: rings[k][1] + i * 360 / rings[k][0], n: rings[k][0], k: rings[k][2], el: el('path', { class: 'petal' }, parent) });
-    this.heart = el('circle', { class: 'ring', cx: cx, cy: cy, r: r0 }, parent);
-    this.fill = el('circle', { class: 'fill', cx: cx, cy: cy, r: r0 }, parent);
+  // ---- the signs: one small drawn mark a stop, in a box of 20, full of its colour when the water runs through it and
+  // emptying to an outline and drawing in as its gate closes (b from 0, open, to 1, shut). ink is drawn in line only.
+  var SIGNS = {
+    crown: { fill: 'M-8 6 L-9.5 -4 L-4.5 1 L0 -8 L4.5 1 L9.5 -4 L8 6 Z' },
+    eye: { fill: 'M-10 0 Q0 -9 10 0 Q0 9 -10 0 Z', ink: 'M-2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0 M-6 -6.5 l-1.5 -2.5 M0 -8 v-3 M6 -6.5 l1.5 -2.5' },
+    voice: { fill: 'M-7 -7 H7 Q10 -7 10 -4 V1 Q10 4 7 4 H-1 L-6 9 L-5 4 H-7 Q-10 4 -10 1 V-4 Q-10 -7 -7 -7 Z', ink: 'M-5 -3 H5 M-5 0 H2' },
+    heart: { fill: 'M0 8.5 C-13 0 -9.5 -9 -4.5 -8.5 C-1.5 -8.3 0 -5.5 0 -4 C0 -5.5 1.5 -8.3 4.5 -8.5 C9.5 -9 13 0 0 8.5 Z' },
+    sun: { fill: 'M-5 0 a5 5 0 1 0 10 0 a5 5 0 1 0 -10 0 Z', ink: 'M0 -7.5 V-10.5 M0 7.5 V10.5 M-7.5 0 H-10.5 M7.5 0 H10.5 M-5.3 -5.3 L-7.4 -7.4 M5.3 -5.3 L7.4 -7.4 M-5.3 5.3 L-7.4 7.4 M5.3 5.3 L7.4 7.4' },
+    drop: { fill: 'M0 -10 C4 -4 8 0 8 3.5 A8 8 0 0 1 -8 3.5 C-8 0 -4 -4 0 -10 Z', ink: 'M-4 4 a4.5 4.5 0 0 0 3 3.5' },
+    sprout: { fill: 'M0 1 C-8 0 -10 -8 -10 -8 C-3 -9 0 -4 0 1 Z M0 1 C8 0 10 -8 10 -8 C3 -9 0 -4 0 1 Z', ink: 'M0 1 V6 M0 6 L-5 10.5 M0 6 L5 10.5 M0 6 V11' },
+  };
+  function Sign(parent, cx, cy, k, kind) {
+    var sg = SIGNS[kind] || SIGNS.heart;
+    this.cx = cx; this.cy = cy; this.k = k;
+    this.g = el('g', { class: 'sign' }, parent);
+    el('circle', { class: 'ground', r: 13 }, this.g);
+    this.body = el('path', { class: 'body', d: sg.fill }, this.g);
+    if (sg.ink) el('path', { class: 'line', d: sg.ink }, this.g);
+    this.set(0);
   }
-  Lotus.prototype.set = function (b) {
-    var r0 = this.r0, cx = this.cx, cy = this.cy;
-    for (var i = 0; i < this.petals.length; i++) {
-      var p = this.petals[i], len = this.reach * p.k * (0.22 + 0.78 * (1 - b)), w = Math.min(Math.PI * r0 / p.n * 1.05, r0 * 0.8) * (0.6 + 0.4 * (1 - b)), y = cy - r0;
-      p.el.setAttribute('d', 'M' + (cx - w) + ' ' + y + ' C' + (cx - w * 1.5) + ' ' + (y - len * 0.5) + ' ' + (cx - w * 0.4) + ' ' + (y - len * 0.9) + ' ' + cx + ' ' + (y - len) +
-        ' C' + (cx + w * 0.4) + ' ' + (y - len * 0.9) + ' ' + (cx + w * 1.5) + ' ' + (y - len * 0.5) + ' ' + (cx + w) + ' ' + y);
-      p.el.setAttribute('transform', 'rotate(' + p.a + ' ' + cx + ' ' + cy + ')');
-    }
-    this.fill.setAttribute('opacity', b.toFixed(2));
+  Sign.prototype.set = function (b) {
+    var k = this.k * (1 - 0.3 * b);
+    this.g.setAttribute('transform', 'translate(' + this.cx + ' ' + this.cy + ') scale(' + k.toFixed(3) + ')');
+    this.body.setAttribute('fill-opacity', (1 - b).toFixed(2));
   };
 
-  // ---- the walk: the spring under the snow, seven lotuses on alternating sides, the river mouth, the circle in the sea
+  // ---- the walk: the spring under the snow, the seven signs where STOPS puts them, the river mouth, the circles in the sea
   var way = [{ x: PEAK.x, y: PEAK.y + 14 }];
-  STOPS.forEach(function (s, i) { var side = i % 2 ? -1 : 1; way.push({ x: 164 + side * (12 + i * 8), y: 96 + i * 42, side: side }); });
+  STOPS.forEach(function (s) { way.push({ x: s[4], y: s[5], side: s[6] }); });
   way.push({ x: 164, y: SHORE }); way.push({ x: 164, y: SEA.y + 4 });
   var X = [], Y = [], L = [], at = [0];
   (function () {
@@ -72,54 +88,112 @@
   }
   function stretch(s) { var i = 0; while (i < 7 && s >= at[i + 1]) i++; return i; }
 
-  // ---- the land, in pen. Half the mountain's width at a height, for the snow, the hatching and the trees.
-  function half(y) { var t = (y - PEAK.y) / (SHORE - PEAK.y); return 4 + 156 * Math.pow(t, 1.25); }
-  function ridge(side) { // one flank from the peak to the shore, a little jagged near the top
-    var d = '';
-    for (var y = PEAK.y; y <= SHORE; y += 6) {
-      var jag = y < 150 ? (rnd() - 0.5) * 5 : (rnd() - 0.5) * 2;
-      d += (d ? 'L' : 'M') + (PEAK.x + side * (half(y) + jag)).toFixed(1) + ' ' + y + ' ';
+  // ---- the land, in pen and ink (pass 5: "draw the mountain in a more dramatic and visceral way"). A horn, not a
+  // hill: a spire that steepens to the summit, crags broken out of both flanks, an arete falling from the peak that
+  // splits a lit face from a face in shadow (tone under close hatching), gullies cut down the lit side, two lesser
+  // horns shouldering in behind, spindrift torn off the top, and a black treeline over sea cliffs at the foot.
+  // Half the mountain's width at a height, for the snow.
+  function half(y) { var t = (y - PEAK.y) / (SHORE - PEAK.y); return 3 + 150 * Math.pow(t, 1.5); }
+  var FLANK = { '-1': [], '1': [] }, ARETE = [];
+  function flank(side) { // one flank from the peak to the shore: cliffs and ledges, the crags bigger up high
+    var pts = FLANK[side], out = 0;
+    for (var y = PEAK.y; y <= SHORE; y += 4) {
+      var amp = y < 210 ? 7 : 4;
+      if (rnd() < 0.2) out = (rnd() - 0.3) * amp * 1.6; // a crag breaks out, or a notch bites in, and holds a while
+      pts.push([PEAK.x + side * (half(y) + out + (rnd() - 0.5) * amp * 0.5), y]);
     }
-    return d;
+    pts[0] = [PEAK.x, PEAK.y];
+    return pts;
   }
-  function fir(g, x, y, h) {
-    el('path', { class: 'pen', d: 'M' + x + ' ' + (y - h) + ' l' + (-h * 0.36) + ' ' + (h * 0.45) + ' h' + (h * 0.2) + ' l' + (-h * 0.3) + ' ' + (h * 0.4) + ' h' + (h * 0.92) +
-      ' l' + (-h * 0.3) + ' ' + (-h * 0.4) + ' h' + (h * 0.2) + ' Z M' + x + ' ' + (y - h * 0.15) + ' v' + (h * 0.3) }, g);
+  function line(pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' '); }
+  function arete(y) { return PEAK.x + 5 + (y - PEAK.y) * 0.13 + 5 * Math.sin(y / 23) + 3 * Math.sin(y / 9); }
+  function edge(side, y) { var p = FLANK[side][Math.max(0, Math.min(FLANK[side].length - 1, Math.round((y - PEAK.y) / 4)))]; return p[0]; }
+  // a line that falls down a face, breaking left and right as rock does
+  function fall(x, y, dx, len, step) {
+    var d = 'M' + x.toFixed(1) + ' ' + y.toFixed(1);
+    for (var k = 0; k < len; k += step) {
+      x += dx * step + (rnd() - 0.5) * 5; y += step;
+      // a crack stays on the rock: it stops short of either flank and above the trees
+      if (y > SHORE - 16 || x < edge(-1, y) + 5 || x > edge(1, y) - 5) break;
+      d += ' L' + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    return d + ' ';
   }
+  function hatchBand(x0, x1, y, gap, lean) { var d = ''; for (var x = x0; x < x1; x += gap) d += 'M' + x.toFixed(1) + ' ' + y + ' l' + lean + ' 7 '; return d; }
   function land(svg) {
+    // each mountain on the page is drawn afresh, from the same seed, so each is the same mountain
+    FLANK = { '-1': [], '1': [] }; ARETE = [];
     var g = el('g', { class: 'land' }, svg);
-    // the sun on its arc: weather, nothing to tap
-    var sky = el('g', { class: 'mt-place' }, svg);
-    el('path', { class: 'pen far', d: 'M16 50 C36 48 48 16 64 14 C80 13 94 44 114 50' }, sky);
-    el('circle', { class: 'pen sun', cx: 64, cy: 14, r: 5 }, sky);
-    for (var r = 0; r < 8; r++) { var a = r * Math.PI / 4; el('path', { class: 'pen sun', d: 'M' + (64 + 8 * Math.cos(a)).toFixed(1) + ' ' + (14 + 8 * Math.sin(a)).toFixed(1) + ' L' + (64 + 11 * Math.cos(a)).toFixed(1) + ' ' + (14 + 11 * Math.sin(a)).toFixed(1) }, sky); }
     // stars, for the night
     for (var s = 0; s < 14; s++) el('circle', { class: 'star', cx: (10 + rnd() * 308).toFixed(1), cy: (6 + rnd() * 120).toFixed(1), r: (0.6 + rnd() * 0.7).toFixed(1) }, g);
-    // two birds
-    el('path', { class: 'pen far', d: 'M244 40 q4 -5 7 0 q3 -5 7 0 M268 54 q3 -4 5 0 q2 -4 5 0' }, g);
-    // far ranges behind the peak
-    el('path', { class: 'pen far', d: 'M0 262 L22 236 L38 248 L66 204 L84 226 L104 196 L118 214' }, g);
-    el('path', { class: 'pen far', d: 'M212 206 L232 178 L250 200 L272 164 L292 196 L310 184 L328 208' }, g);
-    el('path', { class: 'pen far', d: 'M0 322 L18 300 L34 312 L52 286' }, g);
-    el('path', { class: 'pen far', d: 'M284 300 L300 280 L314 296 L328 284' }, g);
-    // the peak
-    el('path', { class: 'pen', d: ridge(-1) }, g);
-    el('path', { class: 'pen', d: ridge(1) }, g);
-    // the shaded flank: short pen strokes down the right side
+    // far ranges, sawtoothed, low behind everything
+    el('path', { class: 'pen far', d: 'M0 250 L14 226 L22 236 L40 196 L48 210 L62 178 L72 200 L80 190 L96 222' }, g);
+    el('path', { class: 'pen far', d: 'M232 214 L246 186 L254 198 L270 160 L280 182 L290 170 L306 204 L316 194 L328 216' }, g);
+    // two lesser horns shouldering in behind the peak, each with its dark side
+    var horns = [
+      [[0, 344], [20, 300], [30, 312], [52, 250], [60, 262], [82, 196], [90, 210], [104, 148], [111, 166], [117, 158], [126, 196], [132, 260], [120, 344]],
+      [[200, 344], [198, 190], [206, 172], [214, 136], [221, 150], [232, 116], [240, 142], [246, 134], [262, 184], [272, 174], [292, 236], [300, 226], [328, 290], [328, 344]],
+    ];
+    horns.forEach(function (h, i) {
+      el('path', { class: 'mass', d: line(h) + ' Z' }, g);
+      el('path', { class: 'pen rock', d: line(h.slice(0, h.length - 1 - i)) }, g);
+    });
+    var dark = '';
+    for (var y1 = 160; y1 < 330; y1 += 8) dark += hatchBand(104 + (y1 - 148) * 0.06, 110 + (y1 - 148) * 0.14, y1, 4, -3);
+    for (var y2 = 128; y2 < 330; y2 += 8) dark += hatchBand(233 + (y2 - 116) * 0.1, 238 + (y2 - 116) * 0.42, y2, 5, -3);
+    el('path', { class: 'pen hatch', d: dark }, g);
+    // spindrift torn off the summit, downwind
+    el('path', { class: 'pen far', d: 'M167 41 q20 -13 50 -10 M171 47 q28 -9 64 -2 M169 35 q12 -9 30 -10 M178 53 q22 -4 44 4' }, g);
+    // the peak: its mass first, so nothing behind shows through; then the face in shadow, then the ink
+    var lf = flank(-1), rt = flank(1);
+    for (var y = PEAK.y; y <= SHORE; y += 4) ARETE.push([y === PEAK.y ? PEAK.x : arete(y), y]);
+    el('path', { class: 'mass', d: line(lf) + ' ' + line(rt.slice().reverse()).replace('M', 'L') + ' Z' }, g);
+    el('path', { class: 'shade', d: line(ARETE) + ' ' + line(rt.slice().reverse()).replace('M', 'L') + ' Z' }, g);
+    // the shadow's hatching: close against the arete, opening toward the far edge
     var hatch = '';
-    for (var y = 84; y < SHORE - 24; y += 13) for (var k = 0; k < 3; k++) {
-      var x = PEAK.x + half(y) * (0.78 + k * 0.07) - 3;
-      hatch += 'M' + x.toFixed(1) + ' ' + (y + k * 3) + ' l-5 9 ';
+    for (var hy = PEAK.y + 10; hy < SHORE - 8; hy += 6) {
+      var x0 = arete(hy) + 2, x1 = edge(1, hy) - 3;
+      for (var x = x0, gap = 4; x < x1; x += gap, gap = Math.min(10, gap * 1.2)) hatch += 'M' + (x + (rnd() - 0.5)).toFixed(1) + ' ' + hy + ' l-3.5 ' + (6 + rnd() * 3).toFixed(1) + ' ';
     }
     el('path', { class: 'pen hatch', d: hatch }, g);
-    // a spur on the left, and boulders by the water
-    el('path', { class: 'pen far', d: 'M' + (PEAK.x - half(150) + 2) + ' 150 C128 190 118 236 96 280 C88 300 84 318 70 340' }, g);
-    el('path', { class: 'pen', d: 'M118 388 q5 -8 12 -2 q6 -3 8 4 M196 390 q4 -7 10 -3 q5 0 6 5' }, g);
-    // firs on the lower slopes, away from the water
-    [[26, 388, 13], [40, 380, 16], [56, 388, 12], [70, 376, 15], [88, 386, 11], [44, 352, 12], [66, 338, 10],
-      [246, 386, 12], [262, 378, 16], [278, 388, 13], [294, 382, 15], [308, 390, 11], [284, 352, 11], [262, 340, 10]].forEach(function (t) { fir(g, t[0], t[1], t[2]); });
-    // the shore, either side of the river mouth
-    el('path', { class: 'pen', d: 'M0 ' + (SHORE + 2) + ' C36 ' + (SHORE - 3) + ' 92 ' + (SHORE + 4) + ' 146 ' + SHORE + ' M182 ' + SHORE + ' C236 ' + (SHORE + 4) + ' 292 ' + (SHORE - 3) + ' 328 ' + (SHORE + 2) }, g);
+    // gullies cut down the lit face from the arete, and the broken rock between them
+    var cut = '';
+    for (var k = 0; k < 6; k++) { var gy = 74 + k * 44; cut += fall(arete(gy) - 2, gy, -0.42 - k * 0.04, 46 + k * 16, 7); }
+    for (var k2 = 0; k2 < 4; k2++) { var sy = 110 + k2 * 62; cut += fall(arete(sy) + 4, sy, 0.3, 40 + k2 * 10, 7); }
+    el('path', { class: 'pen crack', d: cut }, g);
+    var chips = '';
+    for (var c = 0; c < 70; c++) {
+      var cy = 80 + rnd() * (SHORE - 110), lo = edge(-1, cy) + 5, hi = arete(cy) - 6;
+      if (hi - lo < 8) continue;
+      var cx = lo + rnd() * (hi - lo);
+      chips += 'M' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' l' + (-2 - rnd() * 3).toFixed(1) + ' ' + (4 + rnd() * 5).toFixed(1) + ' ';
+    }
+    el('path', { class: 'pen far', d: chips }, g);
+    // the ground each stop sits on: the ledge under the eye, the falls at the throat, the tarn the heart rests in
+    el('path', { class: 'pen rock thin', d: 'M124 121 l10 3 l12 -1 l9 3' }, g);
+    el('path', { class: 'pen far', d: 'M176 160 v12 M180 162 v15 M184 160 v11 M172 164 v8' }, g);
+    el('path', { class: 'pen rock thin', d: 'M92 232 q20 -9 42 0 q-20 10 -42 0 Z' }, g);
+    el('path', { class: 'pen far', d: 'M100 232 h10 M114 235 h10 M106 229 h8' }, g);
+    // the ink: both flanks heavy, the shadow side heaviest, and the arete falling from the summit
+    el('path', { class: 'pen rock', d: line(lf) }, g);
+    el('path', { class: 'pen rock bold', d: line(rt) }, g);
+    el('path', { class: 'pen rock', d: line(ARETE.slice(0, 66)) }, g);
+    // the foot: a black treeline either side of the river, two ranks deep, and scree by the water
+    var trees = '', back = '';
+    for (var tx = 2; tx < W - 2; tx += 3.2) {
+      if (tx > 128 && tx < 204) continue;
+      var th = 6 + rnd() * 7;
+      trees += 'M' + tx.toFixed(1) + ' ' + (SHORE - 1) + ' l1.6 ' + (-th).toFixed(1) + ' l1.6 ' + th.toFixed(1) + ' ';
+      if (tx < 104 || tx > 226) { var bh = 5 + rnd() * 6; back += 'M' + (tx + 1.4).toFixed(1) + ' ' + (SHORE - 9) + ' l1.5 ' + (-bh).toFixed(1) + ' l1.5 ' + bh.toFixed(1) + ' '; }
+    }
+    el('path', { class: 'pen far', d: back }, g);
+    el('path', { class: 'pen rock thin', d: trees }, g);
+    el('path', { class: 'pen', d: 'M132 388 q5 -9 12 -2 q6 -4 8 4 M186 390 q4 -8 10 -3 q5 -1 6 5 M146 380 q3 -5 7 -1 M178 382 q3 -5 7 -1' }, g);
+    // the shore: sea cliffs, either side of the river mouth, with the rock dropping into the water
+    el('path', { class: 'pen rock', d: 'M0 ' + (SHORE + 2) + ' L30 ' + (SHORE - 1) + ' L58 ' + (SHORE + 3) + ' L96 ' + SHORE + ' L146 ' + (SHORE + 1) + ' M182 ' + (SHORE + 1) + ' L232 ' + (SHORE + 3) + ' L270 ' + (SHORE - 1) + ' L300 ' + (SHORE + 3) + ' L328 ' + (SHORE + 1) }, g);
+    var drop = '';
+    for (var dx = 4; dx < W - 2; dx += 5) { if (dx > 142 && dx < 186) continue; drop += 'M' + dx + ' ' + (SHORE + 3) + ' v' + (3 + rnd() * 4).toFixed(1) + ' '; }
+    el('path', { class: 'pen far', d: drop }, g);
   }
 
   var all = [];
@@ -183,11 +257,11 @@
       el('text', { class: 'name', x: c[1], y: SEA.y + SEA.r + 16, 'text-anchor': 'middle' }, f).textContent = c[0];
       self.floats.push(f);
     });
-    // the seven lotuses, each with its gate
+    // the seven signs, each with its gate
     this.stops = STOPS.map(function (s, i) {
       var p = way[i + 1], side = p.side, xin = p.x + side * 19, xout = p.x + side * 75;
       var grp = el('g', { class: 'mt-stop', style: '--hue:' + s[1] }, svg);
-      var lotus = new Lotus(grp, p.x, p.y, 5, 10, s[3]);
+      var lotus = new Sign(grp, p.x, p.y, 0.95, s[3]);
       var name = el('text', { class: 'name', x: xin, y: p.y - 3, 'text-anchor': side > 0 ? 'start' : 'end' }, grp);
       name.textContent = s[0];
       var open = el('rect', { class: 'hit', x: Math.min(p.x - 16, xout), y: p.y - 22, width: Math.abs(xout - p.x) + 16, height: 24 }, grp);
@@ -260,7 +334,7 @@
     for (var c = 0; c < this.floats.length; c++) { this.floats[c].setAttribute('transform', 'translate(0 ' + (k ? (0.5 - ease) * 2.5 : 0).toFixed(2) + ')'); this.floats[c].setAttribute('opacity', (0.5 + 0.5 * arrive).toFixed(2)); }
     for (var n = 0; n < this.motes.length; n++) {
       var m = this.motes[n], i = stretch(m.s), q = this.q[i], pace = 0.3 + 1.2 * q, wide = 4.5;
-      if (i < 7 && !still) { // the pool above a part-closed lotus
+      if (i < 7 && !still) { // the pool above a part-closed sign
         var near = 1 - Math.min(1, (at[i + 1] - m.s) / POOL), b = this.b[i];
         pace *= 1 - 0.75 * b * near; wide += 5 * b * near;
       }
@@ -291,16 +365,12 @@
   }
   document.querySelectorAll('.mt-gate').forEach(function (gate) {
     var rule = gate.querySelector('.mt-rule'), mark = rule.querySelector('i'), pct = gate.querySelector('.mt-pct');
-    // the chakra's own lotus above its gate: the petals, the element's shape and the seed syllable inside
+    // the stop's own sign, large, above its gate
     var big = gate.previousElementSibling, lotus = null;
     while (big && !big.classList.contains('mt-lotus')) big = big.previousElementSibling;
     if (big) {
       var svg = el('svg', { viewBox: '0 0 328 140' }, big), g = el('g', { class: 'mt-stop', style: '--hue:' + big.dataset.hue }, svg);
-      lotus = new Lotus(g, 164, 74, 24, 36, +big.dataset.petals);
-      var Yn = { square: 'M150 60 H178 V88 H150 Z', crescent: 'M150 70 A14 14 0 0 0 178 70 A17 10 0 0 1 150 70 Z', triangle: 'M149 62 H179 L164 90 Z',
-        hexagram: 'M164 55 L180 83 H148 Z M164 93 L148 65 H180 Z', circle: 'M148 74 A16 16 0 1 0 180 74 A16 16 0 1 0 148 74 Z' }[big.dataset.yantra];
-      if (Yn) el('path', { class: 'yantra', d: Yn }, g);
-      if (big.dataset.bija) el('text', { class: 'bija', x: 164, y: 79, 'text-anchor': 'middle' }, g).textContent = big.dataset.bija;
+      lotus = new Sign(g, 164, 74, 4.2, big.dataset.sign);
     }
     var show = function (v) { mark.style.left = (v * 100) + '%'; pct.textContent = v > 0.005 ? Math.round(v * 100) + '%' : ''; if (lotus) lotus.set(v); };
     slide(rule, show); show(+gate.dataset.b || 0);
