@@ -4,6 +4,8 @@
 // episodes and step words, the halo and hold the ring, and the clock in the middle, without the words under it (they
 // leave the page with the copy). The page owns the episode writes; this owns only what one drawing does on its own:
 // the breath a held thumb runs, the stream's landing ring, and whether his stamps have replaced the seeded ones.
+// Folded (Root holds two drawings): the second is drawn small, its dot only drawn, until a tap opens it; the safety lines
+// and the rows are the page's, so folding hides none of them.
 import { useState } from 'preact/hooks';
 import { Cycle } from '../../parts/Cycle';
 import { midStyle } from '../../parts/cycle/index';
@@ -35,9 +37,28 @@ type Props = {
   focused: boolean;
   onRead: (k: number) => void;
   onMove: (visits: number[], to: number) => void;
+  /** Folded (a second drawing under the sign, not yet opened): drawn small, the dot only drawn; a tap opens it. */
+  folded?: boolean;
+  onOpen?: () => void;
 };
 
-export function Drawing({ flow, live, at, showing, onStep, moving, version, now, focused, onRead, onMove }: Props) {
+export function Drawing(props: Props) {
+  if (props.folded) {
+    const { flow, at, onOpen } = props;
+    return (
+      <section class="ck-drawing" data-flow={flow.id} data-folded="" aria-label="How it gets blocked">
+        <button type="button" class="ck-fold" aria-label="Open this drawing" onClick={onOpen}>
+          <span class="fl-drawing ck-fold-art" style={midStyle(flow.diagram)}>
+            <Cycle diagram={flow.diagram} steps={flow.steps} at={at} small />
+          </span>
+        </button>
+      </section>
+    );
+  }
+  return <Open {...props} />;
+}
+
+function Open({ flow, live, at, showing, onStep, moving, version, now, focused, onRead, onMove }: Props) {
   const breath = useBreath();
   const [marks, setMarks] = useState<('didnt' | 'happened')[]>([]);
   const [landing, setLanding] = useState<{ k: number; seq: number } | null>(null);

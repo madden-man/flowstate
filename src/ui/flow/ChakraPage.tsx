@@ -90,6 +90,9 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   const bring = useRef(false);
   const [gateLive, setGateLive] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
+  /** The drawings opened on this visit: the first, whichever was in front, and any he tapped open. The rest stay folded,
+   *  so a sign with two drawings (Root) is one drawing and a small second until he asks for it. */
+  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   const now = useNow();
   const scrolled = useRef<string | undefined>(undefined);
   const page = useRef<HTMLDivElement>(null);
@@ -143,6 +146,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
 
   const move = async (it: Item, visits: number[], to: number) => {
     const f = it.flow;
+    keep(front?.flow.id, f.id);
     setMoved({ flowId: f.id, to });
     scrolled.current = f.id;
     const done = guard.write();
@@ -169,10 +173,14 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   };
 
   const live = front?.live;
+  const isOpen = (it: Item, k: number) => k === 0 || it === front || !!it.live || opened.has(it.flow.id);
+  // what was in front stays open when something else comes in front (a move, a read, a hand-off)
+  const keep = (...ids: (string | undefined)[]) => setOpened(o => (ids.every(x => !x || o.has(x)) ? o : new Set([...o, ...ids.filter((x): x is string => !!x)])));
   // a hand-off: written, then the page read again (the episode it started is on a drawing this page may already show);
   // to another drawing here it stays this page, with that drawing brought into view, and no turn (a replace)
   const handOff = async (t: Tip, stepId: string) => {
     const here = !!t.handoff && homes.get(t.handoff.flowId) === chakra;
+    keep(front?.flow.id, here ? t.handoff?.flowId : undefined);
     const done = guard.write();
     setWriting(w => w + 1);
     try {
@@ -198,15 +206,19 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
         <Gate value={gate} hue={c.hue} label={c.name} stale={!!stored && isStale(stored, now)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
         {live && <FromRow live={live} homes={homes} page={{ chakra, order: items.map(x => x.flow.id), front: front!.flow.id }} />}
-        {items.map(it => {
+        {items.map((it, k) => {
           const at = placeNow(it);
+          if (!isOpen(it, k)) {
+            return <Drawing key={it.flow.id} flow={it.flow} at={at} showing={0} focused={false} onStep={false} moving={false} version={version} now={now}
+              onRead={() => {}} onMove={() => {}} folded onOpen={() => setOpened(o => new Set([...o, it.flow.id]))} />;
+          }
           const isFront = it === front;
           const sh = isFront ? showing : at;
           return (
             <Drawing key={it.flow.id} flow={it.flow} live={it.live} at={at} showing={sh} focused={isFront}
               onStep={!!it.live && moved === null && sh > 0 && sh === at} moving={moved?.flowId === it.flow.id}
               version={version} now={now}
-              onRead={k => { scrolled.current = it.flow.id; route(`/flow/${it.flow.id}/${k}`, true); }} onMove={(v, to) => void move(it, v, to)} />
+              onRead={k => { keep(front?.flow.id, it.flow.id); scrolled.current = it.flow.id; route(`/flow/${it.flow.id}/${k}`, true); }} onMove={(v, to) => void move(it, v, to)} />
           );
         })}
         {front && rows ? (

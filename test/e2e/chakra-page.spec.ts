@@ -238,6 +238,8 @@ test('a hand-off to the other drawing on the same page shows the new episode at 
 test('a first move on the second drawing does not scroll the page under the thumb', async ({ page }) => {
   await open(page, '#/flow/c/root');
   const scroller = page.locator('.ck-page');
+  // the second drawing is folded until tapped open
+  await page.getByRole('button', { name: 'Open this drawing' }).click();
   const dot = page.locator('.ck-drawing[data-flow="whatif"]').getByRole('slider', { name: 'Where you are' });
   await dot.waitFor();
   const y0 = await page.evaluate(() => {
@@ -283,6 +285,23 @@ test('quick moves never put the dot back a step', async ({ page }) => {
   const seen = (await page.evaluate(() => (window as unknown as { seen: string[] }).seen)).map(Number);
   for (let i = 1; i < seen.length; i++) expect(seen[i], seen.join(',')).toBeGreaterThanOrEqual(seen[i - 1]);
   await expect(dot).toHaveAttribute('aria-valuenow', '3');
+});
+
+test('Root is calm: the second drawing folded small until tapped, the safety lines all there', async ({ page }) => {
+  await open(page, '#/flow/c/root');
+  const fold = page.locator('.ck-drawing[data-flow="whatif"][data-folded]');
+  await expect(fold).toHaveCount(1);
+  await expect(fold.getByRole('slider')).toHaveCount(0);
+  await expect(page.locator('.ck-drawing[data-flow="panic"]').getByRole('slider', { name: 'Where you are' })).toBeVisible();
+  const lines = () => page.locator('.fl-prints p').allInnerTexts();
+  const before = await lines();
+  await fold.getByRole('button', { name: 'Open this drawing' }).click();
+  await expect(page.locator('.ck-drawing[data-flow="whatif"]')).not.toHaveAttribute('data-folded', '');
+  await expect(page.locator('.ck-drawing[data-flow="whatif"]').getByRole('slider', { name: 'Where you are' })).toBeVisible();
+  expect(await lines()).toEqual(before);
+  // opened on its own route, it is in front and open
+  await page.goto('/#/flow/whatif/2');
+  await expect(page.locator('.ck-drawing[data-flow="whatif"]')).not.toHaveAttribute('data-folded', '');
 });
 
 test('#/flow/c with no sign goes to the Flow tab', async ({ page }) => {
