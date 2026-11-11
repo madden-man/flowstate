@@ -11,8 +11,8 @@
 //
 // The sign is a lantern: drawn in pen order, then filling from a bright core out to its hue (a gradient here, the
 // body's fill), emptying to a cold outline as the gate shuts (parts/Sign under .on-plate, R0's plate lantern tokens);
-// its bloom breathes on the canvas. It carries view-transition-name mt-sign-<id>, the name R1 gives the small sign on
-// the mountain, so a tap there travels into this one through parts/Turn (rule 28).
+// its bloom breathes on the canvas. It carries data-travel mt-sign-<id>, the name R1 gives the small sign on the
+// mountain; ui/turns.ts names both only for the turn, so a tap there travels into this one (rule 28) and back.
 // In Still (rule 13): open, no hue (--ck-tint 0), the line colour only, slow water (--stream .4).
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
@@ -157,7 +157,7 @@ export function Plate({ chakra, gate, above }: Props) {
               Reduce Motion on) */}
           <path ref={course} class="ck-channel" d={whole} />
         </svg>
-        <div class="ck-sign" style={{ ...signBox, viewTransitionName: `mt-sign-${chakra}` }} data-travel={`mt-sign-${chakra}`}>
+        <div class="ck-sign" style={signBox} data-travel={`mt-sign-${chakra}`}>
           <svg class="ck-core-defs" aria-hidden="true" focusable="false">
             <radialGradient id="ck-core-fill" cx=".5" cy=".55" r=".6">
               <stop offset="0" class="ck-core-in" />

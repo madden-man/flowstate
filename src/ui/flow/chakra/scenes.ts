@@ -79,7 +79,8 @@ class Draw {
   clip(id: string, pts: readonly P[] | string) { this.clips[id] = typeof pts === 'string' ? pts : shape(pts); return id; }
   /** A heavy edge: the full pass at o and the dry pass beside it, fainter. */
   edge(pts: readonly P[], w: number, o: number, pen?: Pen) {
-    const [full, dry] = inked(pts, w, this.r, pen);
+    // a little lighter than a pen on paper, so the close view is drawn with the mountain's own hand (R1)
+    const [full, dry] = inked(pts, w * 0.8, this.r, pen);
     const i = this.pen++;
     const t = this.top(false);
     t.chalk.push({ k: 'ink', d: full, o, i });

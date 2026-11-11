@@ -125,3 +125,16 @@
   --plate-line: #8E8A82; --plate-print: #666973; --glow: #8E8A82;   /* print 3.6:1, line 5.8:1; the water is the line colour only */
   --plate-voice-l: 66%; --plate-voice-c: .055;                      /* unused: a sign in Still has no hue */
 }
+
+/* the mountain plate's own (R1: the Flow tab's mountain, ui/flow/Mountain.tsx). How dim the rock's chalk is where no
+   water lights it (Still the lowest of the three, rule 14); how far in from the screen's edges the plate's sides are
+   masked and how softly its edge goes into the page (by Day a print pasted on the cream inside the column, by Night
+   and in Still it runs into the page). The plate's box is the same in every light, so only the mask changes, eased
+   over --t-light (mountain.css), and a light change never moves the rows under it. How much it shows a state (gates,
+   lit rock, weather: none in Still, rule 13); and the arrival's length (pass 6, once per unlock). */
+:root, [data-light="day"] { --plate-dim: .3; --plate-inset: var(--gutter); --plate-feather: 0px; --plate-state: 1; --t-arrive: 4200ms; }
+[data-light="night"]      { --plate-dim: .27; --plate-inset: 0px; --plate-feather: 36px; --plate-state: 1; }
+[data-light="still"]      { --plate-dim: .3; --plate-inset: 0px; --plate-feather: 36px; --plate-state: 0; }
+@media (prefers-reduced-motion: reduce) {
+  :root, [data-light] { --t-arrive: 0ms; }
+}

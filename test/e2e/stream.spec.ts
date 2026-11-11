@@ -1,6 +1,5 @@
 // The stream (PLAN-MOTION.md M5, DESIGN.md rule 30): Panic's drawing runs like water behind parts/Cycle and above the
-// ghost rings; a landing sends one ring out; leaving the page leaves no loop running; the list's small drawings do
-// not run; Still runs slower with fewer; Reduce Motion shows none and runs none; and the page works without the layer.
+// ghost rings; a landing sends one ring out; leaving the page leaves no loop running; Still runs slower with fewer; Reduce Motion shows none and runs none; and the page works without the layer.
 import { test, expect, type Page } from '@playwright/test';
 
 /** Counts requestAnimationFrame calls from the first script on, so a loop left behind shows. */
@@ -55,9 +54,10 @@ test('stream: Panic runs like water behind the drawing, a landing rings once, an
   expect(await page.locator('.fl-ripple').count()).toBeLessThanOrEqual(1);
   await expect(page.locator('.fl-ripple')).toHaveCount(0, { timeout: 5000 });
 
-  // the list: the small drawings do not run, and the page's loop is gone
-  await page.getByRole('link', { name: 'Flow', exact: true }).first().click();
-  await expect(page).toHaveURL(/#\/flow$/);
+  // leaving the page takes its loop with it (the Flow tab is the mountain since R1, with its own loop, so the page
+  // left to is the Journal; test/e2e/mountain.spec.ts checks the plate's)
+  await page.getByRole('link', { name: 'Journal', exact: true }).first().click();
+  await expect(page).toHaveURL(/#\/journal$/);
   await expect(page.locator('.fl-stream')).toHaveCount(0);
   await page.waitForTimeout(300);
   const before = await rafs(page);

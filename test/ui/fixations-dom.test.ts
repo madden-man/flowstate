@@ -9,7 +9,6 @@ import { act } from 'preact/test-utils';
 import { LocationProvider } from 'preact-iso';
 import type { Fixation } from '../../src/db/schema';
 import type { Read } from '../../src/db/fields';
-import { store } from '../../src/db/fields';
 import { ensureSeeded, seedFixationsOnce, seedFlowsOnce } from '../../src/db/seed';
 import { still } from '../../src/ui/light';
 import { freshDB } from '../db/helpers';
@@ -152,21 +151,13 @@ describe('the Energize page and the Flow list, from the database', () => {
     expect(root.querySelector<SVGSVGElement>('.fl-stream svg')!.getAttribute('style')).toBeNull();
   });
 
-  it('the Flow list names the three on Energize\'s row; the others keep their shape', async () => {
+  it('the Flow tab is the mountain since R1: Energize is a circle in the sea, and no flow has a row', async () => {
     act(() => { render(h(LocationProvider, null, h(Flow, null)), root); });
     await flush();
-    const row = [...root.querySelectorAll('a.fl-flow')].find(a => a.querySelector('.fs-list-line')!.textContent === 'Energize')!;
-    expect(row.querySelector('.fs-list-meta')!.textContent).toBe('FlowState · East Winds · Japan Trip');
-    const fight = [...root.querySelectorAll('a.fl-flow')].find(a => a.querySelector('.fs-list-line')!.textContent === 'Fight')!;
-    expect(fight.querySelector('.fs-list-meta')!.textContent).toBe('The mountain');
-  });
-
-  it('with the three emptied, the row keeps the shape\'s name', async () => {
-    await store.bulkPut('fixations', (await store.all('fixations')).map(f => ({ ...f, finishedAt: 1, stints: f.stints.map(s => ({ ...s, to: 1 })) })));
-    act(() => { render(h(LocationProvider, null, h(Flow, null)), root); });
-    await flush();
-    const row = [...root.querySelectorAll('a.fl-flow')].find(a => a.querySelector('.fs-list-line')!.textContent === 'Energize')!;
-    expect(row.querySelector('.fs-list-meta')!.textContent).toBe('The landing arc');
+    expect(root.querySelectorAll('.mt-stop')).toHaveLength(7);
+    const circle = [...root.querySelectorAll<HTMLAnchorElement>('a.mt-circle')].find(a => a.textContent === 'Energize')!;
+    expect(circle.getAttribute('href')).toBe('#/flow/energize');
+    expect(root.querySelectorAll('a.fl-flow:not(.fl-now)')).toHaveLength(0);
   });
 });
 

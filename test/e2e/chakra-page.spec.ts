@@ -32,7 +32,7 @@ test('a stop opens on its place, its drawings unnamed, and the gate writes one r
   await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Flow' })).toHaveAttribute('href', '#/flow');
   // the plate: the place, the light, the sign that travels from the mountain
   await expect(body.locator('.ck-plate.on-plate[data-fx="fireflies"] canvas.ck-light')).toHaveCount(1);
-  await expect(body.locator('.ck-sign')).toHaveCSS('view-transition-name', 'mt-sign-root');
+  await expect(body.locator('.ck-sign')).toHaveAttribute('data-travel', 'mt-sign-root');
   await expect(body.locator('.ck-gloss')).toHaveText('Root · feeling safe');
   // how it gets blocked: the ring, then the curve
   await expect(body.locator('.ck-drawing')).toHaveCount(2);
@@ -307,4 +307,42 @@ test('Root is calm: the second drawing folded small until tapped, the safety lin
 test('#/flow/c with no sign goes to the Flow tab', async ({ page }) => {
   await open(page, '#/flow/c');
   await expect(page).toHaveURL(/#\/flow$/);
+});
+
+test('a tap on each sign on the mountain opens its page, the sign travelling there and back', async ({ page }) => {
+  await open(page, '#/flow');
+  const ids = ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root'];
+  // the names the turn gives, as it runs: the sign on the plate and the sign on the page share one
+  await page.evaluate(() => {
+    const w = window as unknown as { named: string[] };
+    w.named = [];
+    new MutationObserver(() => {
+      for (const el of document.querySelectorAll<HTMLElement>('[data-travel]')) {
+        const n = el.style.getPropertyValue('view-transition-name');
+        if (n) w.named.push(`${el.closest('.ck-plate') ? 'page' : 'mountain'}:${n}`);
+      }
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['style'] });
+  });
+  for (const id of ids) {
+    const stop = page.locator(`a.mt-stop[href="#/flow/c/${id}"]`);
+    await expect(stop).toBeVisible();
+    await stop.click();
+    await expect(page).toHaveURL(new RegExp(`#/flow/c/${id}$`));
+    await expect(page.locator('.ck-page')).toHaveAttribute('data-chakra', id);
+    await expect(page.locator('.ck-plate canvas.ck-light')).toHaveCount(1);
+    await expect(page.locator('.ck-drawing').first()).toBeVisible();
+    await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
+    await expect(page).toHaveURL(/#\/flow$/);
+    await expect(page.locator(`a.mt-stop[href="#/flow/c/${id}"]`)).toBeVisible();
+  }
+  const named = await page.evaluate(() => (window as unknown as { named: string[] }).named);
+  // where the browser runs view transitions, each sign was named on both sides, going and coming back
+  if (await page.evaluate(() => 'startViewTransition' in document)) {
+    for (const id of ids) {
+      expect(named, id).toContain(`mountain:mt-sign-${id}`);
+      expect(named, id).toContain(`page:mt-sign-${id}`);
+    }
+  }
+  // and nothing is left named once the turns are over
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-travel]')].filter(el => el.style.getPropertyValue('view-transition-name')).length)).toBe(0);
 });

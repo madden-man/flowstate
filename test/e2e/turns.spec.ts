@@ -62,16 +62,16 @@ async function walkEveryRoute(page: Page) {
   await expect(page.locator('.fs-be-fold')).toHaveCount(0);
   await bar.getByRole('link', { name: 'Flow' }).click();
   await expect(page).toHaveURL(/#\/flow$/);
-  await page.locator('a.fl-flow[href="#/flow/panic"]').click();
-  await expect(page).toHaveURL(/#\/flow\/panic$/);
-  await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle').first()).toBeVisible();
+  await page.locator('a.mt-circle[href="#/flow/energize"]').click();
+  await expect(page).toHaveURL(/#\/flow\/energize$/);
+  await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
   await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
   await expect(page).toHaveURL(/#\/flow$/);
   await page.locator('.fl-now').click();
   await expect(page).toHaveURL(/#\/flow\/now$/);
   await page.goBack();
   await expect(page).toHaveURL(/#\/flow$/);
-  await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
+  await expect(page.locator('a.mt-circle[href="#/flow/energize"]')).toBeVisible();
   await bar.getByRole('link', { name: 'Journal' }).click();
   await expect(page).toHaveURL(/#\/journal$/);
   await page.locator('.fs-hdr').getByRole('link', { name: 'Pages' }).click();
@@ -86,7 +86,7 @@ test.describe('with view transitions', () => {
     await countTurns(page);
     await page.goto('/#/flow');
     await cross(page);
-    await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
+    await expect(page.locator('a.mt-circle[href="#/flow/energize"]')).toBeVisible();
     // a deep link and the first load turn nothing; the mark is under Flow, placed
     expect(await turns(page)).toEqual([]);
     await expect.poll(() => markUnder(page)).toMatchObject({ gone: false, below: true });
@@ -108,19 +108,20 @@ test.describe('with view transitions', () => {
     await expect(tabs(page).getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
     expect(await turns(page)).toEqual(['tab-left', 'tab-right', 'tab-right']);
 
-    // into a flow and back: open and close, the tapped row's drawing named while it travels, and nothing after
+    // into a flow and back: open and close, the tapped circle named while it travels into the drawing, and nothing after
     await tabs(page).getByRole('link', { name: 'Flow' }).click();
-    await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
-    await page.locator('a.fl-flow[href="#/flow/panic"]').click();
-    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle').first()).toBeVisible();
+    const energize = page.locator('a.mt-circle[href="#/flow/energize"]');
+    await expect(energize).toBeVisible();
+    await energize.click();
+    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
     await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
-    await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toBeVisible();
+    await expect(energize).toBeVisible();
     expect((await turns(page)).slice(-3)).toEqual(['tab-right', 'open', 'close']);
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.turn ?? null)).toBeNull();
     expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[style*="view-transition-name"], [data-paper]')].length)).toBe(0);
 
     // a step read on a flow's page is the same page: no turn
-    await page.locator('a.fl-flow[href="#/flow/panic"]').click();
+    await page.evaluate(() => { location.hash = '#/flow/panic'; });
     await page.getByRole('button', { name: 'Settling' }).click();
     await expect(page).toHaveURL(/#\/flow\/panic\/3$/);
     expect((await turns(page)).slice(-1)).toEqual(['open']);

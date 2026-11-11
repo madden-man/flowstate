@@ -68,11 +68,12 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   await expect(dot).toHaveAttribute('aria-valuenow', '2');
   await expect.poll(async () => (await episodes(page))[0].marks.map(m => m.stepId)).toEqual(['panic-1', 'panic-2']);
 
-  // the list: the row carries the dot while the episode is open
+  // the mountain: Panic's sign (the root) carries the dot and its halo while the episode is open
   await page.getByRole('link', { name: 'Flow', exact: true }).first().click();
   await expect(page).toHaveURL(/#\/flow$/);
-  await expect(page.locator('a.fl-flow[href="#/flow/panic"]')).toHaveAttribute('data-live', 'true');
-  await expect(page.locator('a.fl-flow[href="#/flow/panic"] .fs-list-meta')).toHaveText('The ring');
+  await expect(page.locator('a.mt-stop[data-chakra="root"]')).toHaveAttribute('data-live', 'true');
+  await expect(page.locator('a.mt-stop[data-chakra="root"] .mt-dot')).toHaveCount(1);
+  await expect(page.locator('a.mt-stop[data-live]')).toHaveCount(1);
 
   // offline, a reload on the journal opens on the live episode instead
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });

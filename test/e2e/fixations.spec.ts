@@ -33,7 +33,7 @@ test('Energize is the three, the deck and What stuck; Still the names; the list 
   await expect(body.locator('.fx-meta, .fx-deckpeek, .fx-foot, .fx-under')).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
+  // on the mountain Energize is a circle in the sea (R1), and it opens this page
   await page.goto('/#/flow');
-  const row = page.locator('a.fl-flow', { has: page.locator('.fs-list-line', { hasText: 'Energize' }) });
-  await expect(row.locator('.fs-list-meta')).toHaveText('FlowState · East Winds · Japan Trip');
+  await expect(page.locator('a.mt-circle', { hasText: 'Energize' })).toHaveAttribute('href', '#/flow/energize');
 });
