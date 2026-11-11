@@ -117,6 +117,8 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
   // the sheet settled before a cover is measured
   await page.waitForTimeout(800);
   const order = (i: number) => rows.nth(i).locator('.fs-tile').evaluateAll(t => t.map(x => x.getAttribute('data-album')));
+  // the covers are read once they carry their albums (they arrive after the sheet is drawn)
+  await expect.poll(async () => { const o = await order(1); return o.length === 3 && o.every(Boolean); }).toBe(true);
   const before = await order(1);
   const drag = async (i: number, k: number, dx: number, dy: number) => {
     const b = (await rows.nth(i).locator('.fs-tile').nth(k).boundingBox())!;

@@ -42,6 +42,7 @@ import { FromRow } from './chakra/From';
 import { Touches } from './chakra/Touches';
 import { SignShelf } from './chakra/SignShelf';
 import { readGuard } from './chakra/fresh';
+import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
 import { light } from '../light';
 import type { Episode, Flow, Reading, Tip } from '../../db/schema';
@@ -180,6 +181,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   };
   const commitGate = async (v: number) => {
     setGateLive(v);
+    settle(chakra);
     const done = guard.write();
     // locked again under the thumb (LockedError): nothing is written, and the gate goes back to what was kept
     try { await writeReading(chakra, v); } catch { /* the PIN first */ } finally { done(); }
@@ -218,7 +220,8 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
           <Touches chakra={chakra} still={still} />
         </Plate>
         <p class="ck-gloss">{c.gloss}</p>
-        <Gate value={gate} hue={c.hue} label={c.name} stale={!!stored && isStale(stored, now)}
+        {/* a surge makes the gate ask afresh (./chakra/surge.ts): drawn anew, so a touch before it does not hide the dash */}
+        <Gate key={asks(chakra) ? 'asks' : 'rests'} value={gate} hue={c.hue} label={c.name} stale={(!!stored && isStale(stored, now)) || asks(chakra)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
         {live && <FromRow live={live} homes={homes} page={{ chakra, order: items.map(x => x.flow.id), front: front!.flow.id }} />}
         {front && !front.flow.locked && (

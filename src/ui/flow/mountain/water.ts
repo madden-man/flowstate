@@ -170,6 +170,18 @@ export class Water {
     }
   }
 
+  /** A touch done on sign i (PLAN-TASKS.md section 5, T2): lets go `share` of what its gate holds back as one surge
+   *  from the sign to the sea. The gate is not moved, so the pool fills again (step()). Returns what was let go, 0 when
+   *  nothing was (an open gate, Still, the water not yet carried). */
+  release(i: number, share: number): number {
+    if (!this.carry || this.plain || i < 0 || i > 6) return 0;
+    const out = this.pooled[i] * Math.max(0, Math.min(1, share));
+    if (out < 0.01) return 0;
+    this.pooled[i] -= out;
+    this.surge(this.course.at[i + 1], out * 1.6);
+    return out;
+  }
+
   /** Starts a surge at s (or adds to one that has only just left from there). A slow opening lets go a little at a
    *  move: it is gathered (pending, per place) until it is enough to see, so a slow lift still sends its melt. */
   private surge(s: number, amp: number) {
