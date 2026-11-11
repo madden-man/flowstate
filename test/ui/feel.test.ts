@@ -11,7 +11,12 @@ const code = files('src').filter(f => /\.(ts|tsx)$/.test(f)).map(f => [f.split(p
 /** Every call, as "file: kind(name)". */
 function calls(kind: 'tick' | 'bell'): string[] {
   const re = new RegExp(`\\b${kind}\\(\\s*'([A-Za-z]+)'\\s*\\)`, 'g');
-  return code.flatMap(([f, text]) => [...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`));
+  // a rule's mark ticks through parts/RuleDrag, named by its owner (tickName: 'gate'), so the owner is the place
+  const named = kind === 'tick' ? /\btickName:\s*'([A-Za-z]+)'/g : null;
+  return code.flatMap(([f, text]) => [
+    ...[...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`),
+    ...(named ? [...text.matchAll(named)].map(m => `${f}: ${kind}(${m[1]})`) : []),
+  ]);
 }
 
 // Rule 19: unlock, tab change, a check, an item dropped, a flow detent, entering Still, keep close, a sheet opening,
@@ -24,10 +29,14 @@ const TICKS: Record<string, string[]> = {
   check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx'],
   drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
   detent: ['src/ui/parts/Cycle.tsx'],
+  // PLAN-MOUNTAIN.md R3: a sign's gate, when the mark lands on fully shut and on fully open (rule 19 amended in R5)
+  gate: ['src/ui/parts/Gate.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
   sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx', 'src/ui/parts/SpokeFor.tsx', 'src/ui/be/ChampionSheet.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
+  // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
+  meter: ['src/ui/flow/mountain/Meter.tsx'],
   breath: ['src/ui/flow/breath.ts'],
   // M3: beside bell('album'), inside the tap
   album: ['src/ui/music/'],

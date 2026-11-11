@@ -29,6 +29,9 @@ const rules = [
   { id: 'DL20 AudioContext outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b/ },
   { id: 'DL21 fetch outside src/music', only: f => inSrc(f) && !isMusic(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
+  // DESIGN.md rule 34: the seven are Crown to Root, never their Sanskrit names (in their common spellings), and nothing
+  // borrowed from the tradition's drawing or its words for what rises
+  { id: 'DL22 Sanskrit name or lotus (rule 34)', re: /\b(sahasrara|sahasara|sahasrar|ajn[aã]|agya|vis?h?uddh[ai]|anahata|mani-?pura(ka)?|s[vw]adhis?h?th?ana|m[uo]{1,2}ladhara|lotus(es)?|petals?|meru|kundalini|bija)\b/i },
 ];
 
 let bad = 0;

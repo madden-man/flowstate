@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, VALUES_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError, tombstone } from '../../src/db/fields';
@@ -111,6 +111,113 @@ describe('round trip', () => {
     await third.sits.put(open);
     expect(await importData(file, 'merge', third)).toMatchObject({ added: 2, kept: 1 });
     expect(await third.sits.count()).toBe(2);
+  });
+
+  it('the readings round-trip, plain, sealed and in a merge (R0)', async () => {
+    const rows = [
+      { id: 'r1', at: 1000, of: 'mountain' as const, value: 0.6 },
+      { id: 'r2', at: 2000, of: 'heart' as const, value: 0.4 },
+      { id: 'r3', at: 3000, of: 'heart' as const, value: 0 },
+    ];
+    await store.bulkPut('readings', rows);
+    const file = await roundTrip(db);
+    expect(file.tables.readings).toHaveLength(3);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect((await other.readings.toArray()).sort((a, b) => a.at - b.at)).toEqual(rows);
+    // a merge adds the readings this phone has not got and keeps the ones it has (never edited, so never updated)
+    const third = await freshDB();
+    await third.readings.put(rows[1]);
+    expect(await importData(file, 'merge', third)).toMatchObject({ added: 2, updated: 0, kept: 1 });
+    expect(await third.readings.count()).toBe(3);
+    // with the lock on, a reading's value is sealed in the database and in the file; of, at and the id stay clear
+    await init(db); // freshDB pointed the fields layer at the last journal made
+    await ensureSeeded(7);
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    for (const r of await db.readings.toArray()) { expect(r).not.toHaveProperty('value'); expect(r.sealed).toBeTruthy(); }
+    const sealed = await roundTrip(db);
+    expect(sealed.encrypted).toBe(true);
+    const inFile = (sealed.tables.readings as Record<string, unknown>[]).sort((a, b) => (a.at as number) - (b.at as number));
+    expect(inFile.map(r => [r.id, r.at, r.of, 'value' in r, !!r.sealed])).toEqual(rows.map(r => [r.id, r.at, r.of, false, true]));
+    expect(JSON.stringify(sealed.tables.readings)).not.toMatch(/0\.6|0\.4/);
+    // opened with that file's PIN into a plain journal, the values come back whole
+    const fourth = await freshDB();
+    await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
+    expect((await fourth.readings.toArray()).sort((a, b) => a.at - b.at)).toEqual(rows);
+  });
+
+  it('a file from before the mountain (MOUNTAIN_VERSION - 1) imports with empty readings and its seed flows under their signs', async () => {
+    await ensureSeeded(7);
+    const f = await exportData(db, 1000);
+    const v5 = { ...f, schemaVersion: MOUNTAIN_VERSION - 1, tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
+    const parsed = parseBackup(JSON.stringify(v5));
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.tables.readings).toEqual([]);
+    expect(parsed.tables.flows).toEqual(f.tables.flows);
+    const other = await freshDB();
+    await importData(parsed, 'replace', other);
+    expect((await other.flows.get('whatif'))!.chakra).toBe('root');
+    expect((await other.flows.get('energize'))!.chakra).toBeUndefined();
+  });
+
+  /** What a phone on main's version 6 (the values, before the mountain) exported: values, no readings, flows without chakra. */
+  const asV6File = (f: Awaited<ReturnType<typeof exportData>>) => ({
+    ...f, schemaVersion: VALUES_VERSION,
+    tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) },
+  });
+
+  it('a version 6 file (main\'s values, before the mountain) imports whole: every value as it was, none made again from a paradox', async () => {
+    await ensureSeeded(7);
+    await store.put('values', { id: 'v-mine', createdAt: 3, updatedAt: 4, status: 'held', word: 'Brave', shadow: 'Safe', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }], revisions: [], order: 5 });
+    const f = await exportData(db, 1000);
+    const values = (f.tables.values as { id: string }[]).sort((a, b) => a.id.localeCompare(b.id));
+    expect(values.length).toBeGreaterThan(1);
+    const parsed = parseBackup(JSON.stringify(asV6File(f)));
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.madeAt).toBe(VALUES_VERSION);
+    expect(parsed.tables.readings).toEqual([]);
+    expect(parsed.tables.flows).toEqual(f.tables.flows);
+    for (const mode of ['replace', 'merge'] as const) {
+      const other = await freshDB();
+      // a paradox in the file must not come in as a second value: a version 6 file has its values already
+      await importData(parseBackup(JSON.stringify({ ...asV6File(f), tables: { ...asV6File(f).tables, paradoxes: [{ id: 'px-late', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'a', aspect: '' }, poleB: { value: 'b', aspect: '' }, revisions: [] }] } })), mode, other);
+      const got = (await store.all('values')).filter(v => values.some(w => w.id === v.id)).sort((a, b) => a.id.localeCompare(b.id));
+      expect(got).toEqual(values);
+      expect((await store.all('values')).some(v => v.fromParadoxId === 'px-late')).toBe(false);
+      expect(await other.readings.count()).toBe(0);
+      expect((await other.flows.get('depress'))!.chakra).toBe('heart');
+    }
+  });
+
+  it('a locked version 6 file opens with its PIN: values come back whole, flows under their signs', async () => {
+    await init(db);
+    await ensureSeeded(7);
+    await store.put('values', { id: 'v-mine', createdAt: 3, updatedAt: 4, status: 'held', word: 'Brave', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }], revisions: [] });
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    const f = await exportData(db, 1000);
+    expect(f.encrypted).toBe(true);
+    expect(JSON.stringify(f.tables.values)).not.toMatch(/Brave|first/);
+    const parsed = parseBackup(JSON.stringify(asV6File(f)));
+    const other = await freshDB();
+    await importData(parsed, 'replace', other, await deriveKey('1357', parsed.salt!, parsed.iterations!));
+    expect(await store.get('values', 'v-mine')).toMatchObject({ word: 'Brave', champions: [{ voiceId: 'kid', side: 'value', at: 4, why: 'first' }] });
+    expect((await store.get('flows', 'depress'))!.chakra).toBe('heart');
+    expect((await store.get('flows', 'panic'))!.name).toBe('Panic');
+  });
+
+  it('a version 5 file (before the values and the mountain) gets both: values from its paradoxes and its seed flows\' signs', async () => {
+    await ensureSeeded(7);
+    const f = await exportData(db, 1000);
+    const { values: _v, readings: _r, ...tables } = f.tables;
+    const px = { id: 'px-old', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'open', aspect: 'saying it' }, poleB: { value: 'guarded', aspect: '' }, revisions: [] };
+    const v5 = { ...f, schemaVersion: 5, tables: { ...tables, paradoxes: [px], flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
+    const other = await freshDB();
+    await importData(parseBackup(JSON.stringify(v5)), 'replace', other);
+    expect((await store.all('values')).find(v => v.fromParadoxId === 'px-old')).toMatchObject({ word: 'open', shadow: 'guarded' });
+    expect((await other.flows.get('night'))!.chakra).toBe('crown');
+    expect(await other.readings.count()).toBe(0);
   });
 
   it('a version 3 file (before the sits) imports with an empty sits table', async () => {

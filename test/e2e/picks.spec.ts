@@ -113,7 +113,7 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
 
   // a live episode at Under the skin
   await page.goto('/#/flow/panic');
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
   await dot.focus();
   for (const n of ['1', '2', '3', '4']) {
     await page.keyboard.press('ArrowRight');

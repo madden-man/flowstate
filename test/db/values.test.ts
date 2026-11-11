@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB, writeSeedParadoxes } from './helpers';
-import { openDB, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, valueIdOf, type FlowDB, type Paradox, type Value } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, valueIdOf, type FlowDB, type Paradox, type Value } from '../../src/db/schema';
 import { ensureSeeded, seedParadoxes, valuesFromParadoxesOnce, VALUES_PASS, defaultSettings } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, tombstone } from '../../src/db/fields';
 import { exportData, importData, parseBackup } from '../../src/db/backup';
@@ -93,7 +93,7 @@ describe('valuesFromParadoxesOnce', () => {
 });
 
 describe('a version 5 database opened by this code', () => {
-  it('opens as version 6 and, once open, has one value per paradox with nothing lost', async () => {
+  it('opens at the current version and, once open, has one value per paradox with nothing lost', async () => {
     const name = `flowstate-v5-values-${Date.now()}`;
     const v5 = new Dexie(name);
     v5.version(1).stores(STORES_V1);
@@ -110,7 +110,7 @@ describe('a version 5 database opened by this code', () => {
     v5.close();
     const opened = openDB(name);
     await opened.open();
-    expect(opened.verno).toBe(6);
+    expect(opened.verno).toBe(SCHEMA_VERSION);
     expect(await opened.values.count()).toBe(0);
     await init(opened);
     expect(await valuesFromParadoxesOnce()).toHaveLength(3);

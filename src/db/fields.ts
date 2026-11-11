@@ -5,7 +5,8 @@
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
 //   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
-//   revisions (PLAN-VALUES.md section 5).
+//   revisions (PLAN-VALUES.md section 5); readings: value, the Depression meter's and each gate's
+//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index).
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -190,6 +191,14 @@ const valueSpec: Spec<Tables['values']> = {
   },
 };
 
+/** A reading seals its value (PLAN-MOUNTAIN.md section 8): how heavy the mountain was and how shut each gate, by date,
+ *  is among the most private things he keeps. Its id, when and what it is of stay clear, so the newest per `of` is an
+ *  index read; the clear copy has no value at all, so nothing locked can be drawn as open. */
+const readingSpec: Spec<Tables['readings']> = {
+  take: row => { const { value, ...clear } = row; return { clear: clear as Tables['readings'], secret: value }; },
+  give: (clear, secret) => ({ ...clear, value: Number(secret) }),
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -202,6 +211,7 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   episodes: episodeSpec,
   fixations: fixationSpec,
   values: valueSpec,
+  readings: readingSpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 

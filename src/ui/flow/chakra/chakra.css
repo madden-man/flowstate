@@ -1,0 +1,123 @@
+/* A stop's page (PLAN-MOUNTAIN.md section 6 and pass 6, R3): the plate at the top, the gloss, the gate, the drawings.
+   Every colour is a token; the plate's are R0's (--plate, --plate-deep, --plate-line, --plate-print, --glow). */
+
+/* ---- the plate: a piece of the mountain's night plate, the full width of the page, eight rules tall ---- */
+.ck-plate {
+  /* the hue goes out of the light in Still (rule 13): the canvas reads this (chakra/water.ts) */
+  --ck-tint: 1;
+  --ck-h: calc(var(--lh-ink) * 8 + var(--s1));
+  position: relative; overflow: hidden; height: var(--ck-h);
+  margin: calc(var(--s1) * -1) calc(var(--gutter) * -1) 0;
+  background: var(--plate);
+}
+[data-light="still"] .ck-plate { --ck-tint: 0; }
+/* the place in its own box (390 by 220), covering the strip like a cut plate, so the land, the light and the sign agree */
+.ck-plate > .ck-box {
+  position: absolute; left: 50%; top: 50%; aspect-ratio: 390 / 220;
+  width: max(100%, calc(var(--ck-h) * 390 / 220)); transform: translate(-50%, -50%);
+}
+.ck-land, .ck-light { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ck-light { pointer-events: none; }
+.ck-sky-top { stop-color: var(--plate-sky); }
+.ck-sky-low { stop-color: var(--plate); }
+.ck-stars circle { fill: var(--plate-line); }
+.ck-mass { fill: var(--plate); }
+.ck-deep { fill: var(--plate-deep); }
+/* the chalk: every mark is currentColor, so the same marks are drawn again in the water's light and the sign's hue */
+.ck-chalk { color: var(--plate-line); }
+/* snow: the chalk's own colour, faint, a little brighter where the wind packed it */
+.ck-snow { fill-opacity: 1; }
+.ck-snow-top { stop-color: var(--plate-line); stop-opacity: .2; }
+.ck-snow-low { stop-color: var(--plate-line); stop-opacity: .04; }
+/* the light on the rock (pass 6): the near chalk again, in --glow along the course and in the hue round the sign */
+.ck-lit { pointer-events: none; transition: opacity var(--t-light) var(--ease); }
+.ck-lit-a { color: var(--glow); opacity: calc(var(--qa, 1) * .95); }
+.ck-lit-b { color: var(--glow); opacity: calc(var(--qb, 1) * .95); }
+.ck-lit-s { color: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--sh, 0)); opacity: calc(var(--open, 1) * var(--ck-tint)); }
+.ck-mask-band { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; }
+/* the mask's round of light round the sign: luminance, so the tokens' own light carries it */
+.ck-mask-on { stop-color: var(--glow); stop-opacity: 1; }
+.ck-mask-half { stop-color: var(--glow); stop-opacity: .45; }
+.ck-mask-off { stop-color: var(--glow); stop-opacity: 0; }
+/* the tarn holding the headwall upside down */
+.ck-reflect-land { color: var(--plate-line); opacity: .26; }
+/* the channel: a faint bed under the light, wider as more water runs it (1 + 2.5q, section 4) */
+.ck-channel {
+  fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round;
+  stroke-opacity: calc(.04 + var(--qb, 1) * .06); stroke-width: calc(1px + var(--qb, 1) * 2.5px);
+  transition: stroke-width var(--t-light) var(--ease), stroke-opacity var(--t-light) var(--ease);
+}
+
+/* drawn, not shown (rule 27): as the page opens the place is laid down in the order a pen would, the far ranges first,
+   then the near rock edge after edge, the hatching falling in behind; then the sign, then the light on the rock */
+.ck-ink, .ck-snow { animation: ck-in var(--t-draw) var(--ease) backwards; animation-delay: calc(var(--i, 0) * var(--t-draw) / 9); }
+.ck-line { animation: ck-in var(--t-draw) var(--ease) backwards; animation-delay: calc(var(--i, 0) * var(--t-draw) / 9); }
+.ck-hatch { animation: ck-in calc(var(--t-draw) * 2) var(--ease) backwards; animation-delay: calc(var(--t-draw) + var(--i, 0) * var(--t-draw) / 9); }
+.ck-stars, .ck-mass, .ck-deep { animation: ck-in calc(var(--t-draw) * 2) var(--ease) backwards; }
+.ck-lit { animation: ck-in calc(var(--t-draw) * 3) var(--ease) backwards; animation-delay: calc(var(--t-draw) * 5); }
+@keyframes ck-pen { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ck-in { from { opacity: 0; } }
+
+/* the sign: the lantern of this place, large. The plate carries .on-plate, so parts/Sign takes the plate's lantern
+   tokens, its cold line and its cut-out dark (R0). Here its body fills from a bright core out to its hue, so it is lit
+   from inside; it still empties by fill-opacity as the gate shuts, and Still's rules (higher) put the hue out. Its
+   bloom is the canvas's (water.ts), breathing. */
+.ck-sign, .ck-reflect { position: absolute; display: grid; place-items: center; pointer-events: none; }
+.ck-sign .fs-sign, .ck-reflect .fs-sign { width: 100%; height: 100%; overflow: visible; }
+.ck-core-defs { position: absolute; width: 0; height: 0; }
+.ck-core-in { stop-color: color-mix(in oklch, var(--glow) 70%, oklch(var(--plate-voice-l) var(--plate-voice-c) var(--sh, 0))); }
+.ck-core-mid { stop-color: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--sh, 0)); }
+.ck-core-out { stop-color: color-mix(in oklch, oklch(var(--plate-voice-l) var(--plate-voice-c) var(--sh, 0)) 70%, var(--plate)); }
+.ck-sign .fs-sign-body { fill: url(#ck-core-fill); }
+/* except where the marks stand outside the body (the sun's rays, the sprout's stem): there they are the light itself */
+.ck-plate .fs-sign[data-sign="sun"] .fs-sign-line, .ck-plate .fs-sign[data-sign="sprout"] .fs-sign-line {
+  stroke: color-mix(in oklch, var(--sc) calc((1 - var(--closed)) * 100%), var(--sign-cold));
+}
+.ck-sign .fs-sign-body, .ck-sign .fs-sign-line { stroke-dasharray: 1; }
+.ck-sign .fs-sign-body {
+  animation: ck-pen calc(var(--t-draw) * 3) var(--ease) both, ck-fill calc(var(--t-draw) * 3) var(--ease) both;
+  animation-delay: calc(var(--t-draw) * 1.5), calc(var(--t-draw) * 4);
+  transition: fill-opacity var(--t-ui) var(--ease), stroke var(--t-ui) var(--ease);
+}
+.ck-sign .fs-sign-g { transition: transform var(--t-ui) var(--ease); transform-origin: center; transform-box: fill-box; }
+.ck-sign .fs-sign-line { animation: ck-pen calc(var(--t-draw) * 2) var(--ease) both; animation-delay: calc(var(--t-draw) * 3.5); }
+@keyframes ck-fill { from { fill-opacity: 0; } }
+/* travelled in from the mountain: the sign lands lit, not drawn again (rule 28) */
+.ck-plate[data-arrived] .ck-sign .fs-sign-body, .ck-plate[data-arrived] .ck-sign .fs-sign-line { animation: none; stroke-dasharray: none; }
+/* while the gate is under the finger the sign answers at once (rule 20) */
+.ck-page[data-gating] .ck-sign .fs-sign-body, .ck-page[data-gating] .ck-sign .fs-sign-g { transition: none; }
+/* the tarn holds it upside down and faint */
+.ck-tarn { position: absolute; border-radius: 50%; overflow: hidden; pointer-events: none; }
+.ck-reflect { transform: scaleY(-1); opacity: .3; }
+
+/* ---- under the plate: paper as before ---- */
+.ck-gloss {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--print); line-height: var(--lh-ink);
+}
+.ck-drawing { scroll-margin-top: var(--lh-ink); }
+.ck-rows:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-ink, .ck-line, .ck-hatch, .ck-stars, .ck-mass, .ck-deep, .ck-snow, .ck-lit, .ck-sign .fs-sign-body, .ck-sign .fs-sign-line { animation: none; }
+}
+
+/* "+ flow" asks which sign it sits under (R3): the seven small signs in a row, each a 44px target; the chosen one is
+   lit, the rest a cold outline. NewFlow.tsx; the sheet is opened from the Flow tab, and this file is loaded with the app. */
+.fl-signs { display: flex; flex-wrap: wrap; gap: 0; margin-left: calc(var(--s1) * -1); }
+.fl-signpick {
+  appearance: none; border: 0; background: transparent; padding: 0; cursor: pointer;
+  width: var(--hit); height: var(--hit); display: grid; place-items: center; -webkit-tap-highlight-color: transparent;
+}
+.fl-signpick .fs-sign { width: calc(var(--lh-ink) * .9); height: calc(var(--lh-ink) * .9); }
+.fl-signpick:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; border-radius: 50%; }
+
+/* a second drawing under the sign, folded (Root): small, quiet, a tap opens it in place */
+.ck-fold {
+  appearance: none; border: 0; background: transparent; padding: 0; cursor: pointer; display: block;
+  width: 50%; margin: 0 auto; opacity: .62; -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--t-ui) var(--ease);
+}
+.ck-fold[data-down], .ck-fold:hover { opacity: .9; }
+.ck-fold:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+.ck-fold-art { display: block; pointer-events: none; }

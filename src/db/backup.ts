@@ -4,7 +4,7 @@
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
 // A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -124,7 +124,9 @@ export function parseBackup(text: string): BackupFile {
  *  fixations (the table comes in empty, above); its settings.cleaned has no 'fixations', so seed.ts seedFixationsOnce
  *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). A version 5 file has no values
  *  (the table comes in empty, above); its paradoxes are opened only in importData, which makes them values there
- *  (madeAt says it is older). */
+ *  (madeAt says it is older). A file from before MOUNTAIN_VERSION (a version 6 file included) has no readings (the
+ *  table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade gives a
+ *  stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -132,6 +134,9 @@ function migrate(f: BackupFile): BackupFile {
     if (!tables.shelves.length) tables.shelves = shelvesFromV1(albums);
     if (!(tables.playlists as Tables['playlists'][]).some(p => p.id === POEMS_ID)) tables.playlists = [...tables.playlists, poemsPlaylist()];
     f = { ...f, tables };
+  }
+  if (f.schemaVersion < MOUNTAIN_VERSION) {
+    f = { ...f, tables: { ...f.tables, flows: (f.tables.flows as Tables['flows'][]).map(withSeedChakra) } };
   }
   return { ...f, schemaVersion: SCHEMA_VERSION, ...(f.schemaVersion < SCHEMA_VERSION ? { madeAt: f.madeAt ?? f.schemaVersion } : {}) };
 }
@@ -195,7 +200,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
   // A file from before the values (version 5 or older, PLAN-VALUES.md section 5): each of its paradoxes comes in as the
   // value seed.ts valuesFromParadoxesOnce would make of it, under the same fixed id, so a merge meets this phone's own
   // copy (the newer kept) and a value deleted here stays deleted (its id is on the list). The paradoxes come in too.
-  if ((file.madeAt ?? SCHEMA_VERSION) < 6) {
+  if ((file.madeAt ?? SCHEMA_VERSION) < VALUES_VERSION) {
     const have = new Set((incoming.values as { fromParadoxId?: string }[]).map(v => v.fromParadoxId).filter(Boolean));
     for (const p of openedParadoxes) {
       if (p.locked || have.has(p.id)) continue;

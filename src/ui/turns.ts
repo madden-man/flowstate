@@ -44,14 +44,9 @@ function depth(p: string): number {
   return section === 'journal' && a === 'pages' ? 1 : 2;
 }
 
-/** A flow's page and the same flow at a step are one page (the dot moved): the first three parts say which. */
-const pageOf = (p: string) => parts(p).slice(0, 2).join('/');
-
-/** The flow a path is the page of, if it is one ("now" is the Right now page, not a flow). */
-const flowOf = (p: string) => {
-  const [section, id] = parts(p);
-  return section === 'flow' && id && id !== 'now' ? id : undefined;
-};
+/** A flow's page and the same flow at a step are one page (the dot moved): the first two parts say which; a sign's page
+ *  (#/flow/c/:chakra) is three parts deep, so two signs' pages are two pages (R3 review). */
+const pageOf = (p: string) => { const ps = parts(p); return ps.slice(0, ps[0] === 'flow' && ps[1] === 'c' ? 3 : 2).join('/'); };
 
 /** Which turn goes from one path to another, or none. */
 export function kindOf(from: string, to: string): TurnKind | null {
@@ -185,9 +180,13 @@ function takeBackPaper() {
 }
 
 // ---- what travels ----
-// A shared name must be one element on each side. The row is found by its href, so only the tapped one is named.
+// A shared name must be one element on each side. Since the mountain (R1) the Flow tab has no rows: what travels from
+// it is the tapped thing on the plate, found by its data-travel name, and the same name on the page it opens:
+//   a sign       mt-sign-<chakra>  the sign on the plate, and the large sign on its page (R3 marks it data-travel)
+//   Meditate     md-circle         the circle afloat, and the Meditate page's circle
+//   Energize     fs-drawing        the circle afloat, and the drawing on its flow page
+//   his own      fs-drawing        a flow he made with no sign yet: its row's small drawing, and the drawing on its page
 
-const NAMES = { drawing: 'fs-drawing', title: 'fs-title' } as const;
 let named: HTMLElement[] = [];
 let generation = 0;
 
@@ -203,17 +202,25 @@ function unname() {
   named = [];
 }
 
-const row = (id: string) => document.querySelector(`.fs-flows a[href="#/flow/${CSS.escape(id)}"]`);
-const page = () => document.querySelector('.fs-flowpage');
-
-/** The list's side: the row's small drawing and its name. */
-function nameRow(id: string) {
-  const r = row(id);
-  return { drawing: r?.querySelector('.fs-cycle'), title: r?.querySelector('.fs-list-line') };
+/** The name of what travels to or from a page of the Flow tab, if anything does. */
+function travelName(p: string): string | undefined {
+  const [section, a, b] = parts(p);
+  if (section !== 'flow' || !a) return undefined;
+  if (a === 'c' && b) return `mt-sign-${b}`;
+  if (a === 'meditate') return 'md-circle';
+  if (a === 'now') return undefined;
+  return 'fs-drawing';
 }
-/** The page's side: its drawing and the name in its header. */
-function namePage() {
-  return { drawing: page()?.querySelector('.fl-drawing .fs-cycle'), title: document.querySelector('.fs-hdr .fs-hdr-label') };
+/** The Flow tab's link to the page a path is on: a sign's page is three parts deep, a flow's (at any step) two. */
+const linkOf = (p: string) => { const ps = parts(p); return `#/${ps.slice(0, ps[1] === 'c' ? 3 : 2).join('/')}`; };
+/** The Flow tab's side: inside the link to that page (a sign, a circle, a row), what carries the name. */
+const onPlate = (n: string, p: string) =>
+  document.querySelector(`.fs-flows a[href="${CSS.escape(linkOf(p))}"] [data-travel="${CSS.escape(n)}"]`);
+/** The page's side. */
+function offPlate(n: string): Element | null {
+  if (n === 'fs-drawing') return document.querySelector('.fs-flowpage .fl-drawing .fs-cycle');
+  if (n === 'md-circle') return document.querySelector('.md-circle[data-circle="page"] svg');
+  return [...document.querySelectorAll(`[data-travel="${CSS.escape(n)}"]`)].find(el => !el.closest('.mt-plate')) ?? null;
 }
 
 /** Starts the turn from one path to another, with go changing the route inside it. go always runs, at once. */
@@ -223,25 +230,21 @@ export async function turnBetween(from: string, to: string, go: () => void): Pro
   const mine = ++generation;
   unname();
   takeBackPaper();
-  // into a flow from the list, or back: the drawing and the name, from the side now on screen
-  const into = kind === 'open' && to.startsWith('/flow/') && from === '/flow' ? flowOf(to) : undefined;
-  const outOf = kind === 'close' && to === '/flow' ? flowOf(from) : undefined;
-  const before = into ? nameRow(into) : outOf ? namePage() : undefined;
-  const pairs: (keyof typeof NAMES)[] = [];
-  for (const k of Object.keys(NAMES) as (keyof typeof NAMES)[]) if (before && name(before[k], NAMES[k])) pairs.push(k);
+  // from the mountain into a page, or back: the thing that goes there, from the side now on screen
+  const into = kind === 'open' && from === '/flow' ? travelName(to) : undefined;
+  const outOf = kind === 'close' && to === '/flow' ? travelName(from) : undefined;
+  const n = into ?? outOf;
+  const paired = !!n && name(into ? onPlate(n, to) : offPlate(n), n);
   await turn(kind, go, {
     vars: lendPaper(),
     ready: pageDrawn,
     settle: () => {
       const html = document.documentElement;
       for (const [k, v] of Object.entries(lendPaper())) html.style.setProperty(k, v);
-      if (!pairs.length) return;
-      const after = into ? namePage() : nameRow(outOf!);
-      for (const k of pairs) {
-        // a name on one side only would fade where it stood: both sides or neither
-        if (!name(after[k], NAMES[k])) {
-          for (const el of named) if (el.style.getPropertyValue('view-transition-name') === NAMES[k]) el.style.removeProperty('view-transition-name');
-        }
+      if (!paired || !n) return;
+      // a name on one side only would fade where it stood: both sides or neither
+      if (!name(into ? offPlate(n) : onPlate(n, from), n)) {
+        for (const el of named) if (el.style.getPropertyValue('view-transition-name') === n) el.style.removeProperty('view-transition-name');
       }
     },
   });

@@ -21,6 +21,7 @@
     "walkthrough:motion": "node script/build-motion-walkthrough.mjs",
     "walkthrough:picks": "node script/build-picks-walkthrough.mjs",
     "walkthrough:energize": "node script/build-energize-walkthrough.mjs",
+    "walkthrough:mountain": "node script/build-mountain-walkthrough.mjs",
     "walkthrough:values": "node script/build-values-walkthrough.mjs"
   },
   "engines": {

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the mountain</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the mountain</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="arrive" data-name="Flow opens on the mountain">
+  <h2>Flow opens on the mountain</h2>
+  <p class="line">Once per unlock it draws itself, then the first water runs down and lights each sign.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Tab</td><td><code>ui/flow/Flow.tsx</code> renders <code>ui/flow/Mountain.tsx</code> in place of the old list; Right now and "+ flow" stay on the rules under it.</td></tr>
+    <tr><td>Land</td><td><code>mountain/land.ts</code>: seeded SVG paths on a 328 by 476 box, drawn once; every mark carries its place in the arrival (<code>--at</code>, <code>--len</code>).</td></tr>
+    <tr><td>Light</td><td><code>mountain/plate.ts</code>: one canvas, screen-blended, one rAF loop while on screen and visible: the lit rock, the lanterns, about 260 motes, the places' weather, the sea, the rings. Colours read from the tokens (<code>palette.ts</code>).</td></tr>
+    <tr><td>Arrival</td><td><code>mountain/arrival.ts</code>: <code>--t-arrive</code> 4200ms; the head leaves the snow at .5 and reaches the sea at .84. A touch cuts it short; Reduce Motion draws it at once.</td></tr>
+    <tr><td>Plan</td><td><code>PLAN-MOUNTAIN.md</code> (repo madden-man/flowstate), pass 6; DESIGN.md rule 34</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/mountain/src</code>), storage in memory, no network. Each step loads it afresh and writes its own readings first.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="water" data-name="The water runs through seven signs">
+  <h2>The water runs through seven signs</h2>
+  <p class="line">Crown to Root, each a lantern on the stream, then out to the sea.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Course</td><td><code>parts/cycle/river.ts</code>: <code>STOPS</code>, each sign placed by what it is for; distances along the course and the stretch a point is in.</td></tr>
+    <tr><td>Maths</td><td><code>model/mountain.ts</code>: spring <code>s = 1 - 0.8d</code>, gate <code>p = 1 - 0.85b</code>, below sign i <code>q = s × p(1) … p(i)</code>; share <code>.15 + .85q</code>, pace <code>.3 + 1.2q</code>, channel <code>1 + 2.5q</code> px.</td></tr>
+    <tr><td>Signs</td><td><code>parts/Sign</code>: seven drawn paths (crown, eye, speech bubble, heart, sun, drop, sprout), hued by the voice formula on the plate's lantern tokens.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="heavy" data-name="A heavy day">
+  <h2>A heavy day</h2>
+  <p class="line">I draw the Depression line across: snow falls, cloud comes down, and less water gets through.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Meter</td><td><code>mountain/Meter.tsx</code> on <code>parts/RuleDrag</code>: a slider with no number; one reading of <code>'mountain'</code> on release; dashed when a day old; end ticks only (<code>meter</code>).</td></tr>
+    <tr><td>Weather</td><td><code>weather.ts capOf</code>: the snow line from 86 to 212 units, mist from the first touch, flakes only while it rises.</td></tr>
+    <tr><td>Data</td><td><code>readings</code> <code>{ id, at, of, value }</code>, append-only, <code>value</code> sealed under the PIN (schema 7).</td></tr>
+    <tr><td>Demo</td><td>The meter is moved to .7 by its own arrow keys, a twentieth a press.</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="close" data-name="Something blocks my heart">
+  <h2>Something blocks my heart</h2>
+  <p class="line">I close its gate: the lantern cools, water pools above it, and the mountain goes dark below.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Gate</td><td><code>parts/Gate</code> under each name: taken only after 8px sideways, a plain tap writes nothing, a cancel puts it back; right shuts.</td></tr>
+    <tr><td>Water</td><td><code>mountain/water.ts feed</code>: a change travels down at the water's pace (110 units a second, about 5.5s spring to sea); above a part-closed sign <code>pool(b)</code> slows it by up to <code>.75b</code>.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="open" data-name="And I let it go">
+  <h2>And I let it go</h2>
+  <p class="line">Opening the gate sends the held water down in one surge, rekindling every sign below.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Surge</td><td>Its size is what the pool held times how far it was opened; each sign it reaches sends a ring in its hue.</td></tr>
+    <tr><td>Demo</td><td>The Heart starts shut at .9; after the pool fills, Home opens it.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="tap" data-name="I tap a sign">
+  <h2>I tap a sign</h2>
+  <p class="line">The Heart travels into its own page.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Travel</td><td><code>ui/turns.ts</code> names <code>mt-sign-heart</code> on the small sign and on the page's large one for one view transition (rule 28).</td></tr>
+    <tr><td>Route</td><td><code>#/flow/c/:chakra</code>; <code>#/flow/:id</code> still opens a flow's drawing on its sign's page, so the door, Right now and hand-offs keep working.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="page" data-name="Each sign has a page">
+  <h2>Each sign has a page</h2>
+  <p class="line">Its place on the mountain, what it is for, its gate, its drawing with no name, and a short list.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Page</td><td><code>ui/flow/ChakraPage.tsx</code>; the place is <code>chakra/Plate.tsx</code> with <code>scenes.ts</code> and <code>ink.ts</code>, its own canvas (<code>chakra/water.ts</code>).</td></tr>
+    <tr><td>Rest list</td><td><code>model/chakra-page.ts restRows</code>: past ticks first, one On row, then seed order, at most six.</td></tr>
+    <tr><td>Demo</td><td>The Throat's page (the gorge and its fall), its gate stored at .35.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="live" data-name="When it is happening">
+  <h2>When it is happening</h2>
+  <p class="line">The dot on The bottom brings that step's things to do, and the 988 line stays.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Safety</td><td><code>safetyLines</code>: every printed line the old flow page showed, on its step and at rest; <code>chakra-safety.spec.ts</code> checks all eight in all three lights.</td></tr>
+    <tr><td>Demo</td><td>An episode on Depress moved to step 4 before the page is drawn (<code>#/flow/depress/4</code>).</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="root" data-name="Root holds two drawings">
+  <h2>Root holds two drawings</h2>
+  <p class="line">The second waits small until I tap it.</p>
+</section>
+
+<!-- 10 -->
+<section class="step" id="sea" data-name="The sea at the foot">
+  <h2>The sea at the foot</h2>
+  <p class="line">Meditate and Energize float there; an open ride shows on its circle.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Circles</td><td><code>SEA_CIRCLES</code> in <code>Mountain.tsx</code>, room for five (<code>seaSlots</code>); the sea sways on the breath (<code>IN_MS</code>, <code>OUT_MS</code>).</td></tr>
+    <tr><td>Demo</td><td>Spark it on East Winds before the page is drawn.</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="still" data-name="In Still, the line and slow water">
+  <h2>In Still, the line and slow water</h2>
+  <p class="line">No meter, no gates, no colour, whatever the day was.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td>The plate reads <code>--plate-state</code> (0 in Still), never the light; <code>--stream</code> .4.</td></tr>
+    <tr><td>Demo</td><td>Stored: the meter at .7, the Throat at .9, the Sacral at .6.</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>
