@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
 import type { FlowDB, Message, Paradox, Settings } from '../../src/db/schema';
-import { store, setKey, removeKey, unlock, lock, keyState, init, LockedError } from '../../src/db/fields';
+import { store, setKey, removeKey, unlock, lock, keyState, init, LockedError, tombstone } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded, defaultSettings, OLD_SEED_PAGES } from '../../src/db/seed';
 
@@ -126,6 +126,65 @@ describe('page titles', () => {
     await removeKey();
     expect((await db.pages.get('q1'))).toBeUndefined();
     expect('title' in (await db.pages.get('pg-manifesto'))!).toBe(false);
+  });
+});
+
+describe('one unit in the write queue (PLAN-VALUES.md C0, from PLAN-SELF.md section 4)', () => {
+  it('store.unit: a read and its write land together, so two at once both count', async () => {
+    await store.put('messages', msg('m1', '0'));
+    const bump = () => store.unit(async u => {
+      const m = (await u.get('messages', 'm1'))!;
+      await new Promise(r => setTimeout(r, 5));
+      await u.put('messages', { ...msg('m1', String(Number(m.text) + 1)) });
+    });
+    await Promise.all([bump(), bump(), bump()]);
+    expect((await store.get('messages', 'm1'))!.text).toBe('3');
+  });
+
+  it('store.tx deletes and tombstones in one transaction; a sealed row whose clear fields it modified still opens', async () => {
+    await db.settings.put(defaultSettings(1));
+    const salt = randomSalt();
+    await setKey(await deriveKey('1', salt, FAST), { salt, iterations: FAST });
+    await store.put('messages', msg('m1', 'kept words'));
+    await store.put('messages', { ...msg('m2', 'gone words'), pageId: 'p2' });
+    await store.tx(['messages', 'settings'], async tb => {
+      await tb('messages').where('pageId').equals('p2').delete();
+      await tb('messages').update('m1', { kept: true });
+      await tombstone(tb, ['m2', 'p2']);
+    });
+    expect(await db.messages.get('m2')).toBeUndefined();
+    expect(await store.get('messages', 'm1')).toEqual({ ...msg('m1', 'kept words'), kept: true });
+    expect((await db.settings.get('app'))!.deleted).toEqual(['m2', 'p2']);
+    // the list only grows and holds each id once
+    await store.tx(['settings'], tb => tombstone(tb, ['p2', 'v9']));
+    expect((await db.settings.get('app'))!.deleted).toEqual(['m2', 'p2', 'v9']);
+  });
+
+  it('the deleted list survives a stale settings write', async () => {
+    await db.settings.put(defaultSettings(1));
+    const stale = (await store.get('settings', 'app'))! as Settings;
+    await store.tx(['settings'], tb => tombstone(tb, ['v1']));
+    await store.put('settings', { ...stale, light: 'night' });
+    const s = (await db.settings.get('app'))!;
+    expect(s.deleted).toEqual(['v1']);
+    expect(s.light).toBe('night');
+  });
+
+  it('store.many drops keys in the same transaction as its writes', async () => {
+    await store.put('messages', msg('m1', 'one'));
+    await store.many({ messages: [msg('m2', 'two')] }, { messages: ['m1'] });
+    expect((await db.messages.toArray()).map(m => m.id)).toEqual(['m2']);
+    await store.many({}, { messages: ['m2'] });
+    expect(await db.messages.count()).toBe(0);
+    await store.many({});
+  });
+
+  it('store.tx and store.unit refuse while locked', async () => {
+    const salt = randomSalt();
+    await setKey(await deriveKey('1', salt, FAST), { salt, iterations: FAST });
+    lock();
+    await expect(store.tx(['settings'], async () => undefined)).rejects.toBeInstanceOf(LockedError);
+    await expect(store.unit(async () => undefined)).rejects.toBeInstanceOf(LockedError);
   });
 });
 
