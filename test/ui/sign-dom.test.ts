@@ -3,6 +3,7 @@
 // for tests and for the CSS, and the parts a parent styles (pathLength 1 for a pen-order draw).
 import { describe, it, expect, afterEach } from 'vitest';
 import { h, render } from 'preact';
+import fs from 'node:fs';
 import { Sign, SIGN_PATHS, signScale } from '../../src/ui/parts/Sign';
 import { CHAKRAS } from '../../src/model/mountain';
 
@@ -32,7 +33,10 @@ describe('parts/Sign', () => {
     const svg = draw({ kind: 'heart', hue: 150, closed: 1, size: 'large' });
     expect(svg.dataset.closed).toBe('1.00');
     expect(svg.dataset.size).toBe('large');
-    expect(svg.querySelector('.fs-sign-g')!.getAttribute('transform')).toBe('scale(0.700)');
+    // the gate goes inline as --gate only; --closed and the scale are the CSS's, so Still can pin them
+    expect(svg.style.getPropertyValue('--gate')).toBe('1');
+    expect(svg.style.getPropertyValue('--closed')).toBe('');
+    expect(signScale(1)).toBeCloseTo(0.7);
     expect(signScale(0)).toBe(1);
     expect(signScale(0.5)).toBeCloseTo(0.85);
   });
@@ -42,7 +46,21 @@ describe('parts/Sign', () => {
     const still = draw({ kind: 'sun', hue: 95, closed: 0.8, size: 'small', still: true });
     expect(still.dataset.closed).toBe('0.00');
     expect(still.hasAttribute('data-still')).toBe(true);
-    expect(still.querySelector('.fs-sign-g')!.getAttribute('transform')).toBe('scale(1.000)');
+    expect(still.style.getPropertyValue('--gate')).toBe('0');
+  });
+  it('a sign on the plate says so, for the plate prop; an .on-plate ancestor does the same in CSS', () => {
+    expect(draw({ kind: 'eye', hue: 275, closed: 0, size: 'small', plate: true }).hasAttribute('data-plate')).toBe(true);
+    render(null, root); root.remove();
+    expect(draw({ kind: 'eye', hue: 275, closed: 0, size: 'small' }).hasAttribute('data-plate')).toBe(false);
+  });
+  it('its CSS draws in pen order (no non-scaling-stroke), adds no filter, and lets Still win over the gate', () => {
+    const css = fs.readFileSync('src/ui/parts/parts.css', 'utf8');
+    const part = css.slice(css.indexOf('/* ---- R0: parts/Sign'), css.indexOf('/* ---- R0 ends ---- */'));
+    const rules = part.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(rules).not.toMatch(/vector-effect|non-scaling-stroke|filter|drop-shadow/);
+    expect(rules).toMatch(/--closed: var\(--gate, 0\)/);
+    expect(rules).toMatch(/\[data-light="still"\] \.fs-sign\.fs-sign, \.fs-sign\.fs-sign\[data-still\] \{ --closed: 0;/);
+    expect(rules).toMatch(/\.on-plate \.fs-sign, \.fs-sign\[data-plate\]/);
   });
   it('is a drawing, hidden from the screen reader, with no text, emoji or image in it', () => {
     const svg = draw({ kind: 'sprout', hue: 25, closed: 0.2, size: 'small' });

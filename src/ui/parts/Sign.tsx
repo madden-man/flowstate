@@ -2,12 +2,22 @@
 // heart, a sun, a drop, a sprout. Drawn paths in the app's own code (DESIGN.md rule 7), never an icon or an emoji; the
 // paths are the mock's (design/mountain/mountain.js SIGNS), in a box of 28 centred on 0.
 //
-// A sign is a lantern. Open (closed 0) its body is full of its hue by the voice formula (rule 3) with a soft glow; as
-// closed goes to 1 it empties to a cold outline and draws in to 70 percent. In Still (the light, or the still prop) it is
-// open and has no hue. The cold colour is --sign-cold, print grey by default so it reads on the cream page; a parent on
-// the mountain's plate sets it to --plate-line. Nothing here moves on its own: no loop, no transition. A parent styles
-// the parts: .fs-sign-body (the filled shape) and .fs-sign-line (the inner marks) both carry pathLength 1, so a pen-order
-// draw is a stroke-dashoffset from 1 to 0, and a canvas glow behind can light it.
+// A sign is a lantern. Open (closed 0) its body is full of its hue by the voice formula (rule 3); as closed goes to 1 it
+// empties to a cold outline and draws in to 70 percent. The component sets only --sh (the hue) and --gate inline; the CSS
+// (parts.css, the R0 section) derives --closed from --gate, so in Still (the light, or the still prop) the Still rules
+// pin it to 0 and nothing of the gate shows, whatever the element carries. data-closed is the gate as given (0 with the
+// still prop); read it in tests, never to decide a colour.
+//
+// Where it sits. On paper (a sign's page under its plate, the cream Day page) nothing is needed. On the mountain's plate,
+// put class "on-plate" on the plate's element (R1's mountain, R3's close view at the top of a sign's page): every sign
+// inside takes the plate's lantern lightness (--plate-voice-l / --plate-voice-c), its cold colour becomes --plate-line
+// and its cut-out marks --plate. A sign standing on the plate with no such ancestor takes the plate prop instead
+// (data-plate); both do the same.
+//
+// What a parent styles. .fs-sign-body (the filled shape) and .fs-sign-line (the marks over it) both carry pathLength 1 and
+// a stroke in the box's own units (no non-scaling-stroke), so a pen-order draw is stroke-dasharray 1 and
+// stroke-dashoffset from 1 to 0. There is no glow and no filter here: on the plate the glow is the parent's canvas
+// (pass 6), and a filter per sign would repaint on every frame of a gate drag. Nothing here moves on its own.
 import type { SignKind } from '../../model/mountain';
 
 /** Each sign's filled body and, for some, the marks drawn over it. */
@@ -21,7 +31,7 @@ export const SIGN_PATHS: Readonly<Record<SignKind, { body: string; line?: string
   sprout: { body: 'M0 1 C-8 0 -10 -8 -10 -8 C-3 -9 0 -4 0 1 Z M0 1 C8 0 10 -8 10 -8 C3 -9 0 -4 0 1 Z', line: 'M0 1 V6 M0 6 L-5 10.5 M0 6 L5 10.5 M0 6 V11' },
 };
 
-/** How far a shut sign draws in: to 70 percent. */
+/** How far a shut sign draws in: to 70 percent (the CSS scale of .fs-sign-g, for a parent that needs the size). */
 export const signScale = (closed: number) => 1 - 0.3 * clamp(closed);
 const clamp = (x: number) => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0);
 
@@ -34,18 +44,20 @@ type Props = {
   size: 'small' | 'large';
   /** Still: open, no hue, whatever closed says. The Still light does the same by CSS. */
   still?: boolean;
+  /** On the mountain's plate with no .on-plate ancestor: the lantern lit for the dark ground. */
+  plate?: boolean;
 };
 
-export function Sign({ kind, hue, closed, size, still }: Props) {
+export function Sign({ kind, hue, closed, size, still, plate }: Props) {
   const c = still ? 0 : clamp(closed);
   const p = SIGN_PATHS[kind];
   return (
     <svg
       class="fs-sign" viewBox="-14 -14 28 28" aria-hidden="true" focusable="false"
-      data-sign={kind} data-closed={c.toFixed(2)} data-size={size} data-still={still ? '' : undefined}
-      style={{ '--sh': String(hue), '--closed': String(c) }}
+      data-sign={kind} data-closed={c.toFixed(2)} data-size={size} data-still={still ? '' : undefined} data-plate={plate ? '' : undefined}
+      style={{ '--sh': String(hue), '--gate': String(c) }}
     >
-      <g class="fs-sign-g" transform={`scale(${signScale(c).toFixed(3)})`}>
+      <g class="fs-sign-g">
         <path class="fs-sign-body" d={p.body} pathLength={1} />
         {p.line && <path class="fs-sign-line" d={p.line} pathLength={1} />}
       </g>

@@ -1,7 +1,8 @@
 // The mountain (PLAN-MOUNTAIN.md, R0): the seven stops, the water's maths (section 4), and the readings (section 8).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from '../db/helpers';
-import { store } from '../../src/db/fields';
+import { store, setKey, lock, unlock, LockedError } from '../../src/db/fields';
+import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
 import {
   CHAKRA_IDS, CHAKRAS, chakraOf, spring, pass, reach, stretch, pool, sea, POOL_UNITS,
@@ -111,13 +112,37 @@ describe('the readings', () => {
     await expect(writeReading('elbow' as never, 0.5)).rejects.toThrow();
     expect(await store.all('readings')).toHaveLength(0);
   });
+  it('sealed with the PIN: no value in the database, nothing from latestReadings while locked, all of it once open', async () => {
+    const db = await freshDB();
+    await ensureSeeded();
+    await writeReading('mountain', 0.6, T);
+    await writeReading('throat', 0.3, T);
+    const salt = randomSalt();
+    const key = await deriveKey('2580', salt, 1000);
+    await setKey(key, { salt, iterations: 1000 });
+    await writeReading('throat', 0.9, T + H);
+    for (const r of await db.readings.toArray()) { expect(r).not.toHaveProperty('value'); expect(r.sealed).toBeTruthy(); }
+    lock();
+    expect(await latestReadings()).toEqual({ gates: {} });
+    await expect(writeReading('heart', 0.5)).rejects.toBeInstanceOf(LockedError);
+    expect(await unlock(key)).toBe(true);
+    const r = await latestReadings();
+    expect(r.mountain!.value).toBe(0.6);
+    expect(r.gates.throat).toMatchObject({ value: 0.9, at: T + H });
+  });
   it('a reading older than a day is stale', () => {
     expect(isStale({ at: T }, T + 24 * H)).toBe(false);
     expect(isStale({ at: T }, T + 24 * H + 1)).toBe(true);
     expect(isStale({ at: T }, T + H)).toBe(false);
   });
-  it('the flows under a sign, in flow order', async () => {
+  it('the flows under a sign, in the flow list\'s order (order, then createdAt, then id)', async () => {
     await ensureSeeded();
+    const panic = (await store.get('flows', 'panic'))!;
+    await store.put('flows', { ...panic, id: 'mine-early', order: 1, createdAt: panic.createdAt - 1, chakra: 'root' });
+    await store.put('flows', { ...panic, id: 'a-late', order: 1, createdAt: panic.createdAt + 1, chakra: 'root' });
+    expect((await flowsUnder('root')).map(f => f.id)).toEqual(['mine-early', 'panic', 'a-late', 'whatif']);
+    await store.delete('flows', 'mine-early');
+    await store.delete('flows', 'a-late');
     expect((await flowsUnder('root')).map(f => f.id)).toEqual(['panic', 'whatif']);
     expect((await flowsUnder('heart')).map(f => f.id)).toEqual(['depress']);
     expect((await flowsUnder('crown')).map(f => f.id)).toEqual(['night']);

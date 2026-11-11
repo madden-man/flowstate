@@ -6,7 +6,8 @@
 // The water, crown to sea: the meter d gives the spring s = 1 - 0.8d; a gate b lets through p = 1 - 0.85b; below sign
 // i runs q(i) = s * p(1) * ... * p(i). Neither floor reaches zero, so something always gets through.
 import type { Flow, Millis, Reading } from '../db/schema';
-import { store, type Read } from '../db/fields';
+import { keyState, store, type Read } from '../db/fields';
+import { flows } from './flows';
 
 export const CHAKRA_IDS = ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root'] as const;
 export type ChakraId = typeof CHAKRA_IDS[number];
@@ -83,30 +84,34 @@ export const sea = (d: number, gates: readonly number[]): number => reach(d, gat
 
 const DAY = 24 * 60 * 60_000;
 
-/** Writes one reading, on release; never edited. value is clamped to 0..1. */
+/** Writes one reading, on release; never edited. value is clamped to 0..1 and sealed with the key; a locked journal
+ *  throws LockedError, like every write. */
 export async function writeReading(of: 'mountain' | ChakraId, value: number, at: Millis = Date.now()): Promise<void> {
   if (of !== 'mountain' && !isChakraId(of)) throw new Error(`Not a reading: ${String(of)}`);
   await store.put('readings', { id: crypto.randomUUID(), at, of, value: unit(value) });
 }
 
-/** The newest reading of the mountain and of each sign's gate; a gate never set is absent. */
+/** The newest reading of the mountain and of each sign's gate; a gate never set is absent. A reading's value is sealed
+ *  (fields.ts), so a locked journal has none to give: empty, as before the first reading (the mountain is behind the PIN). */
 export async function latestReadings(): Promise<{ mountain?: Reading; gates: Partial<Record<ChakraId, Reading>> }> {
+  if (keyState() === 'locked') return { gates: {} };
   const newest = async (of: Reading['of']) => {
     const [r] = await store.query('readings', t => t.where('[of+at]').between([of, -Infinity], [of, Infinity]).reverse().limit(1));
     return r;
   };
   const [mountain, ...gates] = await Promise.all([newest('mountain'), ...CHAKRA_IDS.map(newest)]);
   const out: { mountain?: Reading; gates: Partial<Record<ChakraId, Reading>> } = { gates: {} };
-  if (mountain) out.mountain = mountain;
-  CHAKRA_IDS.forEach((id, i) => { if (gates[i]) out.gates[id] = gates[i]; });
+  const kept = (r: Read<Reading> | undefined) => r && !r.locked && Number.isFinite(r.value);
+  if (kept(mountain)) out.mountain = mountain;
+  CHAKRA_IDS.forEach((id, i) => { if (kept(gates[i])) out.gates[id] = gates[i]; });
   return out;
 }
 
 /** A reading older than a day is drawn dashed until touched (section 5, question 5). */
 export const isStale = (reading: Pick<Reading, 'at'>, now: Millis = Date.now()): boolean => now - reading.at > DAY;
 
-/** The flows whose drawings sit under this sign, in the flows' order. */
+/** The flows whose drawings sit under this sign, in the flow list's order (model/flows.ts flows: order, then
+ *  createdAt, then id). */
 export async function flowsUnder(chakra: ChakraId): Promise<Read<Flow>[]> {
-  const flows = await store.query('flows', t => t.orderBy('order'));
-  return flows.filter(f => f.chakra === chakra);
+  return (await flows()).filter(f => f.chakra === chakra);
 }
