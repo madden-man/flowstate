@@ -157,3 +157,112 @@ describe('the plate, with no canvas', () => {
     root.remove();
   });
 });
+
+// R2: the weather the meter sets, and the water carried down the mountain
+import { capOf, SNOW_CLEAR, SNOW_HEAVY } from '../../src/ui/flow/mountain/weather';
+import { TRAVEL, SURGES } from '../../src/ui/flow/mountain/water';
+import { snapMeter, meterWords } from '../../src/ui/flow/mountain/Meter';
+
+describe('the weather (R2)', () => {
+  it('brings the snow down, gathers the mist and lets the snow fall as the meter rises', () => {
+    const clear = capOf(0), heavy = capOf(1);
+    expect(clear.snowline).toBe(SNOW_CLEAR);
+    expect(heavy.snowline).toBeCloseTo(SNOW_HEAVY);
+    expect(clear.cloud).toBe(0); expect(clear.flakes).toBe(0);
+    expect(heavy.cloud).toBe(1); expect(heavy.flakes).toBe(1);
+    // the crown is always in the snow; the heaviest line is still above the heart
+    expect(SNOW_CLEAR).toBeGreaterThan(STOPS.crown.y);
+    expect(SNOW_HEAVY).toBeLessThan(STOPS.heart.y);
+    let last = capOf(0);
+    for (let d = 0.05; d <= 1; d += 0.05) {
+      const w = capOf(d);
+      expect(w.snowline).toBeGreaterThan(last.snowline);
+      expect(w.cloud).toBeGreaterThanOrEqual(last.cloud);
+      expect(w.flakes).toBeGreaterThanOrEqual(last.flakes);
+      last = w;
+    }
+    // nothing falls on a light day
+    expect(capOf(0.2).flakes).toBe(0);
+    expect(capOf(NaN)).toEqual(capOf(0));
+  });
+  it('keeps the snow\'s foot where the gullies are, so a lower line is the same snow grown', () => {
+    expect(snowCap(120).rim).not.toBe(snowCap(160).rim);
+    expect(snowCap(160).lit).toBe(snowCap(160).lit);
+  });
+});
+
+describe('the water carried down the mountain (R2)', () => {
+  const run = (w: Water, secs: number) => { for (let t = 0; t < secs; t += 1 / 60) w.step(1 / 60); };
+  it('lands a gate closed on the stretch below it at once, and further down only as the water gets there', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0], true);
+    w.feed(0, [0, 0, 0, 0.9, 0, 0, 0]);
+    run(w, 0.5);
+    expect(w.q[4]).toBeLessThan(0.4);                 // just below the heart
+    expect(w.q[6]).toBeGreaterThan(0.95);             // the sacral has not had it yet
+    const toSacral = (COURSE.at[6] - COURSE.at[4]) / TRAVEL;
+    run(w, toSacral + 0.3);
+    expect(w.q[6]).toBeCloseTo(reach(0, [0, 0, 0, 0.9, 0, 0, 0])[5], 1);
+    run(w, 6);
+    const want = stretches(spring(0), reach(0, [0, 0, 0, 0.9, 0, 0, 0]));
+    for (let j = 0; j < 8; j++) expect(w.q[j]).toBeCloseTo(want[j], 2);
+  });
+  it('carries the meter from the spring, and the gates themselves answer at once', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0], true);
+    w.feed(1, [0, 0, 0.5, 0, 0, 0, 0]);
+    run(w, 0.4);
+    expect(w.q[0]).toBeCloseTo(spring(1), 1);
+    expect(w.q[7]).toBeGreaterThan(0.9);
+    expect(w.b[2]).toBeCloseTo(0.5, 1);
+  });
+  it('fills a closed gate\'s pool, and lets it go as one surge when the gate opens, rekindling what is below', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0], true);
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0]);
+    run(w, 5);
+    expect(w.pooled[3]).toBeGreaterThan(0.5);
+    expect(Array.from(w.surgeAmp).every(a => a === 0)).toBe(true);
+    w.feed(0, [0, 0, 0, 0.4, 0, 0, 0]);
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0]);
+    // the two moves of one opening are one surge, from the heart
+    expect(Array.from(w.surgeAmp).filter(a => a > 0)).toHaveLength(1);
+    const k = Array.from(w.surgeAmp).findIndex(a => a > 0);
+    expect(w.surgeFrom[k]).toBeCloseTo(COURSE.at[4]);
+    expect(w.pooled[3]).toBeLessThan(0.1);
+    expect(w.rush(w.surgeHead(k))).toBeGreaterThan(0.3);
+    run(w, (COURSE.at[5] - COURSE.at[4]) / TRAVEL + 0.1);
+    expect(w.reached[4]).toBe(1);   // the solar plexus
+    expect(w.reached[2]).toBe(0);   // nothing above the heart
+    run(w, 8);
+    expect(Array.from(w.surgeAmp).every(a => a === 0)).toBe(true);
+    expect(SURGES).toBeGreaterThan(1);
+  });
+  it('lets the held snow go from the spring when the meter lifts, and sends nothing on a closing', () => {
+    const w = new Water();
+    w.feed(0.9, [0, 0, 0, 0, 0, 0, 0], true);
+    w.feed(0.9, [0, 0, 0.9, 0, 0, 0, 0]);
+    expect(Array.from(w.surgeAmp).every(a => a === 0)).toBe(true);
+    w.feed(0.2, [0, 0, 0.9, 0, 0, 0, 0]);
+    const k = Array.from(w.surgeAmp).findIndex(a => a > 0);
+    expect(k).toBeGreaterThanOrEqual(0);
+    expect(w.surgeFrom[k]).toBe(0);
+  });
+  it('puts the whole mountain as it is given at once, with no travel and no surge (Reduce Motion)', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0], true);
+    w.feed(0.5, [0, 0, 0, 0, 0, 0, 0], true);
+    const want = stretches(spring(0.5), reach(0.5, [0, 0, 0, 0, 0, 0, 0]));
+    for (let j = 0; j < 8; j++) expect(w.q[j]).toBeCloseTo(want[j], 5);
+    expect(Array.from(w.surgeAmp).every(a => a === 0)).toBe(true);
+  });
+});
+
+describe('the meter (R2)', () => {
+  it('snaps near either end to the end, and says the weather in words, never a number', () => {
+    expect(snapMeter(0.01)).toBe(0); expect(snapMeter(0.99)).toBe(1); expect(snapMeter(0.5)).toBe(0.5);
+    expect(snapMeter(-3)).toBe(0); expect(snapMeter(NaN)).toBe(0);
+    for (const v of [0, 0.2, 0.5, 0.8, 1]) expect(meterWords(v)).not.toMatch(/\d/);
+    expect(meterWords(0)).toBe('clear');
+  });
+});

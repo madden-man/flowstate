@@ -21,13 +21,16 @@
 // that shows a state; the plate reads that from --plate-state, never from the light (rule 2).
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
-import { CHAKRAS, CHAKRA_IDS, latestReadings, type ChakraId } from '../../model/mountain';
+import { CHAKRAS, CHAKRA_IDS, isStale, latestReadings, writeReading, type ChakraId } from '../../model/mountain';
+import type { Reading } from '../../db/schema';
+import { gate as lockGate } from '../lock/pin';
+import { Meter } from './mountain/Meter';
 import { flowStates } from '../../model/flows';
 import { FIXATION_FLOW } from '../../model/fixations';
 import { dataVersion } from '../sheets';
 import { Sign } from '../parts/Sign';
 import { STOPS, SEA_Y, CIRCLE_R, H, W, channelPaths, seaSlots } from '../parts/cycle/river';
-import { land, snowCap, SNOW_Y, type Land } from './mountain/land';
+import { land, SNOW_Y, type Land } from './mountain/land';
 import { Plate } from './mountain/plate';
 import { arrived, markArrived } from './mountain/arrival';
 import type { CapWeather } from './mountain/weather';
@@ -68,17 +71,28 @@ type Props = {
   cap?: Partial<CapWeather> | null;
   /** The sea's flows with an episode open (Energize's ride): the dot and its halo on their circle. */
   liveFlows?: ReadonlySet<string>;
+  /** The controls (R2): the meter over the plate's sky. Without them the plate is a picture (a test, a walkthrough). */
+  controls?: Controls;
+};
+
+/** What the plate's controls need: the stored readings' staleness, the lock, and where a gesture goes. */
+type Controls = {
+  meterStale: boolean;
+  disabled: boolean;
+  meterInput: (v: number) => void;
+  meterCommit: (v: number) => void;
+  cancel: () => void;
 };
 
 /** The plate itself, given the water. */
-export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
+export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Props) {
   const host = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const air = useRef<HTMLCanvasElement>(null);
   const plate = useRef<Plate | null>(null);
   const L = theLand();
   const slots = useMemo(() => seaSlots(SEA_CIRCLES.length), []);
   const snowline = cap?.snowline ?? SNOW_Y;
-  const snow = useMemo(() => snowCap(snowline), [snowline]);
   const gateKey = gates.map(g => unit(g).toFixed(3)).join(',');
 
   useEffect(() => {
@@ -87,7 +101,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
     if (typeof ResizeObserver === 'undefined' || !canvas.current?.getContext('2d')) { el.dataset.arrive = 'done'; return; }
     const stops = [...el.querySelectorAll<HTMLElement>('.mt-stop')];
     const p = new Plate({
-      host: el, canvas: canvas.current!, land: L,
+      host: el, canvas: canvas.current!, air: air.current ?? undefined, land: L,
       channels: [...el.querySelectorAll<SVGPathElement>('.mt-chan')],
       shade: [...el.querySelectorAll<SVGStopElement>('.mt-shade-stop')],
       circles: [...el.querySelectorAll<HTMLElement>('.mt-circle')],
@@ -125,13 +139,17 @@ export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
   }, []);
 
   useEffect(() => { plate.current?.setWater(unit(d), gates.map(unit)); }, [d, gateKey]);
-  useEffect(() => { if (cap) plate.current?.setWeather(cap); }, [cap?.snowline, cap?.flakes, cap?.cloud]);
+  useEffect(() => { plate.current?.setWeather(cap ?? null); }, [cap?.snowline, cap?.flakes, cap?.cloud, cap?.held]);
 
   // the darkness below each sign: a stop just above it and one a little below, set by the plate as the water eases
   const shadeStops = CHAKRA_IDS.flatMap(id => [STOPS[id].y - 2, STOPS[id].y + 12]);
 
   return (
     <div class="mt-wrap">
+    {controls && (
+      <Meter value={unit(d)} stale={controls.meterStale} disabled={controls.disabled}
+        onInput={controls.meterInput} onCommit={controls.meterCommit} onCancel={controls.cancel} />
+    )}
     <section ref={host} class="mt-plate on-plate" aria-label="The mountain" data-d={unit(d).toFixed(3)} data-gates={gateKey}
       data-arrive={arrived() ? 'done' : 'run'}>
       <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
@@ -156,13 +174,8 @@ export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
         <rect class="mt-sea" x="-40" y="396" width={W + 80} height={H - 396 + 40} />
         {L.marks.map((m, i) => (m.kind === 'fill'
           ? (m.cls === 'snow-slot'
-            ? (
-              <g key={i} class="mt-snow" style={{ '--at': m.at, '--len': m.len }}>
-                <path class="mt-snow-lit" d={snow.lit} />
-                <path class="mt-snow-shade" d={snow.shade} />
-                <path class="mt-snow-rim" d={snow.rim} />
-              </g>
-            )
+            // the snow is the weather's (R2): it is drawn on the air canvas, down to the meter's line
+            ? null
             : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
           : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len, '--w': m.w.toFixed(2) }} />))}
         <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
@@ -182,6 +195,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
           {CHANNELS.map((c, i) => <path key={i} class="mt-chan" d={c} pathLength={1} />)}
         </g>
       </svg>
+      <canvas ref={air} class="mt-air" aria-hidden="true" />
       <canvas ref={canvas} class="mt-light" aria-hidden="true" />
       <div class="mt-over">
         {CHAKRAS.map(c => {
@@ -215,17 +229,21 @@ export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
   );
 }
 
-/** The Flow tab's mountain: the newest readings (or R2's under the finger) and the live episodes. */
+type Read = { d: number; gates: number[]; mountain?: Reading; readings: Partial<Record<ChakraId, Reading>> };
+const fromReadings = (r: Awaited<ReturnType<typeof latestReadings>>): Read => ({
+  d: r.mountain?.value ?? 0, gates: CHAKRA_IDS.map(id => r.gates[id]?.value ?? 0), mountain: r.mountain, readings: r.gates,
+});
+
+/** The Flow tab's mountain: the newest readings (or the controls' under the finger) and the live episodes. A gesture
+ *  drives the plate live through waterLive; on release its one reading is written, the readings are read again, and
+ *  only then is waterLive let go, so the plate never falls back to the old reading in between. */
 export function Mountain() {
-  const [read, setRead] = useState<{ d: number; gates: number[] }>({ d: 0, gates: [0, 0, 0, 0, 0, 0, 0] });
+  const [read, setRead] = useState<Read>({ d: 0, gates: [0, 0, 0, 0, 0, 0, 0], readings: {} });
   const [live, setLive] = useState<Set<ChakraId>>(new Set());
   const [liveFlows, setLiveFlows] = useState<Set<string>>(new Set());
   useEffect(() => {
     let on = true;
-    latestReadings().then(r => {
-      if (!on) return;
-      setRead({ d: r.mountain?.value ?? 0, gates: CHAKRA_IDS.map(id => r.gates[id]?.value ?? 0) });
-    }).catch(() => undefined);
+    latestReadings().then(r => { if (on) setRead(fromReadings(r)); }).catch(() => undefined);
     flowStates().then(rows => {
       if (!on) return;
       setLive(new Set(rows.filter(r => r.live && r.flow.chakra).map(r => r.flow.chakra!)));
@@ -235,5 +253,20 @@ export function Mountain() {
     return () => { on = false; };
   }, [dataVersion.value]);
   const w = waterLive.value ?? read;
-  return <MountainPlate d={w.d} gates={w.gates} live={live} cap={capLive.value} liveFlows={liveFlows} />;
+  const now = Date.now();
+  const write = async (of: 'mountain' | ChakraId, v: number) => {
+    // locked again under the thumb (LockedError): nothing is written, and the plate goes back to what was kept
+    try { await writeReading(of, v); } catch { /* the PIN first */ }
+    const r = await latestReadings().catch(() => null);
+    if (r) setRead(fromReadings(r));
+    waterLive.value = null;
+  };
+  const controls: Controls = {
+    meterStale: !!read.mountain && isStale(read.mountain, now),
+    disabled: lockGate.value === 'locked',
+    meterInput: v => { waterLive.value = { d: v, gates: (waterLive.peek() ?? read).gates }; },
+    meterCommit: v => { waterLive.value = { d: v, gates: (waterLive.peek() ?? read).gates }; void write('mountain', v); },
+    cancel: () => { waterLive.value = null; },
+  };
+  return <MountainPlate d={w.d} gates={w.gates} live={live} cap={capLive.value} liveFlows={liveFlows} controls={controls} />;
 }

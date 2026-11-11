@@ -4,8 +4,9 @@
 import { settings } from '../settings';
 
 /** The ticks DESIGN.md rule 19 allows, and nowhere else. swap and deal: a fixation put in a slot, and Deal me one
- *  (PLAN-ENERGIZE.md X3, ui/flow/DeckSheet.tsx). */
-export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit' | 'swap' | 'deal';
+ *  (PLAN-ENERGIZE.md X3, ui/flow/DeckSheet.tsx). meter: the Depression meter's mark landing on either end
+ *  (PLAN-MOUNTAIN.md section 5, R2, ui/flow/mountain/Meter.tsx). */
+export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit' | 'swap' | 'deal' | 'meter';
 
 export function tick(_name: TickName): void {
   if (!settings.value.haptics || typeof document === 'undefined') return;

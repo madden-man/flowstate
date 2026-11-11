@@ -28,6 +28,8 @@ const TICKS: Record<string, string[]> = {
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
   sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
+  // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
+  meter: ['src/ui/flow/mountain/Meter.tsx'],
   breath: ['src/ui/flow/breath.ts'],
   // M3: beside bell('album'), inside the tap
   album: ['src/ui/music/'],
