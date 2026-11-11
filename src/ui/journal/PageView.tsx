@@ -33,6 +33,7 @@ import { voiceColour } from '../voice';
 import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import { JournalLink } from '../flow/JournalLink';
+import { pageCarry, type PageCarry } from '../flow/chakra/carry';
 import {
   today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
@@ -150,21 +151,21 @@ type Block = { id: string; m?: Read<Message>; at: number };
 
 type BlockProps = {
   b: Block; text: string; voice?: Read<Voice>; quoted?: Read<Message>; dated?: Date; cur: boolean; edit: boolean; label: string;
-  held: boolean; chips?: JSX.Element; forRow?: JSX.Element; dotOpen: boolean; saved: boolean;
+  held: boolean; wise?: boolean; chips?: JSX.Element; forRow?: JSX.Element; dotOpen: boolean; saved: boolean;
   area: (el: HTMLTextAreaElement | null) => void;
   onHold: () => void; onTap: (offset: number | undefined) => void; onDot: () => void;
   onInput: (text: string) => void; onKeyDown: (e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => void;
   onFocus: () => void; onBlur: (to: EventTarget | null) => void;
 };
 
-function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chips, forRow, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
+function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, wise, chips, forRow, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
   const hold = useHold(onHold, e => onTap(offsetAt((e.currentTarget as HTMLElement).querySelector('p'), e.clientX, e.clientY)));
   const own = useRef<HTMLTextAreaElement | null>(null);
   // the line height changes with the light (Still has more air), so the height is measured again
   useLayoutEffect(() => grow(own.current), [edit, light.value]);
   const m = b.m;
   const deep = voice?.shade === 'deep';
-  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m?.wise ? ' fs-wise' : ''}${held ? ' held' : ''}${cur ? ' cur' : ''}`;
+  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m?.wise || wise ? ' fs-wise' : ''}${held ? ' held' : ''}${cur ? ' cur' : ''}`;
   const style = voice ? ({ '--vc': voiceColour(voice.colour, voice.shade) } as JSX.CSSProperties) : undefined;
   return (
     <div class="fs-block">
@@ -220,6 +221,14 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const [held, setHeld] = useState<Read<Message> | null>(null);
   const [echo, setEcho] = useState<Kept | null>(null);
   const [saved, setSaved] = useState(true);
+  // PLAN-TASKS.md T3: what a sign's touch carried to today's page, taken once (flow/chakra/carry.ts): Letter's "Dear" on
+  // the next rule (unsaved until he writes), or Ask's answer rule, open in italic as the wiser second person (rule 17)
+  const [carry] = useState<PageCarry | null>(() => {
+    const c = isToday && !fresh ? pageCarry.peek() : null;
+    if (c) pageCarry.value = null;
+    return c;
+  });
+  const [wiseId, setWiseId] = useState<string | null>(null);
   const pageRef = useRef<Read<PageRow> | undefined>();
   const echoRef = useRef<Kept | null>(null);
   const chain = useRef<Promise<void>>(Promise.resolve());
@@ -264,6 +273,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     let live = true;
     Promise.all([chipVoices(), voicesById()]).then(([chips, byId]) => live && setVs({ chips, byId }));
     void reloadValues();
+    if (carry?.tail) texts.current.set(tailId, carry.tail);
+    if (carry?.wise) setWiseId(tailId);
     // the page opens with the caret on its next rule: the first rule of a new day, or under the last block
     void refresh().then(() => { if (live) focusOn(tailId, 'end'); });
     return () => { live = false; };
@@ -330,7 +341,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const textOf = (bid: string) => areas.current.get(bid)?.value ?? texts.current.get(bid) ?? msgOf(bid)?.text ?? '';
   const draftFor = (bid: string, text: string): Draft => {
     const m = msgOf(bid);
-    return { text, voiceId: voiceFor(bid), replyTo: m?.replyTo, wise: m?.wise };
+    return { text, voiceId: voiceFor(bid), replyTo: m?.replyTo, wise: m?.wise ?? (bid === wiseId || undefined) };
   };
 
   // once the next rule has been written on and you have moved on from it, a fresh one waits beneath
@@ -544,6 +555,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   return (
     <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id} drawn={data !== null}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
+      sign={page?.sign?.chakra}
       music={page ? {
         id: page.id, music: page.music,
         onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
@@ -582,7 +594,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
             <BlockView key={b.id} b={b} text={texts.current.get(b.id) ?? m?.text ?? ''} voice={voice}
               quoted={m?.replyTo ? byId.get(m.replyTo) : undefined} dated={dated} cur={b.id === cur} edit={b.id === cur || !m}
               label={b.id === lastArea ? pageLabel : 'This line'}
-              held={!!m && openSheet.value === 'line' && held?.id === m.id} dotOpen={dotFor === b.id} saved={saved && !!data}
+              held={!!m && openSheet.value === 'line' && held?.id === m.id} wise={!m && b.id === wiseId} dotOpen={dotFor === b.id} saved={saved && !!data}
               chips={dotFor === b.id && b.id === cur ? (
                 <div class="fs-inline" onMouseDown={e => e.preventDefault()}>
                   <div class="fs-chips" role="group" aria-label="Who speaks this line">
