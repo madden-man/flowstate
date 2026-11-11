@@ -279,6 +279,15 @@ export class Plate {
     if (!this.raf && this.live) this.paint(performance.now());
   }
 
+  /** A touch done on sign i, run on the mountain (PLAN-TASKS.md section 5, T2): a share of its pool runs from the sign
+   *  to the sea. Nothing in Still, under Reduce Motion, or while the arrival is still running. */
+  release(i: number, share: number): number {
+    if (!this.state || this.water.k <= 0 || this.t0 !== null) return 0;
+    const out = this.water.release(i, share);
+    if (out) { this.answerDirty = true; this.wake(); }
+    return out;
+  }
+
   get arriving() { return this.t0 !== null; }
   /** How long the arrival has been running, in ms (0 when there is none). */
   get arrivingFor() { return this.t0 === null ? 0 : performance.now() - this.t0; }

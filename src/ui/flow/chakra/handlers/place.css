@@ -1,0 +1,164 @@
+/* The in-place touches (PLAN-TASKS.md T2): each drawn in what its place is made of, over the plate in .ck-stage, in the
+   plate's own box. Every colour is a token: the water's light --glow, the chalk --plate-line, the print --plate-print,
+   the dark --plate and --plate-deep, and the sign's hue as the plate's lanterns take it (--pl-hue), the line colour in
+   Still (rule 13). Every duration is a token, so under Reduce Motion everything is at once. */
+
+.ck-plate { --pl-hue: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--sh, 0)); }
+[data-light="still"] .ck-plate { --pl-hue: var(--glow); }
+
+/* the plate's box, as .ck-box sets it: so a touch draws on the place's own rock and water */
+.pl-box {
+  position: absolute; left: 50%; top: 50%; aspect-ratio: 390 / 220;
+  width: max(100%, calc(var(--ck-h) * 390 / 220)); transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.pl-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* his words on the plate: the serif, in the water's light, haloed in the plate's dark so they read over chalk */
+.pl-input, .pl-letters, .pl-said {
+  font-family: var(--serif); font-style: italic; font-size: var(--fs-ink); line-height: var(--lh-ink);
+  color: var(--glow);
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 2px var(--plate), 0 0 calc(var(--s1) * 2) color-mix(in oklch, var(--glow) 35%, transparent);
+}
+.pl-said { position: absolute; white-space: nowrap; transform: translateY(-100%); margin: 0; pointer-events: none; }
+.pl-letters { white-space: pre; display: inline-block; }
+.pl-ch { display: inline-block; }
+
+/* one rule drawn on the plate: the pen draws it left to right (rule 27), the caret on it */
+.pl-rule { position: absolute; transform: translateY(-100%); height: var(--lh-ink); display: block; pointer-events: auto; }
+.pl-input {
+  appearance: none; border: 0; outline: 0; background: transparent; margin: 0; padding: 0; border-radius: 0;
+  width: 100%; height: var(--lh-ink); display: block; caret-color: var(--glow);
+}
+.pl-line {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--plate-print); opacity: .9;
+  transform-origin: left center; animation: pl-pen calc(var(--t-draw) * 1.5) var(--ease) backwards;
+}
+.pl-rule:focus-within .pl-line { background: var(--glow); }
+.pl-rule[data-gone] { pointer-events: none; }
+.pl-rule[data-gone] .pl-input { color: transparent; text-shadow: none; caret-color: transparent; }
+@keyframes pl-pen { from { transform: scaleX(0); } }
+@keyframes pl-in { from { opacity: 0; } }
+
+/* a held thumb: the whole place takes it while the touch is active, a key held on it does too */
+.pl-thumb {
+  position: absolute; inset: 0; pointer-events: auto; touch-action: none; cursor: pointer;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+}
+.pl-thumb:focus-visible { outline: 2px solid var(--glow); outline-offset: -6px; }
+/* the ring where the thumb goes, drawn faint at rest and lit under the thumb, breathing with it */
+.pl-ring { fill: none; stroke: var(--glow); stroke-width: .8; opacity: .45; animation: pl-in var(--t-draw) var(--ease) backwards;
+  transform-box: fill-box; transform-origin: center; transition: opacity var(--t-ui) var(--ease); }
+.pl-ring[data-held] { opacity: .9; }
+.pl-ring[data-phase="in"] { transform: scale(1.5); transition: transform calc(var(--t-breath) * .4) var(--ease), opacity var(--t-ui) var(--ease); }
+.pl-ring[data-phase="out"] { transform: scale(1); transition: transform calc(var(--t-breath) * .6) var(--ease), opacity var(--t-ui) var(--ease); }
+.pl-glow-hue { fill: var(--pl-hue); }
+.pl-glow { fill: var(--glow); }
+/* a mask's two values, from the light's own tokens: what is drawn and what is cut out */
+.pl-mask-on { fill: var(--glow); }
+.pl-mask-off { fill: var(--plate); }
+
+/* ---- Crown, Let go: the words lift off the snow as spindrift, downwind, and are gone ---- */
+.pl-letgo .pl-ch {
+  animation: pl-lift calc(var(--t-breath) * .26) var(--ease) forwards;
+  animation-delay: calc(var(--i) * var(--t-ui) / 3);
+}
+@keyframes pl-lift {
+  0% { opacity: 1; filter: blur(0); transform: none; }
+  55% { opacity: .75; filter: blur(.5px); }
+  100% { opacity: 0; filter: blur(2px); transform: translate(calc(var(--s3) * 5 + var(--dx, 0px)), calc(var(--s3) * -3 + var(--dy, 0px))) rotate(var(--rot, 20deg)) scale(.5); }
+}
+
+/* ---- Third eye, Look far: mist lying over each range, lifting range by range on the breath ---- */
+.pl-mist { fill: var(--plate-line); opacity: var(--mist, .2); transition: opacity calc(var(--t-breath) * .5) var(--ease); }
+.pl-mist[data-clear] { opacity: 0; }
+.pl-far { stroke: var(--glow); stroke-linecap: round; opacity: 0; transition: opacity var(--t-light) var(--ease); }
+.pl-far[data-on] { opacity: .8; }
+
+/* ---- Throat, Say it here: the sentence runs to the lip and goes over the fall ---- */
+.pl-fall .pl-ch {
+  /* the line runs to the lip as one; each letter, reaching it, tips over and falls (--run is set per letter: how long
+     it takes to reach the lip, in --t-ui) */
+  animation: pl-run calc(var(--t-ui) * var(--run, 0)) linear forwards, pl-tip calc(var(--t-draw) * 3) cubic-bezier(.5, 0, 1, .6) forwards;
+  animation-delay: calc(var(--t-ui) * 0), calc(var(--t-ui) * var(--run, 0));
+}
+@keyframes pl-run { to { transform: translate(var(--dx, 0px), 0); } }
+@keyframes pl-tip {
+  0% { transform: translate(var(--dx, 0px), 0); opacity: 1; }
+  100% { transform: translate(calc(var(--dx, 0px) + var(--sway, 0px)), var(--fall, 120px)) rotate(var(--rot, 12deg)); opacity: 0; filter: blur(2px); }
+}
+.pl-spray { fill: var(--glow); }
+
+/* ---- Heart, Grieve: the name sinks into the tarn and stays as a stone ---- */
+.pl-sink { animation: pl-sink calc(var(--t-breath) * .2) var(--ease-settle) forwards; transform-origin: center bottom; }
+@keyframes pl-sink {
+  0% { opacity: 1; transform: translateY(-100%); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-40%) scaleY(.4); filter: blur(4px); }
+}
+.pl-stone { fill: var(--plate-deep); stroke: var(--plate-line); stroke-width: .7; opacity: .8; }
+.pl-stone-lit { fill: var(--pl-hue); opacity: .16; filter: blur(2px); }
+.pl-stone[data-new], .pl-stone-lit[data-new] { animation: pl-settle calc(var(--t-breath) * .2) var(--ease-settle) backwards; animation-delay: calc(var(--t-breath) * .06); }
+@keyframes pl-settle { from { opacity: 0; transform: translateY(-6px); } }
+.pl-wave { fill: none; stroke: var(--glow); stroke-width: .7; opacity: 0; }
+.pl-wave[data-go] { animation: pl-wave calc(var(--t-breath) * .3) var(--ease) forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes pl-wave { 0% { opacity: .7; transform: scale(.2); } 100% { opacity: 0; transform: scale(1); } }
+
+/* ---- Heart, Hold: the tarn's reflection wavers, and steadies under the thumb on the breath ---- */
+.ck-plate[data-pl-waver] .ck-reflect, .ck-plate[data-pl-waver] .ck-reflect-land { filter: url(#pl-waver); }
+
+/* ---- Solar plexus, Reword: two rules by the fire; the verdict struck with a drawn stroke, the deed kept ---- */
+.pl-verdict .pl-input { color: var(--plate-print); }
+.pl-struck { position: absolute; transform: translateY(-100%); height: var(--lh-ink); pointer-events: none; }
+.pl-struck .pl-said { position: static; transform: none; color: var(--plate-print); text-shadow: 0 0 var(--s1) var(--plate); }
+.pl-strike { position: absolute; left: -2%; width: 104%; top: 40%; height: 30%; overflow: visible; }
+.pl-strike path { fill: none; stroke: var(--glow); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 1; animation: pl-stroke var(--t-draw) var(--ease) backwards; }
+@keyframes pl-stroke { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.pl-kept { animation: pl-in var(--t-draw) var(--ease) backwards; }
+.pl-kept .pl-said { color: var(--glow); }
+.pl-kept-rule { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--pl-hue); }
+
+/* ---- Sacral, Feel and Hold: one word dropped on the pool; rings going out ---- */
+.pl-drop { animation: pl-drop calc(var(--t-draw) * 2) cubic-bezier(.5, 0, 1, .7) forwards; }
+@keyframes pl-drop { to { transform: translate(-50%, calc(var(--drop, 40px) - 100%)) scaleY(.6); opacity: .0; } }
+.pl-afloat { transform: translate(-50%, -100%) scaleY(.9); opacity: .55; animation: pl-in var(--t-light) var(--ease) backwards; animation-delay: calc(var(--t-draw) * 2); }
+.pl-ripple { fill: none; stroke: var(--pl-hue); stroke-width: 1.1; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.pl-ripple[data-go] { animation: pl-ripple var(--pl-ring, calc(var(--t-breath) * .5)) var(--ease) forwards; animation-delay: var(--pl-delay, calc(var(--t-ui) * 0)); }
+.pl-ripple[data-calm] { opacity: .5; }
+@keyframes pl-ripple { 0% { opacity: .85; transform: scale(.08); } 100% { opacity: 0; transform: scale(1); } }
+
+/* ---- Root, Five: stepping stones across the stream, each lit as he names a thing he can see ---- */
+.pl-step { fill: var(--plate-deep); stroke: var(--plate-print); stroke-width: .8; stroke-dasharray: 2 2.6; }
+.pl-step[data-now] { stroke: var(--glow); }
+.pl-step[data-lit] { fill: var(--glow); stroke: var(--glow); stroke-dasharray: none; fill-opacity: .5; animation: pl-in var(--t-draw) var(--ease) backwards; }
+.pl-step-glow { fill: var(--glow); opacity: .22; filter: blur(3px); animation: pl-in var(--t-light) var(--ease) backwards; }
+.pl-named { font-size: var(--fs-chip); line-height: 1; transform: translate(-50%, -50%); }
+
+/* ---- Root, Breathe: a light under the thumb on the water, swelling on the in-breath ---- */
+.pl-under { fill: var(--glow); opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.5); }
+.pl-under[data-phase="in"] { opacity: .5; transform: scale(1.4); transition: transform calc(var(--t-breath) * .4) var(--ease), opacity calc(var(--t-breath) * .4) var(--ease); }
+.pl-under[data-phase="out"] { opacity: .22; transform: scale(.7); transition: transform calc(var(--t-breath) * .6) var(--ease), opacity calc(var(--t-breath) * .6) var(--ease); }
+
+/* ---- Root, Basics: four lanterns in the firs ---- */
+.pl-lantern {
+  position: absolute; width: var(--hit); height: calc(var(--hit) * 1.3); transform: translate(-50%, -30%); pointer-events: auto;
+  appearance: none; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+}
+.pl-lantern svg { width: calc(var(--hit) * .6); height: calc(var(--hit) * .8); overflow: visible; }
+.pl-lantern .pl-thread { stroke: var(--plate-line); stroke-width: .8; opacity: .6; }
+.pl-lantern .pl-body { fill: var(--plate-deep); stroke: var(--plate-line); stroke-width: 1; transition: fill var(--t-ui) var(--ease), stroke var(--t-ui) var(--ease); }
+.pl-lantern .pl-halo { fill: var(--pl-hue); opacity: 0; transition: opacity var(--t-draw) var(--ease); filter: blur(4px); }
+.pl-lantern[aria-pressed="true"] .pl-body { fill: var(--pl-hue); stroke: var(--glow); }
+.pl-lantern[aria-pressed="true"] .pl-halo { opacity: .7; }
+.pl-lantern-word {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: calc(var(--track-print) * 2); text-transform: uppercase;
+  color: var(--plate-print); line-height: 1; text-shadow: 0 0 var(--s1) var(--plate), 0 0 2px var(--plate);
+}
+.pl-lantern[aria-pressed="true"] .pl-lantern-word { color: var(--glow); }
+.pl-lantern:focus-visible { outline: 2px solid var(--glow); outline-offset: -2px; border-radius: var(--s1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-line, .pl-ring, .pl-letgo .pl-ch, .pl-fall .pl-ch, .pl-sink, .pl-stone, .pl-stone-lit, .pl-wave[data-go], .pl-strike path,
+  .pl-kept, .pl-drop, .pl-afloat, .pl-ripple[data-go], .pl-step[data-lit], .pl-step-glow { animation: none; }
+  .pl-mist, .pl-far, .pl-ring, .pl-under, .pl-lantern .pl-body, .pl-lantern .pl-halo { transition: none; }
+}

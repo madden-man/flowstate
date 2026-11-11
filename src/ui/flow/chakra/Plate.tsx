@@ -23,6 +23,7 @@ import { chakraOf, type ChakraId } from '../../../model/mountain';
 import { courseOf, H, sceneOf, W, type Layer, type Mark } from './scenes';
 import { rng } from './ink';
 import { PlateLight } from './water';
+import { settle, surge } from './surge';
 
 type Props = {
   chakra: ChakraId;
@@ -88,6 +89,17 @@ export function Plate({ chakra, gate, above, children }: Props) {
   }, [chakra]);
 
   useEffect(() => { engine.current?.set({ above, gate }); }, [above, gate]);
+
+  // a touch done here lets a share of the pool go (PLAN-TASKS.md section 5, ./surge.ts); leaving the page, the gate
+  // that asked asks no more
+  useEffect(() => {
+    let first = true;
+    const off = surge.subscribe(s => {
+      if (first) { first = false; return; }
+      if (s && s.chakra === chakra) engine.current?.surge(s.amp);
+    });
+    return () => { off(); settle(chakra); };
+  }, [chakra]);
 
   const [sx, sy] = scene.sign;
   const signBox = {

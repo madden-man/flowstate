@@ -2,11 +2,13 @@
 // The place is the page (PLAN-TASKS.md T1): the touch words on a sign's plate, the one dispatcher they go through, and
 // the 988 line on Heart and Root. Each word is a button named by its words; the lead one lit at rest; a tap marks it
 // active and runs the handler registered for it (most specific key first); through the door only door touches show.
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { LocationProvider } from 'preact-iso';
 import { Touches } from '../../src/ui/flow/chakra/Touches';
+// the dispatcher's own tests: with no package's handlers loaded (T2 to T4 register theirs from ./handlers, tested apart)
+vi.mock('../../src/ui/flow/chakra/handlers', () => ({}));
 import { handlerFor, onTouch, onTouchDone, registerTouch, touchDone, type TouchAct } from '../../src/ui/flow/chakra/touch';
 import { WORDS } from '../../src/ui/flow/chakra/words';
 import { CHAKRA_IDS } from '../../src/model/mountain';
