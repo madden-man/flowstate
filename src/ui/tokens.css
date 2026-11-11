@@ -72,7 +72,6 @@
 :root, [data-light] {
   --h-blue: 250; --h-green: 150; --h-red: 25; --h-purple: 305; --h-brown: 60;
   --h-orange: 55; --h-pink: 350; --h-yellow: 95;
-  --h-indigo: 275;   /* the third eye's sign on the mountain (PLAN-MOUNTAIN.md section 9, R0) */
   --v-blue:   oklch(var(--voice-l) var(--voice-c) var(--h-blue));
   --v-green:  oklch(var(--voice-l) var(--voice-c) var(--h-green));
   --v-red:    oklch(var(--voice-l) var(--voice-c) var(--h-red));
@@ -99,26 +98,41 @@
 [data-light="still"]        { --scrim: #0B0B0E99; --shadow-sheet: 0 -14px 40px #0B0B0E99; --shadow-tile: none; }
 
 /* the mountain's plate (PLAN-MOUNTAIN.md pass 6, R0: the Flow tab's mountain, and the top of a sign's page). The drawing
-   is its own night plate in every light: by Day a dark aquatint set on the cream page, by Night it runs into the page,
-   in Still it is the deepest and quietest (rule 14: lower luminance, cool-neutral). On --plate, --plate-print is at least
-   3.5:1 and --plate-line at least 4.5:1 in Day and Night.
-     --plate       the night sky of the plate
-     --plate-deep  the shadow face, the darkest thing on the screen
-     --plate-line  the chalk line of the rock
-     --plate-print the names and print on the plate
-     --glow        the water's light, the only light on the mountain */
-:root, [data-light="day"] { --plate: #1C2030; --plate-deep: #0E1018; --plate-line: #C9C3B4; --plate-print: #8E93A0; --glow: #F1EBD6; }   /* print 5.3:1, line 9.2:1 */
-[data-light="night"]      { --plate: #151720; --plate-deep: #0A0B10; --plate-line: #D8D2C3; --plate-print: #8A8E9A; --glow: #F3EDDA; }   /* print 5.5:1, line 11.9:1 */
-[data-light="still"]      { --plate: #0B0C11; --plate-deep: #07080B; --plate-line: #8E8A82; --plate-print: #666973; --glow: #8E8A82; }   /* the water is the line colour only */
+   is its own night plate in every light, an indigo-black sky: by Day a dark aquatint set on the cream page, by Night
+   deeper than the page so it still reads as a plate, in Still the deepest and quietest (rule 14: lower luminance,
+   cool-neutral, the lowest contrast). Floors, on --plate and on --plate-sky: --plate-print at least 3.5:1, --plate-line
+   at least 4.5:1, a sign on the plate at least 6:1 in Day and Night.
+     --plate         the sky at the horizon, and the plate's ground
+     --plate-sky     the sky's upper tone, over the summit, so the sky can be graded from it down to --plate
+     --plate-deep    the shadow face, the darkest thing on the screen
+     --plate-line    the chalk line of the rock
+     --plate-print   the names and print on the plate
+     --glow          the water's light, the only light on the mountain (warm bone, candlelight against the cool sky)
+     --plate-voice-l, --plate-voice-c  a sign's lightness and chroma on the plate (parts/Sign under .on-plate): the
+                     lantern's hue by the voice formula, lit for a dark ground in every light; Still has no hue */
+:root, [data-light="day"] {
+  --plate: #0C0C22; --plate-sky: #06041A; --plate-deep: #020208;   /* oklch 17% .045 280; 13% .05 282; 9% .025 280 */
+  --plate-line: #C9C3B4; --plate-print: #8E93A0; --glow: #F1EBD6;   /* print 6.2:1, line 10.9:1 on --plate */
+  --plate-voice-l: 74%; --plate-voice-c: .12;                       /* the seven hues 7.9:1 or more on --plate and --plate-sky */
+}
+[data-light="night"] {
+  --plate: #060618; --plate-sky: #030211; --plate-deep: #010104;   /* oklch 13.5% .04 280; 10.5% .04 282; 7% .02 280; 1.2:1 under the page */
+  --plate-line: #D8D2C3; --plate-print: #8A8E9A; --glow: #F3EDDA;   /* print 6.1:1, line 13.3:1 */
+  --plate-voice-l: 74%; --plate-voice-c: .12;                       /* the seven hues 8.3:1 or more */
+}
+[data-light="still"] {
+  --plate: #07080B; --plate-sky: #050608; --plate-deep: #020203;   /* cool-neutral, chroma .008 */
+  --plate-line: #8E8A82; --plate-print: #666973; --glow: #8E8A82;   /* print 3.6:1, line 5.8:1; the water is the line colour only */
+  --plate-voice-l: 66%; --plate-voice-c: .055;                      /* unused: a sign in Still has no hue */
+}
 
-/* the mountain plate's own (R1: the Flow tab's mountain, ui/flow/Mountain.tsx). The lanterns' lightness and chroma on
-   the dark plate (the voice formula's, rule 3, raised so a sign glows on the night in every light); how dim the rock's
-   chalk is where no water lights it; how far the plate runs past the column and how softly its edge goes into the page
-   (by Day a print pasted on the cream, by Night and in Still it runs into the page); how much it shows a state (gates,
-   lit rock, weather: none in Still, rule 13); and the arrival's length (pass 6, once per unlock). */
-:root, [data-light="day"] { --plate-l: 76%; --plate-c: .14; --plate-dim: .4; --plate-bleed: 0px; --plate-feather: 0px; --plate-state: 1; --t-arrive: 4200ms; }
-[data-light="night"]      { --plate-l: 76%; --plate-c: .13; --plate-dim: .36; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 1; }
-[data-light="still"]      { --plate-l: 62%; --plate-c: 0; --plate-dim: .62; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 0; }
+/* the mountain plate's own (R1: the Flow tab's mountain, ui/flow/Mountain.tsx). How dim the rock's chalk is where no
+   water lights it; how far the plate runs past the column and how softly its edge goes into the page (by Day a print
+   pasted on the cream, by Night and in Still it runs into the page); how much it shows a state (gates, lit rock,
+   weather: none in Still, rule 13); and the arrival's length (pass 6, once per unlock). */
+:root, [data-light="day"] { --plate-dim: .4; --plate-bleed: 0px; --plate-feather: 0px; --plate-state: 1; --t-arrive: 4200ms; }
+[data-light="night"]      { --plate-dim: .36; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 1; }
+[data-light="still"]      { --plate-dim: .62; --plate-bleed: var(--gutter); --plate-feather: 36px; --plate-state: 0; }
 @media (prefers-reduced-motion: reduce) {
   :root, [data-light] { --t-arrive: 0ms; }
 }

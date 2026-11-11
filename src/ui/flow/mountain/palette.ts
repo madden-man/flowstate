@@ -49,7 +49,7 @@ export const rgb = (c: RGB, alpha = 1) => `rgba(${Math.round(c[0])},${Math.round
 export function readPalette(host: HTMLElement): Palette {
   const { read, done } = resolver(host);
   const glow = read('var(--glow)'), line = read('var(--plate-line)'), plate = read('var(--plate)'), deep = read('var(--plate-deep)');
-  const hues = CHAKRAS.map(c => read(`oklch(var(--voice-l) var(--voice-c) ${c.hue})`));
+  const hues = CHAKRAS.map(c => read(`oklch(var(--plate-voice-l) var(--plate-voice-c) ${c.hue})`));
   done();
   const cs = getComputedStyle(host);
   const k = parseFloat(cs.getPropertyValue('--stream'));

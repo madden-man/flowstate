@@ -1,7 +1,7 @@
-// Dexie tables, version 6 (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
+// Dexie tables, at SCHEMA_VERSION (PLAN.md section 4; version 2 is PLAN-V3.md section 5.1, playlists under the music line;
 // version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits;
-// version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 is PLAN-MOUNTAIN.md section 8, the readings and
-// flows.chakra, in the one block marked "version 6" below). UI code never imports this file: it reads and writes
+// version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the
+// readings and flows.chakra, in the block marked "the mountain" below). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
@@ -9,7 +9,13 @@ import type { ChakraId } from '../model/mountain';
 
 export { POEMS_ID, POEMS_NAME };
 
-export const SCHEMA_VERSION = 6;
+/** The mountain's schema version (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra. RENUMBERING IS HERE
+ *  AND ONLY HERE: the values build (PLAN-VALUES.md) also takes 6, and whichever reaches main second changes this one
+ *  number (and, if the other's stores come first, the STORES_V5 its STORES spread in the "mountain" block below).
+ *  Everything else reads it: SCHEMA_VERSION, the Dexie version in that block, backup.ts migrate, and the tests. */
+export const MOUNTAIN_VERSION = 6;
+/** The newest version: the mountain's, until a later one comes. */
+export const SCHEMA_VERSION = MOUNTAIN_VERSION;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -285,7 +291,7 @@ export type Flow = {
    *  not held awake (3 a.m.: the clock is turned away, the bed is for sleeping). A flag, in the clear like diagram. */
   quietClock?: boolean;
   diagram: DiagramName;
-  /** PLAN-MOUNTAIN.md section 8 (schema version 6): which sign on the mountain this flow's drawing sits under. Absent on
+  /** PLAN-MOUNTAIN.md section 8 (MOUNTAIN_VERSION): which sign on the mountain this flow's drawing sits under. Absent on
    *  a flow that is not a blockage (Energize floats in the sea) and on one he has not placed. An id, in the clear. */
   chakra?: ChakraId;
   steps: Step[];
@@ -403,23 +409,23 @@ export const STORES_V5: Record<Exclude<TableName, 'readings'>, string> = {
   fixations: 'id',
 };
 
-// ---- version 6 (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra ----
-// One self-contained block, so the second branch to take version 6 to main renumbers here and only here: the number in
-// SCHEMA_VERSION, the stores below, and the db.version(6) line in openDB.
+// ---- the mountain, version MOUNTAIN_VERSION (PLAN-MOUNTAIN.md section 8, R0): the readings and flows.chakra ----
+// Self-contained: renumbering is MOUNTAIN_VERSION at the top of this file (and, if another version lands first, the
+// stores STORES spreads below). openDB calls mountainVersion() after the version before it.
 
 /** One reading of the mountain (the Depression meter) or of one sign's gate, written on release, never edited: value
- *  is 0 (open, or no weather) to 1. The newest per `of` is drawn (model/mountain.ts). Numbers and ids only, so nothing
- *  is sealed (like the sits). */
-export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value: number };
+ *  is 0 (open, or no weather) to 1. The newest per `of` is drawn (model/mountain.ts). value is sealed (fields.ts): how
+ *  heavy a day was is his alone; of and at stay clear for the index. */
+export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value: number; sealed?: Sealed };
 
-/** Version 6 adds the readings, by when and by what they are of. */
+/** The mountain's version adds the readings, by when and by what they are of. */
 export const STORES: Record<TableName, string> = {
   ...STORES_V5,
   readings: 'id, at, [of+at]',
 };
 
 /** Which sign each seed flow's drawing sits under (PLAN-MOUNTAIN.md section 6). Energize is not a blockage and has none.
- *  seed-flows.ts seedFlow writes it on a fresh flow; the version 6 upgrade and backup.ts migrate add it to a stored one. */
+ *  seed-flows.ts seedFlow writes it on a fresh flow; the mountain's upgrade and backup.ts migrate add it to a stored one. */
 export const SEED_CHAKRAS: Readonly<Record<string, ChakraId>> = {
   night: 'crown', replay: 'third-eye', fight: 'throat', depress: 'heart', shame: 'solar-plexus', shutdown: 'sacral', panic: 'root', whatif: 'root',
 };
@@ -431,13 +437,13 @@ export function withSeedChakra<T extends { id: string; chakra?: ChakraId }>(row:
   return chakra && row.chakra === undefined ? { ...row, chakra } : row;
 }
 
-function version6(db: Dexie) {
-  db.version(6).stores(STORES).upgrade(tx => tx.table<Flow, string>('flows').toCollection().modify(f => {
+function mountainVersion(db: Dexie) {
+  db.version(MOUNTAIN_VERSION).stores(STORES).upgrade(tx => tx.table<Flow, string>('flows').toCollection().modify(f => {
     const chakra = SEED_CHAKRAS[f.id];
     if (chakra && f.chakra === undefined) f.chakra = chakra;
   }));
 }
-// ---- version 6 ends ----
+// ---- the mountain ends ----
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
 export const poemsPlaylist = (): Playlist => ({
@@ -482,7 +488,7 @@ export function openDB(name = DB_NAME): FlowDB {
   db.version(3).stores(STORES_V3);
   db.version(4).stores(STORES_V4);
   db.version(5).stores(STORES_V5);
-  version6(db);
+  mountainVersion(db);
   return db;
 }
 

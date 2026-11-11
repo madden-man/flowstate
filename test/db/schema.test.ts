@@ -5,13 +5,14 @@ import { init, store, setKey, openRow } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
 import { SEED_FLOWS, seedFlow } from '../../src/db/seed-flows';
-import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, SEED_CHAKRAS, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, SEED_CHAKRAS, MOUNTAIN_VERSION, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
 describe('schema, version 6', () => {
   it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2), the fixations (X1) and the readings (R0)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(6);
+    expect(SCHEMA_VERSION).toBe(MOUNTAIN_VERSION);
+    expect(MOUNTAIN_VERSION).toBe(6);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
     expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'readings']);
   });
@@ -140,7 +141,7 @@ describe('the upgrade from version 4 (X1)', () => {
   });
 });
 
-describe('the upgrade from version 5 (R0)', () => {
+describe('the upgrade to MOUNTAIN_VERSION from version 5 (R0)', () => {
   const v5 = async (name: string) => {
     const old = new Dexie(name);
     old.version(1).stores(STORES_V1);
@@ -167,7 +168,7 @@ describe('the upgrade from version 5 (R0)', () => {
 
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(SCHEMA_VERSION);
+    expect(db.verno).toBe(MOUNTAIN_VERSION);
     expect(await db.readings.count()).toBe(0);
     for (const row of rows) {
       const got = (await db.flows.get(row.id))!;

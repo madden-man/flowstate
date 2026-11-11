@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded, seedFixationsOnce } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
@@ -130,19 +130,27 @@ describe('round trip', () => {
     await third.readings.put(rows[1]);
     expect(await importData(file, 'merge', third)).toMatchObject({ added: 2, updated: 0, kept: 1 });
     expect(await third.readings.count()).toBe(3);
-    // with the lock on, a reading is numbers and ids only: it stays in the clear, and the sealed file carries it whole
+    // with the lock on, a reading's value is sealed in the database and in the file; of, at and the id stay clear
     await init(db); // freshDB pointed the fields layer at the last journal made
     await ensureSeeded(7);
-    await setKey(await deriveKey('1357', randomSalt(), 1000), { salt: randomSalt(), iterations: 1000 });
-    const sealed = await exportData(db, 1000);
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    for (const r of await db.readings.toArray()) { expect(r).not.toHaveProperty('value'); expect(r.sealed).toBeTruthy(); }
+    const sealed = await roundTrip(db);
     expect(sealed.encrypted).toBe(true);
-    expect((sealed.tables.readings as typeof rows).sort((a, b) => a.at - b.at)).toEqual(rows);
+    const inFile = (sealed.tables.readings as Record<string, unknown>[]).sort((a, b) => (a.at as number) - (b.at as number));
+    expect(inFile.map(r => [r.id, r.at, r.of, 'value' in r, !!r.sealed])).toEqual(rows.map(r => [r.id, r.at, r.of, false, true]));
+    expect(JSON.stringify(sealed.tables.readings)).not.toMatch(/0\.6|0\.4/);
+    // opened with that file's PIN into a plain journal, the values come back whole
+    const fourth = await freshDB();
+    await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
+    expect((await fourth.readings.toArray()).sort((a, b) => a.at - b.at)).toEqual(rows);
   });
 
-  it('a version 5 file (before the mountain) imports with empty readings and its seed flows under their signs', async () => {
+  it('a file from before the mountain (MOUNTAIN_VERSION - 1) imports with empty readings and its seed flows under their signs', async () => {
     await ensureSeeded(7);
     const f = await exportData(db, 1000);
-    const v5 = { ...f, schemaVersion: 5, tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
+    const v5 = { ...f, schemaVersion: MOUNTAIN_VERSION - 1, tables: { ...f.tables, readings: undefined, flows: (f.tables.flows as { chakra?: string }[]).map(({ chakra: _c, ...r }) => r) } };
     const parsed = parseBackup(JSON.stringify(v5));
     expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
     expect(parsed.tables.readings).toEqual([]);
