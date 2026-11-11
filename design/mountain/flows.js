@@ -4,7 +4,7 @@
   var C={x:164,y:150,r:92};
   function pt(deg){var a=deg*Math.PI/180;return [C.x+C.r*Math.cos(a),C.y+C.r*Math.sin(a)];}
   var AT={'1':-90,'2':0,'3':90,'4':180,'rest':225};
-  var STEPS=[['s1','1','Overstimulated'],['s2','2','Panic'],['s3','3','Settling'],['s4','4','Under the skin']];
+  var STEPS=[['s1','1','Overstimulated'],['s2','2','The wave'],['s3','3','Settling'],['s4','4','Under the skin']];
   function arrow(deg){var p=pt(deg);return '<path class="arrow" d="M-6 -4 L0 0 L-6 4" transform="translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+') rotate('+(deg+90)+')"/>';}
   document.querySelectorAll('.fl-ring').forEach(function(r){
     var where=r.dataset.ring,empty=where==='empty';

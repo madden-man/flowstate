@@ -2,16 +2,34 @@
 .screen .fs-mountain { overflow-y: auto; scrollbar-width: none; }
 .mt { position: relative; width: 100%; max-width: 328px; margin: 0 auto; flex: none; }
 .mt svg { display: block; width: 100%; height: auto; overflow: visible; }
-.mt .ridge { fill: none; stroke: var(--print); stroke-width: 1; stroke-dasharray: 2 5; opacity: .6; }
-.mt .arc, .mt .pass { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
-.mt .pass { stroke-dasharray: 1 7; }
+.mt .pen { fill: none; stroke: var(--print); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.mt .far { opacity: .5; stroke-width: 1; }
+.mt .hatch { opacity: .32; stroke-width: .9; }
+.mt .snow { stroke: var(--ink); stroke-width: 1.4; }
+.mt .flake { stroke: var(--ink); stroke-width: 1.6; opacity: .55; }
+.mt .cloud { stroke: var(--ink); stroke-width: 1.3; }
+.mt .wave { stroke-width: 1; }
+.mt .circle { stroke: var(--ink); stroke-width: 1.4; fill: var(--page); }
+.mt .star { fill: var(--ink); display: none; }
+[data-light="night"] .mt .star { display: block; opacity: .7; }
+[data-light="night"] .mt .sun, [data-light="still"] .mt .sun { display: none; }
 .mt .chan { fill: none; stroke: var(--print); stroke-linecap: round; stroke-linejoin: round; opacity: .4; }
 .mt .mote { stroke: var(--ink); stroke-linecap: round; }
 .mt .name { font-family: var(--serif); font-size: var(--fs-fill); fill: var(--ink); stroke: var(--page); stroke-width: 4; paint-order: stroke; }
 .mt .mt-place .name { font-size: var(--fs-chip); }
 .mt-stop { --c: oklch(var(--voice-l) var(--voice-c) var(--hue)); }
-.mt .ring { fill: var(--page); stroke: var(--c); stroke-width: 2; }
-.mt .fill { fill: var(--c); }
+.mt .ring, .mt-lotus .ring { fill: var(--page); stroke: var(--c); stroke-width: 1.5; }
+.mt .fill, .mt-lotus .fill { fill: var(--c); }
+.mt .petal, .mt-lotus .petal { fill: var(--page); stroke: var(--c); stroke-width: 1.2; stroke-linejoin: round; }
+.mt-lotus { width: 100%; max-width: 328px; margin: 0 auto; height: calc(var(--lh-ink) * 5); flex: none; }
+.mt-lotus svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mt-lotus .yantra { fill: none; stroke: var(--print); stroke-width: 1; stroke-linejoin: round; }
+.mt-lotus .bija { font-family: var(--serif); font-style: italic; font-size: var(--fs-chip); fill: var(--ink); }
+.mt-gloss { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); text-align: center; margin: 0; line-height: var(--lh-ink); }
+.mt-way { display: flex; align-items: center; gap: var(--s2); min-height: calc(var(--lh-ink) * 2); }
+.mt-way svg { width: 56px; height: 40px; flex: none; overflow: visible; }
+.mt-way path, .mt-way circle { fill: none; stroke: var(--print); stroke-width: 1.3; stroke-linecap: round; }
+.mt-way small { margin-left: auto; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
 .mt .grule { stroke: var(--print); stroke-width: 1; }
 .mt .gmark { fill: var(--ink); }
 .mt .pct { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); fill: var(--print); }
@@ -25,11 +43,9 @@
 .mt-rule { position: relative; flex: 1; height: var(--hit); cursor: grab; touch-action: pan-y; margin-inline: var(--s1); }
 .mt-rule::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--print); }
 .mt-rule i { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--ink); }
-.mt-dot { position: relative; width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid oklch(var(--voice-l) var(--voice-c) var(--hue)); box-sizing: border-box; overflow: hidden; }
-.mt-dot b { position: absolute; inset: 0; background: oklch(var(--voice-l) var(--voice-c) var(--hue)); }
 
 /* Still (rule 13): no states. The names and the water in ink. */
-[data-light="still"] .mt .ring { stroke: var(--ink); }
+[data-light="still"] .mt .ring, [data-light="still"] .mt .petal, [data-light="still"] .mt-lotus .ring, [data-light="still"] .mt-lotus .petal { stroke: var(--ink); }
 [data-light="still"] .mt .fill, [data-light="still"] .mt .gate { display: none; }
 [data-light="still"] .mt-meter, [data-light="still"] .mt-gate { visibility: hidden; }
 
