@@ -1566,3 +1566,40 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
 .fs-said-earlier .fs-word { position: relative; min-height: var(--lh-ink); color: var(--print); }
 .fs-said-earlier .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
 /* ---- C5 ends ---- */
+
+/* ---- Champions (PLAN-VALUES.md C3) ---- */
+/* under an open value: each side a printed label, its champions as voiced lines (name, then the why), "+ champion";
+   every piece is whole rules, and the block ends on a blank rule */
+.fs-champs { padding-bottom: var(--lh-ink); }
+.fs-champside + .fs-champside { padding-top: var(--lh-ink); }
+.fs-sheetof .fs-champside > .fs-print { line-height: var(--lh-ink); }
+.fs-champ.fs-v { margin-left: 0; }
+.fs-champ .fs-sp { line-height: var(--lh-ink); }
+.fs-champ-why {
+  appearance: none; display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; outline: none; resize: none; overflow: hidden;
+  background: transparent; font: inherit; font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-champ-why::placeholder { color: var(--print); font-style: italic; }
+/* nobody fights for it yet: a quiet line with the list's dashed rule, a tap to recruit */
+.fs-champ-none {
+  appearance: none; position: relative; display: block; width: 100%; margin: 0; padding: 0 0 0 10px; cursor: pointer; text-align: left;
+  border: 0; border-left: 3px dashed var(--print); background: transparent;
+  font: inherit; font-size: var(--fs-fill); font-style: italic; line-height: var(--lh-ink); color: var(--print);
+}
+.fs-champ-none::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-sheetof .fs-champ-add { display: flex; align-items: center; min-height: var(--lh-ink); font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }
+.fs-champ-add .fs-chip { padding: 5px 10px; }
+/* the Champions segment: the Voices screen's cell, the name in the voice's print, what it fights for on one wrapping line */
+.fs-champ-voice {
+  appearance: none; width: 100%; margin: 0; padding-top: 0; padding-bottom: 0; padding-right: 0; border-top: 0; border-right: 0; border-bottom: 0; background: transparent; cursor: pointer;
+  font: inherit; text-align: left; color: var(--ink); min-height: calc(var(--lh-ink) * 2); box-shadow: inset 0 -1px 0 var(--seam);
+}
+.fs-champ-vname { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--vc); line-height: var(--lh-ink); }
+.fs-champ-vals { font-size: var(--fs-fill); line-height: var(--lh-ink); }
+.fs-champ-voice:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+/* the sheets: a printed label between the groups; a shadow's chip in italic; a champion with a why, armed to let go */
+.fs-champsheet > div > .fs-print, .fs-fightchips > .fs-print { margin: var(--s1) 0 0; }
+.fs-chip.fs-chip-shadow { font-style: italic; }
+.fs-chip.armed, .fs-chip.armed[aria-pressed="true"] { background: transparent; color: var(--ink); border-color: var(--ink); border-style: dashed; }
+.fs-chip-again { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); font-style: normal; }
+/* ---- C3 ends ---- */
