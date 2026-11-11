@@ -40,6 +40,7 @@ import { useNow } from './breath';
 import { Plate } from './chakra/Plate';
 import { FromRow } from './chakra/From';
 import { Touches } from './chakra/Touches';
+import { SignShelf } from './chakra/SignShelf';
 import { readGuard } from './chakra/fresh';
 import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
@@ -241,8 +242,8 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
             )}
           </section>
         )}
-        {/* the sign's music shelf (PLAN-TASKS.md T5) mounts here: <SignShelf chakra={chakra} /> from ./chakra/SignShelf.tsx */}
-        <div class="ck-shelf" data-shelf-slot />
+        {/* the sign's music shelf (PLAN-TASKS.md T5): renders nothing while locked */}
+        <SignShelf chakra={chakra} />
         <PrintLines step={{ tips: foot.lines }}
           onHandOff={shown ? t => void handOff(t, shown.id) : undefined} />
         <SafeLine line={foot.line} links={foot.links} />

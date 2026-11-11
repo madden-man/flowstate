@@ -147,6 +147,9 @@ export type Page = {
   /** PLAN-MEDITATE.md section 5 (S2): the sit this page was written after ("Write it down" on the page after a sit).
    *  Optional and unindexed, like flow; an id, clear. */
   sit?: { sitId: string };
+  /** PLAN-TASKS.md T3: the sign a touch carried him here from (Ask, Write from it, Letter, Bring it), so the page
+   *  prints that sign beside its date and a tap goes back to it. Optional and unindexed, like sit; an id, clear. */
+  sign?: { chakra: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */

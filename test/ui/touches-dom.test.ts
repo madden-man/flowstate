@@ -107,7 +107,8 @@ describe('the dispatcher', () => {
   it('done says which touch on which sign, for the surge; the door lets no other touch through', () => {
     const got: string[] = [];
     undo.push(onTouchDone(d => got.push(`${d.chakra}/${d.touch}`)));
-    undo.push(registerTouch({ lands: 'messages' }, { act: a => a.done() }));
+    // by sign and id, over T4's own Reach (handlers/out.tsx), which says done only on coming back
+    undo.push(registerTouch({ chakra: 'root', id: 'reach' }, { act: a => a.done() }));
     onTouch('root', touchOf('root', 'reach')!, ctx);
     expect(got).toEqual(['root/reach']);
     expect(touchDone.value?.touch).toBe('reach');

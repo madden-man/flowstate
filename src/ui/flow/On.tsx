@@ -40,10 +40,11 @@ export function showOn(felt: boolean) {
   openSheet.value = 'on';
 }
 
-type Kept = Map<string, { row: ShelfAlbum; playlist: { id: string; uri: string } }>;
+export type Kept = Map<string, { row: ShelfAlbum; playlist: { id: string; uri: string } }>;
 
-/** The kept albums of these picks, each as a tile plays it: on the first chosen playlist that holds it, else itself. */
-async function keep(picks: OnPick[]): Promise<Kept> {
+/** The kept albums of these picks, each as a tile plays it: on the first chosen playlist that holds it, else itself.
+ *  A sign's shelf (flow/chakra/SignShelf.tsx, PLAN-TASKS.md T5) draws its covers through it too. */
+export async function keep(picks: OnPick[]): Promise<Kept> {
   const uris = picks.flatMap(p => albumUriOf(p) ?? []);
   const found = await keptAlbums(uris);
   const out: Kept = new Map();
