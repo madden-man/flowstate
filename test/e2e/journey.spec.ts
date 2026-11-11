@@ -5,6 +5,7 @@
 // spread, drag the lean; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
 // with the word, and everything is still there; export makes a file. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 const today$ = (p: Page) => p.getByRole('textbox', { name: "Today's page" });
 const chip = (p: Page, name: string) => p.getByRole('group', { name: 'Who speaks next' }).getByRole('button', { name, exact: true });
@@ -48,6 +49,8 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(threshold).toContainText('I choose how to flow.');
   await threshold.click();
   await expect(threshold).toHaveCount(0);
+  // C1: a fresh install has values and no paradoxes, so the paradox Be shows later is written first
+  await writeParadoxes(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);

@@ -1,7 +1,7 @@
 // Council pages and the voices who speak on them (PLAN.md section 4 "Voices are mutable, always",
 // section 5 item 2). Every read and write goes through store, so sealing works; the UI never touches
 // a table. Nothing here writes a word for anyone: names in MORE_VOICES are labels to pick from.
-import type { Message, Page, Voice, VoiceColour } from '../db/schema';
+import type { Champion, Message, Page, Value, ValueSide, Voice, VoiceColour } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { messagesOf, revise } from './pages';
 
@@ -31,13 +31,24 @@ export async function councilToday(now = Date.now()): Promise<Read<Page> | undef
   return (await councilPages()).find(r => sameDay(r.page.createdAt, now))?.page;
 }
 
-/** A new council page. linkedPageIds points at the question it was opened from, if any (both ways). */
-export async function newCouncil(opts: { now?: number; linkedPageIds?: string[] } = {}): Promise<Page> {
+/** A new council page. linkedPageIds points at the question it was opened from, if any (both ways). valueId
+ *  (PLAN-VALUES.md section 5, "Call a council"): the council is about that value (page.valueIds) and its champions
+ *  are seated, the value's first and then the shadow's, each in the order it joined; archived voices stay standing
+ *  and a voice on both sides sits once. */
+export async function newCouncil(opts: { now?: number; linkedPageIds?: string[]; valueId?: string } = {}): Promise<Page> {
   const now = opts.now ?? Date.now();
   const page: Page = {
     id: uid(), kind: 'council', createdAt: now, updatedAt: now, state: 'open',
     tags: [], paradoxIds: [], linkedPageIds: [...(opts.linkedPageIds ?? [])],
   };
+  if (opts.valueId) {
+    const value = await store.get('values', opts.valueId);
+    if (!value) throw new Error('No such value');
+    const vs = await allVoices();
+    const seats = [...new Set([...championsOf(value, vs, 'value'), ...championsOf(value, vs, 'shadow')].map(d => d.voice.id))];
+    page.valueIds = [value.id];
+    if (seats.length) page.seats = seats;
+  }
   const others = (await Promise.all(page.linkedPageIds.map(id => store.get('pages', id)))).filter((p): p is Read<Page> => !!p && !p.locked);
   await store.many({ pages: [page, ...others.map(o => withLink(o, page.id, now))] });
   return page;
@@ -245,6 +256,16 @@ export function nextSpeaker(selected: Tapped, vs: Voice[], still = false, at?: {
   if (!at || !seatedVoices(at.seats, vs, still).length) return tapped;
   if (selected === null) return undefined;
   return tapped ?? turnOf(at.seats, at.messages, vs, still);
+}
+
+/** A value's champions on one side that can be drawn (PLAN-VALUES.md section 5): those whose voice is there and not
+ *  archived (an archived voice keeps its link and comes back when restored), in the order they joined. */
+export function championsOf<V extends Voice>(value: Pick<Value, 'champions'>, vs: V[], side: ValueSide): { voice: V; champion: Champion }[] {
+  return value.champions
+    .map((champion, i) => ({ champion, i, voice: vs.find(v => v.id === champion.voiceId) }))
+    .filter((d): d is { champion: Champion; i: number; voice: V } => d.champion.side === side && !!d.voice && !d.voice.archived)
+    .sort((a, b) => a.champion.at - b.champion.at || a.i - b.i)
+    .map(({ voice, champion }) => ({ voice, champion }));
 }
 
 /** True when the council has someone seated who can speak now, so turns go round (and the UI clears a tap after each line). */

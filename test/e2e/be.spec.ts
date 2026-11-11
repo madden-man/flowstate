@@ -1,9 +1,14 @@
 // V13: the paradoxes on Be are reordered by a long press and a drag, as the voices are; the order holds
 // across a reload.
 import { test, expect } from '@playwright/test';
+import { writeParadoxes } from './paradoxes';
 
 test('a long press lifts a paradox and a drag puts it in a new place (V13)', async ({ page }) => {
+  // C1: a fresh install has values and no paradoxes, so the paradoxes this screen shows are written first
   await page.goto('/#/be');
+  await page.locator('[data-threshold], nav[aria-label="Sections"]').first().waitFor();
+  await writeParadoxes(page);
+  await page.reload();
   // the threshold, when a cold load breathes, is tapped through first
   const t = page.locator('[data-threshold]');
   await page.locator('.fs-dichotomy').first().waitFor();

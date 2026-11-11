@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { freshDB } from './helpers';
+import { freshDB, writeSeedParadoxes } from './helpers';
 import type { FlowDB, Message, Paradox, Settings } from '../../src/db/schema';
 import { store, setKey, removeKey, unlock, lock, keyState, init, LockedError, tombstone } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
@@ -23,7 +23,7 @@ describe('fields layer without a key', () => {
 
 describe('setKey', () => {
   it('re-encrypts every existing row in place, and reads still come back whole', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     // two kept lines to seal: the old seed's manifesto page, now that the seed writes no pages (V5)
     await store.many({ pages: [OLD_SEED_PAGES[0].page], messages: OLD_SEED_PAGES[0].messages });
     await store.put('messages', msg('m1', 'the quiet voices within'));
@@ -66,7 +66,7 @@ describe('setKey', () => {
   });
 
   it('keeps a paradox middle scenario sealed and its word clear', async () => {
-    await ensureSeeded();
+    await ensureSeeded(); await writeSeedParadoxes();
     const salt = randomSalt();
     await setKey(await deriveKey('1', salt, FAST), { salt, iterations: FAST });
     const p: Paradox = { ...(await store.get('paradoxes', 'px-thoughtful-reactive'))!, middle: { word: 'considered', scenario: 'asking a friend before replying' } };

@@ -1,8 +1,9 @@
-// The notebook's starting set (PLAN.md section 4, 2026-11-06): the pantheon, the two paradoxes and their
-// items, and the small antonym list. Runs once, on an empty database. No pages (V5, 2026-11-08): the
+// The notebook's starting set (PLAN.md section 4, 2026-11-06): the pantheon, the two values (PLAN-VALUES.md section 5:
+// a fresh install seeds them and no paradoxes; seedParadoxes stays for the one-time pass's tests and older screens),
+// and the small antonym list. Runs once, on an empty database. No pages (V5, 2026-11-08): the
 // manifesto is the threshold's copy (MANIFESTO below), not a journal entry.
 // Every line here is the notebook's own; nothing is generated.
-import type { Fixation, Flow, Item, Message, Page, Paradox, Settings, Voice, VoiceColour } from './schema';
+import { valueFromParadox, type Fixation, type Flow, type Item, type Message, type Page, type Paradox, type Settings, type Value, type Voice, type VoiceColour } from './schema';
 import type { Read } from './fields';
 import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
@@ -113,18 +114,23 @@ export function seedParadoxes(): { paradoxes: Paradox[]; items: Item[] } {
 export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
-    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
+    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS, VALUES_PASS],
     flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark), ...PICKS.map(p => picksMark(p.stepId))],
     sitSound: 'rain', sitMinutes: 0, sitThroughSilent: true,
   };
 }
 
+/** The two values a fresh install starts with (PLAN-VALUES.md section 5): the notebook's two paradoxes as the pass
+ *  would make them (selfless with its shadow selfish, thoughtful with its shadow reactive, the same looks and first
+ *  revision), but written as values only. Their ids are the pass's, so a later import of an older file meets them. */
+export const seedValues = (): Value[] => seedParadoxes().paradoxes.map((p, order) => valueFromParadox({ ...p, order }));
+
 /** Seeds once. The settings row marks it done, so deleting every voice later never brings them back.
- *  No pages: the journal opens empty (Tommy, 2026-11-08, PLAN-V2.md section 2). */
+ *  No pages: the journal opens empty (Tommy, 2026-11-08, PLAN-V2.md section 2). No paradoxes (PLAN-VALUES.md section 5):
+ *  the two values instead, and the values pass marked done (defaultSettings). */
 export async function ensureSeeded(now = Date.now()): Promise<boolean> {
   if (await store.get('settings', 'app')) return false;
-  const { paradoxes, items } = seedParadoxes();
-  await store.many({ voices: seedVoices(), paradoxes, items, flows: SEED_FLOWS.map(f => seedFlow(f)), settings: [defaultSettings(now)] });
+  await store.many({ voices: seedVoices(), values: seedValues(), flows: SEED_FLOWS.map(f => seedFlow(f)), settings: [defaultSettings(now)] });
   return true;
 }
 
@@ -296,6 +302,40 @@ export function seedFixationsOnce(now = Date.now()): Promise<string[] | null> {
     return write.map(f => f.id);
   })().finally(() => { fixationsPass = null; });
   return fixationsPass;
+}
+
+// ---- the values (PLAN-VALUES.md section 5, C1) ----
+
+/** The name the pass leaves in settings.cleaned once it has run. */
+export const VALUES_PASS = 'values';
+
+let valuesPass: Promise<string[] | null> | null = null;
+
+/**
+ * Once per journal (PLAN-VALUES.md section 5): each paradox becomes one value (schema.ts valueFromParadox: word from
+ * pole A, shadow from pole B, looks from pole A's aspect, held when it was active, order kept, pole A's bracket word
+ * and pole B's aspect in the first revision's fromParadox), and 'values' goes into settings.cleaned, so a value he
+ * deletes never comes back. A paradox that already has its value (an import) is not written again. The paradoxes,
+ * their items and leans are not touched. Words are sealed, so like seedFixationsOnce it runs where the journal is
+ * open: at boot with no lock, and again once the PIN opens it; a locked journal returns null and tries on the next
+ * open. Returns the ids written.
+ */
+export function valuesFromParadoxesOnce(): Promise<string[] | null> {
+  valuesPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    if (s.cleaned?.includes(VALUES_PASS)) return [];
+    const paradoxes = await store.all('paradoxes');
+    if (paradoxes.some(p => p.locked)) return null;
+    const values = await store.all('values');
+    const have = new Set(values.flatMap(v => [v.id, v.fromParadoxId]).filter(Boolean));
+    const gone = new Set(s.deleted ?? []);
+    const write = paradoxes.map(p => valueFromParadox(p)).filter(v => !have.has(v.fromParadoxId) && !have.has(v.id) && !gone.has(v.id));
+    await store.many({ values: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), VALUES_PASS] }] });
+    return write.map(v => v.id);
+  })().finally(() => { valuesPass = null; });
+  return valuesPass;
 }
 
 // ---- the doctor line moves (PLAN-ENERGIZE.md section 5, X5) ----
