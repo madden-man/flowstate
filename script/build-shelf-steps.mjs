@@ -2,9 +2,8 @@
 // Builds the shelf steps of design/walkthrough.html (PLAN-TASKS.md T5) from the running app, the way the picks steps
 // were (script/build-picks-walkthrough.mjs): the vite dev server, Playwright at the walkthrough's 358x722 screen, a
 // fixed November 2026 clock, a journal given Spotify tokens that go nowhere (every request off the dev host is
-// aborted) and the starter albums' covers from design/tasks/ kept as the ♪ grid would keep them. The sign's page
-// does not hold its shelf yet (the rebuilt page leaves it a slot), so script/shelf-slot.tsx renders the real
-// SignShelf under the gate. Each step's .fs-app markup goes into its data-mock phone: links stripped, covers inlined,
+// aborted) and the starter albums' covers from design/tasks/ kept as the ♪ grid would keep them; the sign's page
+// holds its real SignShelf under the gate. Each step's .fs-app markup goes into its data-mock phone: links stripped, covers inlined,
 // the plate's canvas kept as one still per light. The block between the T5 markers is replaced, design/index.html is
 // copied from the page, and the artifact lint runs.
 //   node script/build-shelf-steps.mjs        (PORT, default 4251)
@@ -94,7 +93,6 @@ async function open(width, height) {
 async function signPage(page, sign) {
   await page.evaluate(h => { location.hash = h; }, `#/flow/c/${sign}`);
   await page.locator(`.ck-page[data-chakra="${sign}"] .fs-gate`).waitFor();
-  await page.evaluate(async s => { (await import('/script/shelf-slot.tsx')).mount(s); }, sign);
   await page.locator('.ck-shelf .fs-tile').first().waitFor();
   await page.waitForTimeout(600);
 }
@@ -161,9 +159,19 @@ if (SHOTS) {
       await s.page.screenshot({ path: path.join(SHOTS, `${name}-${l}.png`) });
     }
   };
+  for (const sign of ['heart', 'root']) {
+    await signPage(s.page, sign);
+    await s.page.locator('.ck-shelf').evaluate(el => el.scrollIntoView({ block: 'center' }));
+    await three(`shelf-${sign}`);
+    // the app's own Still, from the moon (not only the attribute): no plus, no lifting, no hue
+    await s.page.locator('.fs-moon').first().click();
+    await s.page.waitForTimeout(2500);
+    await s.page.screenshot({ path: path.join(SHOTS, `shelf-${sign}-still-moon.png`) });
+    await s.page.getByRole('button', { name: 'Leave Still' }).click();
+    await s.page.waitForTimeout(2500);
+  }
   await signPage(s.page, 'heart');
   await s.page.locator('.ck-shelf').evaluate(el => el.scrollIntoView({ block: 'center' }));
-  await three('shelf');
   // lifted: a long press on the second cover, let go where it was
   const t = s.page.locator('.ck-shelf .fs-tile').nth(1);
   const b = await t.boundingBox();
@@ -183,8 +191,8 @@ if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
 
 // ---- the block
 const STEPS = [
-  ['shelf', 'A shelf on every sign', 'Tap plays; hold lifts.', 'night', '21:30', 'Flow', shelfShot],
-  ['signs', 'All seven under ♪', 'A name opens its sign.', 'night', '21:31', 'Journal', signsShot],
+  ['shelf', "Every sign's shelf", 'Hold to lift.', 'night', '21:30', 'Flow', shelfShot],
+  ['signs', 'All seven under ♪', 'Names open signs.', 'night', '21:31', 'Journal', signsShot],
 ];
 const html = `${BEGIN}
 <link rel="stylesheet" href="sign-shelf.css">

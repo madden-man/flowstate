@@ -5,10 +5,8 @@
 .ck-shelf { --ck-cover: calc(var(--hit) * 1.5); --ck-pitch: calc(var(--lh-ink) * 3); touch-action: pan-y; }
 .ck-shelf-covers.fs-tiles { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s1);
   row-gap: calc(var(--ck-pitch) - var(--ck-cover)); padding: calc((var(--ck-pitch) - var(--ck-cover)) / 2) 0; }
-.ck-shelf:empty { min-height: var(--ck-pitch); }
 .ck-shelf.small { --ck-cover: var(--hit); }
 .ck-shelf.small .ck-shelf-covers.fs-tiles { row-gap: var(--s1); padding: 0; }
-.ck-shelf.small:empty { min-height: var(--ck-cover); }
 .ck-shelf-cover { width: var(--ck-cover); flex: none; position: relative; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .ck-shelf-cover .fs-tile { border-radius: 3px; }
 

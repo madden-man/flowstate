@@ -47,10 +47,9 @@ test('a stop opens on its place, its drawings unnamed, and the gate writes one r
   // the old flows' drawings are gone: the plate is the drawing, and at rest no step words show
   await expect(body.locator('.ck-drawing, .fs-cycle, .fl-drawing')).toHaveCount(0);
   await expect(body.locator('.ck-steps')).toHaveCount(0);
-  // the rows at rest: one list of up to six, one On row among them
-  const rows = body.locator('.ck-rows .fl-tip');
-  expect(await rows.count()).toBeGreaterThan(0);
-  expect(await rows.count()).toBeLessThanOrEqual(6);
+  // the checklist is gone at rest (PLAN-TASKS.md T1): the place is the page, its touch words on the plate
+  await expect(body.locator('.ck-rows, .fl-tip')).toHaveCount(0);
+  await expect(body.locator('.ck-touch')).toHaveCount(4);
 
   // no flow name anywhere on the page
   const text = await page.locator('.fs-main').innerText();
@@ -140,7 +139,7 @@ test('#/flow/:id for a flow under a sign lands on its page, that drawing in fron
 
 test('the safety lines stay: 988, the doctor line, and hand-offs that read as their sign', async ({ page }) => {
   await open(page, '#/flow/c/heart');
-  await expect(page.locator('.fl-prints')).toContainText('call or text 988');
+  await expect(page.locator('.ck-safe')).toContainText('call or text 988');
   await page.goto('/#/flow/c/crown');
   await expect(page.locator('.fl-prints')).toContainText('talk to your doctor');
   await page.goto('/#/flow/night/1');
@@ -162,7 +161,8 @@ test('Still: no gate, no percent, the sign open; the safety lines stay', async (
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.locator('.fs-gate')).toBeHidden();
   await expect(page.locator('.ck-sign .fs-sign')).toHaveAttribute('data-closed', '0.00');
-  await expect(page.locator('.fl-prints')).toContainText('988');
+  await expect(page.locator('.ck-safe')).toContainText('988');
+  await expect(page.getByRole('link', { name: 'Call 988' })).toBeVisible();
   const digits = await page.locator('.ck-page').evaluate(el => {
     const out: string[] = [];
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);

@@ -11,7 +11,7 @@ import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { FlowPage } from './ui/flow/FlowPage';
-import { FlowRoute } from './ui/flow/ChakraPage';
+import { FlowRoute, DoorChakraPage } from './ui/flow/ChakraPage';
 import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
@@ -167,6 +167,8 @@ function DoorFrame() {
         <Router>
           <Route path="/flow/now" component={DoorNow} />
           <Route path="/flow/meditate" component={DoorMeditate} />
+          {/* a sign's page (PLAN-TASKS.md section 7): the place and the touches that write nothing */}
+          <Route path="/flow/c/:chakra" component={DoorChakraPage} />
           <Route path="/flow/:id/:step" component={DoorFlowPage} />
         </Router>
         <DoorPin />
