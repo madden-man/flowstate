@@ -4,7 +4,8 @@
 //   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
-//   fixations: name and next (PLAN-ENERGIZE.md section 5).
+//   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
+//   revisions (PLAN-VALUES.md section 5).
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -160,6 +161,35 @@ const fixationSpec: Spec<Tables['fixations']> = {
   },
 };
 
+/** A value seals its words (PLAN-VALUES.md section 5): word, shadow, looks, the revisions whole, and each champion's
+ *  why, keyed by voice and side so the clear list can be reordered without the whys moving. The clear copy keeps the
+ *  shape: ids, status, order, dates, and every champion's voiceId, side and at, so the list draws its champions'
+ *  rules before unlock; each revision keeps only its date. */
+type VSecret = { word: string; shadow?: string; looks?: string; whys: Record<string, string>; revisions: Tables['values']['revisions'] };
+const whyKey = (c: { voiceId: string; side: string }) => `${c.side}:${c.voiceId}`;
+const valueSpec: Spec<Tables['values']> = {
+  take: row => {
+    const whys: Record<string, string> = {};
+    for (const c of row.champions) if (c.why !== undefined) whys[whyKey(c)] = c.why;
+    return {
+      clear: {
+        ...row, word: '', shadow: undefined, looks: undefined,
+        champions: row.champions.map(({ why: _, ...c }) => c),
+        revisions: row.revisions.map(r => ({ at: r.at, word: '' })),
+      },
+      secret: { word: row.word, shadow: row.shadow, looks: row.looks, whys, revisions: row.revisions } satisfies VSecret,
+    };
+  },
+  give: (clear, raw) => {
+    const s = (raw ?? { word: '', whys: {}, revisions: [] }) as VSecret;
+    const out = { ...clear, word: s.word, revisions: s.revisions ?? [] };
+    if (s.shadow !== undefined) out.shadow = s.shadow; else delete out.shadow;
+    if (s.looks !== undefined) out.looks = s.looks; else delete out.looks;
+    out.champions = clear.champions.map(c => (s.whys?.[whyKey(c)] !== undefined ? { ...c, why: s.whys[whyKey(c)] } : c));
+    return out;
+  },
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -171,6 +201,7 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   flows: flowSpec,
   episodes: episodeSpec,
   fixations: fixationSpec,
+  values: valueSpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 
@@ -246,7 +277,11 @@ async function keepLock<K extends TableName>(t: K, rows: Tables[K][]): Promise<T
     const s = r as Settings;
     const stored = await database.settings.get(s.id);
     if (!stored) return r;
-    return { ...s, lock: { ...stored.lock, relockAfterMin: s.lock?.relockAfterMin ?? stored.lock.relockAfterMin } } as Tables[K];
+    const next = { ...s, lock: { ...stored.lock, relockAfterMin: s.lock?.relockAfterMin ?? stored.lock.relockAfterMin } };
+    // the deleted ids (PLAN-SELF.md section 4, carried by PLAN-VALUES.md C0) only grow, so a stale copy can never drop one either
+    const gone = [...new Set([...(stored.deleted ?? []), ...(s.deleted ?? [])])];
+    if (gone.length) next.deleted = gone;
+    return next as Tables[K];
   }));
 }
 
@@ -254,7 +289,9 @@ function writable() {
   if (keyState() === 'locked') throw new LockedError();
 }
 
-export const store = {
+/** The reads and writes themselves, outside the queue: store wraps the writes in it, and store.unit hands these to a
+ *  function already running in it, so its reads and writes are one unit. */
+const direct = {
   async get<K extends TableName>(t: K, id: string): Promise<Read<Tables[K]> | undefined> {
     const row = await table(t).get(id);
     return row && fromStored(t, row, key);
@@ -268,18 +305,52 @@ export const store = {
     const rows = await build(table(t)).toArray();
     return Promise.all(rows.map(r => fromStored(t, r, key)));
   },
+  async put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
+    writable();
+    const [kept] = await keepLock(t, [row]);
+    await table(t).put(await toStored(t, kept, key));
+  },
+  async bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
+    writable();
+    const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
+    await table(t).bulkPut(stored);
+  },
+};
+export type Unit = typeof direct;
+
+/** The raw tables store.tx hands its function: clear fields only, never a sealed one. */
+export type TxTables = <K extends TableName>(t: K) => Table<Tables[K], string>;
+
+/**
+ * Puts ids on the settings row's deleted list (PLAN-VALUES.md C0, from PLAN-SELF.md section 4), so a merge import
+ * of an older backup never brings those rows back and drops links to them (backup.ts). For use inside store.tx with
+ * 'settings' among its tables, in the same transaction as the delete itself. Any table's row id works; the list only
+ * grows. A phone with no settings row yet has nothing to import over, so nothing is written.
+ */
+export async function tombstone(tb: TxTables, ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const settings = tb('settings');
+  const s = await settings.get('app');
+  if (!s) return;
+  await settings.update('app', { deleted: [...new Set([...(s.deleted ?? []), ...ids])] });
+}
+
+export const store = {
+  get: direct.get,
+  all: direct.all,
+  query: direct.query,
   put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
-    return serial(async () => {
-      writable();
-      const [kept] = await keepLock(t, [row]);
-      await table(t).put(await toStored(t, kept, key));
-    });
+    return serial(() => direct.put(t, row));
   },
   bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
+    return serial(() => direct.bulkPut(t, rows));
+  },
+  /** A read and the writes that follow from it as one unit in the write queue (PLAN-SELF.md section 4): fn reads and
+   *  writes through u, the same calls as store's, and no other write can land between them. Refuses while locked. */
+  unit<T>(fn: (u: Unit) => Promise<T>): Promise<T> {
     return serial(async () => {
       writable();
-      const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
-      await table(t).bulkPut(stored);
+      return fn(direct);
     });
   },
   delete(t: TableName, id: string): Promise<void> {
@@ -295,15 +366,31 @@ export const store = {
       await (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys);
     });
   },
-  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction). */
-  many(writes: { [K in TableName]?: Tables[K][] }): Promise<void> {
+  /** Reads and writes of clear fields as one unit (PLAN-SELF.md section 4): fn runs in the write queue, inside one
+   *  transaction over tables, on the raw tables. It may read rows, .delete() them (by key or by index), .modify()
+   *  their clear fields (ids, links, status) and call tombstone(); it must never write a sealed field, and it cannot
+   *  seal (WebCrypto does not run inside an IndexedDB transaction). A sealed row's AAD is its table and primary key
+   *  alone (aad above), so a row whose clear fields were modified still opens. Refuses while locked. */
+  tx<T>(tables: TableName[], fn: (tb: TxTables) => Promise<T>): Promise<T> {
+    return serial(async () => {
+      writable();
+      return database.transaction('rw', tables.map(t => database.table(t)), () => fn(table));
+    });
+  },
+  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
+   *  drops are primary keys deleted in that same transaction, after the writes. */
+  many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
     return serial(async () => {
       writable();
       const prepared = await Promise.all(
         (Object.keys(writes) as TableName[]).map(async t => [t, await Promise.all((await keepLock(t, writes[t] as Tables[TableName][])).map(r => toStored(t, r as never, key)))] as const),
       );
-      await database.transaction('rw', prepared.map(([t]) => database.table(t)), async () => {
+      const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
+      const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
+      if (!tables.length) return;
+      await database.transaction('rw', tables.map(t => database.table(t)), async () => {
         for (const [t, rows] of prepared) await database.table(t).bulkPut(rows);
+        for (const t of gone) await database.table(t).bulkDelete(drops[t]!);
       });
     });
   },

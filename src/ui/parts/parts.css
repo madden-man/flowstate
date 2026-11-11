@@ -116,10 +116,7 @@
 .fs-chip[aria-pressed="true"] { background: var(--ink); color: var(--page); }
 .fs-chip.add { border-style: dashed; color: var(--print); }
 
-/* ---- the facing pages (Be placeholder; package 3 draws the full spread) ---- */
-.fs-facing { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--s3); }
-.fs-facing > * { margin: 0; min-height: var(--lh-ink); }
-.fs-facing .b { text-align: right; }
+/* ---- tags and struck words ---- */
 .fs-tag { font-family: var(--serif); font-size: var(--fs-chip); color: var(--ink); border-bottom: 1px solid var(--ink); }
 .fs-strike { position: relative; display: inline-block; color: var(--print); font-size: var(--fs-chip); }
 .fs-strike::after { content: ""; position: absolute; left: -2px; right: -2px; top: 52%; height: 2px; background: var(--ink); transform: rotate(-1.5deg); opacity: .8; }
@@ -338,11 +335,10 @@ a.fs-row { text-decoration: none; cursor: pointer; }
   outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
 }
 
-/* ---- Be: the spread, upright (V4, DESIGN.md rule 11). Pole A on the top rule, pole B on the bottom rule,
-   the seam between; a pair shares a row, tied across the seam; the middle word sits on the seam ---- */
+/* ---- Be (DESIGN.md rule 11): the top row, then the list of values (PLAN-VALUES.md; the spread left in C6) ---- */
 .fs-be-top { display: flex; justify-content: space-between; align-items: center; padding: 0 calc(var(--gutter) - var(--s1)); }
 .fs-be { padding-top: 0; }
-/* V8: the list. A row a paradox, its two poles facing across a short seam, two rules high; a tap opens the spread under it */
+/* V8: the list. A row a value, two rules high; a tap opens it where it stands (.fs-dichotomy, the seam) */
 .fs-be-row { border-bottom: 1px solid var(--seam); scroll-margin-top: var(--s1); }
 .fs-be-row:last-child { border-bottom: 0; }
 /* V13: a row lifted by a long press rides under the finger, as a voice does on the Voices screen */
@@ -360,62 +356,9 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-dichotomy.resting { color: var(--print); font-style: italic; }
 .fs-dichotomy[aria-expanded="true"] i { background: var(--ink); }
 .fs-dichotomy:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-.fs-spread { position: relative; padding: var(--s1) 0 var(--s3); }
-.fs-spread-pages { position: relative; min-height: var(--s4); font-family: var(--serif); }
-.fs-spread-ink { position: absolute; inset: 0; overflow: visible; pointer-events: none; color: var(--ink); }
-.fs-seam { stroke: var(--seam); stroke-width: 1; fill: none; }
-.fs-pair { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
-.fs-pair.open { stroke-dasharray: 1.5 6; }
-.fs-arrow { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
-
-/* the poles: each word centred on its rule (A above the top rule, B below the bottom one), its shadow in brackets */
-.fs-pole {
-  position: absolute; left: 0; right: 0; margin: 0; padding: 0 var(--s4);
-  text-align: center; font-size: var(--fs-chip); letter-spacing: .02em; line-height: var(--lh-ink); color: var(--ink);
-  transition: border-color var(--t-light) var(--ease);
-}
-.fs-pole.a { top: 0; border-bottom: 1px solid var(--rule); }
-.fs-pole.b { border-top: 1px solid var(--rule); }
-.fs-pole i { font-style: italic; color: var(--print); }
-/* the middle word on the seam, on a patch of page so the line breaks around it; the patch relights with the page */
-.fs-mid {
-  position: absolute; left: 50%; transform: translateX(-50%); display: block; width: max-content; max-width: 64%; margin: 0; padding: 0 var(--s1);
-  text-align: center; font-size: var(--fs-chip); font-style: italic; line-height: 1.35; color: var(--print);
-  background: var(--page); transition: background-color var(--t-light) var(--ease);
-}
-
-/* a goal on its pole's side of the seam, and the dashed slot for a missing balance on the other side of its row */
-.fs-goal, .fs-slot {
-  appearance: none; position: absolute; width: 44%; margin: 0; border: 0; background: transparent; color: var(--ink);
-  font: inherit; font-size: var(--fs-chip); line-height: 1.35; text-align: left; padding: 4px 2px;
-  cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
-  transition: transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease);
-}
-/* a row reads along its first line: the goal's first line, the tie and the slot's words share one height */
-.fs-goal { min-height: var(--hit); display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
-.fs-goal.a, .fs-slot.a { left: 0; }
-.fs-goal.b, .fs-slot.b { right: 0; text-align: right; }
-.fs-goal-text { display: block; }
-.fs-cadence { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
-.fs-goal.lift { transform: translateY(-2px); background: var(--page); box-shadow: var(--shadow-tile); border-radius: var(--s1); cursor: grabbing; transition: none; z-index: 2; }
-.fs-goal.riding { transition: none; }
-.fs-slot { border: 1px dashed var(--print); border-radius: var(--s1); color: var(--print); font-style: italic; padding: 3px var(--s1); cursor: pointer; display: flex; align-items: flex-start; }
-.fs-slot.b { justify-content: flex-end; }
-/* the slot is drawn one line tall; its tap reaches the full 44px, as the chips do */
-.fs-slot::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - max(50%, var(--hit) / 2)); bottom: calc(50% - max(50%, var(--hit) / 2)); }
-.fs-goal:focus-visible, .fs-slot:focus-visible, .fs-addgoal:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
-
 /* earlier versions of the three words, struck through, in the sheet Edit opens */
 .fs-was { margin: 0; font-size: var(--fs-chip); line-height: 1.5; }
 
-/* "+ Goal" under the spread, the first thing under the thumb; Edit at the right end of the top rule */
-.fs-addgoal {
-  appearance: none; margin: 0; cursor: pointer; min-height: var(--hit);
-  padding: 0 var(--s2); border-radius: 999px; border: 1px solid var(--ink); background: var(--page); color: var(--ink);
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
-  transition: background-color var(--t-light) var(--ease);
-}
-.fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; height: var(--lh-ink); display: flex; align-items: center; z-index: 1; }
 .fs-print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
 
 /* the Be sheets */
@@ -539,9 +482,7 @@ a.fs-word { text-decoration: none; }
 .fs-picker { border-top: 0; }
 a.fs-row { color: var(--ink); text-decoration: none; }
 
-/* ==== Today's checks and the lean slider (package 4; under a paradox's spread on Be since F0) ==== */
-.fs-due { padding: var(--s1) 0 var(--lh-ink); }
-.fs-due-head { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+/* ==== The drawn checks (package 4; a flow's tips, the On sheet and the playlists since PLAN-VALUES.md C6) ==== */
 
 /* the drawn check: a row on the rules, a box in print grey, the check stroked in ink over --t-ui */
 .fs-check {
@@ -562,28 +503,7 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-check.done .fs-check-ink { stroke-dashoffset: 0; }
 .fs-check-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .fs-check small { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
-.fs-check:focus-visible, .fs-lean-rule:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
-
-/* the lean slider: pole A at the left, pole B at the right, a rule, three detents, the drawn mark */
-.fs-lean-poles {
-  display: flex; justify-content: space-between; gap: var(--s2);
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink);
-}
-.fs-lean-rule { position: relative; height: calc(var(--lh-ink) * 2); touch-action: pan-y; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent; }
-.fs-lean-rule[aria-disabled="true"] { cursor: default; }
-.fs-lean-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.fs-lean-ink line { stroke: var(--print); stroke-width: 1; }
-.fs-lean-ink .fs-lean-detent { stroke-width: 1.5; }
-.fs-lean-mark {
-  position: absolute; top: 50%; transform: translate(-50%, -50%); overflow: visible; pointer-events: none;
-  transition: left var(--t-ui) var(--ease);
-}
-.fs-lean-rule.drag .fs-lean-mark { transition: none; }
-.fs-lean-mark path { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
-.fs-lean-noteword { position: relative; display: block; margin-left: calc(var(--s1) * -1); min-height: var(--lh-ink); line-height: var(--lh-ink); max-width: 100%; text-align: left; }
-.fs-lean-noteword::before { content: ""; position: absolute; inset: calc((var(--lh-ink) - var(--hit)) / 2) 0; } /* a 44px target on one rule line */
-.fs-lean-notetext { display: block; font-family: var(--serif); font-size: var(--fs-fill); font-style: italic; letter-spacing: 0; text-transform: none; color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fs-lean-note { display: block; font-size: var(--fs-fill); font-style: italic; height: var(--lh-ink); }
+.fs-check:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 
 /* ==== package 7: music. The ♪ word, the small cover beside it, the album grid, the Settings rows ==== */
 .fs-musicword { font-size: var(--fs-fill); letter-spacing: 0; text-transform: none; padding: 0 var(--s1); }
@@ -703,10 +623,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   left: calc(50% - max(50%, var(--hit) / 2)); right: calc(50% - max(50%, var(--hit) / 2));
 }
 .fs-musicword { min-width: var(--hit); justify-content: center; }
-/* "+ Goal" stays under the thumb while its spread scrolls past (DESIGN.md rule 6) */
-.fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
-/* the lean before the first drag: the mark waits at the middle in print grey */
-.fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
 
 /* ---- V6: the pull shows earlier pages ---- */
 /* the rail hangs above the page in the page's own light: the rows of the Pages screen on ruled paper, as
@@ -1082,7 +998,7 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
   display: block; margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
   text-transform: uppercase; line-height: var(--lh-ink); color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* an empty slot is a dashed slot, as on the Be spread (rule 11) */
+/* an empty slot is a dashed slot, the mark for something owed (rule 11) */
 .fx-card.fx-empty { border-left-style: dashed; border-left-color: var(--seam); background: transparent; color: var(--print); }
 /* on deck, peeking under the three: one blank rule above, the chips on the next */
 .fx-deckpeek { display: flex; align-items: center; gap: var(--s1); margin-top: var(--lh-ink); height: var(--lh-ink); }
@@ -1219,8 +1135,8 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 .fs-key[data-down] { background-color: var(--seam); transition: none; }
 .fs-key[data-down] b { translate: 0 1px; transition: none; }
 
-/* pills (chips, options, "+ voice", New, + Goal): the border goes to ink, a little ink washes in, 1px down */
-.fs-chip, .fs-opt, .fs-new, .fs-addgoal, .fs-vslot {
+/* pills (chips, options, "+ voice", New): the border goes to ink, a little ink washes in, 1px down */
+.fs-chip, .fs-opt, .fs-new, .fs-vslot {
   transition: background-color var(--t-ui) var(--ease), color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease);
 }
 .fs-chip[data-down], .fs-opt[data-down], .fs-new[data-down], .fs-vslot[data-down] {
@@ -1228,18 +1144,15 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 }
 /* a chosen pill is already ink: it only gives */
 .fs-chip[aria-pressed="true"][data-down], .fs-opt[aria-pressed="true"][data-down] { background-color: var(--ink); }
-/* + Goal rides over the spread, so its wash is mixed into the page, not into what scrolls under it */
-.fs-addgoal[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, var(--page)); translate: 0 1px; transition: none; }
 
 /* rows: a 6% ink wash, on at the touch, easing out over --t-page */
-.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fs-goal, .fs-slot, .fl-shape {
+.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fl-shape {
   transition: background-color var(--t-page) var(--ease);
 }
 .fs-row[data-down], .fs-list-row[data-down], .fs-crow[data-down], .fs-link[data-down], .fs-qrow[data-down], .fs-dichotomy[data-down],
-.fs-echo-tap[data-down], .fs-vname[data-down], .fs-goal[data-down], .fs-slot[data-down], .fl-shape[data-down] {
+.fs-echo-tap[data-down], .fs-vname[data-down], .fl-shape[data-down] {
   background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none;
 }
-.fs-goal { transition: background-color var(--t-page) var(--ease), transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
 /* the step words on a flow's drawing: the wash fills their 44pt target */
 .fs-cycle-hit { transition: fill var(--t-page) var(--ease); }
 .fs-cycle-word[data-down] .fs-cycle-hit { fill: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
@@ -1388,12 +1301,10 @@ html[data-turn="close"]::view-transition-new(fs-drawing) { animation: fs-turn-in
 @keyframes fs-ink-in-right { from { transform: translateX(18px); opacity: 0; } }
 @keyframes fs-ink-in-left { from { transform: translateX(-18px); opacity: 0; } }
 
-/* Be: a spread grows down from its row and folds back up into it (Be.tsx Fold sets the heights). Laid out at its full
+/* Be: an open value grows down from its row and folds back up into it (Be.tsx Fold sets the heights). Laid out at its full
    height behind a fold of nothing, then the fold opens to it; the rows under it ride down with its edge. */
 .fs-be-fold[data-fold] { overflow: hidden; transition: height var(--t-page) var(--ease-settle); }
 .fs-be-fold[data-fold="shut"] { height: 0; transition: none; }
-/* "+ Goal" keeps to the spread's foot while it moves, not to the fold's edge */
-.fs-be-fold[data-fold] .fs-addgoal { position: relative; bottom: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .fs-tab-mark, .fs-tab-mark[data-drawing], .fs-be-fold[data-fold] { transition: none; }
@@ -1521,3 +1432,131 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 }
 
 /* ---- M5 ends ---- */
+
+/* ---- Spoke for (PLAN-VALUES.md C4) ---- */
+/* the row on a tapped voiced line: "Spoke for" in print, then his words as chips, scrolling sideways like any chip row;
+   in the council's reply bar under the quote, in the journal under the current line where the dot's chips step out */
+.fs-for { align-items: center; }
+.fs-for > .fs-print { flex: none; margin: 0 2px 0 0; line-height: 1; }
+.fs-council .fs-replying + .fs-for { padding-top: 0; }
+/* the label after the speaker: print, drawn on left to right like a pen at the confirm, lifted when taken back */
+.fs-sp-for { display: inline-block; }
+.fs-sp-for.draw { animation: fs-for-draw var(--t-draw) var(--ease) both; }
+.fs-sp-for.lift { animation: fs-for-lift var(--t-ui) var(--ease) forwards; }
+@keyframes fs-for-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fs-for-lift { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .fs-sp-for.draw { animation: none; }
+  .fs-sp-for.lift { display: none; }
+}
+/* ---- Spoke for ends ---- */
+
+/* ---- Be: the values list, the open value, the value sheet (PLAN-VALUES.md C2) ---- */
+/* The list sits on the rules: the printed line is one rule, a value two, the open body whole rules too. */
+.fs-be-top .fs-seg { padding: 0 var(--s1); }
+.fs-be.fs-values { padding-top: var(--s1); }
+.fs-values .fs-be-row { border-bottom: 0; }
+.fs-sheetof .fs-be-core { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
+/* a value on the list: the word large on the left, its champions' rules on the right */
+.fs-sheetof .fs-value, .fs-dichotomy.fs-value {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s2); margin: 0;
+  min-height: calc(var(--lh-ink) * 2); font-family: var(--serif); font-size: var(--fs-manifesto); line-height: var(--lh-ink); color: var(--ink); text-align: left;
+}
+.fs-value .a { min-width: 0; text-align: left; }
+.fs-dichotomy.fs-value.resting { color: var(--print); }
+.fs-value .fs-spoke { flex: none; }
+/* the rules are the council list's own (.fs-spoke i), not the dichotomy's seam, which .fs-dichotomy i would make them */
+.fs-value .fs-spoke i { width: 3px; height: 14px; background: var(--vc); }
+.fs-value .fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
+/* a word sits on its row's lower rule, as ink does, never across the rule between */
+.fs-sheetof .fs-value, .fs-dichotomy.fs-value, .fs-dichotomy.fs-value-open { align-items: end; }
+/* nobody fights for it yet: one dashed rule where the colours would be (rule 11's mark for something owed) */
+.fs-spoke-none { display: block; flex: none; width: 0; height: 14px; border-left: 3px dashed var(--print); }
+/* open: the dichotomy; the word keeps to its own width so it can travel (rule 28), the shadow in italic at full ink */
+.fs-value-open .a { justify-self: end; max-width: 100%; }
+.fs-value-open .b { justify-self: start; max-width: 100%; font-style: italic; color: var(--ink); }
+.fs-value-open.alone { grid-template-columns: 1fr; }
+.fs-value-open.alone .a { justify-self: center; }
+.fs-value-open.written .b { animation: fs-value-write var(--t-draw) var(--ease) both; }
+.fs-value-open.written i { animation: fs-value-seam var(--t-draw) var(--ease) both; }
+@keyframes fs-value-write { from { clip-path: inset(0 100% 0 0); } }
+@keyframes fs-value-seam { from { transform: scaleY(0); } }
+html[data-turn="be-value"] .fs-be-row[data-turning] .fs-dichotomy .a { view-transition-name: fs-value-word; }
+html[data-turn="be-value"]::view-transition { pointer-events: none; }
+html[data-turn="be-value"]::view-transition-group(fs-value-word) { animation-duration: var(--t-page); animation-timing-function: var(--ease-settle); }
+/* only the word travels: the page itself is live under it, so the fold grows and the shadow is written as it lands */
+html[data-turn="be-value"]::view-transition-old(root) { display: none; }
+html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
+/* under the open value: + shadow, the looks line, the champions (C3), Said for it (C5), then Edit */
+.fs-sheetof .fs-value-line { display: flex; justify-content: center; align-items: center; min-height: var(--lh-ink); }
+.fs-value-line .fs-word { position: relative; min-height: var(--lh-ink); }
+.fs-value-line .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-sheetof .fs-be-resting { justify-content: flex-start; min-height: calc(var(--lh-ink) * 2); margin: 0 calc(var(--s1) * -1); }
+.fs-sheetof .fs-value-looks { margin: 0; padding-bottom: var(--lh-ink); font-style: italic; text-align: center; font-size: var(--fs-fill); line-height: var(--lh-ink); }
+.fs-value-acts { display: flex; justify-content: space-between; align-items: end; min-height: var(--lh-ink); margin: 0 calc(var(--s1) * -1); }
+.fs-value-acts > .fs-word { position: relative; min-height: var(--lh-ink); }
+.fs-value-acts > .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-value-acts > .fs-word:last-child { margin-left: auto; }
+/* the value sheet's earlier versions: struck words, their day in print on the right */
+.fs-value-was { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+@media (prefers-reduced-motion: reduce) {
+  .fs-value-open.written .b, .fs-value-open.written i { animation: none; }
+}
+/* ---- C2 ends ---- */
+
+/* ---- Said for it (PLAN-VALUES.md C5) ---- */
+/* under an open value: the label, then a line a rule: its day in print (the shadow's word after it in italic print for a
+   line spoken for the shadow), its words cut on one line (rule 5), its voice's 3px rule on the left (a deep twin's
+   doubled, plain ink's ink); a row is a link to the page it lives on */
+.fs-sheetof .fs-said-label { margin: 0; line-height: var(--lh-ink); }
+.fs-saidline {
+  --vc: var(--ink);
+  display: grid; grid-template-columns: auto 1fr; gap: var(--s1); align-items: baseline;
+  border-left: 3px solid var(--vc); padding-left: var(--s1);
+  font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--ink); text-decoration: none;
+}
+.fs-saidline.deep { border-left-style: double; border-left-width: 5px; }
+.fs-saidline small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); white-space: nowrap; }
+.fs-saidline span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-saidline:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fs-sheetof .fs-said-earlier { margin: 0; min-height: var(--lh-ink); display: flex; align-items: end; }
+.fs-said-earlier .fs-word { position: relative; min-height: var(--lh-ink); color: var(--print); }
+.fs-said-earlier .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+/* ---- C5 ends ---- */
+
+/* ---- Champions (PLAN-VALUES.md C3) ---- */
+/* under an open value: each side a printed label, its champions as voiced lines (name, then the why), "+ champion";
+   every piece is whole rules, and the block ends on a blank rule */
+.fs-champs { padding-bottom: var(--lh-ink); }
+.fs-champside + .fs-champside { padding-top: var(--lh-ink); }
+.fs-sheetof .fs-champside > .fs-print { line-height: var(--lh-ink); }
+.fs-champ.fs-v { margin-left: 0; }
+.fs-champ .fs-sp { line-height: var(--lh-ink); }
+.fs-champ-why {
+  appearance: none; display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; outline: none; resize: none; overflow: hidden;
+  background: transparent; font: inherit; font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--ink); caret-color: var(--ink);
+}
+.fs-champ-why::placeholder { color: var(--print); font-style: italic; }
+/* nobody fights for it yet: a quiet line with the list's dashed rule, a tap to recruit */
+.fs-champ-none {
+  appearance: none; position: relative; display: block; width: 100%; margin: 0; padding: 0 0 0 10px; cursor: pointer; text-align: left;
+  border: 0; border-left: 3px dashed var(--print); background: transparent;
+  font: inherit; font-size: var(--fs-fill); font-style: italic; line-height: var(--lh-ink); color: var(--print);
+}
+.fs-champ-none::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-sheetof .fs-champ-add { display: flex; align-items: center; min-height: var(--lh-ink); font-family: var(--sans); font-size: var(--fs-chip); line-height: 1; }
+.fs-champ-add .fs-chip { padding: 5px 10px; }
+/* the Champions segment: the Voices screen's cell, the name in the voice's print, what it fights for on one wrapping line */
+.fs-champ-voice {
+  appearance: none; width: 100%; margin: 0; padding-top: 0; padding-bottom: 0; padding-right: 0; border-top: 0; border-right: 0; border-bottom: 0; background: transparent; cursor: pointer;
+  font: inherit; text-align: left; color: var(--ink); min-height: calc(var(--lh-ink) * 2); box-shadow: inset 0 -1px 0 var(--seam);
+}
+.fs-champ-vname { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--vc); line-height: var(--lh-ink); }
+.fs-champ-vals { font-size: var(--fs-fill); line-height: var(--lh-ink); }
+.fs-champ-voice:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+/* the sheets: a printed label between the groups; a shadow's chip in italic; a champion with a why, armed to let go */
+.fs-champsheet > div > .fs-print, .fs-fightchips > .fs-print { margin: var(--s1) 0 0; }
+.fs-chip.fs-chip-shadow { font-style: italic; }
+.fs-chip.armed, .fs-chip.armed[aria-pressed="true"] { background: transparent; color: var(--ink); border-color: var(--ink); border-style: dashed; }
+.fs-chip-again { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); font-style: normal; }
+/* ---- C3 ends ---- */

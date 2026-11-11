@@ -9,6 +9,8 @@
 // A question page (#/questions/:id, V2) is this same editor under the question's title: writing is plain
 // ink, the long-press sheet offers "This answers it" in Ask this's place, the header says where it sits
 // among the open questions, and Previous and Next (or a horizontal swipe on the page) walk them.
+// PLAN-VALUES.md C4: the current line, when a voice speaks it, has "Spoke for" step out under it (parts/SpokeFor), as
+// the dot's chips do; a tap confirms the line for a value after it was written, and never takes the caret.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useLocation } from 'preact-iso';
@@ -18,6 +20,7 @@ import { Echo } from '../parts/Echo';
 import { useHold } from '../parts/Hold';
 import { useKeyboardFit } from '../parts/Keyboard';
 import { Speaker } from '../parts/Speaker';
+import { SpokeFor, SpokeForSheet, valueList, reloadValues, spokeLabel } from '../parts/SpokeFor';
 import { voiceLabel } from '../../model/council';
 import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
@@ -147,14 +150,14 @@ type Block = { id: string; m?: Read<Message>; at: number };
 
 type BlockProps = {
   b: Block; text: string; voice?: Read<Voice>; quoted?: Read<Message>; dated?: Date; cur: boolean; edit: boolean; label: string;
-  held: boolean; chips?: JSX.Element; dotOpen: boolean; saved: boolean;
+  held: boolean; chips?: JSX.Element; forRow?: JSX.Element; dotOpen: boolean; saved: boolean;
   area: (el: HTMLTextAreaElement | null) => void;
   onHold: () => void; onTap: (offset: number | undefined) => void; onDot: () => void;
   onInput: (text: string) => void; onKeyDown: (e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => void;
   onFocus: () => void; onBlur: (to: EventTarget | null) => void;
 };
 
-function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chips, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
+function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chips, forRow, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
   const hold = useHold(onHold, e => onTap(offsetAt((e.currentTarget as HTMLElement).querySelector('p'), e.clientX, e.clientY)));
   const own = useRef<HTMLTextAreaElement | null>(null);
   // the line height changes with the light (Still has more air), so the height is measured again
@@ -172,7 +175,7 @@ function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chip
           <button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded={dotOpen}
             onMouseDown={e => e.preventDefault()} onPointerDown={e => e.preventDefault()} onClick={onDot} />
         )}
-        {voice && <Speaker v={voice} />}
+        {voice && <Speaker v={voice} spoke={m ? spokeLabel(m, valueList.value) : undefined} />}
         {quoted && <span class="fs-quote">{quoted.text}</span>}
         {m?.kept && <small class="fs-kept">kept</small>}
         {edit ? (
@@ -184,6 +187,7 @@ function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chip
           <p><Inked text={text} /></p>
         )}
       </div>
+      {forRow}
     </div>
   );
 }
@@ -211,6 +215,8 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const [inserts, setInserts] = useState<{ id: string; at: number }[]>([]);
   const [voiceOf, setVoiceOf] = useState<Record<string, string | undefined>>({});
   const [dotFor, setDotFor] = useState<string | null>(null);
+  // C4: the line a tap made current (not one reached by Return or the next rule), which offers "Spoke for"
+  const [tapped, setTapped] = useState<string | null>(null);
   const [held, setHeld] = useState<Read<Message> | null>(null);
   const [echo, setEcho] = useState<Kept | null>(null);
   const [saved, setSaved] = useState(true);
@@ -257,6 +263,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   useEffect(() => {
     let live = true;
     Promise.all([chipVoices(), voicesById()]).then(([chips, byId]) => live && setVs({ chips, byId }));
+    void reloadValues();
     // the page opens with the caret on its next rule: the first rule of a new day, or under the last block
     void refresh().then(() => { if (live) focusOn(tailId, 'end'); });
     return () => { live = false; };
@@ -335,6 +342,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     curRef.current = bid;
     setCurState(bid);
     setDotFor(null);
+    setTapped(null);
   };
   useLayoutEffect(() => {
     const w = want.current;
@@ -425,6 +433,20 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     setDotFor(null);
     if (openSheet.value === 'speak') openSheet.value = null;
     want.current = { id: bid, at: areas.current.get(bid)?.selectionStart ?? 'end' };
+  };
+
+  // ---- spoke for (C4): the label shows inside the tap; the write waits behind the line's queued saves, and the label
+  // is put back after it, since a save that was already running reads the line as it was ----
+  const forOf = useRef(new Map<string, Message['for']>());
+  const showFor = (mid: string) => {
+    if (!forOf.current.has(mid)) return;
+    const f = forOf.current.get(mid);
+    setData(d => (d ? { ...d, messages: d.messages.map(x => (x.id === mid ? (f ? { ...x, for: f } : (({ for: _, ...rest }) => rest)(x)) : x)) } : d));
+  };
+  const forWrite = (mid: string) => (run: () => Promise<void>) => {
+    void flush();
+    chain.current = chain.current.then(run).then(() => showFor(mid)).catch(() => setSaved(false));
+    return chain.current;
   };
 
   // ---- the long-press sheet ----
@@ -573,9 +595,15 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
                   </div>
                 </div>
               ) : undefined}
+              forRow={b.id === cur && b.id === tapped && m && voice ? (
+                <div class="fs-inline fs-inline-for">
+                  <SpokeFor message={m} voice={voice} write={forWrite(m.id)}
+                    onChange={f => { forOf.current.set(m.id, f); showFor(m.id); }} />
+                </div>
+              ) : undefined}
               area={el => { if (el) areas.current.set(b.id, el); else areas.current.delete(b.id); }}
               onHold={() => { if (m) { setDotFor(null); setHeld(m); openSheet.value = 'line'; tick('sheet'); } }}
-              onTap={off => { holdKeyboard(); moveTo(b.id, off ?? 'end'); }}
+              onTap={off => { holdKeyboard(); moveTo(b.id, off ?? 'end'); setTapped(b.id); }}
               onDot={() => setDotFor(dotFor === b.id ? null : b.id)}
               onInput={text => onInput(b.id, text)}
               onKeyDown={e => onKeyDown(b.id, e)}
@@ -602,6 +630,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
       )}
       <LineSheet held={held} page={page} question={isQuestion} voices={vs.chips} byId={vs.byId} acts={acts}
         onClose={() => { openSheet.value = null; }} />
+      <SpokeForSheet />
       <SpeakSheet voices={vs.chips} current={cur ? voiceFor(cur) : undefined}
         onPick={v => { if (cur) pick(cur, v); }} onClose={() => { openSheet.value = null; }} />
     </Page>

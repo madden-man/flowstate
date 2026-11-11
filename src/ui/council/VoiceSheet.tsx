@@ -3,7 +3,8 @@
 // deep, an optional twin from the other shade, and a line when the hue sits close to another voice's.
 // The same sheet edits a voice from the Voices screen; every edit pushes a revision (model/council.ts).
 // No save button (DESIGN.md rule 6): putting the sheet away (Done, a swipe, the scrim) keeps what is
-// written; a new voice with no name is simply not made.
+// written; a new voice with no name is simply not made. An existing voice shows what it fights for as chips, each a
+// tap to take up or leave (PLAN-VALUES.md C3, be/ChampionSheet's FightChips).
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { Sheet } from '../parts/Sheet';
@@ -13,6 +14,8 @@ import { voiceColour } from '../voice';
 import type { VoiceColour } from '../../db/schema';
 import { addVoice, editVoice, setTwin, starVoice, archiveVoice, akaWords, closeWarning, suggestHue, voiceLabel } from '../../model/council';
 import { voiceList, reloadVoices, speaker, editing, draft } from './state';
+import { FightChips } from '../be/ChampionSheet';
+import { reloadValues } from '../parts/SpokeFor';
 
 type Shade = 'light' | 'deep';
 
@@ -43,6 +46,7 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
     setShade(v?.shade ?? d?.shade ?? 'light');
     setTwinId(v?.twinId ?? d?.twinId);
     setBusy(false);
+    if (v) void reloadValues();
   }, [open, id]);
 
   const others = all.filter(x => !x.archived && x.shade !== shade && x.id !== id && (!x.twinId || x.twinId === id || x.id === twin));
@@ -121,6 +125,12 @@ export function VoiceSheet({ onMade }: { onMade?: (id: string) => void } = {}) {
                   style={{ '--vc': voiceColour(o.colour, o.shade) } as JSX.CSSProperties} onClick={() => pickTwin(o.id)}><i />{voiceLabel(o)}</button>
               ))}
             </div>
+          </div>
+        )}
+        {v && !v.archived && (
+          <div class="fs-row stack fs-fightsfor">
+            <span>Fights for</span>
+            <FightChips voiceId={v.id} />
           </div>
         )}
         {v && (
