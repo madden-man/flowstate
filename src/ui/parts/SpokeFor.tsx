@@ -96,7 +96,11 @@ type Props = {
 
 /** The row: "Spoke for", one chip per thing the voice fights for, "+ value". A press never takes the caret. */
 export function SpokeFor({ message, voice, onChange, write = direct }: Props) {
-  const chips = spokeChips(valueList.value, voice);
+  const mine = spokeChips(valueList.value, voice);
+  // a label the voice no longer fights for (the line was given to another voice, or the voice left the value) still
+  // shows as its pressed chip, so it can always be taken back
+  const kept = message.for && !mine.some(c => c.valueId === message.for!.valueId && c.side === message.for!.side) ? forWord(valueList.value, message.for) : undefined;
+  const chips = kept ? [...mine, { ...message.for!, word: kept }] : mine;
   const on = (c: ForChip) => message.for?.valueId === c.valueId && message.for.side === c.side;
   return (
     <div class="fs-chips fs-for" role="group" aria-label="Spoke for" onMouseDown={e => e.preventDefault()}>
