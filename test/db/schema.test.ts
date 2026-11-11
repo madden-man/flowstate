@@ -5,17 +5,18 @@ import { init, store, setKey, openRow } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
 import { SEED_FLOWS, seedFlow } from '../../src/db/seed-flows';
-import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, STORES_V6, SEED_CHAKRAS, MOUNTAIN_VERSION, VALUES_VERSION, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, STORES_V6, SEED_CHAKRAS, MOUNTAIN_VERSION, VALUES_VERSION, TASKS_VERSION, STORES_V7, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
-describe('schema, version 7', () => {
-  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2), the fixations (X1), the values (C1) and the readings (R0)', async () => {
+describe('schema, version 8', () => {
+  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2), the fixations (X1), the values (C1), the readings (R0) and the signs\' shelves, marks and days (T0)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(MOUNTAIN_VERSION);
+    expect(SCHEMA_VERSION).toBe(TASKS_VERSION);
     expect(VALUES_VERSION).toBe(6);
     expect(MOUNTAIN_VERSION).toBe(7);
+    expect(TASKS_VERSION).toBe(8);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
-    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings']);
+    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days']);
   });
 
   it('carries the listed indexes', async () => {
@@ -32,6 +33,10 @@ describe('schema, version 7', () => {
     expect(idx('sits')).toEqual(['startedAt']);
     expect(idx('fixations')).toEqual([]);
     expect(idx('readings')).toEqual(['[of+at]', 'at']);
+    expect(idx('signShelves')).toEqual([]);
+    expect(idx('marks')).toEqual(['[chakra+at]', 'at']);
+    expect(idx('days')).toEqual([]);
+    for (const t of ['signShelves', 'marks', 'days']) expect(db.table(t).schema.primKey.name).toBe('id');
     expect(db.table('fixations').schema.primKey.name).toBe('id');
     expect(idx('values')).toEqual([]);
     expect(db.table('values').schema.primKey.name).toBe('id');
@@ -196,7 +201,7 @@ describe('the upgrade to MOUNTAIN_VERSION from version 5 (R0)', () => {
 
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(MOUNTAIN_VERSION);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.readings.count()).toBe(0);
     for (const row of rows) {
       const got = (await db.flows.get(row.id))!;
@@ -250,7 +255,7 @@ describe('the upgrade to MOUNTAIN_VERSION from version 5 (R0)', () => {
 describe('a fresh journal (R0)', () => {
   it('seeds every flow with its chakra, Energize with none, beside the values\' two (C1) and no readings', async () => {
     const db = await freshDB();
-    expect(db.verno).toBe(MOUNTAIN_VERSION);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     await ensureSeeded();
     expect(await db.values.count()).toBe(2);
     expect(await db.readings.count()).toBe(0);
@@ -297,7 +302,7 @@ describe('the upgrade to MOUNTAIN_VERSION from version 6, the values (main\'s sc
 
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(MOUNTAIN_VERSION);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.readings.count()).toBe(0);
     expect(await db.values.orderBy('id').toArray()).toEqual([value, { ...value, id: 'v2', status: 'resting', order: 1, champions: [], revisions: [] }]);
     expect(await db.paradoxes.get('px1')).toEqual(px);
@@ -342,6 +347,88 @@ describe('the upgrade to MOUNTAIN_VERSION from version 6, the values (main\'s sc
     expect(await store.get('flows', 'shame')).toMatchObject({ locked: true, chakra: 'solar-plexus' });
     expect((await openRow('values', (await db.values.get('v9'))!, key)).word).toBe('Brave');
     expect((await openRow('flows', (await db.flows.get('shame'))!, key)).chakra).toBe('solar-plexus');
+    db.close();
+  });
+});
+
+describe('the upgrade to TASKS_VERSION from version 7, the mountain (main\'s schema before the tasks, T0)', () => {
+  const v7 = async (name: string) => {
+    const old = new Dexie(name);
+    old.version(1).stores(STORES_V1);
+    old.version(2).stores(STORES_V2);
+    old.version(3).stores(STORES_V3);
+    old.version(4).stores(STORES_V4);
+    old.version(5).stores(STORES_V5);
+    old.version(VALUES_VERSION).stores(STORES_V6);
+    old.version(MOUNTAIN_VERSION).stores(STORES_V7);
+    await old.open();
+    return old;
+  };
+  const V7_TABLES = Object.keys(STORES_V7);
+  const dump = async (d: Dexie) => Object.fromEntries(await Promise.all(V7_TABLES.map(async t => [t, await d.table(t).toArray()] as const)));
+
+  it('the three new tables are the only change from version 7', () => {
+    expect(TABLES.filter(t => !V7_TABLES.includes(t))).toEqual(['signShelves', 'marks', 'days']);
+  });
+
+  it('a plain version 7 journal opens at version 8 with every row in every table intact and the three new tables empty', async () => {
+    const name = `flowstate-v7-${Date.now()}`;
+    const old = await v7(name);
+    const cover = new Uint8Array([1, 2, 3]).buffer;
+    await old.table('settings').put({ id: 'app', light: 'sky', cleaned: ['values', 'fixations'], place: { lat: 39.6, lon: -105.3, name: 'Evergreen, Colorado' } });
+    await old.table('voices').put({ id: 'kid', name: 'Kid', aka: [], colour: { hue: 25 }, shade: 'light', starred: false, order: 0, archived: false, revisions: [] });
+    await old.table('pages').put({ id: 'p1', kind: 'entry', createdAt: 1, updatedAt: 2, state: 'open', tags: ['x'], paradoxIds: [], linkedPageIds: [] });
+    await old.table('messages').put({ id: 'm1', pageId: 'p1', at: 3, text: 'A line', kept: true });
+    await old.table('paradoxes').put({ id: 'px1', createdAt: 1, updatedAt: 1, status: 'active', poleA: { value: 'a', aspect: 'x' }, poleB: { value: 'b', aspect: 'y' }, revisions: [] });
+    await old.table('items').put({ id: 'i1', paradoxId: 'px1', pole: 'a', text: 'go', lean: 0, doneLog: [], order: 0 });
+    await old.table('leans').put({ id: 'l1', paradoxId: 'px1', at: 4, lean: 0.2, note: 'n' });
+    await old.table('backups').put({ id: 'b1', at: 5, bytes: 10, encrypted: false });
+    await old.table('albums').put({ albumUri: 'spotify:album:Takk', album: 'Takk...', artist: 'Sigur Rós', cover, coverType: 'image/jpeg' });
+    await old.table('playlists').put({ id: POEMS_ID, name: POEMS_NAME, uri: `spotify:playlist:${POEMS_ID}`, order: 0, snapshotId: 's', total: 1, chosen: true });
+    await old.table('shelves').put({ playlistId: POEMS_ID, albumUri: 'spotify:album:Takk', order: 0, firstTrackUri: 'spotify:track:1' });
+    await old.table('flows').bulkPut(SEED_FLOWS.map(f => seedFlow(f)));
+    await old.table('episodes').put({ id: 'e1', flowId: 'panic', startedAt: 6, marks: [{ stepId: 'panic-1', at: 6 }], done: [] });
+    await old.table('sits').put({ id: 's1', startedAt: 7, endedAt: 8, sound: 'rain' });
+    await old.table('fixations').put({ id: 'fx1', name: 'FlowState', hue: 250, createdAt: 1, stints: [{ from: 1, slot: 0 }] });
+    await old.table('values').put({ id: 'v1', createdAt: 1, updatedAt: 1, status: 'held', word: 'Brave', champions: [], revisions: [] });
+    await old.table('readings').bulkPut([{ id: 'r1', at: 9, of: 'mountain', value: 0.4 }, { id: 'r2', at: 10, of: 'heart', value: 0.7 }]);
+    const before = await dump(old);
+    for (const t of V7_TABLES) expect(before[t].length, t).toBeGreaterThan(0);
+    old.close();
+
+    const db = openDB(name);
+    await db.open();
+    expect(db.verno).toBe(TASKS_VERSION);
+    expect(await dump(db)).toEqual(before);
+    expect(await db.signShelves.count()).toBe(0);
+    expect(await db.marks.count()).toBe(0);
+    expect(await db.days.count()).toBe(0);
+    db.close();
+  });
+
+  it('a locked version 7 journal: every sealed row stays sealed byte for byte, and still opens with the PIN', async () => {
+    const name = `flowstate-v7s-${Date.now()}`;
+    const now = openDB(name);
+    await now.open();
+    await init(now);
+    await ensureSeeded();
+    const key = await deriveKey('1357', randomSalt(), 1000);
+    await setKey(key, { salt: 'x', iterations: 1000 });
+    await store.put('readings', { id: 'r1', at: 9, of: 'root', value: 0.6 });
+    const sealed = await dump(now);
+    expect((sealed.readings[0] as { sealed?: unknown }).sealed).toBeTruthy();
+    now.close();
+    await Dexie.delete(name);
+    const old = await v7(name);
+    for (const t of V7_TABLES) await old.table(t).bulkPut(sealed[t]);
+    old.close();
+
+    const db = openDB(name);
+    await db.open();
+    await init(db);
+    expect(await dump(db)).toEqual(sealed);
+    expect(await store.get('readings', 'r1')).toMatchObject({ locked: true });
+    expect((await openRow('readings', (await db.readings.get('r1'))!, key)).value).toBe(0.6);
     db.close();
   });
 });
