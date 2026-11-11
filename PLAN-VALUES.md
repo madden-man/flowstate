@@ -1,6 +1,6 @@
 # FlowState Be: values, shadows and champions
 
-Date: 2026-11-11. Status: planned, not built. Packages are C0 to C6 (C for champion). Tommy's ask: "make a plan to entirely rework the 'be' section of flow state. rather than having goals within paradoxes, i want the main page to be a list of values that comprise the overall identity i want to build, and only when clicking on that value does its 'shadow' value show (to create a lesser paradox). then, rather than having a graph with goals and all, i want those values to be 'championed' by various council members, and i want it to be really easy to be flexible with it (council members can have more than one value, values can have more than one council member, etc). consider how to make it both fun and useful, so that during council sessions a given voice can say 'i'm fighting for XYZ value'."
+Date: 2026-11-11. Status: planned, not built. Reworked the same day on Tommy's correction: "shadow values shouldn't have negative connotations: they're positive voices that are typically based on self preservation." Packages are C0 to C6 (C for champion). Tommy's ask: "make a plan to entirely rework the 'be' section of flow state. rather than having goals within paradoxes, i want the main page to be a list of values that comprise the overall identity i want to build, and only when clicking on that value does its 'shadow' value show (to create a lesser paradox). then, rather than having a graph with goals and all, i want those values to be 'championed' by various council members, and i want it to be really easy to be flexible with it (council members can have more than one value, values can have more than one council member, etc). consider how to make it both fun and useful, so that during council sessions a given voice can say 'i'm fighting for XYZ value'."
 
 `PLAN.md` stays the architecture and `DESIGN.md` the standard. The proposal walkthrough is `design/values/index.html`: eleven steps of mocked screens on the real `tokens.css` and `parts.css`. C6 rebuilds it from the real app.
 
@@ -17,28 +17,43 @@ Decided by Tommy (2026-11-11): Be's main page is a list of values; a value's sha
 
 Assumed for the build, each one small to overturn (section 9 asks the ones that matter):
 
-- **A value is one word of his, and so is its shadow.** The app does not say whether the shadow is the opposite ("selfless | selfish") or the value overdone ("thoughtful | obsessive"). Whatever pulls against it. A value may have no shadow yet.
+- **A value is one word of his, and so is its shadow.** The shadow is a value too, and a good one: the one that looks after him where the first one spends him ("selfless | selfish", in the notebook's own gloss "something that gives breathing room"; "honesty | discretion"; "discipline | rest"). It is never the value gone wrong: a word like "obsessive" is not a shadow. A value may have no shadow yet.
+- **Shadow means behind, not beneath.** The list is the identity he is building, so it shows the values he reaches for; the shadow is the quieter one standing behind each, met on a tap. Nothing in the type, the labels or the copy marks it as lesser, feared or to be avoided.
 - **The list is the identity.** Be opens on the values alone, large, in his order, under the notebook's own line "I determine my core." No shadows, no states, nothing to do.
-- **A tap opens the value where it stands.** The word moves left, the seam is drawn, the shadow is written across it: the list row becomes today's dichotomy row. Under it: what living it looks like (the aspect line, shown at last), who fights for it, who pulls for the shadow, what was said for it, and "Call a council".
-- **A champion is a voice on a side.** Any voice can fight for a value; any voice can pull for its shadow. Deep twins are offered first for the shadow (Workaholic for "rigidity" when Architect fights for "discipline"), because the notebook already draws the shadow of a voice that way. Nothing is assigned by the app.
+- **A tap opens the value where it stands.** The word moves left, the seam is drawn, the shadow is written across it: the list row becomes today's dichotomy row. Under it: what living it looks like (the aspect line, shown at last), who fights for it, who fights for its shadow, what was said for it, and "Call a council".
+- **A champion is a voice on a side.** Any voice can fight for a value; any voice can fight for its shadow, in the same words and the same drawing. The deep twins (Workaholic, Addict) are a voice gone dark, which is a different thing from a shadow value, so they get no special place here: they may champion like any voice and are never suggested. Nothing is assigned by the app.
 - **Many to many, by taps.** From a value: "+ champion" opens every voice as a chip, tap to toggle. From a voice: every value as a chip, tap to toggle. In a council: "+ value" on the speaking voice's row. Three doors, one link.
 - **A champion may say why.** Each champion row under a value is drawn as that voice's line (its 3px rule and wash) and holds one optional sentence of his: what fighting for this means to that voice. This is where the goals' intent goes: not a task with a cadence, a stance in a voice.
 - **"For" is a label, not a sentence.** In a council the speaking voice's values sit as small chips above the composer ("for honesty"). A tap arms one for the next line; the line is printed "WARRIOR · FOR HONESTY". The app prints his word in the stationery sans; it never writes the line (rule 16).
 - **A value keeps what was said for it.** Lines spoken for a value show under it, newest first, each a way back to its council. That is the use: the value is not a claim, it is a record of the times a part of him stood up for it.
-- **A council can be called on a value.** It opens with the value's champions seated, and the shadow's across from them, and "About" naming the value.
+- **A council can be called on a value.** It opens with the value's champions seated, and the shadow's beside them, and "About" naming the value.
 - **Goals, leans and checks leave the app, not the phone.** Their tables stay in the database and in every backup; nothing reads them. Nothing is deleted by the upgrade.
 - **No counts.** No "times fought for", no tallies per voice, no ranking of values or champions (rules 15 and 16).
+
+### The word map (the walkthrough's example words)
+
+Only the first two rows are his; the rest are examples for the mocks and are seeded nowhere.
+
+| Value | Shadow | What the shadow looks after |
+|---|---|---|
+| selfless | selfish | breathing room (the notebook's own line) |
+| thoughtful | reactive | moving before the thinking eats the day |
+| honesty | discretion | what is his to keep, and the right moment |
+| discipline | rest | the body that does the work |
+| play | caution | not getting hurt |
+| wonder | certainty | somewhere firm to stand |
+| courage | safety | being here tomorrow |
 
 ## 3. The shape (one line per walkthrough step)
 
 1. **Be is who I am building.** The list: "I determine my core.", then the values, each with its champions' colours as short rules; a value nobody fights for has a dashed one.
-2. **A new value is a word, and what pulls against it.** The value sheet: Value, Shadow, What it looks like; Held or Resting; Delete.
-3. **A tap shows its shadow.** "honesty | cruelty", the looks line, the champions as voiced lines, who pulls for the shadow.
+2. **A new value is a word, and the one that looks after me.** The value sheet: Value, Shadow, What it looks like; Held or Resting; Delete.
+3. **A tap shows its shadow.** "honesty | discretion", the looks line, the champions of each as voiced lines.
 4. **Anyone can take up a value.** The "+ champion" sheet: every voice a chip, pressed when it fights for this.
-5. **Each voice, and what it fights for.** Be's second segment, "Champions": the pantheon with each voice's values under its name, deep twins with the shadows they pull for.
+5. **Each voice, and what it fights for.** Be's second segment, "Champions": the pantheon with each voice's values under its name, the shadows it fights for in italic beside them.
 6. **A council sits around what is at stake.** "Who sits?" with a row of values: a tap on one seats its champions.
 7. **Warrior says what he is fighting for.** The composer with "for honesty" armed; lines above printed "WARRIOR · FOR HONESTY".
-8. **The shadow gets a voice too.** Night: Phantom, doubled rule, "PHANTOM · FOR CRUELTY".
+8. **The shadow gets a voice too.** Night: "MYSTIC · FOR DISCRETION", drawn exactly as Warrior's line for honesty is.
 9. **Hold a line to say what it was for.** The line sheet's new row, "Spoke for…", after the fact.
 10. **The value keeps what was said for it.** The open value again, now with "Said for it" and "Call a council".
 11. **In Still, only the words.**
@@ -50,13 +65,13 @@ Assumed for the build, each one small to overturn (section 9 asks the ones that 
 | Recruiting | A value with no champion shows a dashed rule on the list and a dashed row inside: "who fights for this?" The dashed slot is rule 11's own mark for something owed. | 11 rewritten |
 | Colour | A value's row carries its champions' hues as `.fs-spoke` rules (the council list's mark); a champion's why is a voiced line. The list looks like who showed up. | 3, 9 |
 | The declaration | Arming "for honesty" is one tap, a tick, and the label is drawn onto the line like a pen stroke. | 19 amended, 27 |
-| Sides at the table | A council called on a value seats both sides, so the lesser paradox is argued by the voices that hold each end. | 9 |
+| Sides at the table | A council called on a value seats both sides, so the lesser paradox is talked through by the voices that hold each end, neither one the villain. | 9 |
 | The record | "Said for it" under a value: the lines themselves, dated, no number. | 15 |
-| The shadow, out of sight | Shadows never show on the list, in Still, or through the door: named once, beside its value, then put away. | 13 amended |
+| The shadow, a tap away | The list is what he reaches for; each shadow waits behind its value and is met by opening it. In Still the page is the value words alone. | 13 amended |
 
 Rules touched: 9 (the "for" label beside a speaker), 11 (rewritten: Be is a list of values; the spread retires), 13 (Still: value words only; no shadows, champions, whys or dates), 15 (said-for lines are not a count), 19 (two tick sites: `champion`, a voice taking up or leaving a value; `for`, arming). No new tokens expected. Banned as everywhere: generated words, counts, streak words, bounce.
 
-Why this shape, from the reading done for PLAN-SELF.md (2026-11-10, abstract level): a wanted self holds best when balanced by a feared self in the same domain (Oyserman and Markus 1990), so the shadow sits beside its value and nowhere else; suppression rebounds (Wenzlaff and Wegner 2000), so the shadow is off the daily view; values written in one's own words lower defensiveness (Cohen and Sherman 2014), so every word and every why is his; avoidance goals drag wellbeing down (Elliot, Sheldon and Church 1997), so a shadow has no check and no cadence; more facets is not better (Rafaeli-Mor and Steinberg 2002), so resting stays.
+Why this shape, from the reading done for PLAN-SELF.md (2026-11-10, abstract level): a paradox mindset is accepting a tension, not resolving it (Miron-Spektor 2018), so a value and its shadow are both kept and nothing ranks one over the other; values written in one's own words lower defensiveness (Cohen and Sherman 2014), so every word and every why is his; more facets is not better (Rafaeli-Mor and Steinberg 2002), so resting stays. The findings about feared selves, avoidance goals and suppression that shaped PR #58's "Not me" do not apply: a shadow here is not something refused.
 
 ## 5. Data (schema version 6)
 
@@ -81,8 +96,8 @@ Page.valueIds?: string[];                                       // a council cal
 - **New table `values`** (index `id`), `SCHEMA_VERSION` 6, in `TABLES`, `SPECS` (`valueSpec`, the fixation spec's pattern) and `backup.ts`. A version 5 file imports with none and gets the migration below. The Dexie upgrade writes nothing (it cannot seal).
 - **Champions live on the value row.** One write changes a link, a backup merge is a row merge, and "what does this voice fight for" is a scan of a short list. No join table.
 - **`model/values.ts`**: `held()`, `resting()`, `createValue`, `saveValue` (revisions on a later day, as a line's), `moveValue`, `deleteValue` (two taps; lines keep their words and lose the label), `champion(valueId, voiceId, side)` and `unchampion`, `setWhy`, `fightsFor(voiceId)`, `byVoice()` for the Champions segment, `saidFor(valueId, limit)`, `speakFor(messageId, for | undefined)`, `callCouncil(valueId)`.
-- **`model/council.ts`**: `speak` takes `for`; `newCouncil` takes `valueId` and seats its champions (value side first, then shadow side), skipping archived voices.
-- **One-time pass `valuesFromParadoxesOnce`** (marked `'values'` in `settings.cleaned`; needs the journal open, like `seedFixationsOnce`): each paradox becomes one value, word from pole A, shadow from pole B, looks from pole A's aspect, `held` when it was active and `resting` otherwise, order kept. Pole A's old bracket word and pole B's aspect go into the value's first revision so nothing is lost. A fresh install seeds the same two values and no paradoxes.
+- **`model/council.ts`**: `speak` takes `for`; `newCouncil` takes `valueId` and seats its champions (value side first, then the shadow's), skipping archived voices.
+- **One-time pass `valuesFromParadoxesOnce`** (marked `'values'` in `settings.cleaned`; needs the journal open, like `seedFixationsOnce`): each paradox becomes one value, word from pole A, shadow from pole B, looks from pole A's aspect, `held` when it was active and `resting` otherwise, order kept. Pole A's old bracket word (the pole overdone, which is not a shadow) and pole B's aspect go into the value's first revision so nothing is lost. A fresh install seeds the same two values and no paradoxes.
 - **`paradoxes`, `items`, `leans` stay**: in the schema, sealed as before, exported and imported by backup, read by nothing. `Page.paradoxIds` stays on old rows.
 - **An archived voice** keeps its links and is not drawn; restored, it is a champion again.
 - Routes: `#/be` (values), `#/be/:id` (that value open), `#/be/champions`, matched before `:id`.
@@ -109,15 +124,15 @@ C0 then C1. C2 and C4 side by side on C1. C3 on C2. C5 on C2 and C4. C6 last. Af
 
 ## 8. PR #58 (be-self)
 
-Recommended: do not merge it. Its screen (the creed over paradoxes, Not me under a spread, the goal sheet's Delete) is replaced here. C0 carries its database work across, which this plan needs for delete. Its ideas land as follows: the creed is the list itself; Not me is the shadow; edit in place is the value sheet; five held is question 3. Its research table is quoted in section 4.
+Recommended: do not merge it. Its screen (the creed over paradoxes, Not me under a spread, the goal sheet's Delete) is replaced here. C0 carries its database work across, which this plan needs for delete. Its ideas land as follows: the creed is the list itself; Not me is dropped (Be now holds nothing refused, and a shadow is not a refusal); edit in place is the value sheet; five held is question 3. Its research table is quoted in section 4.
 
 ## 9. Open, for Tommy
 
-1. **What a paradox becomes.** Planned: one value, pole A with pole B as its shadow ("selfless | selfish", "thoughtful | reactive", with "obsessive" kept as a struck revision). The other reading: both poles become values, each the other's shadow. Or start Be empty and write the values fresh.
+1. **What a paradox becomes.** Planned: one value, pole A with pole B as its shadow ("selfless | selfish", "thoughtful | reactive", with "obsessive" kept only as a struck revision, since it is the pole overdone and not a shadow). The other reading: both poles become values, each the other's shadow. Or start Be empty and write the values fresh.
 2. **Goals.** Planned: gone from the app, kept in the database and backups. Say so if the cadenced ones (the daily and weekly checks) should live on somewhere.
 3. **A cap on held values.** Planned: none; Resting is the way to put one down. #58 held five.
 4. **The why line.** Planned: optional, one sentence per champion. Drop it and a champion is only a name.
-5. **Shadow champions.** Planned: any voice may pull for a shadow, deep twins offered first. Simpler: only values have champions.
+5. **Shadow champions.** Planned: any voice may fight for a shadow, the same as for a value. Simpler: only values have champions.
 6. **Arming "for".** Planned: always a deliberate tap, even for a voice with one value.
 7. **PR #58.** Planned: closed after C0.
 
