@@ -3,6 +3,7 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
+// A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
 import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
@@ -39,6 +40,19 @@ const pk = (t: TableName, row: Record<string, unknown>) => {
   if (t === 'albums') return String(row.albumUri);
   if (t === 'shelves') return row.playlistId === undefined || row.albumUri === undefined ? 'undefined' : `${row.playlistId} ${row.albumUri}`;
   return String(row.id);
+};
+
+/**
+ * How a row points at another, for the deleted list (PLAN-VALUES.md C0, from PLAN-SELF.md section 4). owner: the row
+ * belongs to the one named, and goes with it (a paradox's goals and leans). link: a single id, dropped from the row.
+ * links: a list of ids, the deleted ones filtered out. All are clear fields of the stored form. A table that adds a
+ * link to another row (C1's values and champions) adds its fields here; a row whose own key is deleted never comes
+ * back whatever its table.
+ */
+export const LINKS: { [K in TableName]?: { owner?: string[]; link?: string[]; links?: string[] } } = {
+  items: { owner: ['paradoxId'], link: ['pairId', 'nextTo'] },
+  leans: { owner: ['paradoxId'] },
+  pages: { links: ['paradoxIds'] },
 };
 
 /** Album covers are bytes (a Blob in rows from before V9); the file carries them as base64 with their type. */
@@ -138,7 +152,10 @@ export type ImportResult = { added: number; updated: number; kept: number };
 /**
  * replace: the database becomes the file.
  * merge: keyed on id; a row in the file wins only when it is newer (stamp). Settings stay this phone's,
- * except where this phone has none.
+ * except where this phone has none. A row whose key is on this phone's deleted list (settings.deleted) is never
+ * brought back, nor a row it owns, and links in the file to a deleted one are dropped (LINKS). The file's own list is
+ * not merged: merge never deletes this phone's rows, so the list only guards against older files. Replace takes the
+ * file's list with the rest of its settings row, and a file with no settings row clears it: the file's rows come back.
  */
 export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
   // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
@@ -149,7 +166,9 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     if (!(await checkVerifier(fileKey, fl.verifier))) throw new BackupError('Not that one');
   }
   // This phone's lock stays this phone's: a file's lock settings never replace the ones its rows are sealed with now.
-  const myLock = (await database.settings.get('app'))?.lock;
+  const mine = await database.settings.get('app');
+  const myLock = mine?.lock;
+  const gone = new Set(mode === 'merge' ? mine?.deleted ?? [] : []);
   const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
   for (const t of TABLES) {
     const rows: Record<string, unknown>[] = [];
@@ -171,7 +190,8 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       const tb = database.table(t);
       if (mode === 'replace') {
         // A file without a settings row keeps this phone's, so the seed never runs again over imported pages.
-        if (t === 'settings' && !incoming[t].length) { result.kept++; continue; }
+        // Its deleted list goes all the same: the database becomes the file, and the file's rows come back.
+        if (t === 'settings' && !incoming[t].length) { result.kept++; await tb.update('app', { deleted: undefined }); continue; }
         await tb.clear();
         await tb.bulkAdd(incoming[t]);
         result.added += incoming[t].length;
@@ -179,7 +199,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       }
       const existing = new Map((await tb.toArray()).map(r => [pk(t, r), r as Record<string, unknown>]));
       const write: Record<string, unknown>[] = [];
-      for (const row of incoming[t]) {
+      for (const row of gone.size ? revived(t, incoming[t], gone) : incoming[t]) {
         const mine = existing.get(pk(t, row));
         if (!mine) { write.push(row); result.added++; }
         else if (t !== 'settings' && stamp(row) > stamp(mine)) { write.push(row); result.updated++; }
@@ -189,6 +209,21 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     }
   });
   return result;
+}
+
+/** The file's rows less what this phone deleted (merge only): a deleted row, the rows it owns, and the links to it. */
+function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
+  const out = (id: unknown) => typeof id === 'string' && gone.has(id);
+  const { owner = [], link = [], links = [] } = LINKS[t] ?? {};
+  return rows.filter(r => !out(pk(t, r)) && !owner.some(f => out(r[f]))).map(r => {
+    const single = link.filter(f => out(r[f]));
+    const lists = links.filter(f => Array.isArray(r[f]) && (r[f] as unknown[]).some(out));
+    if (!single.length && !lists.length) return r;
+    const next = { ...r };
+    for (const f of single) delete next[f];
+    for (const f of lists) next[f] = (r[f] as unknown[]).filter(x => !out(x));
+    return next;
+  });
 }
 
 /** Hands the file to the share sheet (Files, iCloud Drive, AirDrop); falls back to a download. */

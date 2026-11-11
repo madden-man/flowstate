@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
 import { type FlowDB, SCHEMA_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
-import { ensureSeeded, seedFixationsOnce } from '../../src/db/seed';
-import { store, setKey, lock, unlock, init, keyState, LockedError } from '../../src/db/fields';
+import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
+import { store, setKey, lock, unlock, init, keyState, LockedError, tombstone } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
 let db: FlowDB;
@@ -208,6 +208,96 @@ describe('merge', () => {
     expect(stamp({ revisions: [{ at: 3 }, { at: 8 }] })).toBe(8);
     expect(stamp({ createdAt: 2 })).toBe(2);
     expect(stamp({})).toBe(0);
+  });
+});
+
+describe('deleted stays deleted (PLAN-VALUES.md C0, from PLAN-SELF.md section 4)', () => {
+  const pole = (value: string) => ({ value, aspect: '' });
+  const paradox = (id: string, createdAt: number) => ({ id, poleA: pole('a'), poleB: pole('b'), status: 'active' as const, createdAt, updatedAt: createdAt, revisions: [] });
+  // the delete as a later package writes it: rows gone and ids tombstoned in one store.tx
+  const forget = (ids: string[]) => store.tx(['paradoxes', 'items', 'leans', 'pages', 'fixations', 'settings'], async tb => {
+    for (const id of ids) {
+      await tb('paradoxes').delete(id);
+      await tb('items').delete(id);
+      await tb('items').where('paradoxId').equals(id).delete();
+      await tb('leans').where('paradoxId').equals(id).delete();
+      await tb('fixations').delete(id);
+    }
+    await tombstone(tb, ids);
+  });
+  async function journal() {
+    await db.settings.put(defaultSettings(1));
+    await store.bulkPut('paradoxes', [paradox('p', 1), paradox('q', 2)]);
+    const goal = (id: string, paradoxId: string, pole: 'a' | 'b', pairId?: string) =>
+      ({ id, paradoxId, pole, text: id, lean: 0.5, cadence: 'daily' as const, doneLog: [], order: 0, ...(pairId ? { pairId, nextTo: pairId } : {}) });
+    await store.bulkPut('items', [goal('x', 'q', 'a', 'y'), goal('y', 'q', 'b', 'x'), goal('z', 'p', 'a')]);
+    await store.put('leans', { id: 'l1', paradoxId: 'p', at: 3, lean: 0.2, note: 'a lean' });
+    await store.put('pages', { id: 'pg', kind: 'entry', createdAt: 4, updatedAt: 4, state: 'open', tags: [], paradoxIds: ['p', 'q'], linkedPageIds: [] });
+    await store.put('fixations', { id: 'fx', name: 'FlowState', hue: 250, createdAt: 1, stints: [], updatedAt: 1 });
+    return roundTrip(db);
+  }
+
+  it('a merge of a file taken before the delete brings back no tombstoned row, nothing it owns, and no link to it', async () => {
+    const file = await journal();
+    // the file was edited after (another phone): a newer page still linking p, and a goal new here paired with x
+    const t = file.tables as unknown as Record<string, Record<string, unknown>[]>;
+    t.pages = t.pages.map(pg => ({ ...pg, updatedAt: 9 }));
+    t.items.push({ ...t.items.find(i => i.id === 'y')!, id: 'w', pairId: 'x', nextTo: 'x' });
+    await forget(['p', 'x', 'fx']);
+    expect((await db.settings.get('app'))!.deleted).toEqual(['p', 'x', 'fx']);
+    await importData(file, 'merge', db);
+    expect(await db.paradoxes.get('p')).toBeUndefined();
+    expect(await db.items.get('z')).toBeUndefined(); // owned by p
+    expect(await db.leans.get('l1')).toBeUndefined(); // owned by p
+    expect(await db.items.get('x')).toBeUndefined();
+    expect(await db.fixations.get('fx')).toBeUndefined(); // any table's row id works
+    expect((await db.pages.get('pg'))!.paradoxIds).toEqual(['q']);
+    expect((await db.pages.get('pg'))!.updatedAt).toBe(9); // the newer page won, less its link to p
+    const w = (await store.get('items', 'w'))!;
+    expect(w.paradoxId).toBe('q');
+    expect(w.pairId).toBeUndefined();
+    expect(w.nextTo).toBeUndefined();
+    expect(await db.paradoxes.get('q')).toBeDefined();
+  });
+
+  it('a merge keeps this phone\'s list, not the file\'s', async () => {
+    await journal();
+    await forget(['fx']);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    // the other phone still has fx (the file's list names it) and deleted q (the file holds it)
+    await other.settings.put({ ...defaultSettings(1), deleted: ['q'] });
+    await other.fixations.put({ id: 'fx', name: 'FlowState', hue: 250, createdAt: 1, stints: [], updatedAt: 1 });
+    await importData(file, 'merge', other);
+    expect((await other.settings.get('app'))!.deleted).toEqual(['q']);
+    expect(await other.fixations.get('fx')).toBeDefined();
+    expect(await other.paradoxes.get('q')).toBeUndefined();
+  });
+
+  it('a replace import takes the file\'s list and restores what the file holds', async () => {
+    const before = await journal();
+    await forget(['fx']);
+    const after = await roundTrip(db); // its list holds fx
+    await forget(['p']);
+    await importData(after, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toEqual(['fx']);
+    expect(await db.paradoxes.get('p')).toBeDefined();
+    // the file's list now guards a merge: an older file brings p back (p is not on it) but never fx
+    await importData(before, 'merge', db);
+    expect(await db.paradoxes.get('p')).toBeDefined();
+    expect(await db.fixations.get('fx')).toBeUndefined();
+    // a replace from a file whose list is empty clears it, and the file's rows come back
+    await importData(before, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.fixations.get('fx')).toBeDefined();
+  });
+
+  it('a replace from a file with no settings row clears the list as well', async () => {
+    const file = await journal();
+    await forget(['p']);
+    await importData({ ...file, tables: { ...file.tables, settings: [] } }, 'replace', db);
+    expect((await db.settings.get('app'))!.deleted).toBeUndefined();
+    expect(await db.paradoxes.get('p')).toBeDefined();
   });
 });
 
