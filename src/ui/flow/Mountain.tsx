@@ -5,6 +5,10 @@
 // the seven signs with their names (each a link to its page, #/flow/c/<chakra>, R3) and the sea's circles (Meditate,
 // Energize). Under the plate, on the page's rules, Flow keeps Right now and + flow.
 //
+// The land SVG never changes after the arrival, so it is its own layer and is painted once; what the water changes in
+// the SVG (each stretch's channel width, the dark coming down below a closed gate) is a second, small SVG over it, so a
+// gate dragged repaints only that.
+//
 // The water is the meter d and the seven gates, read from the newest readings (model/mountain.ts latestReadings).
 // R2 drives them live by setting waterLive (below) while a finger is down, and clears it once the reading is written;
 // the plate eases to whatever it is given. data-d and data-gates on the plate say what it is drawing, for tests.
@@ -35,13 +39,16 @@ export const waterLive = signal<{ d: number; gates: number[] } | null>(null);
 export const capLive = signal<Partial<CapWeather> | null>(null);
 
 /** The sea's circles, in order (PLAN-MOUNTAIN.md section 8: kept here until there is a third). */
-export const SEA_CIRCLES: readonly { name: string; href: string; travel: string; arc?: boolean }[] = [
+export const SEA_CIRCLES: readonly { name: string; href: string; travel: string; arc?: boolean; flow?: string }[] = [
   { name: 'Meditate', href: '#/flow/meditate', travel: 'md-circle' },
-  { name: 'Energize', href: `#/flow/${FIXATION_FLOW}`, travel: 'fs-drawing', arc: true },
+  { name: 'Energize', href: `#/flow/${FIXATION_FLOW}`, travel: 'fs-drawing', arc: true, flow: FIXATION_FLOW },
 ];
 
 /** The view-transition name a sign travels under (R3's large sign takes the same). */
 export const signTravel = (id: ChakraId) => `mt-sign-${id}`;
+
+/** How long the arrival must have played before leaving the tab counts as having seen it. */
+const SEEN_AFTER_MS = 1000;
 
 let LAND: Land | null = null;
 const theLand = () => (LAND ??= land());
@@ -59,10 +66,12 @@ type Props = {
   live?: ReadonlySet<ChakraId>;
   /** The cap's weather (R2). */
   cap?: Partial<CapWeather> | null;
+  /** The sea's flows with an episode open (Energize's ride): the dot and its halo on their circle. */
+  liveFlows?: ReadonlySet<string>;
 };
 
 /** The plate itself, given the water. */
-export function MountainPlate({ d, gates, live, cap }: Props) {
+export function MountainPlate({ d, gates, live, cap, liveFlows }: Props) {
   const host = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const plate = useRef<Plate | null>(null);
@@ -106,7 +115,13 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
         plate: p,
       };
     }
-    return () => { el.removeEventListener('pointerdown', cut, true); p.stop(); plate.current = null; if (w.__mountain) delete w.__mountain; };
+    return () => {
+      el.removeEventListener('pointerdown', cut, true);
+      // left mid-arrival (the tab bar is outside the plate, so no touch cut it): once it has played a while it has been
+      // seen, once per unlock. A remount in its first moments (the page's data landing) is not a leaving.
+      if (p.arriving && p.arrivingFor > SEEN_AFTER_MS) markArrived();
+      p.stop(); plate.current = null; if (w.__mountain) delete w.__mountain;
+    };
   }, []);
 
   useEffect(() => { plate.current?.setWater(unit(d), gates.map(unit)); }, [d, gateKey]);
@@ -121,22 +136,20 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
       data-arrive={arrived() ? 'done' : 'run'}>
       <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
         <defs>
-          <linearGradient id="mt-shade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={H}>
-            {shadeStops.map((y, i) => <stop key={i} class="mt-shade-stop" offset={(y / H).toFixed(4)} stop-opacity="0" />)}
-          </linearGradient>
           <linearGradient id="mt-sea" gradientUnits="userSpaceOnUse" x1="0" y1="396" x2="0" y2={H}>
             <stop offset="0" class="mt-sea-top" />
             <stop offset="1" class="mt-sea-foot" />
+          </linearGradient>
+          <linearGradient id="mt-skyg" gradientUnits="userSpaceOnUse" x1="0" y1="-120" x2="0" y2="300">
+            <stop offset="0" class="mt-sky-top" />
+            <stop offset="1" class="mt-sky-foot" />
           </linearGradient>
           <radialGradient id="mt-vignette" cx="50%" cy="40%" r="75%">
             <stop offset=".55" class="mt-vig-in" />
             <stop offset="1" class="mt-vig-out" />
           </radialGradient>
-          <clipPath id="mt-horn">
-            {L.marks.filter(m => m.kind === 'fill' && (m.cls === 'face' || m.cls === 'horn')).map((m, i) => <path key={i} d={m.d} />)}
-          </clipPath>
         </defs>
-        <rect class="mt-sky" x="-40" y="-200" width={W + 80} height={H + 200} />
+        <rect class="mt-sky" x="-40" y="-200" width={W + 80} height={H + 200} fill="url(#mt-skyg)" />
         <g class="mt-stars">
           {L.stars.map((s, i) => <circle key={i} class="mt-star" cx={f1(s.x)} cy={f1(s.y)} r={s.r.toFixed(2)} style={{ '--at': s.at.toFixed(3) }} />)}
         </g>
@@ -151,13 +164,23 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
               </g>
             )
             : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
-          : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len }} />))}
-        {/* below a closed gate the mountain goes darker, stop by stop */}
+          : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len, '--w': m.w.toFixed(2) }} />))}
+        <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
+      </svg>
+      <svg class="mt-live" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="mt-shade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={H}>
+            {shadeStops.map((y, i) => <stop key={i} class="mt-shade-stop" offset={(y / H).toFixed(4)} stop-opacity="0" />)}
+          </linearGradient>
+          <clipPath id="mt-horn">
+            {L.marks.filter(m => m.kind === 'fill' && (m.cls === 'face' || m.cls === 'horn')).map((m, i) => <path key={i} d={m.d} />)}
+          </clipPath>
+        </defs>
+        {/* below a closed gate the mountain goes dark, stop by stop */}
         <rect class="mt-dark" x="0" y="0" width={W} height={H} clip-path="url(#mt-horn)" fill="url(#mt-shade)" />
         <g class="mt-chans">
           {CHANNELS.map((c, i) => <path key={i} class="mt-chan" d={c} pathLength={1} />)}
         </g>
-        <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
       </svg>
       <canvas ref={canvas} class="mt-light" aria-hidden="true" />
       <div class="mt-over">
@@ -176,11 +199,13 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
           );
         })}
         {SEA_CIRCLES.map((c, i) => (
-          <a key={c.name} class="mt-circle" href={c.href} style={{ '--x': slots[i], '--y': SEA_Y }}>
+          <a key={c.name} class="mt-circle" href={c.href} style={{ '--x': slots[i], '--y': SEA_Y }}
+            data-live={c.flow && liveFlows?.has(c.flow) ? 'true' : undefined}>
             <svg class="mt-ring" data-travel={c.travel} viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
               <circle r={CIRCLE_R} />
               {c.arc && <path d="M-10 5 C-5 4 -4 -7 0 -7 C4 -7 5 4 10 5" />}
             </svg>
+            {c.flow && liveFlows?.has(c.flow) && <i class="mt-dot" aria-hidden="true"><i class="mt-halo" /></i>}
             <span class="mt-name">{c.name}</span>
           </a>
         ))}
@@ -194,6 +219,7 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
 export function Mountain() {
   const [read, setRead] = useState<{ d: number; gates: number[] }>({ d: 0, gates: [0, 0, 0, 0, 0, 0, 0] });
   const [live, setLive] = useState<Set<ChakraId>>(new Set());
+  const [liveFlows, setLiveFlows] = useState<Set<string>>(new Set());
   useEffect(() => {
     let on = true;
     latestReadings().then(r => {
@@ -203,9 +229,11 @@ export function Mountain() {
     flowStates().then(rows => {
       if (!on) return;
       setLive(new Set(rows.filter(r => r.live && r.flow.chakra).map(r => r.flow.chakra!)));
+      // a ride open on a flow of the sea's (Energize): its circle carries the dot
+      setLiveFlows(new Set(rows.filter(r => r.live && SEA_CIRCLES.some(c => c.flow === r.flow.id)).map(r => r.flow.id)));
     }).catch(() => undefined);
     return () => { on = false; };
   }, [dataVersion.value]);
   const w = waterLive.value ?? read;
-  return <MountainPlate d={w.d} gates={w.gates} live={live} cap={capLive.value} />;
+  return <MountainPlate d={w.d} gates={w.gates} live={live} cap={capLive.value} liveFlows={liveFlows} />;
 }

@@ -1,6 +1,7 @@
 // Places with weather of their own (PLAN-MOUNTAIN.md pass 6, R1): each is the stream's own light doing something where
 // it is, and each is as strong as the water that reaches it, so none is decoration that stands for nothing.
-//   the summit       spindrift torn off the snow, downwind
+//   the summit       spindrift: fine snow torn off the cornice, blowing out downwind in a drifting plume, as much
+//                    as the snow is letting go
 //   the Throat       spray where the narrows fall
 //   the Heart        the tarn holding the lantern's still reflection
 //   the Solar plexus embers on the shadow flank, rising
@@ -52,10 +53,13 @@ export class Weather {
   private flies: { x: number; y: number; ph: number; per: number; ax: number; ay: number }[] = [];
   private rings: { age: number }[] = [];
   private ringDue = 0;
+  private pal: Palette | null = null;
+  private st!: { glow: string; line: string; tarn: string; ember: string; pool: string; fly: string; spray: string[] };
+  private cloud: HTMLCanvasElement | null = null;
 
   constructor(snowline: number) {
     this.cap = { snowline, flakes: 0, cloud: 0 };
-    this.spindrift = new Drift(28, (m, r) => { m.x = 162 + r() * 8; m.y = 42 + r() * 10; m.vx = 14 + r() * 26; m.vy = -5 + r() * 6; m.life = 1.6 + r() * 2; }, this.r);
+    this.spindrift = new Drift(90, (m, r) => { m.x = 166 + r() * 20; m.y = 43 + r() * 12; m.vx = 10 + r() * 22; m.vy = -6 + r() * 7; m.life = 2 + r() * 2.6; }, this.r);
     this.spray = new Drift(30, (m, r) => { m.x = 172 + r() * 16; m.y = 175 + r() * 4; m.vx = (r() - 0.5) * 22; m.vy = -10 - r() * 16; m.life = 0.6 + r() * 0.8; }, this.r);
     this.embers = new Drift(18, (m, r) => { m.x = 206 + r() * 30; m.y = 270 + r() * 26; m.vx = (r() - 0.5) * 3; m.vy = -4 - r() * 7; m.life = 2.2 + r() * 2.6; }, this.r);
     this.sparks = new Drift(26, (m, r) => {
@@ -78,7 +82,9 @@ export class Weather {
   step(dt: number, q: ArrayLike<number>, k: number) {
     this.t += dt;
     const go = k > 0 ? dt : 0;
-    this.spindrift.step(go, 9 * (0.3 + 0.7 * q[0]), 0, 4);
+    this.spindrift.step(go, 26 * (0.3 + 0.7 * q[0]), -1.5, 7);
+    // the gusts turn the plume over itself as it goes
+    for (const p of this.spindrift.ps) if (p.age < p.life) { p.vy += Math.sin(p.age * 2.6 + p.seed * 31) * 9 * go; p.vx += Math.cos(p.age * 1.9 + p.seed * 17) * 4 * go; }
     this.spray.step(go, 26 * q[3] * q[3], 34);
     this.embers.step(go, 3.2 * q[5]);
     this.sparks.step(go, 16 * q[7]);
@@ -92,93 +98,113 @@ export class Weather {
 
   /** Paints every place. q and b as in step; gates closed dim their own place. reveal: 0 to 1 along the course while
    *  the arrival's head is still coming (a place shows once the head has passed it). */
+  /** The colours each place draws in, made once a palette (no string a particle a frame). */
+  private styles(pal: Palette) {
+    if (this.pal === pal) return this.st;
+    this.pal = pal;
+    const glow = pal.glow, hue = pal.hues, c = (x: RGB) => rgb(x);
+    this.st = {
+      glow: c(glow), line: c(pal.line), tarn: c(mix(hue[3], glow, 0.25)), ember: c(mix(hue[4], glow, 0.15)),
+      pool: c(mix(hue[5], glow, 0.3)), fly: c(mix(hue[6], glow, 0.6)),
+      spray: [0, 0.25, 0.5, 0.75, 1].map(t => c(mix(hue[2], glow, 0.55 + 0.45 * t))),
+    };
+    // the cloud: one soft bank, drawn once
+    const s = document.createElement('canvas');
+    s.width = s.height = 64;
+    const sg = s.getContext('2d')!, grd = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grd.addColorStop(0, rgb(pal.line, 1)); grd.addColorStop(1, rgb(pal.line, 0));
+    sg.fillStyle = grd; sg.fillRect(0, 0, 64, 64);
+    this.cloud = s;
+    return this.st;
+  }
+
   draw(g: CanvasRenderingContext2D, pal: Palette, q: ArrayLike<number>, b: ArrayLike<number>, reveal: (y: number) => number) {
-    const glow = pal.glow, hue = pal.hues;
+    const st = this.styles(pal);
     const life = (p: Mote) => { const f = p.age / p.life; return f >= 1 ? 0 : Math.sin(Math.PI * f); };
 
-    // spindrift: thin dashes of snow-light, downwind
-    g.lineCap = 'round';
-    g.lineWidth = 0.7;
+    // spindrift: fine snow-light blowing off the cornice, drifting and turning, thinning as it goes
+    g.fillStyle = st.glow;
     for (const p of this.spindrift.ps) {
-      const a = life(p) * 0.4 * (0.3 + 0.7 * q[0]) * reveal(p.y);
+      const a = life(p) * 0.5 * (0.3 + 0.7 * q[0]) * reveal(p.y) * (1 - p.age / p.life);
       if (a < 0.01) continue;
-      g.strokeStyle = rgb(glow, a);
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.12, p.y - p.vy * 0.12); g.stroke();
+      const z = 0.35 + p.seed * 0.55;
+      g.globalAlpha = a;
+      g.fillRect(p.x - z / 2, p.y - z / 2, z, z);
     }
     // the cap's flakes (R2)
+    g.fillStyle = st.line;
     for (const p of this.flakes.ps) {
       const a = life(p) * 0.5 * this.cap.flakes;
       if (a < 0.01 || p.y > this.cap.snowline + 8) continue;
-      g.fillStyle = rgb(pal.line, a);
+      g.globalAlpha = a;
       g.fillRect(p.x + Math.sin(this.t + p.seed * 9) * 2, p.y, 0.9, 0.9);
     }
     // spray at the throat's fall, tinted by the throat's lantern
-    const sprayC = mix(hue[2], glow, 0.55 + 0.45 * b[2]);
+    g.fillStyle = st.spray[Math.min(4, Math.round(b[2] * 4))];
     for (const p of this.spray.ps) {
       const a = life(p) * 0.55 * q[3] * reveal(p.y);
       if (a < 0.01) continue;
-      g.fillStyle = rgb(sprayC, a);
+      g.globalAlpha = a;
       g.beginPath(); g.arc(p.x, p.y, 0.5 + p.seed * 0.7, 0, TAU); g.fill();
     }
     // the heart's tarn: the lantern's reflection, held still, barely breathing
     const hl = (1 - b[3]) * q[3] * reveal(233);
     if (hl > 0.01) {
+      g.strokeStyle = st.tarn; g.lineWidth = 0.8;
       for (let k = 0; k < 6; k++) {
         const y = 230.5 + k * 1.5, w = 11 - k * 1.4 + Math.sin(this.t * 0.6 + k * 1.7) * 1.2;
-        g.strokeStyle = rgb(mix(hue[3], glow, 0.25), hl * (0.5 - k * 0.07));
-        g.lineWidth = 0.8;
+        g.globalAlpha = hl * (0.5 - k * 0.07);
         g.beginPath(); g.moveTo(113 - w, y); g.lineTo(113 + w, y); g.stroke();
       }
     }
     // embers on the solar plexus's shadow flank: a fire kept, rising and going out
-    const emberC = mix(hue[4], glow, 0.15);
+    g.fillStyle = st.ember;
     for (const p of this.embers.ps) {
       const flick = 0.6 + 0.4 * Math.sin(this.t * 9 + p.seed * 40);
       const a = life(p) * 0.75 * flick * q[5] * (1 - 0.7 * b[4]) * reveal(p.y);
       if (a < 0.01) continue;
-      g.fillStyle = rgb(emberC, a);
+      g.globalAlpha = a;
       g.beginPath(); g.arc(p.x + Math.sin(p.age * 2 + p.seed * 7) * 1.5, p.y, 0.55 + p.seed * 0.5, 0, TAU); g.fill();
     }
     // slow rings on the sacral's pool
     const pl = q[6] * (1 - 0.6 * b[5]) * reveal(327);
+    g.strokeStyle = st.pool; g.lineWidth = 0.7;
     for (const r of this.rings) {
       const f = r.age / 6, rx = 2 + 13 * f, a = (1 - f) * 0.5 * pl;
       if (a < 0.01) continue;
-      g.strokeStyle = rgb(mix(hue[5], glow, 0.3), a);
-      g.lineWidth = 0.7;
+      g.globalAlpha = a;
       g.beginPath(); g.ellipse(148, 327, rx, rx * 0.3, 0, 0, TAU); g.stroke();
     }
     // fireflies of the stream's light in the root's firs
     const ff = q[7] * (1 - 0.5 * b[6]);
+    g.fillStyle = st.fly;
     for (const f of this.flies) {
       const ph = (this.t / f.per + f.ph) % 1, on = ph < 0.35 ? Math.sin((ph / 0.35) * Math.PI) : 0;
       const a = on * 0.9 * ff * reveal(f.y);
       if (a < 0.01) continue;
       const x = f.x + Math.sin(this.t * 0.4 + f.ph) * f.ax, y = f.y + Math.cos(this.t * 0.3 + f.ph * 2) * f.ay;
-      const c = mix(hue[6], glow, 0.6);
-      g.fillStyle = rgb(c, a * 0.25);
+      g.globalAlpha = a * 0.25;
       g.beginPath(); g.arc(x, y, 3, 0, TAU); g.fill();
-      g.fillStyle = rgb(c, a);
+      g.globalAlpha = a;
       g.beginPath(); g.arc(x, y, 0.8, 0, TAU); g.fill();
     }
     // phosphorescence where the river fans into the sea
+    g.fillStyle = st.glow;
     for (const p of this.sparks.ps) {
       const a = life(p) * 0.8 * q[7] * reveal(p.y);
       if (a < 0.01) continue;
-      g.fillStyle = rgb(glow, a);
+      g.globalAlpha = a;
       g.fillRect(p.x - 0.6, p.y - 0.25, 1.2 + p.seed * 1.4, 0.5);
     }
     // the cloud coming down over the summit (R2): soft banks of the line colour, nothing that glows
-    if (this.cap.cloud > 0.01) {
+    if (this.cap.cloud > 0.01 && this.cloud) {
+      g.globalAlpha = 0.1 * this.cap.cloud;
       for (let k = 0; k < 5; k++) {
         const x = 120 + k * 22 + Math.sin(this.t * 0.05 + k) * 6, y = 50 + (k % 2) * 16 + this.cap.cloud * 30;
-        const grd = g.createRadialGradient(x, y, 0, x, y, 34);
-        grd.addColorStop(0, rgb(pal.line, 0.1 * this.cap.cloud));
-        grd.addColorStop(1, rgb(pal.line, 0));
-        g.fillStyle = grd;
-        g.fillRect(x - 34, y - 34, 68, 68);
+        g.drawImage(this.cloud, x - 34, y - 34, 68, 68);
       }
     }
+    g.globalAlpha = 1;
   }
 }
 

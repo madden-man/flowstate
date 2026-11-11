@@ -45,6 +45,91 @@ test('mountain: seven named signs down the plate, each a link that is a thumb wi
   for (const c of await circles.all()) expect((await c.boundingBox())!.width).toBeGreaterThanOrEqual(44);
   // no number on the plate (rule 15)
   expect(/\d/.test(await plate.innerText())).toBe(false);
+  // no two things a finger finds overlap
+  const boxes = await plate.locator('a.mt-stop, a.mt-circle').evaluateAll(as => as.map(a => { const r = a.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }));
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const [a, b] = [boxes[i], boxes[j]];
+    const overlap = Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
+    expect(overlap, `links ${i} and ${j} overlap`).toBe(false);
+  }
+});
+
+// the seeded flows and the sign each sits under (db/schema.ts SEED_CHAKRAS)
+const SEEDED: Record<string, string> = {
+  night: 'crown', replay: 'third-eye', fight: 'throat', depress: 'heart', shame: 'solar-plexus', shutdown: 'sacral', panic: 'root', whatif: 'root',
+};
+
+test('mountain: every seeded flow, Meditate, Energize and a flow of his own are reachable from the Flow tab', async ({ page }) => {
+  await open(page);
+  const plate = page.locator('.mt-plate');
+  // each seeded flow is under its sign, and the sign links to its page (R3's #/flow/c/<chakra>)
+  for (const [id, chakra] of Object.entries(SEEDED)) {
+    await expect(plate.locator(`a.mt-stop[data-chakra="${chakra}"]`)).toHaveAttribute('href', `#/flow/c/${chakra}`);
+    // and the flow's own page still opens from its old route (the door, Right now and hand-offs use it)
+    await page.evaluate(h => { location.hash = h; }, `#/flow/${id}`);
+    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle'), id).toBeVisible();
+    await page.evaluate(() => { location.hash = '#/flow'; });
+    await expect(plate).toBeVisible();
+  }
+  await expect(plate.locator('a.mt-circle', { hasText: 'Meditate' })).toHaveAttribute('href', '#/flow/meditate');
+  await expect(plate.locator('a.mt-circle', { hasText: 'Energize' })).toHaveAttribute('href', '#/flow/energize');
+  // a flow he makes himself has no sign yet: its row is under the plate, and it opens
+  await page.getByRole('button', { name: '+ flow' }).click();
+  const sheet = page.locator('.fs-sheet[data-sheet="New flow"]');
+  await sheet.getByLabel('Name').fill('Grief');
+  await sheet.locator('.fl-shape[data-diagram="valley"]').click();
+  await sheet.getByRole('button', { name: 'Make' }).click();
+  await expect(page).toHaveURL(/#\/flow\/[0-9a-f-]{36}$/);
+  const hash = new URL(page.url()).hash;
+  await page.evaluate(() => { location.hash = '#/flow'; });
+  const row = page.locator(`a.fl-flow[href="${hash}"]`);
+  await expect(row).toHaveText(/Grief/);
+  await row.click();
+  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
+});
+
+test('mountain: a turn into Meditate names its circle on both sides, one each, and nothing after', async ({ page }) => {
+  // what carries the travel name when the turn starts (the plate's side) and when it is ready (the page's side)
+  await page.addInitScript(() => {
+    const w = window as unknown as { pairs: { at: string; names: string[] }[] };
+    w.pairs = [];
+    const start = Document.prototype.startViewTransition;
+    if (!start) return;
+    const named = (at: string) => w.pairs.push({ at, names: [...document.querySelectorAll<HTMLElement>('*')].filter(el => el.style?.getPropertyValue('view-transition-name')).map(el => `${el.style.getPropertyValue('view-transition-name')}${el.closest('.mt-plate') ? '@plate' : '@page'}`) });
+    Document.prototype.startViewTransition = function (this: Document, cb: unknown) {
+      named('start');
+      const t = start.call(this, cb as () => void);
+      t.ready.then(() => named('ready'), () => undefined);
+      return t;
+    } as typeof start;
+  });
+  await open(page);
+  const plate = page.locator('.mt-plate');
+  await plate.click({ position: { x: 20, y: 20 } });
+  await expect(plate).toHaveAttribute('data-arrive', 'done');
+  const supported = await page.evaluate(() => typeof document.startViewTransition === 'function');
+  test.skip(!supported, 'no view transitions in this browser');
+  await page.locator('a.mt-circle', { hasText: 'Meditate' }).click();
+  await expect(page.locator('.md-page')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { pairs: { at: string }[] }).pairs.some(p => p.at === 'ready'))).toBe(true);
+  const pairs = await page.evaluate(() => (window as unknown as { pairs: { at: string; names: string[] }[] }).pairs);
+  expect(pairs.find(p => p.at === 'start')!.names).toEqual(['md-circle@plate']);
+  expect(pairs.find(p => p.at === 'ready')!.names).toEqual(['md-circle@page']);
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('*')].filter(el => el.style?.getPropertyValue('view-transition-name')).length)).toBe(0);
+});
+
+test('mountain: leaving through the tab bar mid-arrival counts as seen, so it does not play again', async ({ page }) => {
+  await open(page);
+  const plate = page.locator('.mt-plate');
+  await expect(plate).toHaveAttribute('data-arrive', 'run');
+  // once the first water has been let go (a sign has kindled), he has seen it come together
+  await expect(plate.locator('a.mt-stop[data-lit]').first()).toBeAttached({ timeout: 6000 });
+  await expect(plate).toHaveAttribute('data-arrive', 'run');
+  // the tab bar is outside the plate, so this touch does not cut the arrival short
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Journal' }).click();
+  await expect(page).toHaveURL(/#\/journal$/);
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Flow' }).click();
+  await expect(page.locator('.mt-plate')).toHaveAttribute('data-arrive', 'done');
 });
 
 test('mountain: a sign opens its page, the circles open Meditate and Energize, and a tap during the arrival cuts it short', async ({ page }) => {

@@ -1507,10 +1507,14 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 /* the marks over the body: cut out of the light while it is full, cold once it is empty */
 .fs-sign-line { fill: none; stroke: color-mix(in oklch, var(--sign-cut) calc((1 - var(--closed)) * 100%), var(--sign-cold)); stroke-width: 1.2; }
 .fs-sign[data-size="large"] .fs-sign-line { stroke-width: .45; }
+/* the sun's rays and the sprout's stem lie outside the body, so they are drawn in the lantern's own light, cold once
+   it is empty, never in the ground's colour (on the plate that would be plate on plate, and the sun a bare disc) */
+.fs-sign:is([data-sign="sun"], [data-sign="sprout"]) .fs-sign-line { stroke: color-mix(in oklch, var(--sc) calc((1 - var(--closed)) * 100%), var(--sign-cold)); }
 /* Still (rule 13): open and without hue whatever the gate says, full of the cold colour with its marks cut out of the
    ground, so it reads at the print's 3.5:1. Two attributes and a class, so it outranks the plate rule above. */
 [data-light="still"] .fs-sign.fs-sign, .fs-sign.fs-sign[data-still] { --closed: 0; --sc: var(--sign-cold); }
 [data-light="still"] .fs-sign .fs-sign-g, .fs-sign[data-still] .fs-sign-g { transform: none; }
 [data-light="still"] .fs-sign .fs-sign-body, .fs-sign[data-still] .fs-sign-body { fill: var(--sign-cold); fill-opacity: 1; stroke: var(--sign-cold); }
 [data-light="still"] .fs-sign .fs-sign-line, .fs-sign[data-still] .fs-sign-line { stroke: var(--sign-cut); }
+[data-light="still"] .fs-sign:is([data-sign="sun"], [data-sign="sprout"]) .fs-sign-line, .fs-sign:is([data-sign="sun"], [data-sign="sprout"])[data-still] .fs-sign-line { stroke: var(--sign-cold); }
 /* ---- R0 ends ---- */

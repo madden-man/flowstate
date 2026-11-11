@@ -143,6 +143,14 @@ describe('the plate, with no canvas', () => {
     expect(stops[3].querySelector('.mt-dot')).not.toBeNull();
     expect(stops[0].querySelector('.mt-dot')).toBeNull();
     expect([...root.querySelectorAll('a.mt-circle')].map(a => a.getAttribute('href'))).toEqual(['#/flow/meditate', '#/flow/energize']);
+    // no ride open: no dot on the sea
+    expect(root.querySelector('a.mt-circle .mt-dot')).toBeNull();
+    act(() => { render(h(MountainPlate, { d: 0.4, gates: [0, 0, 0, 0, 0.7, 0, 0], liveFlows: new Set(['energize']) }), root); });
+    // a ride open on Energize: the dot is on its circle, and on nothing else in the sea
+    const circles = [...root.querySelectorAll<HTMLElement>('a.mt-circle')];
+    expect(circles[1].dataset.live).toBe('true');
+    expect(circles[1].querySelector('.mt-dot')).not.toBeNull();
+    expect(circles[0].querySelector('.mt-dot')).toBeNull();
     // no number anywhere on the plate (rule 15)
     expect(/\d/.test(plate.textContent ?? '')).toBe(false);
     act(() => { render(null, root); });

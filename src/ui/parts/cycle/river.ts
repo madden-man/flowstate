@@ -16,7 +16,7 @@ export const H = 476;
 /** The summit, the shore line, and the row the sea's circles float on. */
 export const PEAK = { x: 164, y: 44 } as const;
 export const SHORE = 394;
-export const SEA_Y = 434;
+export const SEA_Y = 424;
 /** A sea circle's radius. */
 export const CIRCLE_R = 15;
 
