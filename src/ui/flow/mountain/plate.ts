@@ -436,16 +436,42 @@ export class Plate {
     this.snowTex.width = Math.ceil(W * K); this.snowTex.height = Math.ceil(H * K);
     g.setTransform(K, 0, 0, K, 0, 0);
     const big = capPaths(SNOW_HEAVY + 30);
-    g.fillStyle = rgb(mix(pal.plate, pal.line, 0.3)); g.fill(big.lit);
-    g.fillStyle = rgb(mix(pal.deep, pal.line, 0.1)); g.fill(big.shade);
+    // the lit side holds most light high on the horn and goes down into the night; the shadow side is dark snow
+    const lit = g.createLinearGradient(0, PEAK.y, 0, SNOW_HEAVY + 30);
+    lit.addColorStop(0, rgb(mix(pal.plate, pal.line, 0.62)));
+    lit.addColorStop(0.4, rgb(mix(pal.plate, pal.line, 0.42)));
+    lit.addColorStop(1, rgb(mix(pal.plate, pal.line, 0.2)));
+    g.fillStyle = lit; g.fill(big.lit);
+    const shade = g.createLinearGradient(0, PEAK.y, 0, SNOW_HEAVY + 30);
+    shade.addColorStop(0, rgb(mix(pal.deep, pal.line, 0.22)));
+    shade.addColorStop(1, rgb(mix(pal.deep, pal.line, 0.07)));
+    g.fillStyle = shade; g.fill(big.shade);
     g.lineCap = 'round'; g.lineJoin = 'round';
+    // engraved: streaks down the lit snow along the fall line, close hatching across the shadow side
+    let sd = 53;
+    const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    g.save(); g.clip(big.lit);
+    g.strokeStyle = rgb(pal.line, 0.16); g.lineWidth = 0.4;
+    g.beginPath();
+    for (let k = 0; k < 120; k++) {
+      const y = PEAK.y + 6 + r() * (SNOW_HEAVY - PEAK.y), x = PEAK.x - 70 + r() * 90, len = 4 + r() * 9;
+      g.moveTo(x, y); g.lineTo(x - len * 0.35, y + len);
+    }
+    g.stroke();
+    g.restore();
+    g.save(); g.clip(big.shade);
+    g.strokeStyle = rgb(pal.deep, 0.55); g.lineWidth = 0.45;
+    g.beginPath();
+    for (let y = PEAK.y; y < SNOW_HEAVY + 30; y += 2.2) { g.moveTo(PEAK.x - 10, y + 8); g.lineTo(PEAK.x + 90, y - 22 + (r() - 0.5) * 2); }
+    g.stroke();
+    g.restore();
+    // rock through snow: the heavy lines darkest, the hatching barely
     const marks = this.parts.land.marks;
     marks.forEach((m, i) => {
       const path = this.paths[i];
       if (!path || m.kind !== 'pen' || m.cls === 'tree' || m.cls === 'scree' || m.cls === 'ridge' || m.cls === 'ridge-far' || m.cls.startsWith('horn')) return;
-      // rock through snow: the heavy lines darkest, the hatching barely
-      g.strokeStyle = rgb(pal.deep, m.cls === 'bold' || m.cls === 'arete' ? 0.75 : m.cls === 'hatch' ? 0.25 : 0.5);
-      g.lineWidth = m.w * (m.cls === 'bold' ? 1.1 : 0.9);
+      g.strokeStyle = rgb(pal.deep, m.cls === 'bold' || m.cls === 'arete' ? 0.95 : m.cls === 'hatch' ? 0.3 : 0.75);
+      g.lineWidth = m.w * (m.cls === 'bold' || m.cls === 'arete' ? 1.35 : 1.1);
       g.stroke(path);
     });
   }
@@ -661,16 +687,16 @@ export class Plate {
     if (on <= 0) return;
     const q0 = this.water.q[0], held = this.weather.cap.held, line = this.weather.cap.snowline;
     g.fillStyle = this.glowStyle;
-    g.globalAlpha = (0.04 + 0.04 * held) * on;
+    g.globalAlpha = (0.02 + 0.03 * held) * on;
     g.fill(cap.lit); g.fill(this.cornice);
     // the held snow's own light: brightest high on the horn, going down into the snow as far as it holds
     const r = 26 + (line - PEAK.y) * 1.05, cy = PEAK.y + (line - PEAK.y) * 0.18;
     g.save(); g.clip(cap.lit);
-    g.globalAlpha = (0.12 + 0.3 * held) * on;
+    g.globalAlpha = (0.05 + 0.15 * held) * on;
     g.drawImage(this.snowGlow, PEAK.x - 8 - r, cy - r, 2 * r, 2 * r);
     g.restore();
     g.save(); g.clip(cap.shade);
-    g.globalAlpha = (0.05 + 0.18 * held) * on;
+    g.globalAlpha = (0.02 + 0.06 * held) * on;
     g.drawImage(this.snowGlow, PEAK.x + 6 - r * 0.8, cy - r * 0.8, 1.6 * r, 1.6 * r);
     g.restore();
     // the rim of what is held catches a little of it

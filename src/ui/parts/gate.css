@@ -29,3 +29,7 @@
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print);
   font-variant-numeric: tabular-nums; line-height: 1;
 }
+/* mirrored (R2, a gate on the mountain whose sign is to its left): the percent before the rule */
+.fs-gate.leftward { grid-template-columns: calc(var(--lh-ink) * 1.6) minmax(0, 1fr); }
+.fs-gate.compact.leftward { grid-template-columns: calc(var(--lh-ink) * 1.2) minmax(0, 1fr); }
+.fs-gate.leftward .fs-gate-pct { order: -1; text-align: right; }

@@ -58,13 +58,15 @@ const BANDS: Omit<Band, 'puffs'>[] = [
 const DRIFT = 10;
 
 /** The snow's paths for a line, kept (a drag through the meter makes each whole unit's once). */
-const CAPS = new Map<number, { lit: Path2D; shade: Path2D; rim: Path2D }>();
+const CAPS = new Map<number, { lit: Path2D; shade: Path2D; rim: Path2D; all: Path2D }>();
 export function capPaths(line: number) {
   const k = Math.round(line);
   let c = CAPS.get(k);
   if (!c) {
     const p = snowCap(k);
-    c = { lit: new Path2D(p.lit), shade: new Path2D(p.shade), rim: new Path2D(p.rim) };
+    const all = new Path2D(p.lit);
+    all.addPath(new Path2D(p.shade));
+    c = { lit: new Path2D(p.lit), shade: new Path2D(p.shade), rim: new Path2D(p.rim), all };
     CAPS.set(k, c);
   }
   return c;
@@ -372,7 +374,7 @@ export class Weather {
         const a = this.bandOn(b);
         if (a < 0.01) continue;
         const y = this.bandY(b), near = Math.exp(-(((y - this.cap.snowline * 0.8) / 70) ** 2));
-        g.globalAlpha = a * near * (0.1 + 0.35 * this.cap.held);
+        g.globalAlpha = a * near * (0.05 + 0.18 * this.cap.held);
         const w = 130 + this.cap.held * 70;
         g.drawImage(this.under, PEAK.x - w / 2 + this.bandX(b) - b.x, y + b.h * 0.15, w, b.h * 1.1);
       }
@@ -392,8 +394,9 @@ export class Weather {
     if (snow > 0.01) {
       const cap = capPaths(c.snowline);
       g.globalAlpha = 0.92 * snow;
-      g.save(); g.clip(cap.lit); g.drawImage(tex, 0, 0, 328, 476); g.restore();
-      g.save(); g.clip(cap.shade); g.drawImage(tex, 0, 0, 328, 476); g.restore();
+      // only the rows the snow reaches (its fingers reach at most 30 below the line)
+      const foot = Math.min(476, c.snowline + 32), k = tex.height / 476;
+      g.save(); g.clip(cap.all); g.drawImage(tex, 0, 0, tex.width, Math.ceil(foot * k), 0, 0, 328, Math.ceil(foot * k) / k); g.restore();
       g.globalAlpha = 0.4 * snow; g.strokeStyle = st.line; g.lineWidth = 0.6; g.lineJoin = 'round'; g.stroke(cap.rim);
     }
     if (c.cloud > 0.01 && this.veil && this.cloud) {

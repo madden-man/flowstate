@@ -25,6 +25,8 @@ import { CHAKRAS, CHAKRA_IDS, isStale, latestReadings, writeReading, type Chakra
 import type { Reading } from '../../db/schema';
 import { gate as lockGate } from '../lock/pin';
 import { Meter } from './mountain/Meter';
+import { Gate } from '../parts/Gate';
+import { readGuard } from './chakra/fresh';
 import { flowStates } from '../../model/flows';
 import { FIXATION_FLOW } from '../../model/fixations';
 import { dataVersion } from '../sheets';
@@ -78,9 +80,16 @@ type Props = {
 /** What the plate's controls need: the stored readings' staleness, the lock, and where a gesture goes. */
 type Controls = {
   meterStale: boolean;
+  /** The gates' newest readings, for their staleness, and the time to judge it by. */
+  readings: Partial<Record<ChakraId, Reading>>;
+  now: number;
   disabled: boolean;
+  /** A finger (or a key) holds a control: the signs answer with no transition (rule 20). */
+  held: boolean;
   meterInput: (v: number) => void;
   meterCommit: (v: number) => void;
+  gateInput: (i: number, v: number) => void;
+  gateCommit: (i: number, v: number) => void;
   cancel: () => void;
 };
 
@@ -151,6 +160,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
         onInput={controls.meterInput} onCommit={controls.meterCommit} onCancel={controls.cancel} />
     )}
     <section ref={host} class="mt-plate on-plate" aria-label="The mountain" data-d={unit(d).toFixed(3)} data-gates={gateKey}
+      data-held={controls?.held ? '' : undefined}
       data-arrive={arrived() ? 'done' : 'run'}>
       <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
         <defs>
@@ -212,6 +222,17 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
             </a>
           );
         })}
+        {/* each sign's gate, under its name and beside the link (never inside it), shutting toward the stream */}
+        {controls && CHAKRAS.map((c, i) => {
+          const st = STOPS[c.id], r = controls.readings[c.id];
+          return (
+            <div key={c.id} class="mt-gate" data-chakra={c.id} data-side={st.side > 0 ? 'right' : 'left'} style={{ '--x': st.x, '--y': st.y }}>
+              <Gate compact value={unit(gates[i] ?? 0)} hue={c.hue} label={c.name} leftward={st.side > 0}
+                stale={!!r && isStale(r, controls.now)} disabled={controls.disabled}
+                onInput={v => controls.gateInput(i, v)} onCommit={v => controls.gateCommit(i, v)} onCancel={controls.cancel} />
+            </div>
+          );
+        })}
         {SEA_CIRCLES.map((c, i) => (
           <a key={c.name} class="mt-circle" href={c.href} style={{ '--x': slots[i], '--y': SEA_Y }}
             data-live={c.flow && liveFlows?.has(c.flow) ? 'true' : undefined}>
@@ -241,9 +262,12 @@ export function Mountain() {
   const [read, setRead] = useState<Read>({ d: 0, gates: [0, 0, 0, 0, 0, 0, 0], readings: {} });
   const [live, setLive] = useState<Set<ChakraId>>(new Set());
   const [liveFlows, setLiveFlows] = useState<Set<string>>(new Set());
+  // a read from before a write never lands after it (chakra/fresh.ts)
+  const guard = useMemo(readGuard, []);
   useEffect(() => {
     let on = true;
-    latestReadings().then(r => { if (on) setRead(fromReadings(r)); }).catch(() => undefined);
+    const ok = guard.read();
+    latestReadings().then(r => { if (on && ok()) setRead(fromReadings(r)); }).catch(() => undefined);
     flowStates().then(rows => {
       if (!on) return;
       setLive(new Set(rows.filter(r => r.live && r.flow.chakra).map(r => r.flow.chakra!)));
@@ -255,17 +279,27 @@ export function Mountain() {
   const w = waterLive.value ?? read;
   const now = Date.now();
   const write = async (of: 'mountain' | ChakraId, v: number) => {
+    const done = guard.write();
     // locked again under the thumb (LockedError): nothing is written, and the plate goes back to what was kept
-    try { await writeReading(of, v); } catch { /* the PIN first */ }
+    try { await writeReading(of, v); } catch { /* the PIN first */ } finally { done(); }
+    const ok = guard.read();
     const r = await latestReadings().catch(() => null);
+    // a newer gesture's own read will land the plate; this one only lets go if it is still the newest
+    if (!ok()) return;
     if (r) setRead(fromReadings(r));
     waterLive.value = null;
   };
+  const held = () => waterLive.peek() ?? read;
+  const gateTo = (i: number, v: number) => { const g = held().gates.slice(); g[i] = v; waterLive.value = { d: held().d, gates: g }; };
   const controls: Controls = {
     meterStale: !!read.mountain && isStale(read.mountain, now),
+    readings: read.readings, now,
     disabled: lockGate.value === 'locked',
-    meterInput: v => { waterLive.value = { d: v, gates: (waterLive.peek() ?? read).gates }; },
-    meterCommit: v => { waterLive.value = { d: v, gates: (waterLive.peek() ?? read).gates }; void write('mountain', v); },
+    held: waterLive.value !== null,
+    meterInput: v => { waterLive.value = { d: v, gates: held().gates }; },
+    meterCommit: v => { waterLive.value = { d: v, gates: held().gates }; void write('mountain', v); },
+    gateInput: (i, v) => gateTo(i, v),
+    gateCommit: (i, v) => { gateTo(i, v); void write(CHAKRA_IDS[i], v); },
     cancel: () => { waterLive.value = null; },
   };
   return <MountainPlate d={w.d} gates={w.gates} live={live} cap={capLive.value} liveFlows={liveFlows} controls={controls} />;

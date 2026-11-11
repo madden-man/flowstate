@@ -163,6 +163,24 @@
 .mt-meter-mark path { fill: none; stroke: var(--glow); stroke-width: 2.4; stroke-linecap: round; }
 .mt-meter[data-drag] .mt-meter-mark { transition: none; }
 
+/* ---- the gates on the mountain (R2; parts/Gate compact, R3): under each sign's name, the link's width from the sign,
+   on the plate's colours. A right-hand sign's gate is mirrored (leftward), so every gate shuts toward the stream. ---- */
+.mt-gate {
+  position: absolute; pointer-events: auto;
+  top: calc(100% - (476 - var(--y)) * var(--u) + var(--hit) / 2 - var(--lh-ink) / 2 - 2px);
+}
+.mt-gate[data-side="right"] { left: calc(var(--x) * var(--u) + var(--lh-ink) / 2 - var(--s1) / 2); }
+.mt-gate[data-side="left"] { right: calc((328 - var(--x)) * var(--u) + var(--lh-ink) / 2 - var(--s1) / 2); }
+.mt-gate .fs-gate { --gc: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--gh, 0)); }
+.mt-gate .fs-gate-line { stroke: var(--plate-line); opacity: .45; }
+.mt-gate .fs-gate-end { stroke: var(--plate-line); opacity: .6; }
+.mt-gate .fs-gate-mark path { stroke: var(--plate-line); stroke-width: 1.8; }
+.mt-gate .fs-gate-pct { color: var(--plate-print); text-shadow: 0 0 6px var(--plate-deep); }
+.mt-gate .fs-gate-rule:focus-visible { outline-color: var(--plate-line); }
+/* under the finger the signs answer at once (rule 20) */
+.mt-plate[data-held] .mt-sign .fs-sign { transition: none; }
+.mt-plate[data-arrive="run"] .mt-gate { opacity: 0; }
+
 /* ---- the arrival (./arrival.ts; land.ts gives each mark its --at and --len, fractions of --t-arrive) ---- */
 .mt-plate[data-arrive="run"] .mt-pen {
   stroke-dasharray: 1;

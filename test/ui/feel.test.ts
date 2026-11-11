@@ -11,7 +11,12 @@ const code = files('src').filter(f => /\.(ts|tsx)$/.test(f)).map(f => [f.split(p
 /** Every call, as "file: kind(name)". */
 function calls(kind: 'tick' | 'bell'): string[] {
   const re = new RegExp(`\\b${kind}\\(\\s*'([A-Za-z]+)'\\s*\\)`, 'g');
-  return code.flatMap(([f, text]) => [...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`));
+  // a rule's mark ticks through parts/RuleDrag, named by its owner (tickName: 'gate'), so the owner is the place
+  const named = kind === 'tick' ? /\btickName:\s*'([A-Za-z]+)'/g : null;
+  return code.flatMap(([f, text]) => [
+    ...[...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`),
+    ...(named ? [...text.matchAll(named)].map(m => `${f}: ${kind}(${m[1]})`) : []),
+  ]);
 }
 
 // Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening,
