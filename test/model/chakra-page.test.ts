@@ -6,7 +6,7 @@ import { SEED_FLOWS, seedFlow } from '../../src/db/seed-flows';
 import type { Episode, Flow } from '../../src/db/schema';
 import { CHAKRA_IDS, type ChakraId } from '../../src/model/mountain';
 import {
-  REST_MOST, REST_ON_ID, chakraPageData, handOffWords, homes as readHomes, restLineId, restRows, safetyLines,
+  REST_MOST, REST_ON_ID, chakraPageData, sameRow, handOffWords, homes as readHomes, restLineId, restRows, safetyLines,
 } from '../../src/model/chakra-page';
 import { printTips } from '../../src/ui/flow/PrintLines';
 
@@ -56,6 +56,25 @@ describe('the rest list', () => {
     expect(rest.tips[1].id).toBe('depress-1-wake');
   });
 
+  it('says nothing twice on Root: one cold-water row, one Ring row, though the ring and the curve both have them', () => {
+    const rest = restRows('root', under('root'), []);
+    const texts = rest.tips.map(t => t.text);
+    expect(texts.filter(t => /cold water/i.test(t))).toHaveLength(1);
+    expect(rest.tips.filter(t => t.helper === 'ring')).toHaveLength(1);
+    for (const c of CHAKRA_IDS) {
+      const tips = restRows(c, under(c), []).tips;
+      tips.forEach((a, i) => tips.slice(i + 1).forEach(b => expect(sameRow(a.text, b.text), `${c}: ${a.text} / ${b.text}`).toBe(false)));
+      const hs = tips.flatMap(t => (t.helper ? [t.helper] : []));
+      expect(new Set(hs).size, c).toBe(hs.length);
+    }
+  });
+
+  it('tells near-identical rows from rows that only share a word', () => {
+    expect(sameRow('Cold water on your face', 'Cold water on your wrists and face')).toBe(true);
+    expect(sameRow('Name it: shame', 'Name it: this is the replay')).toBe(false);
+    expect(sameRow('Daylight early, outside if you can', 'Same wake time and meals, whatever the night was')).toBe(false);
+  });
+
   it('leaves out ended episodes of flows under other signs, and live ones', () => {
     const live: Episode = { ...ended('panic', 9_000, [['panic-1-cold', 1]]), endedAt: undefined };
     const elsewhere = ended('depress', 9_000, [['depress-1-wake', 1]]);
@@ -69,6 +88,17 @@ describe('hand-off words', () => {
     expect(handOffWords('If it tips into panic: the Panic flow.', 'root')).toBe('If it tips into panic: the Root chakra.');
     expect(handOffWords('If the heat shows up most days: the Depress flow.', 'heart')).toBe('If the heat shows up most days: the Heart chakra.');
     expect(handOffWords('If it runs on: the What if flow.', 'root')).toBe('If it runs on: the Root chakra.');
+  });
+  it('read as the other drawing\'s place when it is on the same page, never naming the sign he is on', () => {
+    expect(handOffWords('If it tips into panic: the Panic flow.', 'root', 'above')).toBe('If it tips into panic: the drawing above.');
+    const whatif = FLOWS.find(f => f.id === 'whatif')!;
+    const lines = whatif.steps.flatMap(s => safetyLines(under('root'), HOMES, { flowId: 'whatif', stepId: s.id }));
+    const toPanic = lines.filter(t => t.handoff?.flowId === 'panic');
+    expect(toPanic.length).toBeGreaterThan(0);
+    for (const t of toPanic) {
+      expect(t.text).toMatch(/the drawing above\.$/);
+      expect(t.text).not.toMatch(/Root chakra|Panic/);
+    }
   });
   it('leave his own words, and a line to a flow with no sign, as they are', () => {
     expect(handOffWords('Go and see Mum.', 'heart')).toBe('Go and see Mum.');

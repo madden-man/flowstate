@@ -3,7 +3,7 @@
 //
 // At rest, one list of up to six rows: what he ticked in past episodes of these flows first (newest episode first, in
 // the order he ticked them, as whatHelped reads them), then one On row gathering every pick under this sign, then the
-// rest in seed order. The walk (branch walk, model/walk.ts shortList) will replace the inside of restRows; its shape,
+// rest in seed order. No row twice: not the same words or nearly (sameRow), and one row per helper (one Ring row). The walk (branch walk, model/walk.ts shortList) will replace the inside of restRows; its shape,
 // a step the Tips rows can draw, stays.
 //
 // Safety stays (section 6): the 988 line, the doctor lines and the hand-offs. A hand-off that named a flow reads as
@@ -23,6 +23,22 @@ const STEP_ONLY: TipHelper[] = ['journal', 'timer', 'person', 'prediction', 'fiv
 
 /** A row that may stand in the rest list: a check to tick, not wise, not printed, not struck, not tied to its step. */
 const restable = (t: Tip) => !t.wise && !t.print && !t.struck && !(t.helper && STEP_ONLY.includes(t.helper));
+
+/** Words too common to tell two rows apart. */
+const COMMON = new Set(['the', 'and', 'your', 'you', 'with', 'for', 'then', 'into', 'from', 'that', 'this', 'than', 'any', 'one', 'a', 'an', 'or', 'on', 'in', 'of', 'to', 'it', 'is', 'if', 'at', 'as', 'by']);
+/** A row's telling words: lower case, no punctuation, no common words. */
+export const tellingWords = (text: string) =>
+  new Set(text.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(w => w.length > 2 && !COMMON.has(w)));
+/** Two rows say the same thing when three in four of the shorter one's telling words are in the other
+ *  ("Cold water on your face" and "Cold water on your wrists and face"). */
+export function sameRow(a: string, b: string): boolean {
+  const x = tellingWords(a), y = tellingWords(b);
+  const [small, big] = x.size <= y.size ? [x, y] : [y, x];
+  if (small.size < 2) return a.trim().toLowerCase() === b.trim().toLowerCase();
+  let shared = 0;
+  for (const w of small) if (big.has(w)) shared++;
+  return shared / small.size >= 0.75;
+}
 
 /** The id of the rest list's one On row. Not a stored tip: a tick on it at rest only draws. */
 export const REST_ON_ID = 'rest-on';
@@ -54,7 +70,7 @@ export function restRows(chakra: ChakraId, fs: Pick<Flow, 'id' | 'steps'>[], epi
   const onRow: Tip | undefined = firstOn && { id: REST_ON_ID, text: firstOn.text, short: firstOn.short, helper: 'on' };
 
   const out: Tip[] = [];
-  const said = new Set<string>();
+  const helpers = new Set<TipHelper>();
   let onPut = false;
   const put = (t: Tip) => {
     if (out.length >= REST_MOST) return;
@@ -64,9 +80,10 @@ export function restRows(chakra: ChakraId, fs: Pick<Flow, 'id' | 'steps'>[], epi
       out.push(onRow);
       return;
     }
-    const words = t.text.trim().toLowerCase();
-    if (said.has(words)) return;
-    said.add(words);
+    // the same words, or nearly (two drawings under one sign often share a row), and one row per helper (one Ring)
+    if (t.helper && helpers.has(t.helper)) return;
+    if (out.some(o => sameRow(o.text, t.text))) return;
+    if (t.helper) helpers.add(t.helper);
     out.push(t);
   };
 
@@ -91,11 +108,13 @@ export function restRows(chakra: ChakraId, fs: Pick<Flow, 'id' | 'steps'>[], epi
 /** The page's id for a flow's rest line printed as a line (3 a.m.'s doctor line). */
 export const restLineId = (flowId: string) => `${flowId}-rest-line`;
 
-/** A hand-off line's words on a stop's page: "the Fight flow" reads as the sign it lands on, "the Throat chakra". A
- *  line he wrote without "the ... flow" is left as he wrote it. */
-export function handOffWords(text: string, to: ChakraId | undefined): string {
+/** A hand-off line's words on a stop's page: "the Fight flow" reads as the sign it lands on, "the Throat chakra". When
+ *  the flow it names is another drawing on this same page (What if to Panic, both under Root), naming the sign would
+ *  point at the page he is on, so it reads as that drawing's place: "the drawing above" or "the drawing below". A line
+ *  he wrote without "the ... flow" is left as he wrote it. */
+export function handOffWords(text: string, to: ChakraId | undefined, here?: 'above' | 'below'): string {
   if (!to) return text;
-  return text.replace(/\bthe\s+[^:;.]*?\s+flow\b/i, `the ${chakraOf(to).pageName}`);
+  return text.replace(/\bthe\s+[^:;.]*?\s+flow\b/i, here ? `the drawing ${here}` : `the ${chakraOf(to).pageName}`);
 }
 
 /** Where each flow sits: its sign, or undefined (Energize, or one he has not placed). */
@@ -107,7 +126,14 @@ export type Homes = ReadonlyMap<string, ChakraId | undefined>;
  * sign that is not a hand-off, and every rest line. Hand-off words read as their sign (handOffWords).
  */
 export function safetyLines(fs: Pick<Flow, 'id' | 'steps' | 'restLine'>[], homes: Homes, at?: { flowId: string; stepId: string }): Tip[] {
-  const words = (t: Tip): Tip => (t.handoff ? { ...t, text: handOffWords(t.text, homes.get(t.handoff.flowId)) } : t);
+  const order = fs.map(f => f.id);
+  const words = (t: Tip): Tip => {
+    if (!t.handoff) return t;
+    // another drawing on this page: say where it is on the page, not which sign
+    const from = at ? order.indexOf(at.flowId) : -1, to = order.indexOf(t.handoff.flowId);
+    const here = from >= 0 && to >= 0 && to !== from ? (to < from ? 'above' : 'below') : undefined;
+    return { ...t, text: handOffWords(t.text, homes.get(t.handoff.flowId), here) };
+  };
   const rest = (f: Pick<Flow, 'id' | 'restLine'>): Tip[] => (f.restLine?.trim() ? [{ id: restLineId(f.id), text: f.restLine.trim(), print: true }] : []);
   if (at) {
     const f = fs.find(x => x.id === at.flowId);

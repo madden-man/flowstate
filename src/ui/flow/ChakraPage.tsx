@@ -19,7 +19,7 @@
 // or one he made and left on its own) keeps the old FlowPage.
 //
 // Still (rule 13): no gate, no percent, no hue, no ghost rings or stamps, the sign open in the line colour, slow water.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
 import { Gate } from '../parts/Gate';
@@ -33,9 +33,11 @@ import { useNow } from './breath';
 import { Plate } from './chakra/Plate';
 import { Drawing } from './chakra/Drawing';
 import { FromRow } from './chakra/From';
+import { readGuard } from './chakra/fresh';
 import { dataVersion } from '../sheets';
 import { light } from '../light';
-import type { Episode, Flow, Reading } from '../../db/schema';
+import type { Episode, Flow, Reading, Tip } from '../../db/schema';
+import { gateState } from '../lock/pin';
 import type { Read } from '../../db/fields';
 import {
   CHAKRA_IDS, chakraOf, isChakraId, isStale, latestReadings, reach, spring, writeReading, type ChakraId,
@@ -61,7 +63,8 @@ export function FlowRoute({ id, step, chakra }: { id?: string; step?: string; ch
     });
     return () => { on = false; };
   }, [id, chakra, dataVersion.value]);
-  if (chakra !== undefined && !home) return <Redirect to="/flow" />;
+  // #/flow/c with no sign is the mountain itself
+  if ((chakra !== undefined && !home) || (id === 'c' && chakra === undefined)) return <Redirect to="/flow" />;
   if (home === undefined) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} keepSettings drawn={false}><div class="fs-sheetof fs-rules" /></Page>;
   // another sign is another page: a hand-off to it opens it afresh
   if (home) return <ChakraPage key={home} chakra={home} focus={chakra !== undefined ? undefined : id} step={step} />;
@@ -81,7 +84,10 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   const [version, setVersion] = useState(0);
   const [moved, setMoved] = useState<{ flowId: string; to: number } | null>(null);
   const [writing, setWriting] = useState(0);
-  const inFlight = useRef(0);
+  /** A read applies only if it is the newest and no write began after it started (./chakra/fresh.ts). */
+  const guard = useMemo(readGuard, []);
+  /** A hand-off to another drawing on this page asks for that drawing to come into view; nothing else here scrolls. */
+  const bring = useRef(false);
   const [gateLive, setGateLive] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const now = useNow();
@@ -90,21 +96,27 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
 
   useEffect(() => {
     let on = true;
+    const fresh = guard.read();
     (async () => {
       const [d, readings] = await Promise.all([chakraPageData(chakra), latestReadings()]);
       for (const [fid, h] of d.homes) known.set(fid, h ?? null);
       const items = await Promise.all(d.flows.map(async flow => ({ flow, live: await liveEpisode(flow.id), last: await lastEnded(flow.id) })));
-      // a read that began before a move's write must not put the dot back where it was (FlowPage, F4)
-      if (on && !inFlight.current) { setData({ items, homes: d.homes, episodes: d.episodes, readings }); setMoved(null); }
+      // a read that began before a move's write must not put the dot back where it was (FlowPage, F4): it is dropped,
+      // and the read the write's own end asks for draws the page
+      if (on && fresh()) { setData({ items, homes: d.homes, episodes: d.episodes, readings }); setMoved(null); }
     })();
     return () => { on = false; };
   }, [chakra, version, dataVersion.value]);
 
-  // the drawing the route named comes into view once, when it is named from outside this page
+  // the drawing the route named comes into view when the page opens on it (#/flow/whatif/2 from outside), or when a
+  // hand-off on this page goes to another drawing on it. A move or a step read here names its own drawing first
+  // (scrolled), so the page never moves under the thumb that moved the dot (finding 4).
   useEffect(() => {
     if (!data || !focus || scrolled.current === focus) return;
-    const first = scrolled.current === undefined;
+    const first = scrolled.current === undefined, asked = bring.current;
     scrolled.current = focus;
+    bring.current = false;
+    if (!first && !asked) return;
     const el = page.current?.querySelector<HTMLElement>(`.ck-drawing[data-flow="${CSS.escape(focus)}"]`);
     if (el && el !== page.current?.querySelector('.ck-drawing')) el.scrollIntoView({ block: first ? 'center' : 'nearest' });
   }, [data, focus]);
@@ -132,27 +144,45 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   const move = async (it: Item, visits: number[], to: number) => {
     const f = it.flow;
     setMoved({ flowId: f.id, to });
+    scrolled.current = f.id;
+    const done = guard.write();
     route(to ? `/flow/${f.id}/${to}` : `/flow/${f.id}`, true);
     setWriting(w => w + 1);
-    inFlight.current++;
     try {
       await moveDot(f.id, visits.map(k => f.steps[k - 1].id), to ? f.steps[to - 1].id : 'rest');
     } finally {
-      inFlight.current--;
+      done();
       setWriting(w => w - 1);
       setVersion(v => v + 1);
     }
   };
   const commitGate = async (v: number) => {
     setGateLive(v);
+    const done = guard.write();
     // locked again under the thumb (LockedError): nothing is written, and the gate goes back to what was kept
-    try { await writeReading(chakra, v); } catch { /* the PIN first */ }
+    try { await writeReading(chakra, v); } catch { /* the PIN first */ } finally { done(); }
     const readings2 = await latestReadings().catch(() => null);
     if (readings2) setData(was => (was ? { ...was, readings: readings2 } : was));
     setGateLive(null);
+    // a page read dropped while this wrote is read again
+    setVersion(k => k + 1);
   };
 
   const live = front?.live;
+  // a hand-off: written, then the page read again (the episode it started is on a drawing this page may already show);
+  // to another drawing here it stays this page, with that drawing brought into view, and no turn (a replace)
+  const handOff = async (t: Tip, stepId: string) => {
+    const here = !!t.handoff && homes.get(t.handoff.flowId) === chakra;
+    const done = guard.write();
+    setWriting(w => w + 1);
+    try {
+      await followHandOff(t, stepId, live, to => { if (here) bring.current = true; route(to, here); });
+    } finally {
+      done();
+      setWriting(w => w - 1);
+      setVersion(v => v + 1);
+    }
+  };
   const sheets = !!front && !front.flow.locked;
   const rest = restRows(chakra, items.map(it => it.flow), episodes);
   const lines = safetyLines(items.map(it => it.flow), homes, front && shown ? { flowId: front.flow.id, stepId: shown.id } : undefined);
@@ -166,8 +196,8 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
         <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above} />
         <p class="ck-gloss">{c.gloss}</p>
         <Gate value={gate} hue={c.hue} label={c.name} stale={!!stored && isStale(stored, now)}
-          onInput={setGateLive} onCommit={v => void commitGate(v)} />
-        {live && <FromRow live={live} homes={homes} />}
+          disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
+        {live && <FromRow live={live} homes={homes} page={{ chakra, order: items.map(x => x.flow.id), front: front!.flow.id }} />}
         {items.map(it => {
           const at = placeNow(it);
           const isFront = it === front;
@@ -176,7 +206,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
             <Drawing key={it.flow.id} flow={it.flow} live={it.live} at={at} showing={sh} focused={isFront}
               onStep={!!it.live && moved === null && sh > 0 && sh === at} moving={moved?.flowId === it.flow.id}
               version={version} now={now}
-              onRead={k => route(`/flow/${it.flow.id}/${k}`, true)} onMove={(v, to) => void move(it, v, to)} />
+              onRead={k => { scrolled.current = it.flow.id; route(`/flow/${it.flow.id}/${k}`, true); }} onMove={(v, to) => void move(it, v, to)} />
           );
         })}
         {front && rows ? (
@@ -192,7 +222,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
           </section>
         )}
         <PrintLines step={{ tips: lines }}
-          onHandOff={shown ? t => void followHandOff(t, shown.id, live, to => route(to)) : undefined} />
+          onHandOff={shown ? t => void handOff(t, shown.id) : undefined} />
         {shown && sheets && !live && (
           <p class="fl-edit fs-notstill"><button type="button" class="fs-word" onClick={() => { tickSheet(); setEditing(true); }}>Edit</button></p>
         )}
