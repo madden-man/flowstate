@@ -36,10 +36,10 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   // the deep link reads step 2; the dot stays at rest (walk it once)
   const pageBody = page.locator('.fs-flowpage');
   await expect(pageBody).toHaveAttribute('data-showing', '2');
-  await expect(pageBody.locator('.fl-line')).toHaveText('The wave. Loud, fast, certain.');
-  await expect(pageBody.locator('.fl-said')).toContainText("it's already on its way out");
-  await expect(pageBody.locator('.fl-usual').first()).toContainText('Usually:');
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  // R3: Panic opens on the Root's page; his line, the said paragraph and "Usually" leave it (PLAN-MOUNTAIN.md section 6)
+  await expect(pageBody).toHaveAttribute('data-chakra', 'root');
+  await expect(pageBody.locator('.fl-step-page > .fl-line, .fl-step-page > .fl-said, .fl-step-page > .fl-usual')).toHaveCount(0);
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect(dot).toHaveAttribute('aria-valuetext', 'At rest');
 
@@ -92,8 +92,7 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   // Still: the drawing, the line and the words-only usual; no said line, and no digit anywhere on the page
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(pageBody.locator('.fl-said')).toBeHidden();
-  await expect(pageBody.locator('.fl-usual.fs-stillonly')).toHaveText('It peaks, and it passes.');
+  await expect(pageBody.locator('.fl-step-page > .fl-said, .fl-step-page > .fl-usual')).toHaveCount(0);
   await expect(pageBody.locator('.fl-mid .fs-stillonly')).toHaveText('a few minutes in');
   const shown = await pageBody.evaluate(el => {
     const out: string[] = [];
@@ -118,7 +117,9 @@ test('flows: deep link, drag to a detent, offline reload opens on the live episo
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
-  await expect(pageBody.locator('.fl-last')).toHaveText(/^Last time · \d+ \/ \d+/);
+  // R3: "Last time" leaves the page with the copy; the page is at rest, its one list of rows
+  await expect(pageBody.locator('.fl-last')).toHaveCount(0);
+  await expect(pageBody.locator('.ck-rows')).toHaveAttribute('aria-label', 'At rest');
 });
 
 const episode = async (page: Page) => (await page.evaluate(() => new Promise<{ done: { tipId: string }[]; pageId?: string; endedAt?: number }[]>((resolve, reject) => {
@@ -137,7 +138,7 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   await page.locator('.fs-flowpage').waitFor();
   if (await t.count()) await t.click();
   await expect(t).toHaveCount(0);
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
 
   // at rest a tick only draws (walk it once): nothing is written
   const cold = page.getByRole('checkbox', { name: /Cold water on your wrists/ });
@@ -204,13 +205,14 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   await link.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/4$/);
 
-  // back on rest: what helped, in one line
+  // back on rest: R3, what helped is no sentence now; it heads the Root's rest list, in the order it was ticked
   await dot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episode(page))?.endedAt ?? null).not.toBeNull();
-  await expect(page.locator('.fl-helped')).toContainText('Cold water on your wrists');
-  await expect(page.locator('.fl-helped')).toContainText('Less coming in');
+  await expect(page.locator('.fl-helped')).toHaveCount(0);
+  await expect.poll(() => page.locator('.ck-rows[aria-label="At rest"] [data-tip]').evaluateAll(els => els.slice(0, 2).map(e => (e as HTMLElement).dataset.tip)))
+    .toEqual(['panic-1-cold', 'panic-1-less']);
 
   // the step sheet: strike a tip; Earlier shows it struck, and the page no longer does
   await page.getByRole('button', { name: 'Overstimulated' }).click();
@@ -231,7 +233,7 @@ test('the ring by keys (F4): right walks the steps, and right from Under the ski
   if (await t.count()) await t.click();
   await expect(t).toHaveCount(0);
   const body = page.locator('.fs-flowpage');
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   for (const [k, name] of [[1, 'Overstimulated'], [2, 'The wave'], [3, 'Settling'], [4, 'Under the skin']] as const) {
     await dot.focus();

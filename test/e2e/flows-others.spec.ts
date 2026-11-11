@@ -18,7 +18,9 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await expect(body).toHaveAttribute('data-showing', '4');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'The bottom' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(body.locator('.fl-said').first()).toContainText('the floor is where it turns');
+  // R3: the Heart's page; the said paragraph leaves it, the safety line stays (PLAN-MOUNTAIN.md section 6)
+  await expect(body).toHaveAttribute('data-chakra', 'heart');
+  await expect(body.locator('.fl-said:not(.fl-print)')).toHaveCount(0);
   const safety = body.locator('.fl-print');
   await expect(safety).toHaveText("If you're thinking about suicide, call or text 988. Someone answers, any hour.");
   // a printed line, not a row: nothing to tick
@@ -30,7 +32,7 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(safety).toBeVisible();
-  await expect(body.locator('.fs-stillonly')).toHaveText('The floor is where it turns.');
+  await expect(body.locator('.fl-step-page > .fl-usual')).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
   // Energize at rest: the three (PLAN-ENERGIZE.md X2) in place of the rest page; the boundary line stays in the data
@@ -44,7 +46,8 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   // Fight: the mountain's two lines across the slope; cooling asks "Slower now?"
   await page.goto('/#/flow/fight/5');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
-  await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Slower now?');
+  // R3: the step's own line leaves the Throat's page with the copy (open question 3)
+  await expect(page.locator('.fs-flowpage .fl-line')).toHaveCount(0);
 
   // on the mountain Fight sits under the throat's sign (PLAN-MOUNTAIN.md section 6), reached through it
   await page.goto('/#/flow');

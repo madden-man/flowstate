@@ -44,8 +44,9 @@ function depth(p: string): number {
   return section === 'journal' && a === 'pages' ? 1 : 2;
 }
 
-/** A flow's page and the same flow at a step are one page (the dot moved): the first three parts say which. */
-const pageOf = (p: string) => parts(p).slice(0, 2).join('/');
+/** A flow's page and the same flow at a step are one page (the dot moved): the first two parts say which; a sign's page
+ *  (#/flow/c/:chakra) is three parts deep, so two signs' pages are two pages (R3 review). */
+const pageOf = (p: string) => { const ps = parts(p); return ps.slice(0, ps[0] === 'flow' && ps[1] === 'c' ? 3 : 2).join('/'); };
 
 /** Which turn goes from one path to another, or none. */
 export function kindOf(from: string, to: string): TurnKind | null {

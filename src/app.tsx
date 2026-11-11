@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step, #/flow/c/:chakra (R3: a stop's page; a flow under a sign opens it). The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -11,6 +11,7 @@ import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
 import { FlowPage } from './ui/flow/FlowPage';
+import { FlowRoute } from './ui/flow/ChakraPage';
 import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
@@ -127,11 +128,14 @@ function Frame() {
           <Route path="/flow/now" component={Now} />
           <Route path="/flow/meditate" component={Meditate} />
           <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
-          <Route path="/flow/:id" component={FlowPage} />
+          {/* a stop's page (PLAN-MOUNTAIN.md R3), before /flow/:id/:step so "c" is never read as a flow; one component for
+              all three, so a dot moved on a stop's page keeps the page (ui/flow/ChakraPage.tsx FlowRoute) */}
+          <Route path="/flow/c/:chakra" component={FlowRoute} />
+          <Route path="/flow/:id" component={FlowRoute} />
           {/* What stuck (PLAN-ENERGIZE.md X4), before /flow/:id/:step so it is never read as a step; behind the PIN only:
               the door frame has no such route and model/door.ts doorPasses lets no word step through */}
           <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={Stuck} />
-          <Route path="/flow/:id/:step" component={FlowPage} />
+          <Route path="/flow/:id/:step" component={FlowRoute} />
           <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>

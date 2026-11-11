@@ -50,3 +50,14 @@ describe('making a flow', () => {
     expect(DIAGRAMS).toEqual(['ring', 'valley', 'arc', 'mountain', 'curve', 'coil', 'clock', 'stairs', 'fork']);
   });
 });
+
+describe('a flow he makes under a sign (PLAN-MOUNTAIN.md R3)', () => {
+  it('keeps the sign he chose, and none when he chose none', async () => {
+    await freshDB();
+    await ensureSeeded();
+    const under = await makeFlow('Grief', 'valley', 1000, 'heart');
+    expect((await flowById(under.id))?.chakra).toBe('heart');
+    const alone = await makeFlow('Alone', 'ring', 1000);
+    expect((await flowById(alone.id))?.chakra).toBeUndefined();
+  });
+});
