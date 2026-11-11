@@ -67,7 +67,8 @@ test('each sign prints its touch words on its plate, thumb-sized, the lead lit; 
   await expect(reach).toHaveAttribute('data-lit', '');
   await expect(page.locator('.ck-touch[data-lit]')).toHaveCount(1);
   await expect(page).toHaveURL(/#\/flow\/c\/heart$/);
-  await page.getByRole('button', { name: 'Grieve' }).click();
+  // T4: Reach with no person chosen raises the person sheet; Done with no name puts the word back at rest
+  await page.locator('[data-sheet="One person"]').getByRole('button', { name: 'Done' }).click();
   await expect(reach).toHaveAttribute('aria-pressed', 'false');
   expect([await count(page, 'marks'), await count(page, 'readings'), await count(page, 'episodes')]).toEqual(before);
 });
