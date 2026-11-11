@@ -1475,3 +1475,21 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 }
 
 /* ---- M5 ends ---- */
+
+/* ---- Spoke for (PLAN-VALUES.md C4) ---- */
+/* the row on a tapped voiced line: "Spoke for" in print, then his words as chips, scrolling sideways like any chip row;
+   in the council's reply bar under the quote, in the journal under the current line where the dot's chips step out */
+.fs-for { align-items: center; }
+.fs-for > .fs-print { flex: none; margin: 0 2px 0 0; line-height: 1; }
+.fs-council .fs-replying + .fs-for { padding-top: 0; }
+/* the label after the speaker: print, drawn on left to right like a pen at the confirm, lifted when taken back */
+.fs-sp-for { display: inline-block; }
+.fs-sp-for.draw { animation: fs-for-draw var(--t-draw) var(--ease) both; }
+.fs-sp-for.lift { animation: fs-for-lift var(--t-ui) var(--ease) forwards; }
+@keyframes fs-for-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fs-for-lift { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .fs-sp-for.draw { animation: none; }
+  .fs-sp-for.lift { display: none; }
+}
+/* ---- Spoke for ends ---- */

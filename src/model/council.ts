@@ -126,6 +126,34 @@ export async function unseat(pageId: string, voiceId: string, now = Date.now()):
   return next;
 }
 
+/** "For what?" on the seats screen (PLAN-VALUES.md step 6, C4): the council is about this value too (page.valueIds),
+ *  and its champions not yet seated take seats after those already there, the value's first and then the shadow's
+ *  (championsOf's order; archived voices stay standing). Twice changes nothing. */
+export async function aboutValue(pageId: string, valueId: string, now = Date.now()): Promise<Read<Page>> {
+  const page = await councilPageOf(pageId);
+  const value = await store.get('values', valueId);
+  if (!value) throw new Error('No such value');
+  const vs = await allVoices();
+  const champs = [...championsOf(value, vs, 'value'), ...championsOf(value, vs, 'shadow')].map(d => d.voice.id);
+  const seats = [...new Set([...(page.seats ?? []), ...champs])];
+  const valueIds = page.valueIds?.includes(valueId) ? page.valueIds : [...(page.valueIds ?? []), valueId];
+  if (valueIds === page.valueIds && seats.length === (page.seats ?? []).length) return page;
+  const next = { ...page, valueIds, updatedAt: now, ...(seats.length ? { seats } : {}) };
+  await store.put('pages', next);
+  return next;
+}
+
+/** A second tap on the value: the council is no longer about it; the seats it filled stay. */
+export async function notAboutValue(pageId: string, valueId: string, now = Date.now()): Promise<Read<Page>> {
+  const page = await councilPageOf(pageId);
+  if (!page.valueIds?.includes(valueId)) return page;
+  const { valueIds: _, ...rest } = page;
+  const left = page.valueIds.filter(id => id !== valueId);
+  const next = { ...rest, ...(left.length ? { valueIds: left } : {}), updatedAt: now };
+  await store.put('pages', next);
+  return next;
+}
+
 /** Seats the voice when it is standing, lets it go when it is seated. */
 export const toggleSeat = async (pageId: string, voiceId: string, now = Date.now()): Promise<Read<Page>> =>
   ((await councilPageOf(pageId)).seats?.includes(voiceId) ? unseat : seat)(pageId, voiceId, now);

@@ -26,7 +26,7 @@ const TICKS: Record<string, string[]> = {
   detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx'],
+  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx', 'src/ui/parts/SpokeFor.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   breath: ['src/ui/flow/breath.ts'],
   // M3: beside bell('album'), inside the tap
@@ -35,6 +35,8 @@ const TICKS: Record<string, string[]> = {
   // PLAN-ENERGIZE.md X3: a fixation put in a slot, and Deal me one, both on the deck sheet
   swap: ['src/ui/flow/DeckSheet.tsx'],
   deal: ['src/ui/flow/DeckSheet.tsx'],
+  // PLAN-VALUES.md C4: a line confirmed as spoken for a value, on the "Spoke for" row and its "+ value" sheet
+  for: ['src/ui/parts/SpokeFor.tsx'],
 };
 // Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2),
 // the bell that closes a sit with an end (Meditate, S2), the rising fifth on a swap (PLAN-ENERGIZE.md X3).
@@ -69,7 +71,7 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('the listed events that exist so far all fire somewhere', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
-    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal']) expect(ticks, t).toContain(t);
+    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal', 'for']) expect(ticks, t).toContain(t);
     for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
