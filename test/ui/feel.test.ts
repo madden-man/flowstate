@@ -27,7 +27,8 @@ const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
   check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx'],
-  drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
+  // PLAN-TASKS.md T5: a cover or line set down on a sign's shelf (moved, or taken off it)
+  drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/chakra/SignShelf.tsx'],
   detent: ['src/ui/parts/Cycle.tsx'],
   // PLAN-MOUNTAIN.md R3: a sign's gate, when the mark lands on fully shut and on fully open (rule 19 amended in R5)
   gate: ['src/ui/parts/Gate.tsx'],
@@ -39,7 +40,8 @@ const TICKS: Record<string, string[]> = {
   meter: ['src/ui/flow/mountain/Meter.tsx'],
   breath: ['src/ui/flow/breath.ts'],
   // M3: beside bell('album'), inside the tap
-  album: ['src/ui/music/'],
+  // PLAN-TASKS.md T5: a cover chosen on the music sheet for a sign's shelf, inside the tap on it
+  album: ['src/ui/music/', 'src/ui/flow/chakra/SignShelf.tsx'],
   sit: ['src/ui/flow/Meditate.tsx'],
   // PLAN-ENERGIZE.md X3: a fixation put in a slot, and Deal me one, both on the deck sheet
   swap: ['src/ui/flow/DeckSheet.tsx'],

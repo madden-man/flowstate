@@ -54,9 +54,9 @@ test('each sign prints its touch words on its plate, thumb-sized, the lead lit; 
     }
     // the plate is the taller one: twelve rules
     expect(plate.height).toBeGreaterThan(330);
-    // the foot: gloss, gate, the shelf's slot
+    // the foot: gloss, gate, the sign's shelf (T5) under the gate
     await expect(body.locator('.ck-gloss + .fs-gate')).toHaveCount(1);
-    await expect(body.locator('[data-shelf-slot]')).toHaveCount(1);
+    await expect(body.locator(`.fs-gate + .ck-shelf[data-shelf="${c}"]`)).toHaveCount(1);
   }
   // a tap lights the word and marks it pressed; nothing is written, nothing leaves
   await page.goto('/#/flow/c/heart');
@@ -139,7 +139,7 @@ test('through the door the place shows only the touches that write nothing, no g
   await expect(page.getByRole('group', { name: 'PIN' })).toHaveCount(0);
   expect(await body.locator('.ck-touch').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.touch))).toEqual(['five', 'breathe']);
   await expect(body.locator('.ck-touch[data-lit]')).toHaveAttribute('data-touch', 'five');
-  await expect(body.locator('.fs-gate, [data-shelf-slot], .ck-rows, .ck-steps')).toHaveCount(0);
+  await expect(body.locator('.fs-gate, .ck-shelf, .ck-rows, .ck-steps')).toHaveCount(0);
   await expect(body.locator('.ck-gloss')).toHaveText('Root · feeling safe');
   await expect(page.getByRole('link', { name: 'Call 988' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Sections' })).toHaveCount(0);
