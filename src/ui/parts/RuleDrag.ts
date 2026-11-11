@@ -33,18 +33,18 @@ export type RuleDragOptions = {
   disabled?: boolean;
   /** The tick for landing on an end (rule 19). */
   tickName: TickName;
-  /** The mark rises toward the left (a gate on the mountain shuts toward the stream, R2); keys are unchanged. */
-  leftward?: boolean;
 };
 
 /** The gesture: the ref for the rule, the mark's value now, whether it has been touched since mounting (a stale
  *  reading stops being dashed), whether a drag or a key holds it, and the rule's handlers. */
-export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tickName, leftward }: RuleDragOptions) {
+export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tickName }: RuleDragOptions) {
   const rule = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const keyed = useRef<{ from: number; to: number } | null>(null);
   const [live, setLive] = useState<number | null>(null);
   const [touched, setTouched] = useState(false);
+  /** A finger is down on the rule (taken or not yet): a resting control may show itself in full. */
+  const [pressed, setPressed] = useState(false);
 
   useEffect(() => {
     if (!disabled) return;
@@ -60,6 +60,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
       if (disabled || e.button > 0 || drag.current) return;
       const from = clamp(value);
       drag.current = { pointer: e.pointerId, x0: e.clientX, y0: e.clientY, from, value: from, taken: false };
+      setPressed(true);
     },
     onPointerMove: (e: PointerEvent) => {
       const d = drag.current;
@@ -67,7 +68,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
       const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
       if (!d.taken) {
         // down first is the page's scroll; sideways first is the mark
-        if (Math.abs(dy) > SLOP_PX && Math.abs(dy) >= Math.abs(dx)) { drag.current = null; return; }
+        if (Math.abs(dy) > SLOP_PX && Math.abs(dy) >= Math.abs(dx)) { drag.current = null; setPressed(false); return; }
         if (Math.abs(dx) <= SLOP_PX) return;
         d.taken = true;
         // from here the mark moves by the finger's travel past the slop, so it does not jump as it is taken
@@ -75,7 +76,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
         try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* the pointer has gone */ }
         setTouched(true);
       }
-      const v = snapRule(d.from + ((e.clientX - d.x0) / width()) * (leftward ? -1 : 1));
+      const v = snapRule(d.from + (e.clientX - d.x0) / width());
       land(v, d.value);
       d.value = v;
       show(v);
@@ -84,6 +85,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
       const d = drag.current;
       if (!d || d.pointer !== e.pointerId) return;
       drag.current = null;
+      setPressed(false);
       if (!d.taken) return; // a tap writes nothing
       setLive(null);
       if (d.value !== d.from) onCommit(d.value);
@@ -93,6 +95,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
       const d = drag.current;
       if (!d || d.pointer !== e.pointerId) return;
       drag.current = null;
+      setPressed(false);
       if (!d.taken) return;
       setLive(null);
       if (onCancel) onCancel(); else onInput?.(d.from);
@@ -120,5 +123,5 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
     if (k.to !== k.from) onCommit(k.to);
     else if (onCancel) onCancel();
   };
-  return { rule, live, touched, shown: clamp(live ?? value), handlers: { ...handlers, onLostPointerCapture: handlers.onPointerUp } };
+  return { rule, live, touched, pressed, shown: clamp(live ?? value), handlers: { ...handlers, onLostPointerCapture: handlers.onPointerUp } };
 }

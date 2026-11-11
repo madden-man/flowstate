@@ -4,9 +4,9 @@
 // gives less water (model/mountain.ts spring). It is a state he sets, never a count (DESIGN.md rule 15): no number is
 // printed; the weather is the reading.
 //
-// The rule is drawn in the plate's chalk. The share he has set is the mist itself gathered on the rule: a heavier line
-// with a soft band of mist round it, as long as the day is heavy, so the meter reads as the sky it sets. The mark is
-// the pen stroke every rule in the app is held by (the lean slider, the gate).
+// It is the cloud line itself: a chalk line drawn across the top of the sky, and the share he has set is mist heaping
+// along it as far as he draws it, so the control is the sky it sets. The mark is the pen stroke every rule in the app
+// is held by (the lean slider, the gate). The word sits small above the line's start.
 //
 // The touch is the gate's own (parts/RuleDrag, shared): nothing moves until a touch is decided as sideways, a touch that
 // goes down first is the page's scroll, the mark follows the finger with no transition (rule 20) while onInput drives
@@ -50,11 +50,9 @@ export function Meter({ value, onInput, onCommit, onCancel, stale, disabled }: P
         aria-valuetext={meterWords(shown)} aria-disabled={disabled || undefined} data-value={shown.toFixed(3)}
         {...handlers}>
         <svg class="mt-meter-ink" aria-hidden="true">
-          <line class="mt-meter-line" x1="0" y1="50%" x2="100%" y2="50%" />
-          <line class="mt-meter-mist" x1="0" y1="50%" x2={pct} y2="50%" />
-          <line class="mt-meter-held" x1="0" y1="50%" x2={pct} y2="50%" />
-          <line class="mt-meter-end" x1="99.6%" y1="32%" x2="99.6%" y2="68%" />
+          <line class="mt-meter-line" x1="0" y1="64%" x2="100%" y2="64%" />
         </svg>
+        <i class="mt-meter-mist" aria-hidden="true" style={{ '--at': pct }} />
         <svg class="mt-meter-mark" style={{ left: pct }} viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
           <path d="M6.4 2.5 C5.8 8 6.2 15 5.6 21.5" />
         </svg>

@@ -43,8 +43,9 @@ export function capOf(d: number): CapWeather {
 /** A band of mist (box units): its centre, length and thickness; where it lies high on a light day (hi) and low round
  *  the horn on the heaviest (lo); the cloud it needs before it shows (th); its drift. */
 type Band = { x: number; w: number; h: number; hi: number; lo: number; th: number; sp: number; ph: number; behind: boolean; puffs: Float32Array };
-/** Puffs a band, and what each holds: x, y (from the band's centre), width, height. */
-const PUFFS = 6;
+/** Puffs a band, and what each holds: x, y (from the band's centre), width, height. The first LOW are the band's
+ *  body, long and low; the rest are the rounder heads that heap up on it. */
+const PUFFS = 12, LOW = 7;
 const BANDS: Omit<Band, 'puffs'>[] = [
   // behind the horn first: the mist gathers in the sky and behind the peak before it comes round in front
   { x: 150, w: 300, h: 16, hi: 6, lo: 60, th: 0, sp: 0.9, ph: 0, behind: true },
@@ -54,6 +55,8 @@ const BANDS: Omit<Band, 'puffs'>[] = [
   { x: 120, w: 210, h: 11, hi: 20, lo: 88, th: 0.55, sp: 0.7, ph: 5.3, behind: false },
   { x: 170, w: 320, h: 18, hi: -16, lo: 192, th: 0.72, sp: -0.3, ph: 2.4, behind: false },
 ];
+/** The settle after the meter last rose (seconds), and how often the drifting mist is painted again (seconds). */
+const SETTLE = 1.6, DRIFT_EVERY = 0.5;
 /** How far a band rides on the air, in box units. */
 const DRIFT = 10;
 
@@ -133,6 +136,10 @@ export class Weather {
   private turned: Drift;
   private turnedDue = new Float32Array(7);
   private gust = 0;
+  /** Seconds of settling left after the meter last rose: the snow thins out over them, then stops. */
+  private settle = 0;
+  /** When the air was last painted for the mist's drift (it moves under a pixel a second, so twice a second does). */
+  private drifted = 0;
   private p: Placed = { x: 0, y: 0, tx: 0, ty: 1 };
   /** Whether the air needs painting again (the snow or the mist moved, or the light changed). */
   airDirty = true;
@@ -146,10 +153,12 @@ export class Weather {
     this.bands = BANDS.map(b => {
       const puffs = new Float32Array(PUFFS * 4);
       for (let k = 0; k < PUFFS; k++) {
-        const along = (k / (PUFFS - 1) - 0.5) * b.w * 0.75 + (this.r() - 0.5) * b.w * 0.12;
+        const low = k < LOW, n = low ? LOW : PUFFS - LOW, j = low ? k : k - LOW;
+        const along = (j / (n - 1) - 0.5) * b.w * (low ? 0.8 : 0.5) + (this.r() - 0.5) * b.w * 0.1;
         // the middle of a band is the thickest of it, its ends trail off
-        const mid = 1 - Math.abs(along) / (b.w * 0.5);
-        puffs.set([along, (this.r() - 0.5) * b.h * 0.45, b.w * (0.22 + 0.2 * this.r()), b.h * (0.55 + 0.7 * mid * this.r() + 0.25 * mid)], k * 4);
+        const mid = Math.max(0.2, 1 - Math.abs(along) / (b.w * 0.5));
+        const h = b.h * (low ? 1.1 + 0.6 * mid : 0.8 + 0.9 * mid * this.r());
+        puffs.set([along, low ? (this.r() - 0.5) * b.h * 0.2 : -b.h * (0.35 + 0.25 * this.r()) * mid, h * (low ? 2.6 : 1.5 + 0.4 * this.r()), h], k * 4);
       }
       return { ...b, puffs };
     });
@@ -175,7 +184,9 @@ export class Weather {
       m.x = 164 + Math.sin(a) * d; m.y = 402 + Math.abs(Math.cos(a)) * d * 0.4 + r() * 6; m.vx = (r() - 0.5) * 2; m.vy = 0; m.life = 0.7 + r() * 1.4;
     }, this.r);
     // slow snow in the air: it comes into the light anywhere over the plate, drifts down and goes out again
-    this.flakes = new Drift(170, (m, r) => { m.x = -10 + r() * 348; m.y = -40 + r() * 420; m.vx = (r() - 0.5) * 3; m.vy = 4 + r() * 6; m.life = 9 + r() * 8; }, this.r);
+    // snow let go by the meter rising: it comes into the light over the horn and the sky, slanting down on a slow wind,
+    // and is gone in a few seconds (plan pass 6: flakes fall while it rises; rule 31: then the air is still)
+    this.flakes = new Drift(170, (m, r) => { m.x = -30 + r() * 340; m.y = -40 + r() * 300; m.vx = 4 + r() * 4; m.vy = 9 + r() * 8; m.life = 3.5 + r() * 2.5; }, this.r);
     // fireflies keep to the firs: the clump round the root, and the treelines either side of the river
     const zones: [number, number, number, number][] = [[168, 194, 360, 380], [206, 240, 362, 382], [148, 168, 372, 388], [40, 130, 378, 392], [198, 300, 380, 392]];
     for (let k = 0; k < 16; k++) {
@@ -188,7 +199,11 @@ export class Weather {
   set(w: Partial<CapWeather>, atOnce = false) {
     const was = this.capTo.held;
     this.capTo = { ...this.capTo, ...w };
-    if (this.capTo.held > was + 0.002) this.gust = Math.min(40, this.gust + (this.capTo.held - was) * 90);
+    // only a rise he is making throws snow: a day put at once (opening the tab, Reduce Motion) is already settled
+    if (!atOnce && this.capTo.held > was + 0.002) {
+      this.gust = Math.min(40, this.gust + (this.capTo.held - was) * 90);
+      this.settle = SETTLE;
+    }
     if (atOnce) this.cap = { ...this.capTo };
     this.airDirty = true;
   }
@@ -206,7 +221,7 @@ export class Weather {
       this.airDirty = true;
     }
     // the mist drifts, so while there is any the air is painted every frame
-    if (c.cloud > 0.01 && go > 0) this.airDirty = true;
+    if (c.cloud > 0.01 && go > 0 && this.t - this.drifted > DRIFT_EVERY) this.airDirty = true;
     // what each closing gate turns back: the water above it less what it lets through
     let turning = 0;
     for (let i = 0; i < 7; i++) { const v = b ? b[i] * q[i] * 0.85 : 0; this.turnedDue[i] = v; turning += v; }
@@ -217,7 +232,9 @@ export class Weather {
     this.spray.step(go, 26 * q[3] * q[3], 34);
     this.embers.step(go, 3.2 * q[5]);
     this.sparks.step(go, 16 * q[7]);
-    this.flakes.step(go, 11 * this.cap.flakes * this.cap.flakes, 0, 0);
+    // snow only while the meter rises, thinning over a short settle after it stops
+    this.settle = Math.max(0, this.settle - go);
+    this.flakes.step(go, 34 * (this.settle / SETTLE) * (0.35 + 0.65 * this.cap.held), 0, 0);
     // a meter rising throws a flurry
     if (this.gust > 0 && go > 0) { const n = Math.min(this.gust, 360 * go); this.flakes.add(n, this.high); this.gust -= n; }
     // slow rings on the sacral's pool: one every few seconds, more often the more water comes
@@ -228,7 +245,7 @@ export class Weather {
   }
 
   /** A flurry's flake: it comes in high, round the summit, and is gone sooner. */
-  private high = (m: Mote, r: () => number) => { m.y = -30 + r() * 150; m.x = 40 + r() * 248; m.life = 5 + r() * 6; };
+  private high = (m: Mote, r: () => number) => { m.y = -30 + r() * 150; m.x = 20 + r() * 260; m.life = 3.5 + r() * 2.5; };
 
   /** The colours each place draws in, made once a palette (no string a particle a frame). */
   private styles(pal: Palette) {
@@ -245,12 +262,12 @@ export class Weather {
     };
     // a band's puff: a long soft ellipse of mist, drawn once
     const m = document.createElement('canvas');
-    m.width = 128; m.height = 32;
+    m.width = 64; m.height = 64;
     const mg = m.getContext('2d')!;
-    mg.setTransform(4, 0, 0, 1, 0, 0);
+    mg.setTransform(2, 0, 0, 2, 0, 0);
     const mgr = mg.createRadialGradient(16, 16, 0, 16, 16, 16);
     const mc = mix(pal.plate, pal.line, 0.13);
-    mgr.addColorStop(0, rgb(mc, 1)); mgr.addColorStop(0.45, rgb(mc, 0.85)); mgr.addColorStop(0.75, rgb(mc, 0.35)); mgr.addColorStop(1, rgb(mc, 0));
+    mgr.addColorStop(0, rgb(mc, 1)); mgr.addColorStop(0.5, rgb(mc, 0.9)); mgr.addColorStop(0.8, rgb(mc, 0.35)); mgr.addColorStop(1, rgb(mc, 0));
     mg.fillStyle = mgr; mg.fillRect(0, 0, 32, 32);
     this.cloud = m;
     // the veil the mist draws over the stars: the mist's colour, thinning downward
@@ -262,9 +279,9 @@ export class Weather {
     this.veil = v;
     // the held snow's light on a band's underside: warm, soft, wide
     const u = document.createElement('canvas');
-    u.width = 128; u.height = 32;
+    u.width = 64; u.height = 64;
     const ug = u.getContext('2d')!;
-    ug.setTransform(4, 0, 0, 1, 0, 0);
+    ug.setTransform(2, 0, 0, 2, 0, 0);
     const ugr = ug.createRadialGradient(16, 16, 0, 16, 16, 16);
     ugr.addColorStop(0, rgb(glow, 1)); ugr.addColorStop(0.5, rgb(glow, 0.3)); ugr.addColorStop(1, rgb(glow, 0));
     ug.fillStyle = ugr; ug.fillRect(0, 0, 32, 32);
@@ -292,14 +309,18 @@ export class Weather {
       g.globalAlpha = a;
       g.fillRect(p.x - z / 2, p.y - z / 2, z, z);
     }
-    // slow snow in the air (R2): soft, each its own size (the near ones larger and fainter), a little drawn out down
-    // the way it falls and swaying as it goes, so a still frame never takes it for a star
+    // the snow the meter lets fall (R2): each flake a soft point with a short slanting trail the way the wind takes it,
+    // each its own size (the near ones larger and fainter), so a still frame reads falling snow, never stars
+    g.strokeStyle = st.line; g.lineCap = 'round';
     if (this.flake) for (const p of this.flakes.ps) {
-      const a = life(p) * (0.55 - 0.3 * p.seed) * (0.35 + 0.65 * this.cap.flakes);
+      const a = life(p) * (0.6 - 0.28 * p.seed);
       if (a < 0.01) continue;
-      const z = 1.6 + 3.2 * p.seed * p.seed;
+      const z = 1.3 + 2.6 * p.seed * p.seed, x = p.x + Math.sin(this.t * 0.9 + p.seed * 9) * 1.6, tl = 0.07 + 0.05 * p.seed;
+      g.globalAlpha = a * 0.45;
+      g.lineWidth = z * 0.45;
+      g.beginPath(); g.moveTo(x, p.y); g.lineTo(x - p.vx * tl, p.y - p.vy * tl); g.stroke();
       g.globalAlpha = a;
-      g.drawImage(this.flake, p.x + Math.sin(this.t * 0.7 + p.seed * 9) * 2.5 - z / 2, p.y - z * 0.8, z, z * 1.6);
+      g.drawImage(this.flake, x - z / 2, p.y - z / 2, z, z);
     }
     // what the closing gates turn back, sinking into the rock as embers
     for (const p of this.turned.ps) {
@@ -368,15 +389,21 @@ export class Weather {
       g.globalAlpha = a;
       g.fillRect(p.x - 0.6, p.y - 0.25, 1.2 + p.seed * 1.4, 0.5);
     }
-    // the held snow lights the mist from under, where it lies over the horn
+    // the mist lit from under where it passes over the light on the horn (the held snow, the water's first run): each
+    // low puff's belly, as bright as the light under it, so a bank has a top in shadow and an underside that glows
     if (this.cap.cloud > 0.01 && this.under) {
+      const src = PEAK.y + (this.cap.snowline - PEAK.y) * 0.45, lightUp = 0.12 + 0.4 * this.cap.held + 0.2 * q[0];
       for (const b of this.bands) {
         const a = this.bandOn(b);
         if (a < 0.01) continue;
-        const y = this.bandY(b), near = Math.exp(-(((y - this.cap.snowline * 0.8) / 70) ** 2));
-        g.globalAlpha = a * near * (0.05 + 0.18 * this.cap.held);
-        const w = 130 + this.cap.held * 70;
-        g.drawImage(this.under, PEAK.x - w / 2 + this.bandX(b) - b.x, y + b.h * 0.15, w, b.h * 1.1);
+        const x = this.bandX(b), y = this.bandY(b), P = b.puffs;
+        for (let k = 0; k < LOW; k++) {
+          const o = k * 4, px = x + P[o], py = y + P[o + 1], w = P[o + 2], h = P[o + 3];
+          const near = Math.exp(-(((px - PEAK.x) / 62) ** 2)) * Math.exp(-(((py - src) / 85) ** 2));
+          if (near < 0.03) continue;
+          g.globalAlpha = Math.min(1, a * near * lightUp);
+          g.drawImage(this.under, px - w * 0.42, py, w * 0.84, h * 0.7);
+        }
       }
     }
     g.globalAlpha = 1;
@@ -388,17 +415,10 @@ export class Weather {
 
   /** Paints what stands in front of the land: the snow down to its line, the veil the mist draws over the stars, and
    *  the bands of mist, each with a chalk stroke along its top. snow: 0 to 1, how far the arrival has let it settle. */
-  drawAir(g: CanvasRenderingContext2D, pal: Palette, snow: number, tex: HTMLCanvasElement) {
+  drawAir(g: CanvasRenderingContext2D, pal: Palette, snow: number, drawSnow: (g: CanvasRenderingContext2D, a: number) => void) {
     const st = this.styles(pal), c = this.cap;
-    this.airDirty = false;
-    if (snow > 0.01) {
-      const cap = capPaths(c.snowline);
-      g.globalAlpha = 0.92 * snow;
-      // only the rows the snow reaches (its fingers reach at most 30 below the line)
-      const foot = Math.min(476, c.snowline + 32), k = tex.height / 476;
-      g.save(); g.clip(cap.all); g.drawImage(tex, 0, 0, tex.width, Math.ceil(foot * k), 0, 0, 328, Math.ceil(foot * k) / k); g.restore();
-      g.globalAlpha = 0.4 * snow; g.strokeStyle = st.line; g.lineWidth = 0.6; g.lineJoin = 'round'; g.stroke(cap.rim);
-    }
+    this.airDirty = false; this.drifted = this.t;
+    if (snow > 0.01) { g.globalAlpha = 1; drawSnow(g, 0.95 * snow); }
     if (c.cloud > 0.01 && this.veil && this.cloud) {
       // the veil: the stars go first, high up, then the sky over the summit
       g.globalAlpha = smooth(c.cloud / 0.75);
@@ -416,13 +436,6 @@ export class Weather {
         for (let k = 0; k < PUFFS; k++) {
           const o = k * 4, w = P[o + 2], h = P[o + 3];
           g.drawImage(this.cloud, x + P[o] - w / 2, y + P[o + 1] - h / 2, w, h);
-        }
-        // the chalk: a fine stroke along the top of each fuller puff, as an engraver lines a cloud's edge
-        g.lineWidth = 0.4;
-        for (let k = 1; k < PUFFS - 1; k++) {
-          const o = k * 4, w = P[o + 2] * 0.3, h = P[o + 3], px = x + P[o], py = y + P[o + 1] - h * 0.28;
-          g.globalAlpha = a * (0.1 + 0.08 * (k & 1));
-          g.beginPath(); g.moveTo(px - w, py + h * 0.12); g.quadraticCurveTo(px, py - h * 0.14, px + w, py + h * 0.1); g.stroke();
         }
       }
       if (clipped) g.restore();

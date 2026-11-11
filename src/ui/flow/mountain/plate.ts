@@ -34,10 +34,10 @@ import { IN_MS, OUT_MS } from '../breath';
 import { CHAKRA_IDS } from '../../../model/mountain';
 import { COURSE, H, W, STOPS, SEA_Y, CIRCLE_R, PEAK, SHORE, place, type Placed } from '../../parts/cycle/river';
 import { Water, STRIDE, TINTS } from './water';
-import { Weather, capOf, capPaths, SNOW_HEAVY, type CapWeather } from './weather';
+import { Weather, capOf, capPaths, SNOW_HEAVY, SNOW_CLEAR, type CapWeather } from './weather';
 import { readPalette, rgb, mix, type Palette, type RGB } from './palette';
 import { headAt, seaIn, circlesIn, snowIn, HEAD_FROM } from './arrival';
-import type { Land } from './land';
+import { snowFoot, GULLIES, type Land } from './land';
 import { SURGES } from './water';
 
 /** Loops running now, for tests. */
@@ -50,6 +50,10 @@ const TAU = Math.PI * 2;
 const LEVELS = 3;
 /** The light one stretch throws on the rock: the narrow core and the wide spill, in box units. */
 const CORE_R = 15, WIDE_R = 40, LANTERN_R = 46, HEAD_R = 60, POOL_R = 26;
+/** How long a cancelled gesture's snap waits for the water it puts back (one render, in practice). */
+const SNAP_MS = 250;
+/** The snow is drawn at this many lines down the horn, and nothing of it reaches below SNOW_BOTTOM (box units). */
+const SNOW_LEVELS = 12, SNOW_BOTTOM = 270;
 /** How many rings can be going out at once (the arrival's kindling, a surge's rekindling). */
 const RINGS = 12;
 
@@ -112,6 +116,9 @@ export class Plate {
   /** The snow at its heaviest, drawn once: a pale mass with the rock's lines showing dark through it. The air canvas
    *  lays on as much of it as the meter's line takes. */
   private snowTex = document.createElement('canvas');
+  private snowLevels: HTMLCanvasElement[] = [];
+  /** The horn's crests (its two edges and the arete), where the snow lies thin. */
+  private crests: Path2D[] = [];
   private fadeFrom = document.createElement('canvas');
   private layers: Layer[] = [];
   private paths: (Path2D | null)[] = [];
@@ -150,6 +157,7 @@ export class Plate {
   private swells: Swell[] = [];
   private d = 0; private gates: number[] = [0, 0, 0, 0, 0, 0, 0];
   private override: Partial<CapWeather> | null = null;
+  private wasHidden = false;
   private reveal = (y: number) => this.revealAt(y);
 
   constructor(private parts: PlateParts, snowline: number) {
@@ -183,11 +191,17 @@ export class Plate {
   }
 
   /** The meter and the gates (R2 calls this live, under the finger; the water eases to it). */
+  /** The next water given is put at once (a cancelled gesture: the plate goes back exactly as it was). */
+  snapNext() { this.snapAt = performance.now(); }
+  private snapAt = -Infinity;
+
   setWater(d: number, gates: readonly number[], atOnce = false) {
     this.d = d;
     for (let i = 0; i < 7; i++) this.gates[i] = gates[i] ?? 0;
     // with no loop to ease it (Reduce Motion, hidden) the water is simply as it was set, and nothing travels
-    const now = atOnce || !this.raf;
+    const snap = performance.now() - this.snapAt < SNAP_MS;
+    this.snapAt = -Infinity;
+    const now = atOnce || !this.raf || snap;
     if (this.state) this.water.feed(d, this.gates, now);
     else this.water.set(STILL_Q, STILL_B, now);
     this.weather.set({ ...capOf(this.state ? d : 0), ...(this.state ? this.override : null) }, now);
@@ -305,7 +319,11 @@ export class Plate {
     this.hueStyles = pal.hues.map(h => rgb(mix(h, pal.glow, 0.2)));
     this.tintStyles = [];
     for (let stop = -1; stop < 7; stop++) for (let t = 0; t < TINTS; t++) this.tintStyles.push(rgb(this.moteColour(stop, t)));
-    if (was !== this.state) this.setWater(this.d, this.gates, true);
+    if (was !== this.state) {
+      // into Still nothing of a state may finish: no ring going out in its hue, no flare
+      if (!this.state) { for (const r of this.rings) r.age = -1; this.flare.fill(0); }
+      this.setWater(this.d, this.gates, true);
+    }
     this.layersDirty = true; this.answerDirty = true; this.weather.airDirty = true;
   }
   private moteColour(stop: number, t: number): RGB {
@@ -333,8 +351,12 @@ export class Plate {
   }
 
   private wake = () => {
+    if (document.visibilityState === 'hidden') this.wasHidden = true;
     const may = this.live && this.seen && document.visibilityState !== 'hidden' && this.parts.canvas.isConnected
       && (this.water.k > 0 || this.t0 !== null);
+    // back from another app: whatever was on its way down has long since got there, so it is drawn arrived, not
+    // replayed late
+    if (may && !this.raf && this.wasHidden) { this.wasHidden = false; this.setWater(this.d, this.gates, true); }
     if (may && !this.raf) { this.prev = 0; this.raf = requestAnimationFrame(this.frame); running.loops++; this.parts.canvas.dataset.running = ''; }
     else if (!may) this.halt();
   };
@@ -413,6 +435,7 @@ export class Plate {
     g.lineCap = 'round'; g.lineJoin = 'round';
     const marks = this.parts.land.marks;
     if (this.paths.length !== marks.length) this.paths = marks.map(m => (m.d ? new Path2D(m.d) : null));
+    this.crests = marks.flatMap((m, i) => (m.kind === 'pen' && (m.cls === 'bold' || m.cls === 'arete') && this.paths[i] ? [this.paths[i]!] : []));
     // the lit face takes a little of the light too, so the rock reads as rock and not as wire
     marks.forEach((m, i) => {
       const path = this.paths[i];
@@ -429,58 +452,117 @@ export class Plate {
     });
   }
 
-  /** The snow at its heaviest: lit side and shadow side, the rock under it showing through as dark lines (the horn's
-   *  edges, the arete, the crags), as snow on a horn does by night. */
+  /** The snow, drawn once a light and a size at SNOW_LEVELS lines down the horn: a pale mass graded from the summit
+   *  down into the night, the shadow side hatched, the rock under it showing through as dark lines (the horn's edges,
+   *  the arete, the crags), a dark bed where the stream's first run goes through it, and no hard edge anywhere: the
+   *  foot is feathered and broken, drifts lie down the gullies, and the snow thins on the crests. A frame lays on the
+   *  two levels either side of the meter's line, cross-faded (drawSnow). */
   private buildSnow(K: number) {
-    const g = this.snowTex.getContext('2d')!, pal = this.pal;
-    this.snowTex.width = Math.ceil(W * K); this.snowTex.height = Math.ceil(H * K);
+    const pal = this.pal, tex = this.snowTex, c = COURSE;
+    tex.width = Math.ceil(W * K); tex.height = Math.ceil(SNOW_BOTTOM * K);
+    const g = tex.getContext('2d')!;
     g.setTransform(K, 0, 0, K, 0, 0);
-    const big = capPaths(SNOW_HEAVY + 30);
-    // the lit side holds most light high on the horn and goes down into the night; the shadow side is dark snow
+    const big = capPaths(SNOW_HEAVY + 40);
     const lit = g.createLinearGradient(0, PEAK.y, 0, SNOW_HEAVY + 30);
-    lit.addColorStop(0, rgb(mix(pal.plate, pal.line, 0.62)));
-    lit.addColorStop(0.4, rgb(mix(pal.plate, pal.line, 0.42)));
-    lit.addColorStop(1, rgb(mix(pal.plate, pal.line, 0.2)));
+    lit.addColorStop(0, rgb(mix(pal.plate, pal.line, 0.66)));
+    lit.addColorStop(0.35, rgb(mix(pal.plate, pal.line, 0.46)));
+    lit.addColorStop(1, rgb(mix(pal.plate, pal.line, 0.22)));
     g.fillStyle = lit; g.fill(big.lit);
     const shade = g.createLinearGradient(0, PEAK.y, 0, SNOW_HEAVY + 30);
-    shade.addColorStop(0, rgb(mix(pal.deep, pal.line, 0.22)));
-    shade.addColorStop(1, rgb(mix(pal.deep, pal.line, 0.07)));
+    shade.addColorStop(0, rgb(mix(pal.deep, pal.line, 0.26)));
+    shade.addColorStop(1, rgb(mix(pal.deep, pal.line, 0.08)));
     g.fillStyle = shade; g.fill(big.shade);
     g.lineCap = 'round'; g.lineJoin = 'round';
-    // engraved: streaks down the lit snow along the fall line, close hatching across the shadow side
     let sd = 53;
     const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    // engraved: soft streaks down the lit snow along the fall line, close hatching across the shadow side
     g.save(); g.clip(big.lit);
-    g.strokeStyle = rgb(pal.line, 0.16); g.lineWidth = 0.4;
+    g.strokeStyle = rgb(pal.deep, 0.2); g.lineWidth = 0.5;
     g.beginPath();
-    for (let k = 0; k < 120; k++) {
-      const y = PEAK.y + 6 + r() * (SNOW_HEAVY - PEAK.y), x = PEAK.x - 70 + r() * 90, len = 4 + r() * 9;
+    for (let k = 0; k < 140; k++) {
+      const y = PEAK.y + 10 + r() * (SNOW_HEAVY - PEAK.y), x = PEAK.x - 70 + r() * 92, len = 4 + r() * 10;
       g.moveTo(x, y); g.lineTo(x - len * 0.35, y + len);
     }
     g.stroke();
     g.restore();
     g.save(); g.clip(big.shade);
-    g.strokeStyle = rgb(pal.deep, 0.55); g.lineWidth = 0.45;
+    g.strokeStyle = rgb(pal.deep, 0.6); g.lineWidth = 0.5;
     g.beginPath();
-    for (let y = PEAK.y; y < SNOW_HEAVY + 30; y += 2.2) { g.moveTo(PEAK.x - 10, y + 8); g.lineTo(PEAK.x + 90, y - 22 + (r() - 0.5) * 2); }
+    for (let y = PEAK.y; y < SNOW_HEAVY + 40; y += 2.4) { g.moveTo(PEAK.x - 10, y + 8); g.lineTo(PEAK.x + 90, y - 22 + (r() - 0.5) * 2); }
     g.stroke();
     g.restore();
     // rock through snow: the heavy lines darkest, the hatching barely
-    const marks = this.parts.land.marks;
-    marks.forEach((m, i) => {
+    this.parts.land.marks.forEach((m, i) => {
       const path = this.paths[i];
       if (!path || m.kind !== 'pen' || m.cls === 'tree' || m.cls === 'scree' || m.cls === 'ridge' || m.cls === 'ridge-far' || m.cls.startsWith('horn')) return;
-      g.strokeStyle = rgb(pal.deep, m.cls === 'bold' || m.cls === 'arete' ? 0.95 : m.cls === 'hatch' ? 0.3 : 0.75);
-      g.lineWidth = m.w * (m.cls === 'bold' || m.cls === 'arete' ? 1.35 : 1.1);
+      g.strokeStyle = rgb(pal.deep, m.cls === 'bold' || m.cls === 'arete' ? 0.9 : m.cls === 'hatch' ? 0.35 : 0.75);
+      g.lineWidth = m.w * (m.cls === 'bold' || m.cls === 'arete' ? 1.5 : 1.15);
       g.stroke(path);
     });
+    // the stream's bed: the water runs through the snow in a dark cut, so its light shows on it
+    const bed = new Path2D();
+    for (let s = 0; s <= c.at[3] + 30; s += 2) { place(s, c, this.p); if (s) bed.lineTo(this.p.x, this.p.y); else bed.moveTo(this.p.x, this.p.y); }
+    g.strokeStyle = rgb(pal.deep, 0.35); g.lineWidth = 9; g.stroke(bed);
+    g.strokeStyle = rgb(pal.deep, 0.6); g.lineWidth = 4; g.stroke(bed);
+
+    // the levels: the texture kept only where the snow lies at that line
+    const disc = this.disc;
+    this.snowLevels = [];
+    for (let k = 0; k < SNOW_LEVELS; k++) {
+      const line = SNOW_CLEAR + ((SNOW_HEAVY - SNOW_CLEAR) * k) / (SNOW_LEVELS - 1);
+      const lc = canvas(tex.width, Math.ceil(Math.min(SNOW_BOTTOM, line + 40) * K)), lg = lc.getContext('2d')!;
+      lg.setTransform(K, 0, 0, K, 0, 0);
+      const foot = snowFoot(line);
+      // the body, held back from the foot
+      lg.fillStyle = rgb([255, 255, 255]);
+      lg.fill(capPaths(line - 7).all);
+      // the foot, feathered and broken: soft stamps along it, each its own size, some reaching on down
+      for (const run of foot.rim) for (let i = 0; i < run.length; i++) {
+        const [x, y] = run[i], rr = 4 + r() * 5;
+        lg.globalAlpha = 0.55 + 0.45 * r();
+        lg.drawImage(disc, x - rr, y - rr * 1.4 - 2, rr * 2, rr * 2);
+        if (r() < 0.18) { const d2 = 2 + r() * 4; lg.globalAlpha = 0.35 * r(); lg.drawImage(disc, x - d2, y + 1 + r() * 5, d2 * 2, d2 * 2); }
+      }
+      // drifts down the gullies the foot reaches into
+      const reach = Math.min(1, (line - PEAK.y) / 90);
+      for (const [gx, gw, gl] of GULLIES) {
+        for (let t = 0; t < 1; t += 0.2) {
+          const y = line + gl * reach * t, w2 = gw * (1 - 0.6 * t);
+          lg.globalAlpha = 0.5 * (1 - t);
+          lg.drawImage(disc, gx - w2, y - w2 * 0.8, w2 * 2, w2 * 2.4);
+        }
+      }
+      // thinner on the crests: the arete and the horn's edges let the rock through
+      lg.globalAlpha = 1;
+      lg.globalCompositeOperation = 'destination-out';
+      lg.strokeStyle = rgb([0, 0, 0], 0.35); lg.lineWidth = 3;
+      for (const m of this.crests) lg.stroke(m);
+      lg.globalCompositeOperation = 'source-in';
+      lg.drawImage(tex, 0, 0, tex.width, lc.height, 0, 0, W, lc.height / K);
+      lg.globalCompositeOperation = 'source-over';
+      this.snowLevels.push(lc);
+    }
   }
+
+  /** Lays the snow on at the meter's line: the two levels either side of it, cross-faded (a = how much). */
+  private drawSnow = (g: CanvasRenderingContext2D, a: number) => {
+    const L = this.snowLevels;
+    if (!L.length || a <= 0) return;
+    const f = Math.max(0, Math.min(SNOW_LEVELS - 1, ((this.weather.cap.snowline - SNOW_CLEAR) / (SNOW_HEAVY - SNOW_CLEAR)) * (SNOW_LEVELS - 1)));
+    const k0 = Math.floor(f), k1 = Math.min(SNOW_LEVELS - 1, k0 + 1), t = f - k0, K = this.snowTex.width / W;
+    const was = g.globalAlpha;
+    g.globalAlpha = was * a * (1 - t);
+    g.drawImage(L[k0], 0, 0, W, L[k0].height / K);
+    if (t > 0.01) { g.globalAlpha = was * a * t; g.drawImage(L[k1], 0, 0, W, L[k1].height / K); }
+    g.globalAlpha = was;
+  };
 
   /** The layers: per stretch the rock lit by a narrow core and a wide spill of its water, per sign by its lantern. */
   private buildLayers() {
     const K = this.scale * this.litK;
     this.buildRock(K);
-    this.buildSnow(Math.max(K, this.scale * this.dpr * 0.8));
+    // the snow is soft: a little over half the device pixel is enough (twelve levels of it are kept)
+    this.buildSnow(this.scale * this.dpr * 0.6);
     this.weather.airDirty = true;
     this.layers = [];
     const c = COURSE;
@@ -574,7 +656,6 @@ export class Plate {
     if (this.weather.airDirty || this.t0 !== null) this.paintAir();
     const head = this.headS;
     const g = this.g, st = this.state, k = this.water.k;
-    if (this.layersDirty) this.buildLayers();
     if (this.answerDirty) this.answer();
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-over';
@@ -672,37 +753,25 @@ export class Plate {
     ag.globalAlpha = 1; ag.globalCompositeOperation = 'source-over';
     ag.clearRect(0, 0, this.parts.air.width, this.parts.air.height);
     this.toBox(ag);
-    this.weather.drawAir(ag, this.pal, this.t0 === null ? 1 : snowIn(this.f), this.snowTex);
+    this.weather.drawAir(ag, this.pal, this.t0 === null ? 1 : snowIn(this.f), this.drawSnow);
   }
 
   /** The cap's held snow and its cornice, glowing with what it holds back: brighter the heavier the day, so a heavy
    *  day is a dark mountain with a bright cap. */
   private snow(g: CanvasRenderingContext2D) {
-    const cap = capPaths(this.weather.cap.snowline);
     if (!this.cornice) {
       const m = this.parts.land.marks.find(x => x.kind === 'fill' && x.cls === 'cornice');
       this.cornice = new Path2D(m?.d ?? '');
     }
     const on = this.t0 === null ? 1 : snowIn(this.f);
     if (on <= 0) return;
-    const q0 = this.water.q[0], held = this.weather.cap.held, line = this.weather.cap.snowline;
+    const held = this.weather.cap.held, q0 = this.water.q[0];
+    // lit from within: the snow itself again, added in light, the more the heavier the day (it is brightest high on
+    // the horn, where the texture is), and the cornice with it
+    this.drawSnow(g, (0.18 + 0.5 * held) * on);
     g.fillStyle = this.glowStyle;
-    g.globalAlpha = (0.02 + 0.03 * held) * on;
-    g.fill(cap.lit); g.fill(this.cornice);
-    // the held snow's own light: brightest high on the horn, going down into the snow as far as it holds
-    const r = 26 + (line - PEAK.y) * 1.05, cy = PEAK.y + (line - PEAK.y) * 0.18;
-    g.save(); g.clip(cap.lit);
-    g.globalAlpha = (0.05 + 0.15 * held) * on;
-    g.drawImage(this.snowGlow, PEAK.x - 8 - r, cy - r, 2 * r, 2 * r);
-    g.restore();
-    g.save(); g.clip(cap.shade);
-    g.globalAlpha = (0.02 + 0.06 * held) * on;
-    g.drawImage(this.snowGlow, PEAK.x + 6 - r * 0.8, cy - r * 0.8, 1.6 * r, 1.6 * r);
-    g.restore();
-    // the rim of what is held catches a little of it
-    g.strokeStyle = this.glowStyle; g.lineWidth = 0.6;
-    g.globalAlpha = (0.06 + 0.16 * held) * on;
-    g.stroke(cap.rim);
+    g.globalAlpha = (0.04 + 0.08 * held) * on;
+    g.fill(this.cornice);
     // where the water leaves the snow, it glows
     g.globalAlpha = 0.28 * (0.35 + 0.65 * q0) * on;
     g.drawImage(this.snowGlow, PEAK.x - 22, PEAK.y + 6, 44, 44);

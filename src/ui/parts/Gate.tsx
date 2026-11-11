@@ -1,8 +1,8 @@
 // parts/Gate (PLAN-MOUNTAIN.md section 5, R3; R2 puts the compact one on the mountain under each sign's name): how far
 // a sign's gate is shut, 0 open to 1 shut. A short drawn rule with a mark, dragged sideways: right shuts it.
 //
-// The gesture is parts/RuleDrag (shared with the meter since R2). A touch is not a drag until it is decided. Nothing moves on pointerdown: the touch must travel SLOP_PX sideways, more
-// than it travels down, before the mark is taken (parts/Spread decides a press the same way). A touch that goes down
+// The gesture is parts/RuleDrag (shared with the meter since R2). A touch is not a drag until it is decided. Nothing
+// moves on pointerdown: the touch must travel SLOP_PX sideways, more than it travels down, before the mark is taken (parts/Spread decides a press the same way). A touch that goes down
 // first is the page's scroll (touch-action pan-y): the gate lets it go, and nothing moves, ticks or is written. Once
 // taken, the mark follows the finger by how far it has moved (it does not jump to the finger), with no transition
 // (DESIGN.md rule 20); onInput says where it is on every move, so the sign and the water answer live, and onCommit says
@@ -36,9 +36,6 @@ type Props = {
   stale?: boolean;
   /** Under a sign's name on the mountain: shorter, no gap above. */
   compact?: boolean;
-  /** Shuts toward the left (R2: a gate on the mountain shuts toward the stream, so a sign whose name is on its right
-   *  has its rule mirrored, the shut share growing from the right end and the percent on the left). */
-  leftward?: boolean;
   /** What it is the gate of, for a screen reader ("Heart"). */
   label?: string;
   disabled?: boolean;
@@ -51,25 +48,26 @@ export const snapGate = snapRule;
 export const gateWords = (v: number) => { const p = Math.round(clamp(v) * 100); return p > 0 ? `${p}%` : ''; };
 export { SLOP_PX };
 
-export function Gate({ value, onInput, onCommit, onCancel, hue, stale, compact, leftward, label, disabled }: Props) {
+export function Gate({ value, onInput, onCommit, onCancel, hue, stale, compact, label, disabled }: Props) {
   // the gesture is parts/RuleDrag's, shared with the mountain's Depression meter (R2)
-  const { rule, live, touched, shown, handlers } = useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tickName: 'gate', leftward });
+  const { rule, live, touched, pressed, shown, handlers } = useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tickName: 'gate' });
 
-  const pct = `${(shown * 100).toFixed(1)}%`, at = leftward ? `${(100 - shown * 100).toFixed(1)}%` : pct;
+  const pct = `${(shown * 100).toFixed(1)}%`;
   const words = gateWords(shown);
   return (
-    <div class={`fs-gate fs-notstill${compact ? ' compact' : ''}${leftward ? ' leftward' : ''}`} style={{ '--gh': String(hue), '--gate': String(shown) }}
-      data-stale={stale && !touched ? '' : undefined} data-drag={live !== null ? '' : undefined} data-disabled={disabled ? '' : undefined}>
+    <div class={`fs-gate fs-notstill${compact ? ' compact' : ''}`} style={{ '--gh': String(hue), '--gate': String(shown) }}
+      data-stale={stale && !touched ? '' : undefined} data-drag={live !== null ? '' : undefined} data-disabled={disabled ? '' : undefined}
+      data-open={shown === 0 ? '' : undefined} data-press={pressed ? '' : undefined}>
       <div ref={rule} class="fs-gate-rule" role="slider" tabIndex={disabled ? -1 : 0}
         aria-label={label ? `${label} gate` : 'Gate'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(shown * 100)}
         aria-valuetext={words ? `${words} shut` : 'open'} aria-disabled={disabled || undefined}
         {...handlers}>
         <svg class="fs-gate-ink" aria-hidden="true">
           <line class="fs-gate-line" x1="0" y1="50%" x2="100%" y2="50%" />
-          <line class="fs-gate-shut" x1={leftward ? '100%' : '0'} y1="50%" x2={at} y2="50%" />
-          <line class="fs-gate-end" x1={leftward ? '0.4%' : '99.6%'} y1="30%" x2={leftward ? '0.4%' : '99.6%'} y2="70%" />
+          <line class="fs-gate-shut" x1="0" y1="50%" x2={pct} y2="50%" />
+          <line class="fs-gate-end" x1="99.6%" y1="30%" x2="99.6%" y2="70%" />
         </svg>
-        <svg class="fs-gate-mark" style={{ left: at }} viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
+        <svg class="fs-gate-mark" style={{ left: pct }} viewBox="0 0 12 24" width="12" height="24" aria-hidden="true">
           <path d="M6.4 2.5 C5.8 8 6.2 15 5.6 21.5" />
         </svg>
       </div>

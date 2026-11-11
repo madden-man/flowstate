@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { CHAKRAS, CHAKRA_IDS, isStale, latestReadings, writeReading, type ChakraId } from '../../model/mountain';
 import type { Reading } from '../../db/schema';
-import { gate as lockGate } from '../lock/pin';
+import { gate as lockGate, gateState } from '../lock/pin';
 import { Meter } from './mountain/Meter';
 import { Gate } from '../parts/Gate';
 import { readGuard } from './chakra/fresh';
@@ -48,6 +48,13 @@ export const SEA_CIRCLES: readonly { name: string; href: string; travel: string;
   { name: 'Meditate', href: '#/flow/meditate', travel: 'md-circle' },
   { name: 'Energize', href: `#/flow/${FIXATION_FLOW}`, travel: 'fs-drawing', arc: true, flow: FIXATION_FLOW },
 ];
+
+/** How far each sign's link box is lifted above its stop so its gate fits wholly under it (R2): the Crown sits close
+ *  over the Throat, and the Root close over Energize's circle in the sea. */
+const LIFT: Record<ChakraId, string> = {
+  'crown': 'calc(var(--s1) * 1.5)', 'third-eye': 'calc(var(--s1) / 2)', 'throat': 'calc(var(--s1) / 2)', 'heart': 'calc(var(--s1) / 2)',
+  'solar-plexus': 'calc(var(--s1) / 2)', 'sacral': 'calc(var(--s1) / 2)', 'root': 'calc(var(--s1) * 2.25)',
+};
 
 /** The view-transition name a sign travels under (R3's large sign takes the same). */
 export const signTravel = (id: ChakraId) => `mt-sign-${id}`;
@@ -103,6 +110,38 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
   const slots = useMemo(() => seaSlots(SEA_CIRCLES.length), []);
   const snowline = cap?.snowline ?? SNOW_Y;
   const gateKey = gates.map(g => unit(g).toFixed(3)).join(',');
+  // the land never changes after it is drawn: the same vnode every render, so a drag diffs none of it (Preact skips
+  // a child it has already rendered)
+  const landSvg = useMemo(() => (
+      <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="mt-sea" gradientUnits="userSpaceOnUse" x1="0" y1="396" x2="0" y2={H}>
+            <stop offset="0" class="mt-sea-top" />
+            <stop offset="1" class="mt-sea-foot" />
+          </linearGradient>
+          <linearGradient id="mt-skyg" gradientUnits="userSpaceOnUse" x1="0" y1="-120" x2="0" y2="300">
+            <stop offset="0" class="mt-sky-top" />
+            <stop offset="1" class="mt-sky-foot" />
+          </linearGradient>
+          <radialGradient id="mt-vignette" cx="50%" cy="40%" r="75%">
+            <stop offset=".55" class="mt-vig-in" />
+            <stop offset="1" class="mt-vig-out" />
+          </radialGradient>
+        </defs>
+        <rect class="mt-sky" x="-40" y="-200" width={W + 80} height={H + 200} fill="url(#mt-skyg)" />
+        <g class="mt-stars">
+          {L.stars.map((s, i) => <circle key={i} class="mt-star" cx={f1(s.x)} cy={f1(s.y)} r={s.r.toFixed(2)} style={{ '--at': s.at.toFixed(3) }} />)}
+        </g>
+        <rect class="mt-sea" x="-40" y="396" width={W + 80} height={H - 396 + 40} />
+        {L.marks.map((m, i) => (m.kind === 'fill'
+          ? (m.cls === 'snow-slot'
+            // the snow is the weather's (R2): it is drawn on the air canvas, down to the meter's line
+            ? null
+            : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
+          : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len, '--w': m.w.toFixed(2) }} />))}
+        <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
+      </svg>
+  ), []);
 
   useEffect(() => {
     const el = host.current!;
@@ -150,46 +189,20 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
   useEffect(() => { plate.current?.setWater(unit(d), gates.map(unit)); }, [d, gateKey]);
   useEffect(() => { plate.current?.setWeather(cap ?? null); }, [cap?.snowline, cap?.flakes, cap?.cloud, cap?.held]);
 
+  // a gesture taken away (the browser's scroll, a drag that came back where it began): the plate goes back to exactly
+  // what it was, at once, with no travel and no surge for what was never let go
+  const cancel = () => { plate.current?.snapNext(); controls?.cancel(); };
+
   // the darkness below each sign: a stop just above it and one a little below, set by the plate as the water eases
   const shadeStops = CHAKRA_IDS.flatMap(id => [STOPS[id].y - 2, STOPS[id].y + 12]);
 
   return (
     <div class="mt-wrap">
-    {controls && (
-      <Meter value={unit(d)} stale={controls.meterStale} disabled={controls.disabled}
-        onInput={controls.meterInput} onCommit={controls.meterCommit} onCancel={controls.cancel} />
-    )}
     <section ref={host} class="mt-plate on-plate" aria-label="The mountain" data-d={unit(d).toFixed(3)} data-gates={gateKey}
       data-held={controls?.held ? '' : undefined}
       data-arrive={arrived() ? 'done' : 'run'}>
-      <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
-        <defs>
-          <linearGradient id="mt-sea" gradientUnits="userSpaceOnUse" x1="0" y1="396" x2="0" y2={H}>
-            <stop offset="0" class="mt-sea-top" />
-            <stop offset="1" class="mt-sea-foot" />
-          </linearGradient>
-          <linearGradient id="mt-skyg" gradientUnits="userSpaceOnUse" x1="0" y1="-120" x2="0" y2="300">
-            <stop offset="0" class="mt-sky-top" />
-            <stop offset="1" class="mt-sky-foot" />
-          </linearGradient>
-          <radialGradient id="mt-vignette" cx="50%" cy="40%" r="75%">
-            <stop offset=".55" class="mt-vig-in" />
-            <stop offset="1" class="mt-vig-out" />
-          </radialGradient>
-        </defs>
-        <rect class="mt-sky" x="-40" y="-200" width={W + 80} height={H + 200} fill="url(#mt-skyg)" />
-        <g class="mt-stars">
-          {L.stars.map((s, i) => <circle key={i} class="mt-star" cx={f1(s.x)} cy={f1(s.y)} r={s.r.toFixed(2)} style={{ '--at': s.at.toFixed(3) }} />)}
-        </g>
-        <rect class="mt-sea" x="-40" y="396" width={W + 80} height={H - 396 + 40} />
-        {L.marks.map((m, i) => (m.kind === 'fill'
-          ? (m.cls === 'snow-slot'
-            // the snow is the weather's (R2): it is drawn on the air canvas, down to the meter's line
-            ? null
-            : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
-          : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len, '--w': m.w.toFixed(2) }} />))}
-        <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
-      </svg>
+      <div class="mt-art">
+      {landSvg}
       <svg class="mt-live" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id="mt-shade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={H}>
@@ -213,7 +226,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
           return (
             <a key={c.id} class="mt-stop" href={`#/flow/c/${c.id}`} data-chakra={c.id} data-side={st.side > 0 ? 'right' : 'left'}
               data-live={live?.has(c.id) ? 'true' : undefined}
-              style={{ '--x': st.x, '--y': st.y }}>
+              style={{ '--x': st.x, '--y': st.y, '--lift': LIFT[c.id] }}>
               <span class="mt-sign" data-travel={signTravel(c.id)}>
                 <Sign kind={c.sign} hue={c.hue} closed={unit(gates[i] ?? 0)} size="small" />
                 {live?.has(c.id) && <i class="mt-dot" aria-hidden="true"><i class="mt-halo" /></i>}
@@ -226,10 +239,10 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
         {controls && CHAKRAS.map((c, i) => {
           const st = STOPS[c.id], r = controls.readings[c.id];
           return (
-            <div key={c.id} class="mt-gate" data-chakra={c.id} data-side={st.side > 0 ? 'right' : 'left'} style={{ '--x': st.x, '--y': st.y }}>
-              <Gate compact value={unit(gates[i] ?? 0)} hue={c.hue} label={c.name} leftward={st.side > 0}
+            <div key={c.id} class="mt-gate" data-chakra={c.id} data-side={st.side > 0 ? 'right' : 'left'} style={{ '--x': st.x, '--y': st.y, '--lift': LIFT[c.id] }}>
+              <Gate compact value={unit(gates[i] ?? 0)} hue={c.hue} label={c.name}
                 stale={!!r && isStale(r, controls.now)} disabled={controls.disabled}
-                onInput={v => controls.gateInput(i, v)} onCommit={v => controls.gateCommit(i, v)} onCancel={controls.cancel} />
+                onInput={v => controls.gateInput(i, v)} onCommit={v => controls.gateCommit(i, v)} onCancel={cancel} />
             </div>
           );
         })}
@@ -245,6 +258,13 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
           </a>
         ))}
       </div>
+      </div>
+      {/* the meter is on the plate (a touch on it cuts the arrival short too) but over its masked art, so the feather
+          never fades it */}
+      {controls && (
+        <Meter value={unit(d)} stale={controls.meterStale} disabled={controls.disabled}
+          onInput={controls.meterInput} onCommit={controls.meterCommit} onCancel={cancel} />
+      )}
     </section>
     </div>
   );
@@ -279,6 +299,8 @@ export function Mountain() {
   const w = waterLive.value ?? read;
   const now = Date.now();
   const write = async (of: 'mountain' | ChakraId, v: number) => {
+    // what this gesture left on the plate: let go of it only if no newer gesture has taken the plate since
+    const mine = waterLive.peek();
     const done = guard.write();
     // locked again under the thumb (LockedError): nothing is written, and the plate goes back to what was kept
     try { await writeReading(of, v); } catch { /* the PIN first */ } finally { done(); }
@@ -287,14 +309,15 @@ export function Mountain() {
     // a newer gesture's own read will land the plate; this one only lets go if it is still the newest
     if (!ok()) return;
     if (r) setRead(fromReadings(r));
-    waterLive.value = null;
+    if (waterLive.peek() === mine) waterLive.value = null;
   };
   const held = () => waterLive.peek() ?? read;
   const gateTo = (i: number, v: number) => { const g = held().gates.slice(); g[i] = v; waterLive.value = { d: held().d, gates: g }; };
   const controls: Controls = {
     meterStale: !!read.mountain && isStale(read.mountain, now),
     readings: read.readings, now,
-    disabled: lockGate.value === 'locked',
+    // read the signal so a lock re-renders; gateState() falls back to the fields layer before the first look
+    disabled: (void lockGate.value, gateState() === 'locked'),
     held: waterLive.value !== null,
     meterInput: v => { waterLive.value = { d: v, gates: held().gates }; },
     meterCommit: v => { waterLive.value = { d: v, gates: held().gates }; void write('mountain', v); },

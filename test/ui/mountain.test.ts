@@ -266,3 +266,41 @@ describe('the meter (R2)', () => {
     expect(meterWords(0)).toBe('clear');
   });
 });
+
+// R2 review fixes
+import { Weather } from '../../src/ui/flow/mountain/weather';
+
+describe('the review fixes (R2)', () => {
+  const run = (w: Water, secs: number) => { for (let t = 0; t < secs; t += 1 / 60) w.step(1 / 60); };
+  it('a slow lift of the meter still sends its melt', () => {
+    const w = new Water();
+    w.feed(0.8, [0, 0, 0, 0, 0, 0, 0], true);
+    // a twentieth of a percent a frame: every move alone is too little to see
+    for (let d = 0.8; d > 0.5; d -= 0.004) { w.feed(d, [0, 0, 0, 0, 0, 0, 0]); w.step(1 / 60); }
+    expect(Array.from(w.surgeAmp).some(a => a > 0)).toBe(true);
+  });
+  it('a gate put back at once (a cancelled gesture) sends no surge', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0], true);
+    w.feed(0, [0, 0, 0, 0.9, 0, 0, 0]);
+    run(w, 3);
+    expect(w.pooled[3]).toBeGreaterThan(0.4);
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0], true);
+    expect(Array.from(w.surgeAmp).every(a => a === 0)).toBe(true);
+    expect(w.pooled[3]).toBe(0);
+  });
+  it('snow falls only while the meter rises, and the air is still a short while after', () => {
+    const flakes = (w: Weather) => (w as unknown as { flakes: { ps: { age: number; life: number }[] } }).flakes.ps.filter(p => p.age < p.life).length;
+    const q = new Float32Array(8).fill(1), b = new Float32Array(7);
+    const still = new Weather(86);
+    still.set(capOf(0.9), true);
+    for (let k = 0; k < 120; k++) still.step(1 / 60, q, 1, b);
+    expect(flakes(still)).toBe(0);                    // a heavy day already set: no snow
+    const rising = new Weather(86);
+    rising.set(capOf(0.2), true);
+    for (let k = 0; k < 30; k++) { rising.set(capOf(0.2 + k * 0.02)); rising.step(1 / 60, q, 1, b); }
+    expect(flakes(rising)).toBeGreaterThan(5);        // it snows while it rises
+    for (let k = 0; k < 60 * 9; k++) rising.step(1 / 60, q, 1, b);
+    expect(flakes(rising)).toBe(0);                   // and then the air is still
+  });
+});

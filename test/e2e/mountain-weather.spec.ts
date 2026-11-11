@@ -153,11 +153,8 @@ test('weather: a reading older than a day draws its control dashed until touched
   await expect.poll(async () => (await readings(page)).filter(r => r.of === 'mountain').length).toBe(2);
 });
 
-test('gates: a gate on the mountain shuts toward the stream, writes one reading on release, and the stop\'s page shows it', async ({ page }) => {
+test('gates: a gate on the mountain writes one reading on release, and the stop\'s page shows it', async ({ page }) => {
   const plate = await settled(page);
-  // Root's name is on the right of its sign, so its rule shuts leftward, toward the stream
-  await expect(page.locator('.mt-gate[data-chakra="root"] .fs-gate')).toHaveClass(/leftward/);
-  await expect(page.locator('.mt-gate[data-chakra="heart"] .fs-gate')).not.toHaveClass(/leftward/);
   await drag(page, 'Heart gate', 0.05, 0.75, async () => { expect(await readings(page)).toEqual([]); });
   // the sign empties under the finger, before anything is written
   await expect(plate.locator('a.mt-stop[data-chakra="heart"] .fs-sign')).not.toHaveAttribute('data-closed', '0.00');
@@ -270,4 +267,111 @@ test('weather: the loop stops when the page is hidden, mid-drag of the meter too
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(canvas).toHaveAttribute('data-running', '');
+});
+
+// ---- the review fixes (PR #65) ----
+
+test('fixes: a touch on the meter during the arrival cuts it short, as a touch anywhere on the plate does', async ({ page }) => {
+  await open(page);
+  const plate = page.locator('.mt-plate');
+  await expect(plate).toHaveAttribute('data-arrive', 'run');
+  const box = (await page.getByRole('slider', { name: 'Depression', exact: true }).boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(plate).toHaveAttribute('data-arrive', 'done');
+  expect(await readings(page)).toEqual([]);
+});
+
+test('fixes: every sign\'s whole box opens its page; its gate lies wholly under it, a thumb tall, over nothing else', async ({ page }) => {
+  await settled(page);
+  const geo = await page.evaluate(() => {
+    const r = (el: Element) => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+    const links = [...document.querySelectorAll('a.mt-stop')].map(a => ({ id: (a as HTMLElement).dataset.chakra, box: r(a), hits: [
+      [0.5, 0.5], [0.5, 0.9], [0.15, 0.9], [0.85, 0.9], [0.5, 0.1],
+    ].map(([fx, fy]) => { const b = a.getBoundingClientRect(); const at = document.elementFromPoint(b.left + b.width * fx, b.top + b.height * fy); return !!at && a.contains(at); }) }));
+    const rules = [...document.querySelectorAll('.mt-gate .fs-gate-rule')].map(g => ({ id: (g.closest('.mt-gate') as HTMLElement).dataset.chakra, box: r(g) }));
+    const circles = [...document.querySelectorAll('a.mt-circle')].map(c => ({ id: c.textContent, box: r(c) }));
+    return { links, rules, circles };
+  });
+  for (const l of geo.links) expect(l.hits, `${l.id} link`).toEqual([true, true, true, true, true]);
+  const over = (a: { l: number; t: number; r: number; b: number }, b: typeof a) => Math.min(a.r, b.r) - Math.max(a.l, b.l) > 0.5 && Math.min(a.b, b.b) - Math.max(a.t, b.t) > 0.5;
+  const all = [...geo.links, ...geo.rules.map(g => ({ ...g, id: `${g.id} gate` })), ...geo.circles];
+  for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) expect(over(all[i].box, all[j].box), `${all[i].id} and ${all[j].id}`).toBe(false);
+  for (const g of geo.rules) expect(g.box.b - g.box.t, `${g.id} gate height`).toBeGreaterThanOrEqual(44);
+  // an open gate rests as a faint short dash, and comes up in full under focus
+  const throat = page.locator('.mt-gate[data-chakra="throat"]');
+  const line = throat.locator('.fs-gate-line');
+  expect(await line.evaluate(l => getComputedStyle(l).strokeDasharray)).not.toBe('none');
+  await page.getByRole('slider', { name: 'Throat gate' }).focus();
+  await expect.poll(() => line.evaluate(l => getComputedStyle(l).strokeDasharray)).toBe('none');
+});
+
+test('fixes: a cancelled gate drag puts the plate back exactly, with no surge, no ring and no write', async ({ page }) => {
+  const plate = await settled(page);
+  const rule = page.getByRole('slider', { name: 'Heart gate' });
+  const box = (await rule.boundingBox())!;
+  const y = box.y + box.height / 3;
+  await page.mouse.move(box.x + 4, y);
+  await page.mouse.down();
+  for (let k = 1; k <= 10; k++) await page.mouse.move(box.x + 4 + (box.width * 0.9 * k) / 10, y);
+  await expect(plate).not.toHaveAttribute('data-gates', '0.000,0.000,0.000,0.000,0.000,0.000,0.000');
+  await page.waitForTimeout(3000);
+  // the browser takes the touch away
+  await rule.dispatchEvent('pointercancel', { pointerId: 1, isPrimary: true });
+  await expect(plate).toHaveAttribute('data-gates', '0.000,0.000,0.000,0.000,0.000,0.000,0.000');
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => {
+    const p = (window as unknown as { __mountain: { plate: { water: { surgeAmp: Float32Array; pooled: Float32Array }; rings: { age: number }[] } } }).__mountain.plate;
+    return { surge: Math.max(...p.water.surgeAmp), pooled: Math.max(...p.water.pooled), rings: p.rings.filter(r => r.age >= 0).length };
+  });
+  expect(after).toEqual({ surge: 0, pooled: 0, rings: 0 });
+  await page.mouse.up();
+  expect(await readings(page)).toEqual([]);
+});
+
+test('fixes: the same key shuts a gate on the mountain and on its page, and moves the mark the way it points', async ({ page }) => {
+  await settled(page);
+  for (const name of ['Throat', 'Heart']) {
+    const gate = page.getByRole('slider', { name: `${name} gate` });
+    await gate.focus();
+    const mark = page.locator(`.mt-gate[data-chakra="${name.toLowerCase()}"] .fs-gate-mark`);
+    const x0 = (await mark.boundingBox())!.x;
+    await page.keyboard.press('ArrowRight');
+    await expect(gate).toHaveAttribute('aria-valuenow', '5');
+    expect((await mark.boundingBox())!.x).toBeGreaterThan(x0);
+  }
+  await page.locator('a.mt-stop[data-chakra="throat"]').click();
+  const pageGate = page.getByRole('slider', { name: 'Throat gate' });
+  await expect(pageGate).toHaveAttribute('aria-valuenow', '5');
+  await pageGate.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(pageGate).toHaveAttribute('aria-valuenow', '10');
+});
+
+test('fixes: a change caught on its way down by a hidden page is drawn arrived on return, not replayed', async ({ page }) => {
+  await settled(page);
+  const hide = (h: boolean) => page.evaluate(h => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (h ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, h);
+  await page.evaluate(() => (window as unknown as { __mountain: { set: (d: number, g: number[]) => void } }).__mountain.set(0, [0, 0.9, 0, 0, 0, 0, 0]));
+  await hide(true);
+  await page.waitForTimeout(200);
+  await hide(false);
+  await page.waitForTimeout(100);
+  // the sea already has what got through, at once
+  const q = await page.evaluate(() => Array.from((window as unknown as { __mountain: { plate: { water: { q: Float32Array } } } }).__mountain.plate.water.q));
+  expect(q[7]).toBeLessThan(0.3);
+});
+
+test('fixes: a ring going out in its hue does not finish into Still', async ({ page }) => {
+  await settled(page);
+  await page.evaluate(() => (window as unknown as { __mountain: { set: (d: number, g: number[]) => void } }).__mountain.set(0, [0, 0, 0.9, 0, 0, 0, 0]));
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => (window as unknown as { __mountain: { set: (d: number, g: number[]) => void } }).__mountain.set(0, [0, 0, 0, 0, 0, 0, 0]));
+  const rings = () => page.evaluate(() => (window as unknown as { __mountain: { plate: { rings: { age: number }[] } } }).__mountain.plate.rings.filter(r => r.age >= 0).length);
+  await expect.poll(rings, { timeout: 4000 }).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Still', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
+  await expect.poll(rings, { timeout: 1000 }).toBe(0);
+  await page.getByRole('button', { name: 'Leave Still' }).click();
 });

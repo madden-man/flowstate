@@ -166,22 +166,36 @@ export class Water {
       this.fillHistory();
       this.carried(this.qTo);
       this.q.set(this.qTo); this.b.set(this.bTo);
-      if (atOnce) { this.surgeAmp.fill(0); for (let i = 0; i < 7; i++) this.pooled[i] = this.inB[i] * this.qTo[i]; }
+      if (atOnce) { this.surgeAmp.fill(0); this.pending.fill(0); for (let i = 0; i < 7; i++) this.pooled[i] = this.inB[i] * this.qTo[i]; }
     }
   }
 
-  /** Starts a surge at s (or adds to one that has only just left from there). */
+  /** Starts a surge at s (or adds to one that has only just left from there). A slow opening lets go a little at a
+   *  move: it is gathered (pending, per place) until it is enough to see, so a slow lift still sends its melt. */
   private surge(s: number, amp: number) {
+    const at = s <= 0 ? 0 : this.course.at.indexOf(s);
+    if (at >= 0) {
+      if (this.clock - this.pendingAt[at] > 1.2) this.pending[at] = 0;
+      this.pendingAt[at] = this.clock;
+      this.pending[at] += amp;
+      amp = this.pending[at];
+    }
+    if (this.start(s, amp) && at >= 0) this.pending[at] = 0;
+  }
+  private pending = new Float32Array(10); private pendingAt = new Float32Array(10).fill(-Infinity);
+  /** Starts or adds to a surge; false if it was too little to start one. */
+  private start(s: number, amp: number): boolean {
     let free = -1;
     for (let k = 0; k < SURGES; k++) {
       if (this.surgeAmp[k] > 0 && Math.abs(this.surgeFrom[k] - s) < 0.5 && this.clock - this.surgeAt[k] < 0.6) {
         this.surgeAmp[k] = Math.min(1, this.surgeAmp[k] + amp);
-        return;
+        return true;
       }
       if (free < 0 && this.surgeAmp[k] <= 0) free = k;
     }
-    if (free < 0 || amp < 0.02) return;
+    if (free < 0 || amp < 0.02) return false;
     this.surgeFrom[free] = s; this.surgeAt[free] = this.clock; this.surgeAmp[free] = Math.min(1, amp);
+    return true;
   }
 
   /** Where surge k's front is now, along the course (meaningless when its amp is 0). */
