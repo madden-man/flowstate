@@ -3,7 +3,7 @@
 // header carries what it takes to open them with the PIN (salt, iterations, the verifier), never a key.
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes } from './schema';
+import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, withSeedChakra, MOUNTAIN_VERSION } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
 import { keyState, LockedError, openRow, storedForm } from './fields';
 
@@ -104,7 +104,9 @@ export function parseBackup(text: string): BackupFile {
  *  playlist ticked. A version 2 file has no flows or episodes (both tables come in empty, above); its settings
  *  row has no flowsSeeded, so seed.ts seedFlowsOnce writes the seed flows on the next open. A version 4 file has no
  *  fixations (the table comes in empty, above); its settings.cleaned has no 'fixations', so seed.ts seedFixationsOnce
- *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). */
+ *  writes the first three and the deck on the next open (PLAN-ENERGIZE.md section 5). A file from before MOUNTAIN_VERSION has no readings
+ *  (the table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade
+ *  gives a stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -112,6 +114,9 @@ function migrate(f: BackupFile): BackupFile {
     if (!tables.shelves.length) tables.shelves = shelvesFromV1(albums);
     if (!(tables.playlists as Tables['playlists'][]).some(p => p.id === POEMS_ID)) tables.playlists = [...tables.playlists, poemsPlaylist()];
     f = { ...f, tables };
+  }
+  if (f.schemaVersion < MOUNTAIN_VERSION) {
+    f = { ...f, tables: { ...f.tables, flows: (f.tables.flows as Tables['flows'][]).map(withSeedChakra) } };
   }
   return { ...f, schemaVersion: SCHEMA_VERSION };
 }

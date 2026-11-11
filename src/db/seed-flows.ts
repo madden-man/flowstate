@@ -11,7 +11,7 @@
 // shame), its import, and one line in SEED_FLOWS. A tip added to a flow already seeded goes in SEED_TIPS_LATER too.
 // The picks (PLAN-PICKS.md, P0) are laid on each seed by withPicks (./seed/picks.ts); a journal seeded before them
 // gets them from seed.ts seedPicksOnce.
-import type { Flow } from './schema';
+import { type Flow, withSeedChakra } from './schema';
 import { DEPRESS } from './seed/depress';
 import { ENERGIZE } from './seed/energize';
 import { FIGHT } from './seed/fight';
@@ -145,8 +145,9 @@ export const SEED_TIPS_LATER: string[] = [
   'energize-3-on', 'fight-3-on', 'whatif-3-on', 'whatif-5-on',
 ];
 
-/** A seed as a flows row: dated, with its seed text as the first revision. */
+/** A seed as a flows row: dated, with its seed text as the first revision, and the sign it sits under on the mountain
+ *  (schema.ts SEED_CHAKRAS, PLAN-MOUNTAIN.md section 6). */
 export function seedFlow(seed: FlowSeed, at = SEED_FLOWS_AT): Flow {
   const copy = structuredClone(seed);
-  return { ...copy, createdAt: at, updatedAt: at, revisions: [{ at, name: copy.name, steps: structuredClone(copy.steps) }] };
+  return withSeedChakra({ ...copy, createdAt: at, updatedAt: at, revisions: [{ at, name: copy.name, steps: structuredClone(copy.steps) }] });
 }

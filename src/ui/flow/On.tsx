@@ -28,7 +28,7 @@ import { albumUriOf } from '../../db/seed/picks';
 import { lastFirst, lastOn, livePicks, setOn, setOnAlbum } from '../../model/tips';
 
 /** The kind word at a line's end, the same small print as a helper's word (rule 7: words, never icons). */
-export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show', film: 'Film', switch: 'Switch', phone: 'Phone' };
+export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show', film: 'Film', switch: 'Switch', phone: 'Phone', book: 'Book', art: 'Art' };
 
 /** The most covers and lines a sheet shows (PLAN-PICKS.md section 2: fewer, not all). */
 const MOST = 3;

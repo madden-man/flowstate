@@ -1,15 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { freshDB } from './helpers';
-import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
+import { init, store, setKey, openRow } from '../../src/db/fields';
+import { deriveKey, randomSalt } from '../../src/db/crypto';
+import { ensureSeeded } from '../../src/db/seed';
+import { SEED_FLOWS, seedFlow } from '../../src/db/seed-flows';
+import { openDB, SCHEMA_VERSION, STORES_V1, STORES_V2, STORES_V3, STORES_V4, STORES_V5, SEED_CHAKRAS, MOUNTAIN_VERSION, TABLES, POEMS_ID, POEMS_NAME, coverBytes } from '../../src/db/schema';
 
-describe('schema, version 5', () => {
-  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2) and the fixations (X1)', async () => {
+describe('schema, version 6', () => {
+  it('has every table from PLAN.md section 4, V7\'s playlists and shelves, the flows (F1), the sits (S2), the fixations (X1) and the readings (R0)', async () => {
     const db = await freshDB();
     expect(db.verno).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(5);
+    expect(SCHEMA_VERSION).toBe(MOUNTAIN_VERSION);
+    expect(MOUNTAIN_VERSION).toBe(6);
     expect(db.tables.map(t => t.name).sort()).toEqual([...TABLES].sort());
-    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations']);
+    expect(TABLES).toEqual(['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'readings']);
   });
 
   it('carries the listed indexes', async () => {
@@ -25,6 +30,7 @@ describe('schema, version 5', () => {
     expect(idx('episodes')).toEqual(['[flowId+startedAt]']);
     expect(idx('sits')).toEqual(['startedAt']);
     expect(idx('fixations')).toEqual([]);
+    expect(idx('readings')).toEqual(['[of+at]', 'at']);
     expect(db.table('fixations').schema.primKey.name).toBe('id');
     expect(db.table('albums').schema.primKey.name).toBe('albumUri');
     expect(db.table('shelves').schema.primKey.src).toBe('[playlistId+albumUri]');
@@ -112,7 +118,7 @@ describe('the upgrade from version 3 (S2)', () => {
 });
 
 describe('the upgrade from version 4 (X1)', () => {
-  it('a version 4 database opens at version 5 with an empty fixations table, writing nothing, every row kept', async () => {
+  it('a version 4 database opens at the current version with an empty fixations table, writing nothing, every row kept', async () => {
     const name = `flowstate-v4-${Date.now()}`;
     const v4 = new Dexie(name);
     v4.version(1).stores(STORES_V1);
@@ -126,11 +132,99 @@ describe('the upgrade from version 4 (X1)', () => {
     v4.close();
     const db = openDB(name);
     await db.open();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(SCHEMA_VERSION);
     expect(await db.fixations.count()).toBe(0);
     expect(await db.episodes.get('e1')).toEqual({ id: 'e1', flowId: 'energize', startedAt: 1, marks: [], done: [] });
     expect(await db.sits.get('s1')).toBeTruthy();
     expect(await db.settings.get('app')).toEqual({ id: 'app', cleaned: ['seed-pages'] });
     db.close();
+  });
+});
+
+describe('the upgrade to MOUNTAIN_VERSION from version 5 (R0)', () => {
+  const v5 = async (name: string) => {
+    const old = new Dexie(name);
+    old.version(1).stores(STORES_V1);
+    old.version(2).stores(STORES_V2);
+    old.version(3).stores(STORES_V3);
+    old.version(4).stores(STORES_V4);
+    old.version(5).stores(STORES_V5);
+    await old.open();
+    return old;
+  };
+  // a seed flow as a version 5 journal stored it: no chakra
+  const asV5 = (f: ReturnType<typeof seedFlow>) => { const { chakra: _c, ...rest } = f; return rest; };
+
+  it('adds each seed flow\'s chakra and nothing else: every flow row, episode and step untouched, an empty readings table', async () => {
+    const name = `flowstate-v5-${Date.now()}`;
+    const old = await v5(name);
+    const rows = SEED_FLOWS.map(f => asV5(seedFlow(f)));
+    // one he renamed and edited, and one of his own
+    rows[0] = { ...rows[0], name: 'My panic', updatedAt: 99, steps: rows[0].steps.slice(0, 2) };
+    const mine = { id: 'mine', name: 'Mine', order: 10, createdAt: 5, updatedAt: 5, diagram: 'ring' as const, steps: [], revisions: [] };
+    await old.table('flows').bulkPut([...rows, mine]);
+    await old.table('episodes').put({ id: 'e1', flowId: 'panic', startedAt: 1, marks: [], done: [] });
+    old.close();
+
+    const db = openDB(name);
+    await db.open();
+    expect(db.verno).toBe(MOUNTAIN_VERSION);
+    expect(await db.readings.count()).toBe(0);
+    for (const row of rows) {
+      const got = (await db.flows.get(row.id))!;
+      const { chakra, ...rest } = got;
+      expect(rest).toEqual(row);
+      expect(chakra).toBe(SEED_CHAKRAS[row.id]);
+    }
+    expect((await db.flows.get('energize'))!).not.toHaveProperty('chakra');
+    expect(await db.flows.get('mine')).toEqual(mine);
+    expect(await db.episodes.get('e1')).toEqual({ id: 'e1', flowId: 'panic', startedAt: 1, marks: [], done: [] });
+    db.close();
+  });
+
+  it('the pairing is PLAN-MOUNTAIN.md section 6\'s', () => {
+    expect(SEED_CHAKRAS).toEqual({
+      night: 'crown', replay: 'third-eye', fight: 'throat', depress: 'heart', shame: 'solar-plexus', shutdown: 'sacral', panic: 'root', whatif: 'root',
+    });
+  });
+
+  it('a sealed flow keeps its seal: the chakra is added in the clear and the words still open with the key', async () => {
+    const name = `flowstate-v5s-${Date.now()}`;
+    // seal the flows at version 6, then strip chakra and reopen the rows as a version 5 store would have them
+    const db6 = openDB(name);
+    await db6.open();
+    await init(db6);
+    await ensureSeeded();
+    const key = await deriveKey('2468', randomSalt(), 1000);
+    await setKey(key, { salt: 'x', iterations: 1000 });
+    const sealed = await db6.flows.toArray();
+    expect(sealed.every(f => f.sealed)).toBe(true);
+    db6.close();
+    await Dexie.delete(name);
+    const old = await v5(name);
+    await old.table('flows').bulkPut(sealed.map(f => { const { chakra: _c, ...rest } = f; return rest; }));
+    await old.table('settings').put({ id: 'app', lock: { enabled: true, relockAfterMin: 5 } });
+    old.close();
+    const db = openDB(name);
+    await db.open();
+    await init(db);
+    expect((await db.flows.get('depress'))!.chakra).toBe('heart');
+    expect((await db.flows.get('depress'))!.sealed).toEqual(sealed.find(f => f.id === 'depress')!.sealed);
+    // locked, the list still sees the sign; opened with the key, the words come back whole
+    const opened = await openRow('flows', (await db.flows.get('depress'))!, key);
+    expect(opened.name).toBe('Depress');
+    expect(opened.chakra).toBe('heart');
+    expect(await store.get('flows', 'depress')).toMatchObject({ locked: true, chakra: 'heart' });
+    db.close();
+  });
+});
+
+describe('a fresh journal (R0)', () => {
+  it('seeds every flow with its chakra, Energize with none', async () => {
+    await freshDB();
+    await ensureSeeded();
+    const flows = await store.all('flows');
+    for (const f of flows) expect(f.chakra).toBe(SEED_CHAKRAS[f.id]);
+    expect(flows.find(f => f.id === 'energize')!.chakra).toBeUndefined();
   });
 });
