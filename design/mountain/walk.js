@@ -35,6 +35,8 @@
 
   window.addEventListener('message', function (e) {
     var d = e.data;
+    // the shown app passes up the arrows it does not use, so the steps still turn after a click inside the phone
+    if (d && d.fs && d.key && shown && e.source === shown.contentWindow) { go(i + (d.key === 'ArrowRight' ? 1 : -1)); return; }
     if (!d || !d.fs || !d.ready || !pending || e.source !== pending.contentWindow || d.n !== pending.dataset.n) return;
     if (shown) shown.remove();
     shown = pending; pending = null;

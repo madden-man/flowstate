@@ -43,6 +43,8 @@ for (const light of ['day', 'night', 'still']) {
     copy.querySelectorAll('canvas').forEach(c => { const m = document.createElement('i'); m.className = c.className; m.setAttribute('data-still-of', c.className); c.replaceWith(m); });
     // a picture of the screen: no links go anywhere, nothing takes focus
     copy.querySelectorAll('a[href]').forEach(a => a.removeAttribute('href'));
+    // the ring that stands in for the moon in Still, as every other screen of the walkthrough carries it
+    copy.querySelector('.fs-moon')?.insertAdjacentHTML('beforeend', '<span class="fs-ring-mark"></span>');
     copy.querySelectorAll('[tabindex]').forEach(e => e.setAttribute('tabindex', '-1'));
     return { shot, html: copy.outerHTML };
   }, light);
@@ -64,7 +66,7 @@ for (const cls of ['mt-air', 'mt-light']) {
 const step = `<!-- mountain:start (script/snap-mountain-step.mjs: the real Flow tab, its canvases as stills per light) -->
 <section class="step" id="mountain" data-name="Flow: the mountain">
   <h2>Flow: the mountain</h2>
-  <p class="line">Seven signs, one stream, the sea.</p>
+  <p class="line">Seven signs, one stream.</p>
   <div class="phone" data-mock><div class="screen" data-light="night" data-step="mountain"><div class="island"></div>
     <div class="status"><span>21:15</span><span>Flow</span></div>
     ${markup}

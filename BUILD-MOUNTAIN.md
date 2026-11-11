@@ -88,12 +88,21 @@ Gathered from the four package PRs (#62 to #65) and their review rounds. Each is
 4. The 988 and doctor lines show at rest on a stop's page as well as on their step; hand-offs only on the step they leave from. A hand-off to a drawing on the same page reads "the drawing above" or "below".
 5. Right and up shut every gate, on the mountain and on the page, so the same key shuts both; a gate whose name is to its right no longer shuts toward the stream (plan section 5).
 6. A plain tap on a gate or the meter writes nothing; a reading is written once on release. A fully open gate rests as a faint dash. A reading older than a day is dashed until touched. A ticked row does not ease a gate.
-7. Snow falls only while the meter rises (and a short settle after); a heavy day already set has none. No number on the meter; a gate's grey percent while above zero.
+7. Snow falls only while the meter rises, and for a 1.6 second settle after it (each flake lives 3.5 to 6 seconds, so the air is still within about 8); a heavy day already set, or opened at once, has none. The snow line comes down from 86 to 212 box units as the meter goes from clear to the heaviest, and mist gathers from its first touch. No number on the meter; a gate's grey percent while above zero.
 8. A change travels at about 110 units a second, about 5.5 seconds from spring to sea; the arrival takes 4.2 seconds, once per unlock.
 9. Meditate's "last sat" date and Energize's three names left the Flow tab (both on their own pages); an open Energize ride puts the dot on its circle.
 10. Root's second drawing (What if) is folded small until tapped; whatever is in front, live or opened stays open.
 11. The rest list drops near-identical rows and keeps one row per helper. The places on each stop's page, and all the weather, are the builders' drawings inside pass 6's list.
 12. New tick names `meter` and `gate`, at the two ends only (rule 19). No sound on the mountain.
+13. The plate's colours (R0): a deep indigo night by Day (`--plate` #0C0C22 under a `--plate-sky` of #06041A) and by Night (#060618), a cool-neutral near-black in Still (#07080B); the shadow face `--plate-deep` darker still; the water's light `--glow` a warm bone. The lanterns take their own lightness on the plate (`--plate-voice-l` 74%, `--plate-voice-c` .12), not the paper's.
+14. By Day the plate is a print set inside the page's column (`--plate-inset` the gutter, no feather), the cream page round it; by Night and in Still it runs to the screen's edges and feathers into the page (36px). The box is the same size in every light, so nothing jumps at sunset (DESIGN.md rule 34).
+15. The plate is rounded up to whole rules, so Right now and "+ flow" sit on the page's rules under it; the spare height is sky.
+16. A shut gate's pool fills over about two seconds (0.45 a second), and a surge is what the pool held times how far it was opened. Under Reduce Motion nothing travels, pools or surges: the reading is drawn at once.
+17. Each gate lies wholly under its sign's 44px link, never over it; the Crown's link is lifted over the Throat and the Root's over Energize's circle to make room, the lift given back as padding so the sign stays on its stop. A gate's touch target is 44px tall.
+18. The rest list on a stop's page leaves out rows that mean something only on their own step or with a live episode (Journal, Timer, Person, Predict, Five), as well as near-duplicates.
+19. The arrival's head, the kindling rings, the embers, fireflies and every place's weather are the builders' inventions inside pass 6's list.
+
+A question for Tommy, not a regression: the What if drawing's seeded record ("didn't happen, nine in ten", with its faint checks) still shows in Still, as it has since F6; rule 15 hides only his own stamps there. Should "nine in ten" leave in Still as a count?
 
 Still open with no default: which books and art go under which sign (none seeded; R4), and which circles join Meditate and Energize in the sea.
 

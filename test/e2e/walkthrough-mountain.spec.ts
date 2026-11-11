@@ -69,6 +69,11 @@ test('mountain walkthrough: the live app starts in a sandboxed frame, each step 
   // the tap step: the Heart opens its own page
   await top.locator('#rail a[href="#tap"]').click();
   await expect(app.locator('.ck-page[data-chakra="heart"] .ck-plate')).toBeVisible({ timeout: 15_000 });
+  // after a click inside the phone the arrows still turn the steps: step 7 is another sign's page, the Throat's
+  await app.locator('.fs-hdr-r').click();
+  await page.keyboard.press('ArrowRight');
+  await expect(top.locator('#counter')).toHaveText('Step 7 of 11');
+  await expect(app.locator('.ck-page[data-chakra="throat"] .ck-plate')).toBeVisible({ timeout: 15_000 });
   // the live step: the dot at The bottom, and the 988 line on the page
   await top.locator('#rail a[href="#live"]').click();
   await expect(app.locator('.ck-page[data-front="depress"] [data-tip="depress-4-988"]')).toBeVisible({ timeout: 15_000 });

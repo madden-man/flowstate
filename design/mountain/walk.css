@@ -52,3 +52,10 @@ details code{font-size:12px}
 .frames iframe.next{opacity:0;pointer-events:none}
 .nolive{position:absolute;inset:auto 24px 45%;margin:0;text-align:center;font-family:var(--serif);font-size:var(--fs-chip);color:var(--print)}
 .screen.down .frames{visibility:hidden}
+/* At a phone's own width the frame gives way: no bezel, the screen the full width of the viewport (at least 375px at
+   390, the width the app is built for), so nothing in the app's header is clipped by the walkthrough's own frame. */
+@media (max-width:420px){
+  .phone{width:100vw;max-width:none;margin:0 -16px;padding:0;border-radius:0;aspect-ratio:390/844;box-shadow:none}
+  .screen{border-radius:0}
+  .island{display:none}
+}

@@ -1,6 +1,6 @@
 // A stop's page draws its whole course as one path (chakra/scenes.ts courseOf). Found in R5's walkthrough: joining the
-// two halves dropped the second half's start point, so a half that went on with a curve read "LC..." and the browser
-// refused the whole path (no channel under the water on that page).
+// two halves dropped the second half's start point, so the join read "LC..." and the browser drew the path only up to
+// that error: the channel and the water ran down to the sign and stopped there, with nothing below it.
 import { describe, it, expect } from 'vitest';
 import { courseOf, sceneOf } from '../../src/ui/flow/chakra/scenes';
 import { CHAKRA_IDS } from '../../src/model/mountain';

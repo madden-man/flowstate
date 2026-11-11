@@ -25,7 +25,7 @@ export const DESIGNED: Record<Step, Light> = {
 /** Each step's route. */
 const ROUTE: Record<Step, string> = {
   arrive: '/flow', water: '/flow', heavy: '/flow', close: '/flow', open: '/flow', tap: '/flow',
-  page: '/flow/c/heart', live: '/flow/depress/4', root: '/flow/c/root', sea: '/flow', still: '/flow',
+  page: '/flow/c/throat', live: '/flow/depress/4', root: '/flow/c/root', sea: '/flow', still: '/flow',
 };
 
 /** What the page must show before the load reports ready. */
@@ -38,7 +38,7 @@ const DRAWN: Record<Step, string> = {
 /** The readings each step starts from: the meter, then any gates. */
 const READINGS: Partial<Record<Step, { d?: number; gates?: Partial<Record<ChakraId, number>> }>> = {
   open: { gates: { heart: 0.9 } },
-  page: { gates: { heart: 0.35 } },
+  page: { gates: { throat: 0.35 } },
   live: { d: 0.45 },
   still: { d: 0.7, gates: { throat: 0.9, sacral: 0.6 } },
 };
@@ -113,7 +113,8 @@ async function bring(sel: string, block: 'center' | 'start' | 'end' = 'center'):
   const box = el.getBoundingClientRect();
   const view = sc === document.scrollingElement ? { top: 0, height: innerHeight } : sc.getBoundingClientRect();
   const off = box.top - view.top;
-  const by = block === 'start' ? off - 60 : block === 'end' ? off + box.height - view.height + 70 : off + box.height / 2 - view.height / 2;
+  // 'end' moves only if the thing is below the screen's foot (the tab bar's height kept clear), never up
+  const by = block === 'start' ? off - 60 : block === 'end' ? Math.max(0, off + box.height - view.height + 70) : off + box.height / 2 - view.height / 2;
   sc.scrollTo({ top: sc.scrollTop + by, behavior: 'smooth' });
   return el;
 }
@@ -147,12 +148,11 @@ async function act(): Promise<void> {
       await bring('.ck-page .fl-prints [data-tip="depress-4-988"]');
       return;
     case 'root': {
+      // the fold is brought up from below only as far as it needs, so Root's place stays in view above it
       await wait(1600);
-      const fold = await bring('.ck-page .ck-drawing[data-folded] .ck-fold');
+      const fold = await bring('.ck-page .ck-drawing[data-folded] .ck-fold', 'end');
       await wait(1100);
       fold?.click();
-      await wait(500);
-      await bring('.ck-page .ck-drawing[data-flow="whatif"]');
       return;
     }
     case 'sea':
@@ -167,6 +167,14 @@ async function act(): Promise<void> {
 const post = (msg: object) => { try { parent.postMessage({ fs: true, n: load, ...msg }, '*'); } catch { /* no parent */ } };
 
 export function startDriver(): void {
+  // a click inside the phone gives the app the keys: the arrows it does not use itself (a gate or the meter takes them)
+  // still turn the walkthrough's steps, as they do outside the phone
+  addEventListener('keydown', e => {
+    if (e.defaultPrevented || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    const t = e.target as Element | null;
+    if (t?.closest?.('input,textarea,[contenteditable],[role="slider"]')) return;
+    post({ key: e.key });
+  });
   addEventListener('message', e => {
     if (e.source !== parent || !e.data || typeof e.data !== 'object' || !e.data.fs) return;
     const d = e.data as { act?: boolean; light?: Light | 'design' };
