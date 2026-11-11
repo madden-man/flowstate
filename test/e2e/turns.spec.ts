@@ -1,17 +1,12 @@
 // Turns between pages (M2, PLAN-MOTION.md; DESIGN.md rules 28 and 29). With view transitions: a tab, a row into its
 // page and the way back each run one named turn, the route changes at the tap, a second tap during a turn lands at
 // once (a press begun mid-turn is handed to the page), the mark under the tab follows, and nothing is left named after. No turn on load or on a deep link. Without
-// startViewTransition every route still works, Be's spread still opens and closes; under Reduce Motion no turn runs.
+// startViewTransition every route still works, Be's values still open and close; under Reduce Motion no turn runs.
 import { test, expect, type Page } from '@playwright/test';
-import { writeParadoxes } from './paradoxes';
 
 const tabs = (p: Page) => p.getByRole('navigation', { name: 'Sections' });
 
 async function cross(page: Page) {
-  await expect(page.locator('.fs-page')).toBeAttached();
-  // C1: a fresh install has values and no paradoxes, so the paradoxes Be shows here are written first
-  await writeParadoxes(page);
-  await page.reload();
   await expect(page.locator('.fs-page')).toBeAttached();
   const t = page.locator('[data-threshold]');
   if (await t.count()) await t.click();
@@ -57,10 +52,10 @@ async function walkEveryRoute(page: Page) {
   await expect(page.getByRole('button', { name: 'New question' })).toBeVisible();
   await bar.getByRole('link', { name: 'Be' }).click();
   await expect(page).toHaveURL(/#\/be$/);
-  const row = page.locator('.fs-dichotomy').first();
+  const row = page.locator('.fs-values .fs-dichotomy').first();
   await row.click();
   await expect(row).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.locator('.fs-be-fold .fs-spread-pages').first()).toHaveAttribute('data-laid', 'true');
+  await expect(row.locator('.b')).toHaveText('selfish');
   await expect(page.locator('.fs-be-fold').first()).not.toHaveAttribute('data-fold', /.*/);
   await row.click();
   await expect(row).toHaveAttribute('aria-expanded', 'false');
@@ -109,7 +104,7 @@ test.describe('with view transitions', () => {
     await page.waitForFunction(() => document.documentElement.dataset.turn === 'tab-right', undefined, { polling: 10 });
     await page.mouse.click(be.x + be.width / 2, be.y + be.height / 2);
     await expect(page).toHaveURL(/#\/be$/);
-    await expect(page.getByRole('button', { name: 'New paradox' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'New value' })).toBeVisible();
     await expect(tabs(page).getByRole('link', { name: 'Be' })).toHaveAttribute('aria-current', 'page');
     expect(await turns(page)).toEqual(['tab-left', 'tab-right', 'tab-right']);
 

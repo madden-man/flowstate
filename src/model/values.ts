@@ -6,8 +6,11 @@
 import { byValueOrder, type Message, type PageKind, type Value, type ValueSide, type Voice } from '../db/schema';
 import { store, tombstone, type Read } from '../db/fields';
 import { allVoices, chipVoices, championsOf, newCouncil } from './council';
+import { MANIFESTO } from '../db/seed';
 
 export { championsOf };
+/** The notebook's line over Be's list, "I determine my core." (C2), so the UI reads it here, not from db/seed. */
+export const CORE = MANIFESTO[0];
 export type { ValueSide };
 
 const tidy = (s?: string) => (s ?? '').trim();

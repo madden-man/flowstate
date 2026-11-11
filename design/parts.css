@@ -1475,3 +1475,56 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 }
 
 /* ---- M5 ends ---- */
+
+/* ---- Be: the values list, the open value, the value sheet (PLAN-VALUES.md C2) ---- */
+/* The list sits on the rules: the printed line is one rule, a value two, the open body whole rules too. */
+.fs-be-top .fs-seg { padding: 0 var(--s1); }
+.fs-be.fs-values { padding-top: var(--s1); }
+.fs-values .fs-be-row { border-bottom: 0; }
+.fs-sheetof .fs-be-core { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
+/* a value on the list: the word large on the left, its champions' rules on the right */
+.fs-sheetof .fs-value, .fs-dichotomy.fs-value {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s2); margin: 0;
+  min-height: calc(var(--lh-ink) * 2); font-family: var(--serif); font-size: var(--fs-manifesto); line-height: var(--lh-ink); color: var(--ink); text-align: left;
+}
+.fs-value .a { min-width: 0; text-align: left; }
+.fs-dichotomy.fs-value.resting { color: var(--print); }
+.fs-value .fs-spoke { flex: none; }
+/* the rules are the council list's own (.fs-spoke i), not the dichotomy's seam, which .fs-dichotomy i would make them */
+.fs-value .fs-spoke i { width: 3px; height: 14px; background: var(--vc); }
+.fs-value .fs-spoke i.deep { width: 5px; background: transparent; border-left: 5px double var(--vc); }
+/* a word sits on its row's lower rule, as ink does, never across the rule between */
+.fs-sheetof .fs-value, .fs-dichotomy.fs-value, .fs-dichotomy.fs-value-open { align-items: end; }
+/* nobody fights for it yet: one dashed rule where the colours would be (rule 11's mark for something owed) */
+.fs-spoke-none { display: block; flex: none; width: 0; height: 14px; border-left: 3px dashed var(--print); }
+/* open: the dichotomy; the word keeps to its own width so it can travel (rule 28), the shadow in italic at full ink */
+.fs-value-open .a { justify-self: end; max-width: 100%; }
+.fs-value-open .b { justify-self: start; max-width: 100%; font-style: italic; color: var(--ink); }
+.fs-value-open.alone { grid-template-columns: 1fr; }
+.fs-value-open.alone .a { justify-self: center; }
+.fs-value-open.written .b { animation: fs-value-write var(--t-draw) var(--ease) both; }
+.fs-value-open.written i { animation: fs-value-seam var(--t-draw) var(--ease) both; }
+@keyframes fs-value-write { from { clip-path: inset(0 100% 0 0); } }
+@keyframes fs-value-seam { from { transform: scaleY(0); } }
+html[data-turn="be-value"] .fs-be-row[data-turning] .fs-dichotomy .a { view-transition-name: fs-value-word; }
+html[data-turn="be-value"]::view-transition { pointer-events: none; }
+html[data-turn="be-value"]::view-transition-group(fs-value-word) { animation-duration: var(--t-page); animation-timing-function: var(--ease-settle); }
+/* only the word travels: the page itself is live under it, so the fold grows and the shadow is written as it lands */
+html[data-turn="be-value"]::view-transition-old(root) { display: none; }
+html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
+/* under the open value: + shadow, the looks line, the champions (C3), Said for it (C5), then Edit */
+.fs-sheetof .fs-value-line { display: flex; justify-content: center; align-items: center; min-height: var(--lh-ink); }
+.fs-value-line .fs-word { position: relative; min-height: var(--lh-ink); }
+.fs-value-line .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-sheetof .fs-be-resting { justify-content: flex-start; min-height: calc(var(--lh-ink) * 2); margin: 0 calc(var(--s1) * -1); }
+.fs-sheetof .fs-value-looks { margin: 0; padding-bottom: var(--lh-ink); font-style: italic; text-align: center; font-size: var(--fs-fill); line-height: var(--lh-ink); }
+.fs-value-acts { display: flex; justify-content: space-between; align-items: end; min-height: var(--lh-ink); margin: 0 calc(var(--s1) * -1); }
+.fs-value-acts > .fs-word { position: relative; min-height: var(--lh-ink); }
+.fs-value-acts > .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-value-acts > .fs-word:last-child { margin-left: auto; }
+/* the value sheet's earlier versions: struck words, their day in print on the right */
+.fs-value-was { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+@media (prefers-reduced-motion: reduce) {
+  .fs-value-open.written .b, .fs-value-open.written i { animation: none; }
+}
+/* ---- C2 ends ---- */
