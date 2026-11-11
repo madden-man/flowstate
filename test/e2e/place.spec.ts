@@ -139,3 +139,56 @@ test('in Still a touch works and nothing surges or asks', async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(page.locator('.ck-light')).not.toHaveAttribute('data-surge', '');
 });
+
+/** Shuts this sign's gate part way, as he would (keys on the slider, a reading written). */
+const shutPart = async (page: Page, name: string) => {
+  const slider = page.getByRole('slider', { name: `${name} gate` });
+  await slider.focus();
+  for (let k = 0; k < 10; k++) await page.keyboard.press('ArrowRight');
+  await slider.blur();
+  await expect.poll(async () => (await all(page, 'readings')).length).toBeGreaterThan(0);
+};
+
+test('a touch into the app surges when he comes back: Ask lands on the journal, the sign beside the date returns, the gate asks', async ({ page }) => {
+  await open(page, '#/flow/c/third-eye');
+  await shutPart(page, 'Third eye');
+  await expect(page.locator('.fs-gate')).not.toHaveAttribute('data-stale', '');
+  await page.getByRole('button', { name: 'Ask, Journal' }).click();
+  const rule = page.locator('.ck-stage [data-into="ask"] input');
+  await rule.pressSequentially('What am I not seeing?', { delay: 2 });
+  await rule.press('Enter');
+  await expect(page).toHaveURL(/#\/journal$/);
+  // nothing surges as he goes
+  await page.locator('.fs-hdr-r [data-sign-back="third-eye"]').click();
+  await expect(page).toHaveURL(/#\/flow\/c\/third-eye$/);
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-chakra', 'third-eye');
+  // back on the sign: its plate runs the surge, and the gate asks
+  await expect(page.locator('.ck-light')).toHaveAttribute('data-surge', '');
+  await expect(page.locator('.fs-gate')).toHaveAttribute('data-stale', '');
+});
+
+test('a touch out of the app surges when he comes back: Throat Send, Messages in front, then the sign again', async ({ page }) => {
+  await open(page, '#/flow/c/throat');
+  await shutPart(page, 'Throat');
+  await page.locator('.ck-touch[data-touch="send"]').click();
+  const sheet = page.locator('[data-sheet="One person"]');
+  await sheet.getByRole('textbox', { name: 'Who' }).fill('Ali');
+  await sheet.getByRole('textbox', { name: 'Their number' }).fill('555 010 4471');
+  await sheet.getByRole('button', { name: 'Done' }).click();
+  await expect(sheet).toHaveCount(0);
+  const stage = page.locator('.ck-stage [data-out="send"]');
+  await stage.getByRole('textbox', { name: 'Your sentence' }).fill('I miss you');
+  // the link would open Messages: kept on the page here, and the other app in front faked by the page's visibility
+  await page.evaluate(() => {
+    document.addEventListener('click', e => { if ((e.target as Element).closest?.('a.out-go')) e.preventDefault(); }, true);
+    let state: DocumentVisibilityState = 'visible';
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+    (window as unknown as { __seen: (s: DocumentVisibilityState) => void }).__seen = s => { state = s; document.dispatchEvent(new Event('visibilitychange')); };
+  });
+  await stage.locator('a.out-go').click();
+  await expect(page.locator('.ck-light')).not.toHaveAttribute('data-surge', '');
+  await page.evaluate(() => (window as unknown as { __seen: (s: string) => void }).__seen('hidden'));
+  await page.evaluate(() => (window as unknown as { __seen: (s: string) => void }).__seen('visible'));
+  await expect(page.locator('.ck-light')).toHaveAttribute('data-surge', '');
+  await expect(page.locator('.fs-gate')).toHaveAttribute('data-stale', '');
+});

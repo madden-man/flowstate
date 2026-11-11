@@ -385,3 +385,26 @@ describe('the touches in the place', () => {
     }
   });
 });
+
+describe('every touch has its handler (T2, T3 and T4 together)', () => {
+  it('each touch of each sign resolves to the one its package registered, none shadowed', async () => {
+    await import('../../src/ui/flow/chakra/handlers');
+    const { handlerFor } = await import('../../src/ui/flow/chakra/touch');
+    const { touchesOf } = await import('../../src/model/acts');
+    const { CHAKRA_IDS } = await import('../../src/model/mountain');
+    const { INTO } = await import('../../src/ui/flow/chakra/handlers/into');
+    const missing: string[] = [];
+    for (const c of CHAKRA_IDS) {
+      for (const t of touchesOf(c)) {
+        const h = handlerFor(c, t);
+        if (!h || !(h.View || h.act)) { missing.push(`${c} ${t.id}`); continue; }
+        const into = INTO.find(x => x.chakra === c && x.id === t.id);
+        if (t.kind === 'place') expect(h.View?.name, `${c} ${t.id}`).not.toMatch(/View$/);
+        if (into) expect(h, `${c} ${t.id}`).toBe(into.handler);
+        // the in-place handlers live in the place files; the out-of-app ones in out.tsx
+        if (t.kind === 'out') expect(h.View?.name, `${c} ${t.id}`).toMatch(/View$/);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

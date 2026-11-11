@@ -224,7 +224,9 @@ export class PlateLight {
   /** A touch done (T2): a share of the pool above the sign runs from it down the course as one surge, and the pool
    *  fills again. Nothing when the water is not running (Reduce Motion, unseen) or in Still. Returns whether it ran. */
   surge(amp: number): boolean {
-    if (!this.running() || this.tint <= 0 || !(amp > 0)) return false;
+    // started and moving (not under Reduce Motion, not hidden); a plate just drawn may not yet have been seen by its
+    // IntersectionObserver, and runs it as soon as it is
+    if (!this.on || this.stream <= 0 || document.visibilityState === 'hidden' || this.tint <= 0 || !(amp > 0)) return false;
     if (this.rushes.length >= 4) this.rushes.shift();
     this.rushes.push({ t0: this.t, amp: clamp01(amp * 1.6) });
     this.held *= 1 - SHARE;

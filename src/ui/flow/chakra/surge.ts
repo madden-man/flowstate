@@ -53,6 +53,16 @@ export function aboveOf(chakra: ChakraId, d: number, gates: readonly number[]): 
 export type Surge = { chakra: ChakraId; amp: number; at: number };
 export const surge = signal<Surge | null>(null);
 
+const run = new WeakSet<Surge>();
+/** How long a surge let go before its plate was there may still be run by it (a page drawn a moment late). */
+export const CLAIM_MS = 3000;
+/** The plate of this sign takes a surge to run: each surge once, and only a fresh one. */
+export function claim(chakra: ChakraId, s: Surge | null = surge.peek(), now = Date.now()): Surge | null {
+  if (!s || s.chakra !== chakra || run.has(s) || now - s.at > CLAIM_MS) return null;
+  run.add(s);
+  return s;
+}
+
 /** The gates that ask (dashed until he sets them or leaves their page). */
 export const asking = signal<ReadonlySet<ChakraId>>(new Set());
 /** Whether this sign's gate asks. Reads the signal, so a page drawing it redraws when it changes. */

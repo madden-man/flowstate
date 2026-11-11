@@ -23,7 +23,7 @@ import { chakraOf, type ChakraId } from '../../../model/mountain';
 import { courseOf, H, sceneOf, W, type Layer, type Mark } from './scenes';
 import { rng } from './ink';
 import { PlateLight } from './water';
-import { settle, surge } from './surge';
+import { claim, settle, surge } from './surge';
 
 type Props = {
   chakra: ChakraId;
@@ -92,11 +92,11 @@ export function Plate({ chakra, gate, above, children }: Props) {
 
   // a touch done here lets a share of the pool go (PLAN-TASKS.md section 5, ./surge.ts); leaving the page, the gate
   // that asked asks no more
+  // a page drawn a moment after the surge was let go (a touch done on coming back) still runs it, once (./surge.ts claim)
   useEffect(() => {
-    let first = true;
     const off = surge.subscribe(s => {
-      if (first) { first = false; return; }
-      if (s && s.chakra === chakra) engine.current?.surge(s.amp);
+      const mine = engine.current ? claim(chakra, s) : null;
+      if (mine) engine.current!.surge(mine.amp);
     });
     return () => { off(); settle(chakra); };
   }, [chakra]);
