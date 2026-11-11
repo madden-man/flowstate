@@ -30,7 +30,7 @@ export function FromRow({ live, homes, page }: Props) {
   // a flow with no sign keeps its own page, and its own name: it is not one of the drawings under a sign
   const i = page ? page.order.indexOf(from.flowId) : -1, j = page ? page.order.indexOf(page.front) : -1;
   const where = home && page && home === page.chakra && i >= 0 && j >= 0 && i !== j
-    ? `the drawing ${i < j ? 'above' : 'below'}`
+    ? 'the other steps here'
     : home ? chakraOf(home).pageName : from.flow;
   return (
     <nav class="fs-links fl-from" aria-label="Handed off from">

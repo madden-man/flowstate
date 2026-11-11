@@ -68,15 +68,14 @@ for (const light of ['day', 'night', 'still'] as const) {
       await expect(body).toHaveAttribute('data-chakra', f.chakra!);
       await expectLines(page, f, 0, `${light} ${f.id} at rest`);
       // an episode, live on each step in turn
-      await page.goto(`/#/flow/${f.id}`);
+      await page.goto('/#/flow/now');
+      await page.locator(`.fl-nowlist a[href="#/flow/${f.id}/1"]`).click();
       await expect(body).toHaveAttribute('data-front', f.id);
-      const dot = page.locator(`.ck-drawing[data-flow="${f.id}"]`).getByRole('slider', { name: 'Where you are' });
       for (let k = 1; k <= f.steps.length; k++) {
-        await dot.focus();
-        await page.keyboard.press('ArrowRight');
+        if (k > 1) await page.locator('.ck-steps .ck-step').nth(k - 1).click();
         await expect(page).toHaveURL(new RegExp(`#/flow/${f.id}/${k}$`));
         await expect(body).toHaveAttribute('data-saved', 'true');
-        await expect(dot).toHaveAttribute('aria-valuenow', String(k));
+        await expect(body).toHaveAttribute('data-showing', String(k));
         await expectLines(page, f, k, `${light} ${f.id} live on ${k}`);
       }
     }

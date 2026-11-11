@@ -1,6 +1,10 @@
 // The stream (PLAN-MOTION.md M5, DESIGN.md rule 30): Panic's drawing runs like water behind parts/Cycle and above the
 // ghost rings; a landing sends one ring out; leaving the page leaves no loop running; Still runs slower with fewer; Reduce Motion shows none and runs none; and the page works without the layer.
+//
+// The stream is the flow page's (FlowPage): a sign's page carries no flow drawing since 2026-11-11, so these run on a
+// flow under no sign. Panic is taken off its sign for its own ring (./no-sign.ts); the shape-agnostic two use Energize.
 import { test, expect, type Page } from '@playwright/test';
+import { offItsSign } from './no-sign';
 
 /** Counts requestAnimationFrame calls from the first script on, so a loop left behind shows. */
 const countFrames = (page: Page) => page.addInitScript(() => {
@@ -21,15 +25,17 @@ async function open(page: Page, hash: string) {
 
 /** How many of the layer's lines show, and one line's end, now. */
 const motes = (page: Page) => page.evaluate(() => {
-  // R3: the Root's page holds two drawings; the ring's is the first
   const ls = [...(document.querySelector('.fl-stream')?.querySelectorAll<SVGLineElement>('line') ?? [])];
   return { all: ls.length, shown: ls.filter(l => Number(l.getAttribute('opacity')) > 0.01).length, ends: ls.map(l => l.getAttribute('x2')).join(',') };
 });
 
-test('stream: Panic runs like water behind the drawing, a landing rings once, and no loop outlives the page', async ({ page }) => {
+test('stream: Panic off its sign runs like water behind the drawing, a landing rings once, and no loop outlives the page', async ({ page }) => {
   await countFrames(page);
-  await open(page, '#/flow/panic');
-  const layer = page.locator('.fs-flowpage .fl-drawing > .fl-stream').first();
+  await open(page, '#/flow');
+  await offItsSign(page, 'panic');
+  await page.goto('/#/flow/panic');
+  await expect(page.locator('.ck-page')).toHaveCount(0);
+  const layer = page.locator('.fs-flowpage .fl-drawing > .fl-stream');
   await expect(layer.locator('svg')).toHaveAttribute('data-running', '');
   // behind parts/Cycle (the step words, marks and dot are drawn after it) and out of the way of the thumb
   expect(await page.evaluate(() => {
@@ -46,7 +52,7 @@ test('stream: Panic runs like water behind the drawing, a landing rings once, an
   expect(await layer.evaluate(el => el.textContent)).toBe('');
 
   // a landing on the wave: one ring goes out, and the tap still answers at once
-  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
+  const dot = page.getByRole('slider', { name: 'Where you are' });
   await dot.focus();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
@@ -65,9 +71,9 @@ test('stream: Panic runs like water behind the drawing, a landing rings once, an
   expect(await rafs(page) - before).toBeLessThan(5);
 });
 
-test('stream: Still runs slower with fewer, and the page still works with the layer gone', async ({ page }) => {
-  await open(page, '#/flow/shutdown');
-  const svg = page.locator('.fl-stream svg').first();
+test('stream: on Energize Still runs slower with fewer, and the page still works with the layer gone', async ({ page }) => {
+  await open(page, '#/flow/energize');
+  const svg = page.locator('.fl-stream svg');
   await expect(svg).toHaveAttribute('data-running', '');
   const day = Number(await svg.getAttribute('data-stream'));
   expect(day).toBeGreaterThanOrEqual(0.85);
@@ -79,7 +85,7 @@ test('stream: Still runs slower with fewer, and the page still works with the la
 
   // with the layer taken away the dot still walks and writes
   await page.evaluate(() => document.querySelector('.fl-stream')?.remove());
-  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
+  const dot = page.getByRole('slider', { name: 'Where you are' });
   await dot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(dot).toHaveAttribute('aria-valuenow', '1');
@@ -90,14 +96,14 @@ test('stream: Still runs slower with fewer, and the page still works with the la
 
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
-  test('stream: none shows and none runs, and the dot still walks', async ({ page }) => {
+  test('stream: on Energize none shows and none runs, and the dot still walks', async ({ page }) => {
     await countFrames(page);
-    await open(page, '#/flow/whatif');
-    const svg = page.locator('.fl-stream svg').first();
+    await open(page, '#/flow/energize');
+    const svg = page.locator('.fl-stream svg');
     await expect(svg).toHaveAttribute('data-stream', '0');
     await expect(svg).not.toHaveAttribute('data-running', '');
-    await expect(page.locator('.fl-stream').first()).toBeHidden();
-    const dot = page.getByRole('slider', { name: 'Where you are' }).first();
+    await expect(page.locator('.fl-stream')).toBeHidden();
+    const dot = page.getByRole('slider', { name: 'Where you are' });
     await dot.focus();
     await page.keyboard.press('ArrowRight');
     await expect(dot).toHaveAttribute('aria-valuenow', '1');

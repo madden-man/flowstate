@@ -110,11 +110,11 @@ export const restLineId = (flowId: string) => `${flowId}-rest-line`;
 
 /** A hand-off line's words on a stop's page: "the Fight flow" reads as the sign it lands on, "the Throat chakra". When
  *  the flow it names is another drawing on this same page (What if to Panic, both under Root), naming the sign would
- *  point at the page he is on, so it reads as that drawing's place: "the drawing above" or "the drawing below". A line
+ *  point at the page he is on, so it reads as "the other steps here" (the drawings left the page, 2026-11-11). A line
  *  he wrote without "the ... flow" is left as he wrote it. */
 export function handOffWords(text: string, to: ChakraId | undefined, here?: 'above' | 'below'): string {
   if (!to) return text;
-  return text.replace(/\bthe\s+[^:;.]*?\s+flow\b/i, here ? `the drawing ${here}` : `the ${chakraOf(to).pageName}`);
+  return text.replace(/\bthe\s+[^:;.]*?\s+flow\b/i, here ? 'the other steps here' : `the ${chakraOf(to).pageName}`);
 }
 
 /** Where each flow sits: its sign, or undefined (Energize, or one he has not placed). */
