@@ -21,19 +21,19 @@ const titleOf = (d: DiagramName) => SHAPES[d]?.title ?? TITLES[d];
 /** Four quiet steps, so the small drawing shows its shape whole. */
 const SAMPLE = [1, 2, 3, 4].map(k => ({ id: String(k), name: '' }));
 
-export function NewFlow() {
+export function NewFlow({ onMade }: { onMade?: () => void } = {}) {
   const [open, setOpen] = useState(false);
   const [n, setN] = useState(0);
   const show = () => { tick('sheet'); setN(k => k + 1); setOpen(true); };
   return (
     <>
       <div class="fl-add"><button type="button" class="fs-chip add" onClick={show}>+ flow</button></div>
-      {n > 0 && <FlowForm key={n} open={open} onClose={() => setOpen(false)} />}
+      {n > 0 && <FlowForm key={n} open={open} onClose={() => setOpen(false)} onMade={onMade} />}
     </>
   );
 }
 
-function FlowForm({ open, onClose }: { open: boolean; onClose: () => void }) {
+function FlowForm({ open, onClose, onMade }: { open: boolean; onClose: () => void; onMade?: () => void }) {
   const { route } = useLocation();
   const [name, setName] = useState('');
   const [diagram, setDiagram] = useState<DiagramName>('ring');
@@ -53,6 +53,8 @@ function FlowForm({ open, onClose }: { open: boolean; onClose: () => void }) {
     done.current = true;
     const flow = await makeFlow(name, diagram, Date.now(), chakra);
     onClose();
+    // the list under the plate reads again before the turn (Flow.tsx), so a quick way back finds the new row
+    onMade?.();
     route(`/flow/${flow.id}`);
   };
 

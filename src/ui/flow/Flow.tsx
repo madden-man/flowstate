@@ -18,11 +18,15 @@ import { FIXATION_FLOW } from '../../model/fixations';
 
 export function Flow() {
   const [own, setOwn] = useState<FlowState[] | null>(null);
+  // a flow just made through "+ flow" (R5): read again. Make routes to the new flow's page, but a second navigation
+  // inside that turn (back to #/flow before the turn has drawn) lands on this same page, never unmounted, so without
+  // this its list would stay as it was read before the flow existed.
+  const [made, setMade] = useState(0);
   useEffect(() => {
     let live = true;
     flowStates().then(r => { if (live) setOwn(r.filter(s => !s.flow.chakra && s.flow.id !== FIXATION_FLOW)); }).catch(() => { if (live) setOwn([]); });
     return () => { live = false; };
-  }, [dataVersion.value]);
+  }, [dataVersion.value, made]);
 
   return (
     <Page label="Flow" drawn={own !== null}>
@@ -44,7 +48,7 @@ export function Flow() {
           </a>
         ))}
         {/* "+ flow" comes last (F3). */}
-        <NewFlow />
+        <NewFlow onMade={() => setMade(k => k + 1)} />
       </div>
     </Page>
   );

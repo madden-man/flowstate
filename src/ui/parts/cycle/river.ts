@@ -1,6 +1,6 @@
 // The mountain's river (PLAN-MOUNTAIN.md sections 3 and 4, pass 5; R1): the one uneven course the water runs, from the
 // spring under the summit's snow down through the seven signs to the river mouth and out into the sea. Pure geometry
-// on the mock's 328 by 476 box (design/mountain/mountain.js STOPS and its walk); no DOM, no drawing, no colour.
+// on the mock's 328 by 476 box (design/mountain/mountain.js STOPS and its walk, the proposal mock; in git history since R5); no DOM, no drawing, no colour.
 //
 // The course is sampled once as a polyline (each leg a cubic that leaves and arrives vertically, so the water falls
 // off one stop and swings into the next), and everything else reads it by distance along it, s, in the box's units:

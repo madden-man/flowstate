@@ -1,6 +1,6 @@
 # FlowState: the mountain (the Flow tab as seven chakras on one stream)
 
-Planned 2026-11-11 at Tommy's ask, in six passes the same day. **Pass 6 overrides pass 5 where they disagree, and pass 5 overrides anything older.** The build brief for the agent who builds it is `BUILD-MOUNTAIN.md`. The build began the same evening on this branch (package PRs target `mountain-plan`). The proposal walkthrough is `design/mountain/index.html` (a live mock: the meter and the gates drag, the water answers).
+Planned 2026-11-11 at Tommy's ask, in six passes the same day. **Pass 6 overrides pass 5 where they disagree, and pass 5 overrides anything older.** The build brief for the agent who builds it is `BUILD-MOUNTAIN.md`. The build began the same evening on this branch (package PRs target `mountain-plan`). R0 to R3 and R5 are built on `mountain-plan` (not on `main`, not deployed); R4 waits for the walk. The walkthrough is `design/mountain/index.html`, the real app (R5); the proposal mock it replaced is in git history.
 
 His words, in order:
 
@@ -149,10 +149,10 @@ A flow he makes himself asks which sign it belongs under.
 
 ## 9. DESIGN.md
 
-- New rule 33, **the mountain**: the Flow tab is one drawing in pen and ink; the land is drawn once, the rock in `--ink`, its shadow face ink at a low tone; seven signs hued by the voice formula; the water ink; what the meter and gates do; Still shows names, open signs in print grey and ink.
+- (R5: written as DESIGN.md rule 34, after the walk's 33, with pass 6's night plate in place of the ink below.) New rule, **the mountain**: the Flow tab is one drawing in pen and ink; the land is drawn once, the rock in `--ink`, its shadow face ink at a low tone; seven signs hued by the voice formula; the water ink; what the meter and gates do; Still shows names, open signs in print grey and ink.
 - Rule 7: the seven signs join the moon, the ring, the arrow and the check as drawn marks; they are drawn paths in the app's own code, never an icon library or an emoji.
 - Rule 15: a gate's percent is a state he sets, not a count; it leaves in Still. Rule 19: the gate's two end ticks. Rule 30: the mountain's water. Rule 31: the sea joins the things that breathe.
-- `tokens.css`: `--h-indigo` (the third eye).
+- `tokens.css`: `--h-indigo` (the third eye). (R0 dropped it: the hues live in `CHAKRAS`.)
 
 ## 10. Packages
 
@@ -167,21 +167,15 @@ A flow he makes himself asks which sign it belongs under.
 
 Each PR: `npm test`, `PORT=42xx npm run e2e`, both lints, three-light screenshots, review against this file and DESIGN.md.
 
+Status, 2026-11-11: R0 #62, R1 #64, R2 #65 and R3 #63 merged into `mountain-plan`; R5 is its own PR; R4 not built.
+
 ## 11. Open questions
 
-1. **The pairing** of drawings to chakras (section 6), and what each chakra is for (pass 5's placing). Move any of them.
-2. **Colour.** Rainbow hues (my default), or ink alone?
-3. **His own words.** The step lines and the notes to the next one are his, not the page's. They leave with the copy by default.
-4. **Should a ticked row ease the gate?** Default no.
-5. **Stale readings.** Dashed after a day (default), or left as set?
-6. **Books and art.** Which titles, under which chakra? The solar plexus's fork and the sacral's "Far away" step have nothing to put on yet.
-7. **Names.** Answered in pass 5: the part of the body or soul ("Heart chakra") and a cute sign; nothing Sanskrit.
-8. **The three knots.** Closed by pass 5: left out, with everything else from the tradition.
-9. **The next circles.** Which inspired flows join Meditate and Energize in the sea, and what is on each one's page?
+Built to the defaults. The choices the builders made, for Tommy to overturn, are listed in `BUILD-MOUNTAIN.md` section 7. Still open with no default: which books and art go under which sign (R4, none seeded), and which circles join Meditate and Energize in the sea.
 
 ## 12. Only the iPhone can say
 
-Whether a sideways drag on a gate fights Safari's back swipe near the left edge; the frame rate of about 150 moving lines over the drawn land at night; the two ticks under a dragging thumb; whether the swaying sea reads as calm or as busy.
+See `BUILD-MOUNTAIN.md` section 8; none of it has been checked on a phone.
 
 ## 13. Sources
 

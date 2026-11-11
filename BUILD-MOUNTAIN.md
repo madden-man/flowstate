@@ -1,6 +1,8 @@
 # Build brief: the mountain
 
-For the agent who builds it. Written 2026-11-11 from the planning session with Tommy. Nothing here is built yet.
+For the agent who builds it. Written 2026-11-11 from the planning session with Tommy.
+
+**Built (2026-11-11, on `mountain-plan`, not merged to `main`, not deployed):** R0 (PR #62), R1 (#64), R2 (#65), R3 (#63) and R5 (this walkthrough and the standard). **Not built:** R4, books and art (the On sheet's two kinds and the pick editor), which waits for the walk (branch `walk`) to merge. The walkthrough is `design/mountain/` (the real app; `npm run walkthrough:mountain`), the standard DESIGN.md rule 34.
 
 ## 1. The job
 
@@ -10,9 +12,7 @@ Read, in this order:
 
 1. `CLAUDE.md` (the repo's eight rules) and `DESIGN.md` (the design standard; every rule is lint or review).
 2. `PLAN-MOUNTAIN.md` (this branch). **Its pass 6 block overrides pass 5, and pass 5 overrides anything older in the file.** Pass 6 is the look: a night plate, the water as the only light, the arrival.
-3. `design/mountain/` (this branch): `index.html` is the nine-step proposal walkthrough; `mountain.js` and `mountain.css` are a mock that runs. Open `design/mountain/index.html` from disk in a browser and drag the meter and the gates.
-
-The mock is the reference for the geometry (the horn, the course, the stops, the signs) and the maths. It predates pass 6, so it is pen on a cream page: the look and the motion are pass 6's, not the mock's. It is plain JS written for a proposal; port its geometry and maths, not its code.
+3. `design/mountain/`: since R5 the walkthrough of the built mountain, the real app in eleven steps. The proposal mock it replaced (pen on cream, plain JS) is in git history before R5; its geometry and maths live on in `parts/cycle/river.ts`, `parts/Sign` and `model/mountain.ts`.
 
 ## 2. What Tommy decided, in his words
 
@@ -78,21 +78,28 @@ From plan section 10, with pass 5 applied. One PR each, in a worktree of its own
 - Deploy only from `~/dev/flowstate` (the Netlify link lives there, untracked): `netlify deploy --prod --dir <dist>`, then `curl` the live bundle to confirm. A deploy run inside a worktree silently creates a stray site.
 - The repo `madden-man/flowstate` is public. Merge and deploy when Tommy says to; he has not yet said so for the mountain.
 
-## 7. Still open (defaults are in the plan, section 11)
+## 7. Choices the builders made, for Tommy to overturn
 
-1. The pairing of drawings to stops, and what each stop is for.
-2. Rainbow hues (default) or ink alone.
-3. His own step lines and notes to the next one: leave the page with the copy (default) or stay.
-4. Should a ticked row ease the gate (default no).
-5. Stale readings dashed after a day (default) or left as set.
-6. Books and art: which titles under which stop (none are seeded; every pick is his).
-9. Which circles join Meditate and Energize in the sea.
+Gathered from the four package PRs (#62 to #65) and their review rounds. Each is a default, not a decision.
 
-Build to the defaults; list what you assumed in each PR body so Tommy can overturn it.
+1. The pairing of drawings to signs is section 6's (3 a.m. Crown, Replay Third eye, Fight Throat, Depress Heart, Shame Solar plexus, Shutdown Sacral, Panic and What if Root); Energize is a circle in the sea. Rainbow hues on the signs.
+2. Readings are sealed under the PIN (`value`; `of` and `at` stay clear for the index), and the mountain is behind the PIN; the door keeps its own list.
+3. His own step lines and the note to the next one leave the stop's page (they are kept, and Right now still reads his lines).
+4. The 988 and doctor lines show at rest on a stop's page as well as on their step; hand-offs only on the step they leave from. A hand-off to a drawing on the same page reads "the drawing above" or "below".
+5. Right and up shut every gate, on the mountain and on the page, so the same key shuts both; a gate whose name is to its right no longer shuts toward the stream (plan section 5).
+6. A plain tap on a gate or the meter writes nothing; a reading is written once on release. A fully open gate rests as a faint dash. A reading older than a day is dashed until touched. A ticked row does not ease a gate.
+7. Snow falls only while the meter rises (and a short settle after); a heavy day already set has none. No number on the meter; a gate's grey percent while above zero.
+8. A change travels at about 110 units a second, about 5.5 seconds from spring to sea; the arrival takes 4.2 seconds, once per unlock.
+9. Meditate's "last sat" date and Energize's three names left the Flow tab (both on their own pages); an open Energize ride puts the dot on its circle.
+10. Root's second drawing (What if) is folded small until tapped; whatever is in front, live or opened stays open.
+11. The rest list drops near-identical rows and keeps one row per helper. The places on each stop's page, and all the weather, are the builders' drawings inside pass 6's list.
+12. New tick names `meter` and `gate`, at the two ends only (rule 19). No sound on the mountain.
+
+Still open with no default: which books and art go under which sign (none seeded; R4), and which circles join Meditate and Energize in the sea.
 
 ## 8. Only the iPhone can say
 
-Whether a sideways drag on a gate fights Safari's back swipe near the left edge; the frame rate of about 150 moving lines over the inked land, at night especially; the two ticks under a dragging thumb; whether the swaying sea reads as calm or busy. Say in the PR that these were not checked.
+None of these was checked on a phone: whether a sideways drag on a gate fights Safari's back swipe near the left edge; the frame rate with two full-plate canvases (one screen-blended, about 260 motes) under the plate's mask, at night and during a drag or the arrival; whether `@property` (the sign filling, the plate's feather) and CSS `round()` (the plate on whole rules) behave on his iOS; the `meter` and `gate` ticks under a dragging thumb; whether the compact gates are easy to catch; whether the swaying sea reads as calm or busy, the falling snow as snow and not stars, and the lanterns as bright enough at night; how the sign's travel into its page looks (headless screenshots do not capture view transitions).
 
 ## 9. How this build is run (2026-11-11 evening)
 
