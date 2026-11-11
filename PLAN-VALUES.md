@@ -22,10 +22,11 @@ Assumed for the build, each one small to overturn (section 9 asks the ones that 
 - **The list is the identity.** Be opens on the values alone, large, in his order, under the notebook's own line "I determine my core." No shadows, no states, nothing to do.
 - **A tap opens the value where it stands.** The word moves left, the seam is drawn, the shadow is written across it: the list row becomes today's dichotomy row. Under it: what living it looks like (the aspect line, shown at last), who fights for it, who fights for its shadow, what was said for it, and "Call a council".
 - **A champion is a voice on a side.** Any voice can fight for a value; any voice can fight for its shadow, in the same words and the same drawing. The deep twins (Workaholic, Addict) are a voice gone dark, which is a different thing from a shadow value, so they get no special place here: they may champion like any voice and are never suggested. Nothing is assigned by the app.
-- **Many to many, by taps.** From a value: "+ champion" opens every voice as a chip, tap to toggle. From a voice: every value as a chip, tap to toggle. In a council: "+ value" on the speaking voice's row. Three doors, one link.
+- **Many to many, by taps.** From a value: "+ champion" opens every voice as a chip, tap to toggle. From a voice: every value as a chip, tap to toggle. On a tapped line: "+ value" at the end of its "Spoke for" chips. Three doors, one link.
 - **A champion may say why.** Each champion row under a value is drawn as that voice's line (its 3px rule and wash) and holds one optional sentence of his: what fighting for this means to that voice. This is where the goals' intent goes: not a task with a cadence, a stance in a voice.
-- **"For" is a label, not a sentence.** In a council the speaking voice's values sit as small chips above the composer ("for honesty"). A tap arms one for the next line; the line is printed "WARRIOR · FOR HONESTY". The app prints his word in the stationery sans; it never writes the line (rule 16).
-- **A value keeps what was said for it.** Lines spoken for a value show under it, newest first, each a way back to its council. That is the use: the value is not a claim, it is a record of the times a part of him stood up for it.
+- **Speaking for is confirmed after, never declared before** (Tommy, 2026-11-11: "not everything a council member says is on the behalf of its value... make that something i can confirm when i tap a line in the council/journal"). A line is spoken as today, with no label. A tap on a voiced line offers what that voice fights for, values and shadows alike, as chips headed "Spoke for"; one tap confirms and the line is printed "WARRIOR · FOR HONESTY", a second tap takes it back. Most lines never get one. In the council the chips sit in the reply bar a tap already opens; in the journal they step out under the tapped line, where the margin dot's voice chips do. A line in plain ink offers nothing.
+- **"For" is a label, not a sentence.** The app prints his word in the stationery sans beside the speaker; it never writes the line (rule 16).
+- **A value keeps what was said for it.** Lines confirmed for a value show under it, newest first, each a way back to its council. That is the use: the value is not a claim, it is a record of the times a part of him stood up for it.
 - **A council can be called on a value.** It opens with the value's champions seated, and the shadow's beside them, and "About" naming the value.
 - **Goals, leans and checks leave the app, not the phone.** Their tables stay in the database and in every backup; nothing reads them. Nothing is deleted by the upgrade.
 - **No counts.** No "times fought for", no tallies per voice, no ranking of values or champions (rules 15 and 16).
@@ -52,9 +53,9 @@ Only the first two rows are his; the rest are examples for the mocks and are see
 4. **Anyone can take up a value.** The "+ champion" sheet: every voice a chip, pressed when it fights for this.
 5. **Each voice, and what it fights for.** Be's second segment, "Champions": the pantheon with each voice's values under its name, the shadows it fights for in italic beside them.
 6. **A council sits around what is at stake.** "Who sits?" with a row of values: a tap on one seats its champions.
-7. **Warrior says what he is fighting for.** The composer with "for honesty" armed; lines above printed "WARRIOR · FOR HONESTY".
-8. **The shadow gets a voice too.** Night: "MYSTIC · FOR DISCRETION", drawn exactly as Warrior's line for honesty is.
-9. **Hold a line to say what it was for.** The line sheet's new row, "Spoke for…", after the fact.
+7. **Tap a line, and say what it was for.** The council's reply bar with "Spoke for · honesty"; of three lines above, one carries "WARRIOR · FOR HONESTY".
+8. **The shadow gets a voice too.** Mystic's line confirmed "FOR DISCRETION", drawn exactly as Warrior's is.
+9. **The journal does the same.** A voiced line on a page, tapped, with its chips under it.
 10. **The value keeps what was said for it.** The open value again, now with "Said for it" and "Call a council".
 11. **In Still, only the words.**
 
@@ -64,12 +65,12 @@ Only the first two rows are his; the rest are examples for the mocks and are see
 |---|---|---|
 | Recruiting | A value with no champion shows a dashed rule on the list and a dashed row inside: "who fights for this?" The dashed slot is rule 11's own mark for something owed. | 11 rewritten |
 | Colour | A value's row carries its champions' hues as `.fs-spoke` rules (the council list's mark); a champion's why is a voiced line. The list looks like who showed up. | 3, 9 |
-| The declaration | Arming "for honesty" is one tap, a tick, and the label is drawn onto the line like a pen stroke. | 19 amended, 27 |
+| The claim | Confirming "honesty" on a line is one tap and a tick, and the label is drawn onto the line like a pen stroke. Because it is chosen after, a label means something. | 19 amended, 27 |
 | Sides at the table | A council called on a value seats both sides, so the lesser paradox is talked through by the voices that hold each end, neither one the villain. | 9 |
 | The record | "Said for it" under a value: the lines themselves, dated, no number. | 15 |
 | The shadow, a tap away | The list is what he reaches for; each shadow waits behind its value and is met by opening it. In Still the page is the value words alone. | 13 amended |
 
-Rules touched: 9 (the "for" label beside a speaker), 11 (rewritten: Be is a list of values; the spread retires), 13 (Still: value words only; no shadows, champions, whys or dates), 15 (said-for lines are not a count), 19 (two tick sites: `champion`, a voice taking up or leaving a value; `for`, arming). No new tokens expected. Banned as everywhere: generated words, counts, streak words, bounce.
+Rules touched: 9 (the "for" label beside a speaker), 11 (rewritten: Be is a list of values; the spread retires), 13 (Still: value words only; no shadows, champions, whys or dates), 15 (said-for lines are not a count), 19 (two tick sites: `champion`, a voice taking up or leaving a value; `for`, a line confirmed). No new tokens expected. Banned as everywhere: generated words, counts, streak words, bounce.
 
 Why this shape, from the reading done for PLAN-SELF.md (2026-11-10, abstract level): a paradox mindset is accepting a tension, not resolving it (Miron-Spektor 2018), so a value and its shadow are both kept and nothing ranks one over the other; values written in one's own words lower defensiveness (Cohen and Sherman 2014), so every word and every why is his; more facets is not better (Rafaeli-Mor and Steinberg 2002), so resting stays. The findings about feared selves, avoidance goals and suppression that shaped PR #58's "Not me" do not apply: a shadow here is not something refused.
 
@@ -96,7 +97,7 @@ Page.valueIds?: string[];                                       // a council cal
 - **New table `values`** (index `id`), `SCHEMA_VERSION` 6, in `TABLES`, `SPECS` (`valueSpec`, the fixation spec's pattern) and `backup.ts`. A version 5 file imports with none and gets the migration below. The Dexie upgrade writes nothing (it cannot seal).
 - **Champions live on the value row.** One write changes a link, a backup merge is a row merge, and "what does this voice fight for" is a scan of a short list. No join table.
 - **`model/values.ts`**: `held()`, `resting()`, `createValue`, `saveValue` (revisions on a later day, as a line's), `moveValue`, `deleteValue` (two taps; lines keep their words and lose the label), `champion(valueId, voiceId, side)` and `unchampion`, `setWhy`, `fightsFor(voiceId)`, `byVoice()` for the Champions segment, `saidFor(valueId, limit)`, `speakFor(messageId, for | undefined)`, `callCouncil(valueId)`.
-- **`model/council.ts`**: `speak` takes `for`; `newCouncil` takes `valueId` and seats its champions (value side first, then the shadow's), skipping archived voices.
+- **`model/council.ts`**: `speak` is unchanged (a line is never born with a label); `newCouncil` takes `valueId` and seats its champions (value side first, then the shadow's), skipping archived voices.
 - **One-time pass `valuesFromParadoxesOnce`** (marked `'values'` in `settings.cleaned`; needs the journal open, like `seedFixationsOnce`): each paradox becomes one value, word from pole A, shadow from pole B, looks from pole A's aspect, `held` when it was active and `resting` otherwise, order kept. Pole A's old bracket word (the pole overdone, which is not a shadow) and pole B's aspect go into the value's first revision so nothing is lost. A fresh install seeds the same two values and no paradoxes.
 - **`paradoxes`, `items`, `leans` stay**: in the schema, sealed as before, exported and imported by backup, read by nothing. `Page.paradoxIds` stays on old rows.
 - **An archived voice** keeps its links and is not drawn; restored, it is a champion again.
@@ -110,7 +111,7 @@ Page.valueIds?: string[];                                       // a council cal
 | C1 | Data: section 5, the pass, the seed, backup, unit tests | `src/db/schema.ts`, `src/db/fields.ts`, `src/db/seed.ts`, `src/db/backup.ts`, new `src/model/values.ts`, `test/model`, `test/db` | A version 5 database opens as version 6 with one value per paradox and nothing lost |
 | C2 | Be: the list, the open value, the value sheet, drag order, Resting, Still; the spread, goal sheet, checks and lean slider leave the UI | `src/ui/be/*`, `src/ui/parts/parts.css` (Be section), `test/e2e/be-values.spec.ts`; retires `be.spec.ts`, `be-checks.spec.ts` | Steps 1, 2, 3 and 11 run in the app |
 | C3 | Champions: champion rows and whys under a value, "+ champion", the Champions segment, the values row on the voice sheet | new `src/ui/be/Champions.tsx`, `ChampionSheet.tsx`, `src/ui/council/VoiceSheet.tsx`, `test/e2e/champions.spec.ts` | Steps 4 and 5; a link made from either side shows on both |
-| C4 | Council: the "for" chips above the composer, the label on a line, "Spoke for…" on the council and journal line sheets, values on "Who sits?" | `src/ui/council/*`, `src/ui/parts/Speaker.tsx`, `src/ui/journal/LineSheet.tsx`, `src/model/council.ts`, `test/e2e/council-for.spec.ts` | Steps 6 to 9 |
+| C4 | Speaking for: the "Spoke for" chips on a tapped line (the council's reply bar, the journal's inline row), the label on a line, values on "Who sits?" | `src/ui/council/*`, `src/ui/parts/Speaker.tsx`, new `src/ui/parts/SpokeFor.tsx`, `src/ui/journal/PageView.tsx`, `src/model/council.ts`, `test/e2e/council-for.spec.ts` | Steps 6 to 9 |
 | C5 | The record: "Said for it" under a value, "Call a council", "About" on the council | `src/ui/be/Said.tsx`, `src/ui/council/Council.tsx` (About line only) | Step 10 |
 | C6 | `DESIGN.md` rules 9, 11, 13, 15, 19; `design/values/` rebuilt from the real app (`npm run walkthrough:values`); Be's steps in `design/walkthrough.html`; dead code out (`parts/Spread`, `LeanSlider`, `GoalSheet`, `Due`, the goal half of `model/paradox.ts` and `model/flow.ts` that nothing imports) | `DESIGN.md`, `design/`, `script/` | Both lints PASS; the architecture test finds no orphan |
 
@@ -119,7 +120,7 @@ C0 then C1. C2 and C4 side by side on C1. C3 on C2. C5 on C2 and C4. C6 last. Af
 ## 7. Tests
 
 - Unit: the pass (two seeded paradoxes, one with a bracket word, one resting); champion and unchampion from both sides; a why kept across an edit; `fightsFor` and `byVoice` with archived voices; `speakFor` and `saidFor`; a deleted value against a merge import; a version 5 backup file.
-- e2e: open and fold a value; the shadow absent from the list and from Still; toggle a champion on the value and see it on the voice; arm "for", send, see the label, reload, see it under the value; call a council from a value and find both sides seated.
+- e2e: open and fold a value; the shadow absent from the list and from Still; toggle a champion on the value and see it on the voice; speak a line and see no label; tap it, confirm a value, see the label, reload, see it under the value; tap again and it is gone; the same on a journal page; call a council from a value and find both sides seated.
 - Existing specs that name paradoxes (`still`, `turns`, `earlier`, `install`) move to values in C2.
 
 ## 8. PR #58 (be-self)
@@ -133,9 +134,9 @@ Recommended: do not merge it. Its screen (the creed over paradoxes, Not me under
 3. **A cap on held values.** Planned: none; Resting is the way to put one down. #58 held five.
 4. **The why line.** Planned: optional, one sentence per champion. Drop it and a champion is only a name.
 5. **Shadow champions.** Planned: any voice may fight for a shadow, the same as for a value. Simpler: only values have champions.
-6. **Arming "for".** Planned: always a deliberate tap, even for a voice with one value.
+6. **Where the chips show.** Planned: on every tap of a voiced line, so in the council they share the reply bar. If that is too much on a plain reply, they move to the long-press sheet.
 7. **PR #58.** Planned: closed after C0.
 
 ## 10. Only the iPhone can say
 
-The word's travel to the left as the shadow is written; the tick on arming "for"; whether two rows of chips above the keyboard leave enough of the conversation; the champion chips as thumb targets in the sheet; the list's type size against the page rules in each light.
+The word's travel to the left as the shadow is written; the tick on confirming a line; whether the reply bar plus a row of chips above the keyboard leave enough of the conversation; the champion chips as thumb targets in the sheet; the list's type size against the page rules in each light.
