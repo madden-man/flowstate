@@ -14,6 +14,7 @@ import { chakraOf, flowsUnder, isChakraId } from './mountain';
 import type { Episode, Flow, OnPick, Step, Tip, TipHelper } from '../db/schema';
 import type { Read } from '../db/fields';
 import { episodesOf, flows } from './flows';
+import { DEPRESS } from '../db/seed/depress';
 
 /** The most rows the page lists at rest. */
 export const REST_MOST = 6;
@@ -145,6 +146,28 @@ export function safetyLines(fs: Pick<Flow, 'id' | 'steps' | 'restLine'>[], homes
   const seen = new Set<string>();
   return fs.flatMap(f => [...rest(f), ...f.steps.flatMap(s => s.tips.filter(t => t.print && !t.struck && !t.handoff))])
     .filter(t => !seen.has(t.text) && !!seen.add(t.text));
+}
+
+// ---------------------------------------------------------------- the safety line (PLAN-TASKS.md section 2)
+
+/** The signs whose page prints the 988 line, with Call and Text, in every light. */
+export const SAFE_SIGNS: readonly ChakraId[] = ['heart', 'root'];
+
+/** The 988 line, as the seed already words it (Depress's last step), so the app writes nothing new. */
+export const LINE_988: string = DEPRESS.steps.flatMap(s => s.tips).find(t => t.id === 'depress-4-988')!.text;
+
+/** A printed line that is the 988 line (his copy of it, or the seed's). */
+export const is988 = (t: Pick<Tip, 'text'>) => /\b988\b/.test(t.text);
+
+/**
+ * The page's own 988 line (SAFE_SIGNS), and the lines it prints besides. At rest the page's line stands for any 988
+ * line among the flows' lines, so it is printed once. With a step shown that prints its own 988 line, the step keeps
+ * it where it is and the page prints only Call and Text under it.
+ */
+export function safetyFoot(chakra: ChakraId, lines: Tip[], stepShown: boolean): { line?: string; links: boolean; lines: Tip[] } {
+  if (!SAFE_SIGNS.includes(chakra)) return { links: false, lines };
+  if (stepShown && lines.some(is988)) return { links: true, lines };
+  return { line: LINE_988, links: true, lines: lines.filter(t => !is988(t)) };
 }
 
 // ---------------------------------------------------------------- reads
