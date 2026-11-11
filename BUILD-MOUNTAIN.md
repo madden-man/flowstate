@@ -9,10 +9,10 @@ Turn FlowState's Flow tab from a list into one drawing: a mountain in pen and in
 Read, in this order:
 
 1. `CLAUDE.md` (the repo's eight rules) and `DESIGN.md` (the design standard; every rule is lint or review).
-2. `PLAN-MOUNTAIN.md` (this branch). **Its pass 5 block, near the top, overrides anything older in the file.**
+2. `PLAN-MOUNTAIN.md` (this branch). **Its pass 6 block overrides pass 5, and pass 5 overrides anything older in the file.** Pass 6 is the look: a night plate, the water as the only light, the arrival.
 3. `design/mountain/` (this branch): `index.html` is the nine-step proposal walkthrough; `mountain.js` and `mountain.css` are a mock that runs. Open `design/mountain/index.html` from disk in a browser and drag the meter and the gates.
 
-The mock is the reference for how it looks and moves. It is plain JS written for a proposal; port its geometry and maths, not its code.
+The mock is the reference for the geometry (the horn, the course, the stops, the signs) and the maths. It predates pass 6, so it is pen on a cream page: the look and the motion are pass 6's, not the mock's. It is plain JS written for a proposal; port its geometry and maths, not its code.
 
 ## 2. What Tommy decided, in his words
 
@@ -93,3 +93,11 @@ Build to the defaults; list what you assumed in each PR body so Tommy can overtu
 ## 8. Only the iPhone can say
 
 Whether a sideways drag on a gate fights Safari's back swipe near the left edge; the frame rate of about 150 moving lines over the inked land, at night especially; the two ticks under a dragging thumb; whether the swaying sea reads as calm or busy. Say in the PR that these were not checked.
+
+## 9. How this build is run (2026-11-11 evening)
+
+- Package PRs target `mountain-plan` (draft PR #60 becomes the build), not `main`. Nothing merges to `main` and nothing deploys until Tommy says so.
+- R0 now also holds `parts/Sign` and the plate tokens, so R1 and R3 run side by side after it. R2 follows R1. R5 is last.
+- `walk` has not merged (it is uncommitted work in `~/dev/flowstate-walk`, another session's). So R3 builds the stop's page as new files beside `FlowPage.tsx` and uses `Tips` through its existing props, touching the walk's files as little as it can; R4's sheet and pick editor wait for the walk. R0 still widens `PickKind`.
+- The values build (`be-values-plan`) is taking schema 6 on its own branch at the same time. The mountain's bump is one small block in `schema.ts` so the second to reach `main` renumbers in one place.
+- Ports for e2e: R0 4260, R1 4261, R2 4262, R3 4263, R5 4265.
