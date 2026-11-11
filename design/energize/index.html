@@ -6,6 +6,7 @@
 <title>FlowState: Energize, the fixations</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="walk.css">
+<style>/* PLAN-MOUNTAIN.md R5: this shows the Flow tab before the mountain; the badge says so (no link: each walkthrough is its own artifact) */ .hist{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none}</style>
 </head>
 <body>
 <div class="wrap">
@@ -105,7 +106,7 @@
 
 <!-- 8 -->
 <section class="step" id="list" data-name="The Flow list names the three">
-  <h2>The Flow list names the three</h2>
+  <h2>The Flow list names the three<span class="hist" title="The Flow tab is now the mountain">history</span></h2>
   <p class="line">Energize reads as what I am on, not as a shape.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Row</td><td><code>ui/flow/Flow.tsx</code>: the meta line is <code>namesOf(three())</code>, the names in slot order, in place of "The landing arc".</td></tr>

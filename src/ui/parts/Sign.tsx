@@ -1,6 +1,6 @@
 // parts/Sign (PLAN-MOUNTAIN.md pass 6, R0): one of the mountain's seven drawn signs, a crown, an eye, a speech bubble, a
 // heart, a sun, a drop, a sprout. Drawn paths in the app's own code (DESIGN.md rule 7), never an icon or an emoji; the
-// paths are the mock's (design/mountain/mountain.js SIGNS), in a box of 28 centred on 0.
+// paths are the mock's (design/mountain/mountain.js SIGNS, the proposal mock; in git history since R5), in a box of 28 centred on 0.
 //
 // A sign is a lantern. Open (closed 0) its body is full of its hue by the voice formula (rule 3); as closed goes to 1 it
 // empties to a cold outline and draws in to 70 percent. The component sets only --sh (the hue) and --gate inline; the CSS

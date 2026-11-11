@@ -133,9 +133,22 @@ test('mountain: leaving through the tab bar mid-arrival counts as seen, so it do
   await expect(page.locator('.mt-plate')).toHaveAttribute('data-arrive', 'done');
 });
 
+/** Stretches the arrival to a minute for one test, so "it is still running" can never lose a race with a slow load
+ *  (it failed once in 90 at the real 4.2 s); the tap that cuts it short is what the test is about, not its length. */
+const slowArrival = (page: Page) => page.addInitScript(() => {
+  const style = () => {
+    const s = document.createElement('style');
+    s.textContent = ':root, [data-light] { --t-arrive: 60000ms !important; }';
+    document.head.appendChild(s);
+  };
+  if (document.head) style(); else document.addEventListener('DOMContentLoaded', style, { once: true });
+});
+
 test('mountain: a sign opens its page, the circles open Meditate and Energize, and a tap during the arrival cuts it short', async ({ page }) => {
+  await slowArrival(page);
   await open(page);
   const plate = page.locator('.mt-plate');
+  expect(await plate.evaluate(el => getComputedStyle(el).getPropertyValue('--t-arrive').trim())).toBe('60000ms');
   // the first visit after unlocking: the arrival runs; a tap anywhere on the plate ends it at once
   await expect(plate).toHaveAttribute('data-arrive', 'run');
   await plate.click({ position: { x: 20, y: 20 } });

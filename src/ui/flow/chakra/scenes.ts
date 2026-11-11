@@ -568,6 +568,6 @@ export function sceneOf(c: ChakraId): Scene {
 }
 
 /** The whole course as one path, start to end through the sign. */
-export const courseOf = (s: Scene) => `${s.course[0]} ${s.course[1].replace(/^M[^A-Za-z]*/, 'L')}`;
+export const courseOf = (s: Scene) => `${s.course[0]} ${s.course[1].replace(/^M/, 'L')}`;
 
 

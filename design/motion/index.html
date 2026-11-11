@@ -6,6 +6,7 @@
 <title>FlowState: the motion pass</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="walk.css">
+<style>/* PLAN-MOUNTAIN.md R5: this shows the Flow tab before the mountain; the badge says so (no link: each walkthrough is its own artifact) */ .hist{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none}</style>
 </head>
 <body>
 <div class="wrap">
@@ -56,7 +57,7 @@
 
 <!-- 4 -->
 <section class="step" id="open" data-name="A flow opens">
-  <h2>A flow's small drawing grows into its page</h2>
+  <h2>A flow's small drawing grows into its page<span class="hist" title="The Flow tab is now the mountain">history</span></h2>
   <p class="line">Tap any flow, then Flow to go back.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Mechanism</td><td>The tapped row alone gets a <code>view-transition-name</code>, so its small drawing travels and grows into the page's drawing and its name rides to the header; back is the same turn reversed. The page waits for its read (<code>ready</code>) so the turn never shows it empty.</td></tr>
