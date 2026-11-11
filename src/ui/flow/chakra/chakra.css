@@ -82,6 +82,8 @@
 .ck-sign .fs-sign-g { transition: transform var(--t-ui) var(--ease); transform-origin: center; transform-box: fill-box; }
 .ck-sign .fs-sign-line { animation: ck-pen calc(var(--t-draw) * 2) var(--ease) both; animation-delay: calc(var(--t-draw) * 3.5); }
 @keyframes ck-fill { from { fill-opacity: 0; } }
+/* travelled in from the mountain: the sign lands lit, not drawn again (rule 28) */
+.ck-plate[data-arrived] .ck-sign .fs-sign-body, .ck-plate[data-arrived] .ck-sign .fs-sign-line { animation: none; stroke-dasharray: none; }
 /* while the gate is under the finger the sign answers at once (rule 20) */
 .ck-page[data-gating] .ck-sign .fs-sign-body, .ck-page[data-gating] .ck-sign .fs-sign-g { transition: none; }
 /* the tarn holds it upside down and faint */

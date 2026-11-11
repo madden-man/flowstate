@@ -64,6 +64,9 @@ export function Plate({ chakra, gate, above }: Props) {
   const sky = useMemo(() => stars(c.hue * 31 + 7, chakra === 'third-eye' || chakra === 'crown' ? 60 : 36), [chakra]);
   const id = `ck-${chakra}`;
   const whole = useMemo(() => courseOf(scene), [chakra]);
+  // opened by a turn (the sign travelling from the mountain, rule 28): the sign is already lit when it lands, so it is
+  // not drawn again under the travelling one; the place still draws itself round it
+  const arrived = useMemo(() => typeof document !== 'undefined' && document.documentElement.dataset.turn === 'open', [chakra]);
 
   useEffect(() => {
     if (!canvas.current || !course.current) return;
@@ -119,7 +122,7 @@ export function Plate({ chakra, gate, above }: Props) {
   );
 
   return (
-    <div class="ck-plate on-plate" data-chakra={chakra} data-fx={scene.fx} aria-hidden="true"
+    <div class="ck-plate on-plate" data-chakra={chakra} data-fx={scene.fx} aria-hidden="true" data-arrived={arrived ? '' : undefined}
       style={{ '--qa': above.toFixed(3), '--qb': below.toFixed(3), '--open': (1 - gate).toFixed(3), '--sh': String(c.hue) }}>
       <div class="ck-box">
         <svg class="ck-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">

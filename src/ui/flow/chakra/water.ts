@@ -392,7 +392,7 @@ export class PlateLight {
     this.stamp(x, this.hueDot, sx, sy, size * (1.25 + 0.35 * br), (0.5 + 0.3 * br) * on * (this.tint ? 1 : 0.45));
     // the core it is lit from: a bright heart inside the sign, swelling on the in-breath
     this.stamp(x, this.hueDot, sx, sy, size * 0.72, (0.25 + 0.15 * br) * on * (this.tint ? 1 : 0.4));
-    this.stamp(x, this.glowDot, sx, sy + size * 0.04, size * (0.3 + 0.08 * br), (0.1 + 0.12 * br) * open);
+    this.stamp(x, this.glowDot, sx, sy + size * 0.04, size * (0.26 + 0.06 * br), (0.05 + 0.07 * br) * open);
     this.drawWaterLight(x, hue, lit);
     this.drawMotes(x, hue, lit);
     this.drawFx(x, hue, lit);
@@ -450,7 +450,7 @@ export class PlateLight {
       // the ends of the course fade, so the water comes from somewhere and goes on; each mote glints on its own beat
       const edge = Math.min(1, m.u / 0.06, (1 - m.u) / 0.08);
       const twinkle = 0.6 + 0.4 * Math.sin(this.t * m.tw + m.ph);
-      const a = (0.18 + 0.5 * q) * edge * twinkle * (1 + 0.6 * inSign);
+      const a = (0.18 + 0.5 * q) * edge * twinkle * (1 - 0.45 * inSign);
       x.globalAlpha = 1;
       x.strokeStyle = rgba(c, a * 0.4);
       x.lineWidth = m.w * 0.6;
