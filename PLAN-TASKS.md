@@ -2,262 +2,125 @@
 
 Planned 2026-11-11 at Tommy's ask: "revamp each of the tasks in flowstate flows ... more cohesive with the chakras and more interactive with the energy flow, only showing buttons or info when there is a clear interactive thing in the app (music album, game, etc., which can be separated out) ... more immersive with the mountain animation/drawings."
 
-Nothing is built. Walkthrough: `design/tasks/index.html` (nine steps, the seven real places with the proposed touches drawn over them), published private at https://claude.ai/artifact/8XBwpvXuXCWPKeWVo3XMJf.
+Second pass, the same evening, in his words:
 
-## 1. What is wrong today
+- "don't rely on the responses that were on the original examples - do it for the actual chakra. for example, crown shouldn't be about insomnia anymore."
+- "there should be music picks on all of the chakras, clickable and easy to jump to. i can provide, or you can make it editable."
+- "where possible, integrate this with the other three sections, or link out of the app to things that could help (messaging a friend for example)."
 
-A stop's page is a drawing with a checklist under it. The plate at the top is the place on the mountain; under it sit a gate slider, step words and rows with checkboxes. The rows do not touch the drawing: a ticked row moves no water, and most rows are advice the app can do nothing about ("No alcohol tonight", "Keep the routine that worked"). Of about 115 seeded rows, about 45 carry a helper the app acts on. The picks (albums, shows, films, games) hang off single rows on fifteen steps.
+This file is the second pass. Nothing is built. Walkthrough: `design/tasks/index.html` (ten steps: the mountain, the seven signs, the music sheet, the sea), private at https://claude.ai/artifact/8XBwpvXuXCWPKeWVo3XMJf.
 
-## 2. The idea
+## 1. The idea
 
-1. **The place is the page.** The plate grows from 220 to about 350 and holds everything he touches. The paper under it keeps only what must be printed: the sign's one line, the gate, the shelf, the safety lines.
-2. **A task is a touch on the water.** Seven touches, each one a helper the app already has, drawn where the stream runs through that place. No checkboxes on a stop's page.
-3. **A row the app cannot act on leaves the page.** It stays in the data and in the step sheet, where he can give it a touch to bring it back.
-4. **What to put on is its own shelf.** Covers and written lines on the bank under the place, one shelf per sign, not a row among the tasks.
-5. **A touch moves the water.** Done, it sends a surge from the pool above the sign down the course, here and then on the mountain. It never writes the gate: that stays what he says is true.
+1. **A sign's page is about that sign.** What it shows is written for what the sign is for (letting go, seeing clearly, speech, love and grief, will and worth, feeling, feeling safe), not carried over from the old flows' rows.
+2. **A task is a touch on the water.** No checkboxes. Each touch is one or two print words beside the stream, drawn in what that place is made of.
+3. **A touch goes somewhere real.** It either happens in the place (a held thumb, a line on the water), opens Journal, Council, Be or Questions with something carried in, or leaves the app for Messages, the phone, Calendar or Spotify. Nothing is shown that the app cannot act on.
+4. **Music is on every sign.** A shelf of covers under each place, editable, and all seven shelves one tap away from any screen.
+5. **A touch moves the water.** Done, it sends a surge from the pool above the sign down the course and on to the sea. It never writes the gate.
 
-## 3. The seven touches
+## 2. The seven signs
 
-| Touch | Helper today | What he does | Word on the plate |
-|---|---|---|---|
-| Breathe (Hold) | `ring` | a thumb held on the water; it slows on the out-breath, and each breath lets a pulse through | Breathe, or Hold on a pool |
-| Dim | `still` | a tap on the lantern lowers it; the app enters Still | Dim |
-| Name it | new `name`; `five` and `prediction` are forms of it | one rule appears on the water; his words are carried off, kept sealed on the episode | Name it, Reword, Five |
-| Away | `timer`, new `away` | says when he is back; the place dims and the water pools until he returns | Away, Back at 7:40 |
-| Reach | `person`, `calendar` (from the walk) | a bubble to a person, or one thing with a time into Calendar | Reach, Say it, One small thing |
-| Sit | `sit` | follows the stream down to Meditate's circle | Sit |
-| Write | `journal` | today's page, linked to the episode | Write |
+At most four touches a sign. The lead touch is the one drawn in use at rest.
 
-Rules for all of them:
-
-- A touch shows as one or two print words beside the water, never a sentence. Lit once done (live episode), drawn only at rest.
-- At most four touches on a step. A step with none shows the place and the gate, nothing else.
-- Away is the one home for things done off the phone (cold water, a window, tea, a shower, a walk). The dimmed place prints at most three of those words, his order. Nothing else off the phone shows.
-- Wise lines (the italic second person) stay off the stop's page, as built in R3.
-- The words he writes on the water are his; the app writes none (CLAUDE.md rule 6).
-
-## 4. Each sign has its own material
-
-One vocabulary, seven places. The same touch is drawn in what the place is made of, so the page reads as that part of him and not as a list.
-
-| Sign | For | Old flow under it | Lead touch | What the place does in answer |
+| Sign | For | In the place | Into the app | Out of the app |
 |---|---|---|---|---|
-| Crown | letting go, sleep | 3 a.m. | Dim | the lantern lowers, Still spreads, snow lifts off the cornice as spindrift |
-| Third eye | seeing clearly | Replay | Name it | the line drifts out over the ledge; the far ranges come clear |
-| Throat | speech | Fight | Reach + Away as one ("Say it") | the bubble leaves; the fall holds at the lip until the return time, then drops |
-| Heart | love and grief | Depress | Reach ("One small thing") | a stone lands in the tarn, rings go out, the reflection steadies |
-| Solar plexus | will and worth | Shame | Name it, two rules ("Reword") | the struck verdict goes to the fire as embers; the deed stays written |
-| Sacral | feeling | Shutdown | Hold | a ring out from the thumb on every out-breath |
-| Root | feeling safe | Panic, What if | Breathe, Five | five stones across the stream; fireflies gather at the crossing |
-| the sea | | Energize, Meditate | Sit, Spark it | unchanged circles; Energize's rows take the same touches on its own page |
+| Crown | letting go | **Let go**: one rule on the snow; the words lift off as spindrift and are not kept | **Core**: Be, on "I determine my core." **Kept line**: a star shows one kept line and opens its journal page. **Sit**: Meditate | |
+| Third eye | seeing clearly | **Look far**: a held thumb; the ranges clear one by one on the breath | **Ask**: today's page, the line set as a question with Turn to answer open. **Bring it**: Council, the question as its first line. **Questions**: the ? tab | |
+| Throat | speech | **Say it here**: one rule at the lip; the sentence goes over the fall | **A voice**: Council, the voice chips ready | **Send**: Messages with the sentence filled in. **Call**: the phone |
+| Heart | love and grief | **Grieve**: a name on the tarn sinks and stays as a stone. **Hold**: the reflection steadies on the breath | **Letter**: a journal page that opens on "Dear", never sent | **Reach**: Messages to one person he chose |
+| Solar plexus | will and worth | **Reword**: two rules, the verdict struck, the deed kept | **Stand on**: Be, a held value and who champions it. **Spark it**: Energize | **I will**: one thing with a time, into Calendar |
+| Sacral | feeling | **Feel**: one word on the pool, rings out. **Hold**: a ring on each out-breath | **Write from it**: today's page, the word as its first line | **Move**: this sign's shelf, playing in Spotify |
+| Root | feeling safe | **Five**: five things he can see, drawn as stepping stones. **Breathe**: a thumb on the water. **Basics**: four lanterns in the firs (ate, slept, water, outside) | | **Reach**: Messages to one safe person |
 
-At rest (no episode) a sign shows its lead touch only, so the place can be rehearsed calm. It writes nothing.
+Changes this makes to what is built:
+
+- Crown's gloss becomes "letting go" (it reads "letting go, sleep" in `model/mountain.ts`). Sleep is one of Root's basics.
+- The 988 line, with Call and Text, is printed on Heart and Root in every light.
+- Wise lines, said paragraphs and advice rows stay off the page, as R3 and mountain-fixes left them.
+
+## 3. How a touch carries something in
+
+| Lands on | What is carried | Uses |
+|---|---|---|
+| Journal, today's page | the line he wrote, as a question (Ask), a first line (Write from it) or "Dear" (Letter); the page is linked to the sign | `pages.ts todayLinked`, rule 17's Turn to answer |
+| Journal, an older page | nothing; the kept line's own page opens | `messages.kept` |
+| Council | the question as the first line, or nothing with the chips ready | `model/council.ts` |
+| Be | nothing; the core line, or the value sheet of a held value | `ui/be` |
+| Questions | nothing | the ? tab |
+| Meditate, Energize | as now (`sitFrom`, Spark it) | the sea |
+| Messages, phone | his own sentence, to a person he chose once | `sms:`, `tel:`, `ui/flow/Person` |
+| Calendar | the line and its time | `calshow:` (the walk's helper) |
+| Spotify | the cover tapped | `src/music` |
+
+The sign travels with him: the place a touch lands shows a small sign in print beside the date, and a tap on it comes back (rule 28). The app writes no words of its own anywhere in this.
+
+## 4. Music on every sign
+
+- **The shelf.** Under the gate on every sign's page: covers, wordless, then a plus. A tap plays. Shows, films, games, books and art follow as written lines when he adds them.
+- **Editable.** The plus opens the ♪ grid and his playlists; the chosen cover travels to the shelf. A long press lifts a cover: drag to reorder, off the shelf to remove.
+- **Easy to jump to.** The ♪ in the header (on every screen) gains a Signs segment beside Playlists: seven rows, each a sign's name on its hue and its covers. A tap on a cover plays; a tap on the name opens that sign.
+- **Starters.** Three of the albums already seeded in the app per sign, so no shelf opens empty. They are my guess at a fit and his to replace:
+
+| Sign | Starter albums |
+|---|---|
+| Crown | Ágætis byrjun; Raising Your Voice... Trying to Stop an Echo; Takk... |
+| Third eye | Dive; v2.0; Awake |
+| Throat | x Infinity; The Incredible True Story; Professional Rapper |
+| Heart | Atlas: I; Carrie & Lowell; Birthplace |
+| Solar plexus | Gossamer; Celeste; Through the Deep, Dark Valley |
+| Sacral | In Between Dreams; Bahamas Is Afie; The Head and the Heart |
+| Root | Romantic Piano; Solitudes; All We Grow |
 
 ## 5. The water answers
 
-- **Pool and surge.** R2's maths stands (`model/mountain.ts`). With the gate part shut, water pools above the sign. A touch done releases a share of the pool as one surge (about two seconds), then the pool fills again because the reading has not changed.
-- **The gate asks without words.** After a surge the gate's handle goes dashed (the stale state R2 already has) until he sets it or leaves it.
-- **Open gate.** No pool, so a touch sends one brighter head down the course.
-- **On the mountain.** The first return to `#/flow` in the same unlock shows the surge travel from that sign to the sea, once (rule 31).
-- **Steps are reaches.** The step in front is named once on the plate in print. Moving on runs the head to the next reach. (This sits on the step words line the mountain-fixes branch is adding; see section 9.)
-- **Hand-offs follow the water.** "The Fight flow" is a small sign and its name; a tap travels to that sign's page (rule 28).
-- **Still:** touches work, no hue, no pool, no surge, slow water. **Reduce Motion:** marks light at once, nothing travels.
-- **Never:** a tally of touches, a streak, a reading written for him, sound he did not ask for.
+- **Pool and surge.** R2's maths stands. With the gate part shut, water pools above the sign; a touch done releases a share of it as one surge, then the pool fills again because the reading has not changed.
+- **The gate asks without words.** After a surge its handle goes dashed (R2's stale state) until he sets it or leaves it.
+- **A touch that leaves** (Messages, Calendar, Journal) surges when he comes back to the sign, not when he goes.
+- **On the mountain** the first return to the Flow tab in the same unlock shows the surge run from that sign to the sea, once.
+- **Still:** touches work, no hue, no pool, no surge. **Reduce Motion:** marks light at once, nothing travels.
+- **Never:** a tally of touches, a streak, a reading written for him, a sound he did not ask for.
 
-## 6. The shelf
+## 6. The old flows
 
-- One shelf per sign, under the gate: albums as wordless covers (a tap plays, as now), then shows, films, games, books and art as written lines with their kind.
-- It gathers every pick on the sign's steps. With a step in front, that step's picks come first; last time's pick first among those (`lastOn`).
-- No shelf where nothing is seeded (Solar plexus today).
-- The On row, the On sheet and the ♪ row leave the task list. `episodes.on` and "what helped" keep working.
-- Books and art (R4 of the mountain, never built) land here.
+The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown, Shame) no longer decide what a sign's page shows. They keep their steps, episodes and routes, and stay where a crisis starts: Right now and the door. A live episode still shows its step words on the sign's page, as mountain-fixes built it. Whether they stay paired to signs at all is question 3.
 
-## 7. Every seeded row
+## 7. Data
 
-Touch, Shelf, Printed (safety, stays in every light), Hand-off, or Off (leaves the page, kept in the step sheet).
+- `signs` content in `model/acts.ts`: per sign, its touches (`id`, word, kind: `place | journal | council | be | questions | sea | out`, and what it carries). Seeded, editable later.
+- `shelves`: one row per sign, `picks: OnPick[]` (the type the picks already use). The fifteen step picks stay on their steps.
+- What he writes on the water: `marks` (`chakra`, `touch`, `text`, `at`), sealed. Crown's Let go writes none. Heart's stones read from it.
+- Root's basics: today's four, on the day's row, gone at sunrise.
+- A new table means a schema bump: main is 7, so this is 8.
+- The door (no PIN) shows the place and the in-place touches that write nothing (Breathe, Hold, Look far, Five); everything that opens his words stays behind the PIN.
 
-**Root: Panic**
+## 8. What this sits on
 
-| Step | Row | Becomes |
-|---|---|---|
-| Overstimulated | Less coming in | Dim |
-| | Earplugs, or one quiet album | Shelf |
-| | Out longer than in | Breathe |
-| | Cold water on your wrists and face | Away |
-| | Name it: too much in, not danger | Name it |
-| The wave | Breathe with the ring | Breathe |
-| | Cold water on your face | Away |
-| | Tense, then let go on the out-breath | Breathe |
-| Settling | Five things you can see | Five |
-| | Walk to a window; make tea; go back for a minute | Away |
-| | Shake out your hands | Off |
-| | One person, written when calm | Reach |
-| Under the skin | Water, then food; a warm shower; a slow walk | Away |
-| | An album, or the TV | Shelf |
-| | Sit with the rain | Sit |
-| | Write it down, later | Write |
-| | If it stays heavy for days | Hand-off to Heart |
+- **mountain-fixes (#70, merged):** the old drawings are off the sign's page. This plan builds on that page.
+- **PLAN-WEATHER.md (#68, merged, not built):** its stars are kept lines, which is Crown's Kept line; build that once, there or here.
+- **The walk (#61, open):** its card strip is not used. Kept from it: the `calendar` helper and the Call and Text links. Closing #61 is Tommy's call.
+- **Mountain R4 (books and art):** lands on the shelf.
 
-**Root: What if**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Something's coming | Write the worry as a prediction | Name it (a stone left to check) |
-| | Put the worry off to a set time | Reach (Calendar) |
-| What if | "What can I do, step by step?" | Name it |
-| | Worry at the set time, then stop | Off |
-| | Sit with the rain | Sit |
-| Night before | Out longer than in | Breathe |
-| | A film you know the ending of | Shelf |
-| | Expect the feeling; same wake time | Off |
-| | If it tips into panic | Hand-off (the other steps here) |
-| The thing | One line: what's actually happening | Name it |
-| It was fine | Mark it against the prediction | Name it (the stamp) |
-| | The film you saved for after | Shelf |
-
-**Sacral: Shutdown**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Too much | Name it: my body pulled a brake | Name it |
-| Stuck | Feet on the floor; feel the chair | Hold |
-| Far away | A trusted voice, or someone's eyes | Reach |
-| | Slow the breath | Hold |
-| Thawing | An album, or the TV | Shelf |
-| | Rest, with nothing to finish | Off |
-
-**Solar plexus: Shame**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Seen | Name it: shame | Name it |
-| I'm worthless | Reword "I am bad" as "I did a bad thing" | Reword |
-| | Talk the way you'd talk to a friend | Off |
-| Hide or hit back | Notice the pull to hide or hit back | Off |
-| | If it's hot | Hand-off to Throat |
-| I did a thing | One specific repair | Reword (the second rule) |
-| | Own it in short phrases | Off |
-
-**Heart: Depress**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Sliding | One thing to look forward to on the calendar | Reach (Calendar) |
-| | Same wake time; daylight early; no alcohol | Off |
-| Pulling in | One small thing, with a time on it | Reach (Calendar) |
-| | Message one person | Reach |
-| | Smallest next step; out of bed; the small version | Off |
-| Head won't stop | Ask how: what happened, one thing now | Name it |
-| | Eight minutes of something absorbing | Shelf |
-| | Write it down once, then one action | Write |
-| | Talk to yourself as "you" | Off |
-| The bottom | Music you choose | Shelf |
-| | One tiny thing; eat, drink water | Away |
-| | The 988 line | Printed, with Call and Text |
-| A little light | A walk, any length | Shelf (one album is one walk) |
-| | Say what lifted, on today's page | Write |
-| | Do again what lifted you | Off |
-| Climbing out | Keep putting good things on the calendar | Reach (Calendar) |
-| | Keep the routine; go easy | Off |
-
-**Throat: Fight**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Trigger | Name it: "I'm angry" | Name it |
-| | The fact in one line, the story in another | Name it, two rules |
-| | Swap "always"; is this the mood talking | Off |
-| | If the heat shows up most days | Hand-off to Heart |
-| Climb | Out longer than in | Breathe |
-| | Cold water on your face | Away |
-| | Check your pulse; stop, step back; break word | Off |
-| Flooded | Say "I'm going, back at 7:40"; tell them | Say it (Reach + Away) |
-| | Walk, music, a shower, slow breathing | Breathe |
-| | One album: that's the twenty minutes | Shelf |
-| | No texts, no venting, not yet | Off |
-| Said it, or left | all three | Off |
-| Cooling | If you catch the replay, distract on purpose | Shelf |
-| | Write it later, from a distance | Write |
-| | Look at it once from the side | Off |
-| Repair | Between fights, the friendship | Shelf |
-| | "Can I take that back?"; "I'm sorry" | Reach (the bubble holds his words) |
-
-**Third eye: Replay**
-
-| Step | Row | Becomes |
-|---|---|---|
-| That stung | Name it: this is the replay | Name it |
-| Why did I | "How", not "why" | Name it |
-| Heavier | Eight minutes of something absorbing; an album | Shelf |
-| | Talk to yourself by your name | Off |
-| How, not why | Write what happened, and what next time | Write |
-
-**Crown: 3 a.m.**
-
-| Step | Row | Becomes |
-|---|---|---|
-| Awake again; What time is it | Turn the clock away; leave it turned | Dim |
-| Lying there | Out longer than in | Breathe |
-| | Up after about twenty minutes | Away |
-| Up | Something dull in dim light | Shelf |
-| | Back to bed when sleepy | Off |
-| Same alarm | both | Off |
-
-**The sea: Energize** (its own page, same touches)
-
-| Step | Row | Becomes |
-|---|---|---|
-| Locked in | A timer, 25 to 50 minutes | Away (the timer) |
-| | Park new ideas on the page | Write |
-| | One wordless record | Shelf |
-| The tip | Out longer than in | Breathe |
-| | Write the extra ideas down | Write |
-| Landing | Sit with the rain | Sit |
-| | Tomorrow's list at bedtime | Write |
-| | Eat something; a walk | Away |
-| | In the crash: something easy on | Shelf |
-| | If the crash runs on for days | Hand-off to Heart |
-| all steps | every other row | Off |
-
-The doctor and hypomania lines (flow rest lines) stay printed where they are.
-
-## 8. Data
-
-- `TipHelper` gains `name`, `away` and `calendar`. `Tip.rules?: 1 | 2` for Name it's second rule.
-- `model/acts.ts`: `actOf(tip)` (the touch, or none), `shownActs(step, still)` (at most four), `leadAct(chakra)`, `shelfOf(flows, frontStep)`.
-- Episode: `names?: { tipId, lines: string[] }[]`, sealed like `lines` and `prediction`. No new index. The builder checks `db/fields.ts`: if the sealed list is versioned this is schema 8 (main is 7).
-- One pass on an existing journal, `actsOnce` (a word in `settings.cleaned`, as the walk did): sets the new helpers on seed rows he has not rewritten. It strikes nothing and deletes nothing; a row with no touch is simply not drawn on the page.
-- The step sheet lists every row. Rows with no touch sit under "Off the page"; each row gets a touch picker.
-- The door (no PIN) keeps its own list: Breathe, Dim and Sit only, as now.
-
-## 9. What this sits on, and what it replaces
-
-- **mountain-fixes** (another session, uncommitted on 2026-11-11): the old flows' drawings leave the stop's page and the steps become a line of words. This plan builds on that page.
-- **The walk (PR #61, open):** its strip of cards is replaced by the touches. Kept from it: the `calendar` helper, the Call and Text links under 988, its audit as a starting point. Closing #61 is Tommy's call.
-- **Mountain R4 (books and art):** folded into the shelf.
-- **PLAN-WEATHER.md:** unchanged. Its bead on a lantern for the playing album lands on the shelf's sign.
-
-## 10. Packages
+## 9. Packages
 
 | | Package | Holds | After |
 |---|---|---|---|
-| T0 | Data and audit | the helpers, `model/acts.ts` with tests, the seed changes of section 7, `actsOnce`, `names` on the episode, the step sheet's touch picker | mountain-fixes |
-| T1 | The place is the page | the taller plate and its seven scenes, the step in front on the plate, the paper foot, rows off the stop's page | T0 |
-| T2 | Breathe, Dim, Sit, Write | the hold on the water (from `Clock`), the lantern lowering, travel to the sea, marks lit and drawn, the surge and the dashed gate | T1 |
-| T3 | Name it, Away, Reach | the rule on the water in seven materials, Five as stones, Reword's strike, the pool until the return time, the bubble, Calendar | T2 |
-| T4 | The shelf | per sign, books and art, the pick editor, the On row and sheet retired | T1, beside T2 |
-| T5 | The sea, the door, the mountain | Energize's page on the same touches, Right now, the surge arriving on the mountain | T3 |
+| T0 | Data | `model/acts.ts`, `shelves`, `marks`, the schema bump, the starter shelves, Crown's gloss, tests | |
+| T1 | The place is the page | the taller plate, touch words on it, the paper foot (gloss, gate, shelf, safety), the checklist gone at rest | T0 |
+| T2 | In the place | Breathe, Hold, Look far, Let go, Say it here, Grieve, Feel, Reword, Five, Basics, each in its material; the surge and the dashed gate | T1 |
+| T3 | Into the app | Ask, Bring it, Letter, Write from it, Core, Stand on, Kept line, Questions, with the sign carried and the way back | T1, beside T2 |
+| T4 | Out of the app | Send, Call, Reach, I will; the surge on return | T1, beside T2 |
+| T5 | Music | the shelf, the plus, lift and remove, the Signs segment in the ♪ sheet | T0, beside T1 |
 | T6 | Walkthrough and standard | `design/tasks` rebuilt from the real app, the DESIGN.md rule, the artifact republished | all |
 
-## 11. Questions for Tommy, each with the default taken
+## 10. Questions for Tommy, each with the default taken
 
-1. Things done off the phone: one Away touch that prints at most three of them (default), or gone from the page entirely?
-2. A touch moves water but never the gate (default), or should each one ease the gate a notch?
-3. One shelf per sign (default). Should the sea also get a circle holding every pick?
-4. The words he writes on the water: kept on the episode and shown on the linked journal page (default), or let go for good?
-5. The lead touch per sign in section 4, and the Off rows in section 7: any he wants back?
-6. Close the walk (PR #61) once T0 has taken what it needs?
+1. The touches in section 2: any sign whose set is wrong for him? (Default: as written.)
+2. Music: are the starter albums fine to seed, or does he want to give his own per sign? (Default: seed, editable.)
+3. The old crisis flows: keep them under Right now and the door only (default), or still paired to signs?
+4. A touch moves water but never the gate (default), or should each ease the gate a notch?
+5. Crown's Let go keeps nothing; every other written line is kept. Right?
+6. Close the walk (#61)?
 
-## 12. Only the iPhone can say
+## 11. Only the iPhone can say
 
-A thumb held on a canvas against Safari's scroll and back swipe; the keyboard over a rule drawn on the plate; frame rate with a taller plate; whether print words on dark rock are easy to hit; the surge read as relief and not as a reward.
+A thumb held on a canvas against Safari's scroll and back swipe; the keyboard over a rule drawn on the plate; `sms:` with a body, `tel:` and `calshow:` from the installed app, and what coming back looks like; print words on dark rock under a thumb; the surge read as relief and not as a reward.
