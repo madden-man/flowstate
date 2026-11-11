@@ -328,11 +328,11 @@ test('meditate S3: the Sit row on Under the skin opens Meditate, and a sit of a 
   await expect.poll(async () => (await rowsOf<Ep>(page, 'episodes')).filter(e => e.endedAt === undefined).length).toBe(1);
   const [live] = (await rowsOf<Ep>(page, 'episodes')).filter(e => e.endedAt === undefined);
 
-  // the row: after A warm shower, Sit in print at its end; the six rows before S3 all still there
-  const tips = page.locator('.fl-tips .fl-tip, .fl-tips .fl-wise');
-  await expect(tips).toHaveCount(7);
+  // the card: third on the walk (the audit took the shower and the walk), Sit in print at its end; the wise line under
+  const tips = page.locator('.fl-walk .fl-card, .fl-walk > .fl-wise');
+  await expect(tips).toHaveCount(5);
   const ids = await tips.evaluateAll(els => els.map(el => el.getAttribute('data-tip')));
-  expect(ids.slice(2, 5)).toEqual(['panic-4-shower', 'panic-4-sit', 'panic-4-walk']);
+  expect(ids).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-sit', 'panic-4-write', 'panic-4-pick']);
   const row = page.locator('[data-tip="panic-4-sit"] [role="checkbox"]');
   await expect(row.locator('.fs-check-text')).toHaveText('Sit with the rain');
   await expect(row.locator('small')).toHaveText('Sit');

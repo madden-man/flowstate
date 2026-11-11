@@ -53,7 +53,6 @@ export const WHATIF: FlowSeed = withPicks({
       tips: [
         { id: 'whatif-3-expect', text: 'Expect the feeling, and let it be as high as it is', short: 'Expect it' },
         { id: 'whatif-3-out', text: 'Out longer than in', helper: 'ring' },
-        { id: 'whatif-3-wake', text: 'Same wake time tomorrow', short: 'Same wake time' },
         // PLAN-PICKS.md 3.5 (P0): the one evening with a known ending
         { id: 'whatif-3-on', text: 'A film you know the ending of', helper: 'on' },
         // a hand-off (PLAN-FLOWS.md 3.5: "it tips into Panic only at its peak")

@@ -27,7 +27,6 @@ export const ENERGIZE: FlowSeed = withPicks({
       tips: [
         { id: 'energize-1-task', text: 'One task, and its next small step', short: 'One task' },
         { id: 'energize-1-notch', text: 'A task a notch above easy', short: 'A notch above easy' },
-        { id: 'energize-1-coffee', text: 'Note the last coffee; none within six hours of bed', short: 'Note the last coffee' },
       ],
     },
     {
@@ -51,7 +50,6 @@ export const ENERGIZE: FlowSeed = withPicks({
       tips: [
         { id: 'energize-3-timer', text: 'A timer, 25 to 50 minutes; extend it once', short: 'A timer', helper: 'timer' },
         { id: 'energize-3-park', text: 'Park new ideas on the page, each with a when', short: 'Park new ideas', helper: 'journal' },
-        { id: 'energize-3-cap', text: 'Stop the block near ninety minutes, the day near four hours', short: "Stop while it's good" },
         // PLAN-PICKS.md 3.3 (P0): lyrics cost reading and writing more than instrumental music does
         { id: 'energize-3-on', text: 'One wordless record', helper: 'on' },
       ],
@@ -68,7 +66,6 @@ export const ENERGIZE: FlowSeed = withPicks({
         { id: 'energize-4-pulse', text: 'Check your pulse; racing is the cue to land', short: 'Racing means land' },
         { id: 'energize-4-out', text: 'Out longer than in, under ten breaths a minute', short: 'Out longer than in', helper: 'ring' },
         { id: 'energize-4-ideas', text: 'Write the extra ideas down, each with a when', short: 'Write the ideas down', helper: 'journal' },
-        { id: 'energize-4-double', text: 'Double any time estimate before you say yes', short: 'Double the estimate' },
         { id: 'energize-4-sleep', text: 'Big messages and decisions after sleep.', wise: true },
         // X5: the boundary, printed under the rows (a print line is no row, so it counts toward no cap)
         { id: DOCTOR_TIP, text: DOCTOR_LINE, print: true },
@@ -83,11 +80,8 @@ export const ENERGIZE: FlowSeed = withPicks({
       spanMin: 2 * 24 * 60,
       tips: [
         { id: 'energize-5-stop', text: 'Stop mid-sentence, so tomorrow starts easy', short: 'Stop mid-sentence' },
-        { id: 'energize-5-eat', text: 'Eat something', short: 'Eat' },
-        { id: 'energize-5-walk', text: 'Move it into the body: a walk', short: 'A walk' },
         // Meditate S3 (PLAN-MEDITATE.md): landing, the circle and the rain
         { id: 'energize-5-sit', text: 'Sit with the rain', helper: 'sit' },
-        { id: 'energize-5-list', text: "Five minutes of tomorrow's list at bedtime", short: "Tomorrow's list", helper: 'journal' },
         { id: 'energize-5-night', text: 'Protect the night: sleep comes first', short: 'Sleep first' },
         { id: 'energize-5-crash', text: 'In the crash: something easy on, the usual coffee, and judge it after sleep', short: 'Something easy on', helper: 'on' },
         // a hand-off (PLAN-FLOWS.md 3.7: Energize's crash into Depress; burnout is Energize leading into Depress, 3.5)

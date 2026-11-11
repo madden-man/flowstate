@@ -109,6 +109,10 @@ test('carried forward: the note asked once and shown at its step offline, ghost 
   await expect(link).toContainText('Text Ali');
   await expect(link).toContainText('Person');
   await expect(link).toHaveAttribute('href', 'sms:5550104471?&body=Hard%20hour.%20Can%20you%20talk%20to%20me%20for%20ten%20minutes%3F');
+  // the walk: the card shows the text as it will read, a drawn bubble that is the same link
+  const bubble = page.locator('[data-tip="panic-3-person"] a.fl-bubble');
+  await expect(bubble).toHaveText('Hard hour. Can you talk to me for ten minutes?');
+  await expect(bubble).toHaveAttribute('href', 'sms:5550104471?&body=Hard%20hour.%20Can%20you%20talk%20to%20me%20for%20ten%20minutes%3F');
 });
 
 test('your own stamps: the morning after a prediction, one tap, and the mark is drawn', async ({ page }) => {

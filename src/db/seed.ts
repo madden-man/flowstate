@@ -8,6 +8,7 @@ import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
 import { PICKS } from './seed/picks';
 import { DOCTOR_LINE, DOCTOR_STEP, DOCTOR_TIP } from './seed/energize';
+import { WALK_HELPERS, WALK_TRIM } from './seed/walk';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -113,7 +114,7 @@ export function seedParadoxes(): { paradoxes: Paradox[]; items: Item[] } {
 export function defaultSettings(now = Date.now()): Settings {
   return {
     id: 'app', light: 'sky', stillAfterMidnight: 'offer', sounds: true, haptics: true,
-    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS],
+    lock: { enabled: false, relockAfterMin: 5 }, seededAt: now, cleaned: [SEED_PAGES_PASS, WALK_PASS], // a fresh journal is seeded in the walk's shape
     flowsSeeded: [...SEED_FLOWS.map(f => f.id), ...SEED_TIPS_LATER.map(tipMark), ...PICKS.map(p => picksMark(p.stepId))],
     sitSound: 'rain', sitMinutes: 0, sitThroughSilent: true,
   };
@@ -337,6 +338,52 @@ export function moveDoctorLineOnce(): Promise<boolean | null> {
     return true;
   })().finally(() => { doctorPass = null; });
   return doctorPass;
+}
+
+// ---- the walk (2026-11-11): fewer things at each step ----
+
+/** The name the pass leaves in settings.cleaned once it has run. */
+export const WALK_PASS = 'walk';
+
+let walkPass: Promise<string[] | null> | null = null;
+
+/**
+ * Once per journal: the audit of the things to do (seed/walk.ts). Each trimmed seed tip is struck (rule 10: struck,
+ * never deleted, so it reads in the step sheet's Earlier), and four rows gain the helper that makes them a card that
+ * does something. Safe on a flow he has edited: a tip whose words he changed stays (it is his now), one already
+ * struck or deleted is left alone, a row he gave a helper keeps it. One new revision per flow touched. A fresh
+ * journal is seeded in this shape, so it only leaves the mark there. Runs where the journal is open, after the other
+ * flow passes; a locked journal returns null and tries on the next open. Returns the ids struck.
+ */
+export function walkOnce(): Promise<string[] | null> {
+  walkPass ??= (async () => {
+    if (keyState() === 'locked') return null;
+    const s = await store.get('settings', 'app');
+    if (!s || s.locked) return null;
+    if (s.cleaned?.includes(WALK_PASS)) return [];
+    const stored = await store.all('flows');
+    if (stored.some(f => f.locked)) return null;
+    const struck: string[] = [];
+    const at = Date.now();
+    const grown: Flow[] = [];
+    for (const flow of stored) {
+      let changed = false;
+      const steps = flow.steps.map(st => {
+        const tips = st.tips.map(t => {
+          if (t.struck) return t;
+          if (WALK_TRIM[t.id] !== undefined && t.text.trim() === WALK_TRIM[t.id]) { struck.push(t.id); changed = true; return { ...t, struck: true }; }
+          const helper = WALK_HELPERS[t.id];
+          if (helper && t.helper === undefined && !t.wise && !t.print) { changed = true; return { ...t, helper }; }
+          return t;
+        });
+        return changed ? { ...st, tips } : st;
+      });
+      if (changed) grown.push({ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] });
+    }
+    await store.many({ flows: grown, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), WALK_PASS] }] });
+    return struck;
+  })().finally(() => { walkPass = null; });
+  return walkPass;
 }
 
 // ---- the seed pages pass (V5, 2026-11-08) ----

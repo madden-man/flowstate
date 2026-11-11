@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the walk</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the walk</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="short" data-name="The whole flow on four lines">
+  <h2>The whole flow on four lines</h2>
+  <p class="line">At rest, each step shows the one thing to start with; a tap reads that step. Example data, live.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Screen</td><td><code>ui/flow/FlowPage.tsx</code> at rest: <code>shortList(flow)</code> from <code>model/walk.ts</code>, each step with its first card in its short words. Derived; nothing new is stored.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 33, 5</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="one" data-name="One thing at a time">
+  <h2>One thing at a time</h2>
+  <p class="line">The first thing to do sits under the drawing, ahead of anything the page has to say.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Strip</td><td><code>ui/flow/Tips.tsx</code>: the step's things as cards side by side in a scroll-snap strip (<code>.fl-deck</code>) that follows the finger and lands on one. Every step, not only the peak.</td></tr>
+    <tr><td>Where</td><td><code>walkCards</code> splits cards from wise lines; the marks under the strip are drawn, never a number, and leave in Still.</td></tr>
+    <tr><td>Fewer</td><td>The audit (<code>db/seed/walk.ts</code>) keeps about three things a step; <code>walkOnce</code> strikes the other 27 on a journal that has them, never deletes.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 33, 6, 20</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="done" data-name="Done turns the page">
+  <h2>Done turns the page</h2>
+  <p class="line">I tick Water, then food: the check is drawn and the next thing comes round by itself.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Turn</td><td>A plain thing ticked draws its check (rule 27), then the strip turns to <code>nextOpen</code>, the next card not done. Reduce Motion makes it a change.</td></tr>
+    <tr><td>Write</td><td><code>setDone</code> on the live episode, as before; at rest a tick only draws.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 27, 31</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="on" data-name="Something to put on, right there">
+  <h2>Something to put on, right there</h2>
+  <p class="line">The covers and my own lines are on the card; a tap on a cover plays it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Card</td><td><code>OnCard</code> in <code>ui/flow/On.tsx</code>: the On sheet's covers and lines, drawn on the card itself. The sheet is gone.</td></tr>
+    <tr><td>Covers</td><td>The ♪ grid's own <code>Tile</code>, from the kept cache; never fetched here.</td></tr>
+    <tr><td>Demo</td><td>Six kept covers written through the store; no Spotify in the walkthrough, so a tap plays nothing here.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 22, 28</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="ring" data-name="Hold the ring and breathe">
+  <h2>Hold the ring and breathe</h2>
+  <p class="line">The card carries its own ring: four in, six out, under my thumb.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Ring</td><td><code>.fl-hold</code> on a Ring card, the same <code>useBreath</code> as the middle of the drawing (<code>holdProps</code> in <code>ui/flow/breath.ts</code>): the halo on the dot breathes with it.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 19, 21</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="text" data-name="Text a friend, already written">
+  <h2>Text a friend, already written</h2>
+  <p class="line">The card shows the message as it will read; one tap opens Messages with it filled in.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Link</td><td><code>PersonRow</code> in <code>ui/flow/Person.tsx</code>: the row and the drawn bubble are the same <code>sms:</code> link. The app sends nothing.</td></tr>
+    <tr><td>More of them</td><td>"Message one person" on Depress and "A trusted voice" on Shutdown are Person cards now.</td></tr>
+    <tr><td>Demo</td><td>Ali and the number are example data.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 22</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="calendar" data-name="Something to look forward to">
+  <h2>Something to look forward to</h2>
+  <p class="line">The card opens my Calendar; putting it there is the thing done.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Link</td><td>The <code>calendar</code> helper: <code>LinkRow</code> with <code>calshow:</code>, the phone's own Calendar. Nothing is written or read back.</td></tr>
+    <tr><td>Check</td><td>Only the iPhone can say whether the installed app follows the link.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 22</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="help" data-name="Help is one tap">
+  <h2>Help is one tap</h2>
+  <p class="line">Under the safety line: Call 988, Text 988.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Links</td><td><code>PrintLines</code>: a print line that names 988 carries <code>tel:988</code> and <code>sms:988</code>. Through the door without the PIN too.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="still" data-name="Still keeps the cards">
+  <h2>Still keeps the cards</h2>
+  <p class="line">Short words, no marks, the ring to hold.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td>Three cards at most in their short words; the marks under the strip are a state, so they leave (rule 13).</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">14:02</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

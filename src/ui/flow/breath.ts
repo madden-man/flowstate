@@ -46,6 +46,22 @@ export function useBreath(): Breath {
   return { held: since !== null, since, phase, start, stop };
 }
 
+/** The handlers of a thing a thumb holds to breathe (the middle of the drawing, a Ring card's ring): down starts the
+ *  breath, and lifting, losing or cancelling the pointer stops it. */
+export function holdProps(breath: Breath) {
+  const up = () => { if (breath.held) breath.stop(); };
+  return {
+    onPointerDown: (e: PointerEvent) => {
+      if (e.button > 0) return;
+      e.preventDefault();
+      try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch { /* the pointer has gone */ }
+      breath.start();
+    },
+    onPointerUp: up, onPointerCancel: up, onLostPointerCapture: up,
+    onContextMenu: (e: Event) => e.preventDefault(),
+  };
+}
+
 type Sentinel = { release: () => Promise<void> };
 type WakeLock = { request: (type: 'screen') => Promise<Sentinel> };
 

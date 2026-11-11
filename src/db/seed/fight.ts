@@ -21,8 +21,6 @@ export const FIGHT: FlowSeed = withPicks({
       tips: [
         { id: 'fight-1-name', text: `Name it: "I'm angry"`, short: 'Name it' },
         { id: 'fight-1-fact', text: 'The fact in one line, the story in another', short: 'The fact, then the story' },
-        { id: 'fight-1-always', text: 'Swap "always" and "never" for the one event', short: 'Just this one event' },
-        { id: 'fight-1-mood', text: 'Is this the mood talking?', short: 'Is this the mood?' },
         // a hand-off (PLAN-FLOWS.md 3.4 and 3.7: if the heat shows up most days, a line to the Depress flow)
         { id: 'fight-1-depress', text: 'If the heat shows up most days: the Depress flow.', print: true, handoff: { flowId: 'depress', stepId: 'depress-1' } },
       ],
@@ -35,9 +33,7 @@ export const FIGHT: FlowSeed = withPicks({
       spanMin: 15,
       tips: [
         { id: 'fight-2-pulse', text: 'Check your pulse; at about a hundred, leave', short: 'Racing means leave' },
-        { id: 'fight-2-stop', text: 'Stop, step back, notice, then go on', short: 'Stop, step back' },
         { id: 'fight-2-out', text: 'Out longer than in', helper: 'ring' },
-        { id: 'fight-2-cold', text: 'Cold water on your face, unless you have a heart condition', short: 'Cold water on your face' },
         { id: 'fight-2-word', text: 'Your break word, instead of the sentence', short: 'Your break word' },
       ],
     },
@@ -52,8 +48,6 @@ export const FIGHT: FlowSeed = withPicks({
       tips: [
         // the return time (F2's Timer fills the time in); the line may go to the person it is for (3.7, open question 8)
         { id: 'fight-3-going', text: `Say "I'm going, back at 7:40"`, short: "Say you're going, and when", helper: 'timer' },
-        { id: 'fight-3-none', text: 'No texts, no venting, not yet.' },
-        { id: 'fight-3-walk', text: 'Walk, music, a shower, slow breathing', short: 'Walk, or music', helper: 'ring' },
         // PLAN-PICKS.md 3.4 (P0): an album is a clock that is not a timer
         { id: 'fight-3-on', text: "One album: that's the twenty minutes", helper: 'on' },
         // F6 (3.7): the "I'm going" line may go as a text to the person it is for; {time} is the return time
@@ -70,7 +64,6 @@ export const FIGHT: FlowSeed = withPicks({
       tips: [
         { id: 'fight-4-own', text: `After an outburst, own it: "I messed up, I can see my part"`, short: 'Own it' },
         { id: 'fight-4-easy', text: 'Go easy on yourself; it makes the amends easier', short: 'Go easy on yourself' },
-        { id: 'fight-4-cold', text: "If you went cold, that's flooding too: the same twenty minutes, and gentle movement", short: 'Gone cold is flooding too' },
       ],
     },
     {

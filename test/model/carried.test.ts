@@ -120,7 +120,7 @@ describe('one person, written when calm', () => {
     expect(personRowText(t)).toBe('Someone, written when calm');
     expect(shownTips(flow.steps[2], false).map(x => x.id)).toContain(t.id);
     // Still shows three rows, and the person row past them: it hides the number, never the row
-    expect(shownTips(flow.steps[2], true).map(x => x.id)).toEqual(['panic-3-five', 'panic-3-window', 'panic-3-shake', t.id]);
+    expect(shownTips(flow.steps[2], true).map(x => x.id)).toEqual(['panic-3-five', 'panic-3-window', 'panic-3-okay', t.id]);
     await savePerson('panic', 'panic-3', t.id, { name: ' Ali ', tel: ' ', text: 'Hard hour.' });
     const saved = (await flowById('panic'))!.steps[2].tips.find(x => x.id === t.id)!;
     expect(saved.person).toEqual({ name: 'Ali', text: 'Hard hour.' });

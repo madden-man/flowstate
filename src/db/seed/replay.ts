@@ -44,7 +44,6 @@ export const REPLAY: FlowSeed = withPicks({
       peak: true,
       tips: [
         { id: 'replay-3-absorb', text: 'Eight minutes of something absorbing', short: 'Something absorbing', helper: 'on' },
-        { id: 'replay-3-album', text: 'An album', helper: 'music' },
         { id: 'replay-3-you', text: 'Talk to yourself by your name, or as "you"', short: 'Talk to yourself as "you"' },
       ],
     },

@@ -26,7 +26,7 @@ describe('the seed', () => {
     ]);
     const panic = SEED_FLOWS.find(f => f.id === 'panic')!;
     const ids = tipsOf(panic, 'panic-4').map(t => t.id);
-    expect(ids[ids.indexOf('panic-4-shower') + 1]).toBe('panic-4-sit');
+    expect(ids[ids.indexOf('panic-4-album') + 1]).toBe('panic-4-sit');
   });
   it('the three are later seed tips, and Sit is offered in the step sheet', () => {
     for (const id of SIT_TIPS) expect(SEED_TIPS_LATER).toContain(id);

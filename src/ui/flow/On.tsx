@@ -1,22 +1,20 @@
-// The On sheet (PLAN-PICKS.md sections 4 and 5, P1): what to put on at a step, from the On row. On parts/Sheet, no
-// dialog. The step's printed line first (onLine, print like a step's said line), then up to three covers and up to
-// three lines. Nothing says why anything is offered, and nothing counts.
+// The On card (PLAN-PICKS.md sections 4 and 5, P1; on the walk since 2026-11-11, DESIGN.md rule 33): what to put on at
+// a step, drawn on the step's own card, no sheet. The step's printed line first (onLine, print like a step's said
+// line), then up to three covers and up to three lines. Nothing says why anything is offered, and nothing counts.
 //
 // Covers are the ♪ grid's own Tile (MusicSheet.tsx), so a tap plays as a ♪ tile does (on its playlist at its first song
 // when a chosen playlist holds it, V9; the album itself otherwise) with M3's bell, tick, drop, hush, ring and flight to
 // the ♪. Wordless, as in ♪. Only a kept cover is a tile: the covers come from the cache the ♪ grid fills, never fetched
 // here, and an album with none is a written line instead. Spotify's yes on a live episode writes episodes.music and
-// ticks the On row.
+// ticks the card.
 //
 // Lines are the page's own check rows (parts/Check): the title, its kind word in small print, a blank rule. Ticking one
-// on a live episode writes episodes.on and ticks the On row, which then reads its pick; ticking another puts that one on
-// instead; un-ticking takes it off. At rest a tick only draws (walk it once, PLAN-FLOWS.md 3.7). In Still (rule 13) the
-// lines leave (fs-notstill, so the light alone decides) and the covers stay, dimmed by the ♪ grid's own Still rule; the printed line stays (words, no digits).
-// ♪ beside Done reaches the whole grid. P2: what was put on at this step last time comes first, covers or lines.
+// on a live episode writes episodes.on and ticks the card, whose head then reads its pick; ticking another puts that one
+// on instead; un-ticking takes it off. At rest a tick only draws (walk it once, PLAN-FLOWS.md 3.7). In Still (rule 13)
+// the lines leave (fs-notstill, so the light alone decides) and the covers stay, dimmed by the ♪ grid's own Still rule;
+// the printed line stays (words, no digits). The ♪ under them reaches the whole grid. P2: what was put on at this step
+// last time comes first, covers or lines.
 import { useEffect, useState } from 'preact/hooks';
-import { Sheet } from '../parts/Sheet';
-import { tick } from '../parts/Haptic';
-import { openSheet } from '../sheets';
 import { Check } from '../parts/Check';
 import { Tile, useHush } from '../music/MusicSheet';
 import { playing, playNote, tapMusic } from '../music/state';
@@ -32,13 +30,6 @@ export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show
 
 /** The most covers and lines a sheet shows (PLAN-PICKS.md section 2: fewer, not all). */
 const MOST = 3;
-
-/** The On row tapped: the sheet rises, and its opening is felt (rule 19), once: felt is true when the row's own Check
- *  already ticked under the thumb. */
-export function showOn(felt: boolean) {
-  if (!felt) tick('sheet');
-  openSheet.value = 'on';
-}
 
 type Kept = Map<string, { row: ShelfAlbum; playlist: { id: string; uri: string } }>;
 
@@ -57,7 +48,6 @@ async function keep(picks: OnPick[]): Promise<Kept> {
 }
 
 type Props = {
-  open: boolean; onClose: () => void;
   step: Step; tip: Tip;
   /** The flow the step is on: what was put on here last time comes first (P2). */
   flowId?: string;
@@ -68,23 +58,22 @@ type Props = {
   onChanged: () => void;
 };
 
-export function OnSheet({ open, onClose, step, tip, flowId, live, rest, onRest, onChanged }: Props) {
+export function OnCard({ step, tip, flowId, live, rest, onRest, onChanged }: Props) {
   // P2: the one put on here last time first; nothing says so
   const [last, setLast] = useState<string | undefined>();
   useEffect(() => {
-    if (!open || !flowId) return;
+    if (!flowId) return;
     let on = true;
     void lastOn(flowId, step, live?.id).then(l => on && setLast(l));
     return () => { on = false; };
-  }, [open, flowId, step.id, live?.id]);
+  }, [flowId, step.id, live?.id]);
   const picks = lastFirst(livePicks(step), last);
   const [kept, setKept] = useState<Kept | null>(null);
   useEffect(() => {
-    if (!open) return;
     let on = true;
     void keep(picks).then(k => on && setKept(k));
     return () => { on = false; };
-  }, [open, step.id, JSON.stringify(picks.map(p => p.id))]);
+  }, [step.id, JSON.stringify(picks.map(p => p.id))]);
   const hushed = useHush();
   const now = playing.value?.albumUri;
 
@@ -110,7 +99,6 @@ export function OnSheet({ open, onClose, step, tip, flowId, live, rest, onRest, 
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title={tip.text} action={{ label: '♪', onPress: tapMusic }}>
       <div class="fl-on" data-on={step.id}>
         {step.onLine && <p class="fl-said">{step.onLine}</p>}
         {playNote.value && covers.length > 0 && <p class="fs-note" role="status">{playNote.value}</p>}
@@ -132,7 +120,7 @@ export function OnSheet({ open, onClose, step, tip, flowId, live, rest, onRest, 
             ))}
           </div>
         )}
+        <p class="fl-on-all"><button type="button" class="fs-word" aria-label="All of the music" onClick={tapMusic}>♪</button></p>
       </div>
-    </Sheet>
   );
 }

@@ -88,7 +88,7 @@ async function shoot(page: Page, name: string, target = page.locator('.fs-app'))
   await page.waitForTimeout(1400);
 }
 
-test('the On sheet: covers from the kept cache, lines as check rows, a tick names the row and survives offline, a cover plays', async ({ page, context, baseURL }) => {
+test('the On card: covers from the kept cache, lines as check rows, a tick names the card and survives offline, a cover plays', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
   // blob: is a kept cover drawn from its bytes, not a request anywhere
   context.on('request', r => { if (!r.url().startsWith(baseURL!) && !r.url().startsWith('blob:')) outside.push(r.url()); });
@@ -121,13 +121,15 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
     await expect(page.locator('.fs-flowpage')).toHaveAttribute('data-saved', 'true');
   }
 
-  // the On row: its word is On, and a tap opens the sheet without ticking it
-  const row = page.locator('[data-tip="panic-4-album"] .fs-check');
+  // the On card (the walk): the second thing at this step; its head reads On and is not a button; the covers and
+  // lines are on the card itself, no sheet
+  await page.getByRole('button', { name: 'Next ›' }).click();
+  const sheet = page.locator('.fl-card[data-tip="panic-4-album"]');
+  await expect(sheet).toHaveAttribute('aria-current', 'step');
+  const row = sheet.locator('.fl-on-head');
   await expect(row).toHaveText(/^An album, or the TV\s*On$/);
-  await row.click();
-  const sheet = page.locator('[data-sheet="An album, or the TV"]');
-  await expect(sheet).toBeVisible();
-  await expect(row).toHaveAttribute('aria-checked', 'false');
+  await expect(row).not.toHaveClass(/done/);
+  await expect(page.locator('.fs-sheet')).toHaveCount(0);
   const tiles = sheet.locator('.fs-tile');
   await expect(tiles).toHaveCount(2);
   expect(await tiles.evaluateAll(x => x.map(e => e.getAttribute('aria-label')))).toEqual(['Lonesome Dreams, Lord Huron', 'The Head and the Heart, The Head And The Heart']);
@@ -136,7 +138,7 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
   const lines = sheet.getByRole('checkbox');
   await expect(lines).toHaveText([/^New Girl\s*Show$/, /^Ferris Bueller's Day Off\s*Film$/, /^A Short Hike\s*Switch$/, /^My Head Is An Animal \(The Cabin Sessions\)\s*Album$/]);
   await expect(sheet).not.toContainText(/\d/);
-  await expect(sheet.getByRole('button', { name: '♪' })).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'All of the music' })).toBeVisible();
   await shoot(page, 'on-sheet');
 
   // tick New Girl: episodes.on, the row ticked and reading its pick
@@ -146,32 +148,26 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
     const e = (await all(page, 'episodes')).find(x => x.flowId === 'panic' && x.endedAt === undefined)!;
     return [(e.on as { pickId: string } | undefined)?.pickId, (e.done as { tipId: string }[]).map(d => d.tipId)];
   }).toEqual(['pk-panic-4-new-girl', ['panic-4-album']]);
-  await sheet.getByRole('button', { name: 'Done' }).click();
-  await expect(sheet).toHaveCount(0);
-  await expect(row).toHaveAttribute('aria-checked', 'true');
+  await expect(row).toHaveClass(/done/);
   await expect(row).toHaveText(/^An album, or the TV: New Girl\s*On$/);
-  await shoot(page, 'on-row', page.locator('.fl-tips'));
+  await shoot(page, 'on-row', page.locator('.fl-walk'));
 
   // a cover plays as a ♪ tile does: its playlist, from the album's first song; the episode keeps the album
-  await row.click();
-  await expect(sheet).toBeVisible();
   await expect(lines.first()).toHaveAttribute('aria-checked', 'true');
   await tiles.first().click();
   await expect.poll(() => played.map(b => JSON.parse(b))).toEqual([{ context_uri: `spotify:playlist:${POEMS}`, offset: { uri: 'spotify:track:p2' } }]);
   await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => ((await all(page, 'episodes')).find(x => x.flowId === 'panic' && x.endedAt === undefined)!.music as { albumUri: string } | undefined)?.albumUri)
     .toBe(`spotify:album:${LONESOME}`);
-  await sheet.getByRole('button', { name: 'Done' }).click();
 
   // offline, a reload keeps the pick on the row
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator('.fs-flowpage')).toHaveAttribute('data-showing', '4');
-  await expect(row).toHaveAttribute('aria-checked', 'true');
+  await expect(row).toHaveClass(/done/);
   await expect(row).toHaveText(/^An album, or the TV: New Girl\s*On$/);
-  // the sheet opens offline from the kept covers, the line still ticked
-  await row.click();
+  // the card draws offline from the kept covers, the line still ticked
   await expect(tiles).toHaveCount(2);
   await expect(lines.first()).toHaveAttribute('aria-checked', 'true');
   // in Still the lines leave and the covers stay
@@ -185,7 +181,7 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
   expect(outside.filter(u => u.startsWith('https://i.scdn.co/')).sort()).toEqual(['https://i.scdn.co/image/blue', 'https://i.scdn.co/image/dusk', 'https://i.scdn.co/image/moss']);
 });
 
-test('make it yours: the step sheet strikes a pick, adds a line with its kind, rewrites the printed line; the On sheet follows', async ({ page }) => {
+test('make it yours: the step sheet strikes a pick, adds a line with its kind, rewrites the printed line; the On card follows', async ({ page }) => {
   await page.goto('/#/flow/depress/4');
   const t = page.locator('[data-threshold]');
   await page.locator('.fs-app').waitFor();
@@ -214,12 +210,8 @@ test('make it yours: the step sheet strikes a pick, adds a line with its kind, r
   await sheet.getByRole('button', { name: 'Done' }).click();
   await expect(sheet).toHaveCount(0);
 
-  // the On sheet: the new printed line, no struck cover; unconnected, every album is a written line, and so is his.
-  // The bottom is the peak, so its rows come one at a time: Next to the On row.
-  const row = page.locator('[data-tip="depress-4-music"] .fs-check');
-  for (let k = 0; k < 6 && !(await row.count()); k++) await page.getByRole('button', { name: /^Next/ }).click();
-  await row.click({ position: { x: 60, y: 14 } });
-  const onSheet = page.locator('[data-sheet="Music you choose"]');
+  // the On card: the new printed line, no struck cover; unconnected, every album is a written line, and so is his
+  const onSheet = page.locator('.fl-card[data-tip="depress-4-music"]');
   await expect(onSheet.locator('.fl-said')).toHaveText('One that stays.');
   await expect(onSheet.getByRole('checkbox')).toHaveText([/^Paddington 2\s*Film$/, /^Atlas: I\s*Album$/, /^Birthplace\s*Album$/]);
 });

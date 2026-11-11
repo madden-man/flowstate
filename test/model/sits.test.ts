@@ -119,9 +119,9 @@ describe('a sit sent from a flow', () => {
     expect((await store.get('sits', s.id))!.episodeId).toBe(e!.id);
     expect((await store.get('episodes', e!.id))!.done).toEqual([]);
   });
-  it('the Sit row is not counted against the six rows: Under the skin keeps all six and gains it, in its place', () => {
+  it('the Sit row is not counted against the cap: Under the skin keeps its rows and the Sit row, in its place', () => {
     const ids = shownTips(PANIC.steps[3], false).map(t => t.id);
-    expect(ids).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-shower', 'panic-4-sit', 'panic-4-walk', 'panic-4-pick', 'panic-4-write']);
-    expect(shownTips(PANIC.steps[3], true).map(t => t.id)).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-shower', 'panic-4-sit']);
+    expect(ids).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-sit', 'panic-4-pick', 'panic-4-write']);
+    expect(shownTips(PANIC.steps[3], true).map(t => t.id)).toEqual(['panic-4-water', 'panic-4-album', 'panic-4-sit', 'panic-4-pick']);
   });
 });

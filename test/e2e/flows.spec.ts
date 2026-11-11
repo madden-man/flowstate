@@ -170,14 +170,31 @@ test('what to do (F2): a tick persists offline, the Still row settles, the journ
   await page.getByRole('button', { name: 'Leave Still' }).click();
   await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
 
-  // the peak shows one thing at a time; Next brings the next
+  // the walk: every step shows one thing at a time, the card in front; Next brings the next, and round again
+  const front = page.locator('.fl-card[aria-current="step"]');
   await dot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(dot).toHaveAttribute('aria-valuenow', '2');
-  await expect(page.locator('.fl-one [data-tip]')).toHaveCount(1);
-  await expect(page.locator('.fl-one [data-tip]')).toHaveAttribute('data-tip', 'panic-2-ring');
+  await expect(front).toHaveAttribute('data-tip', 'panic-2-ring');
+  await expect(page.locator('.fl-pips i')).toHaveCount(2);
   await page.getByRole('button', { name: 'Next ›' }).click();
-  await expect(page.locator('.fl-one [data-tip]')).toHaveAttribute('data-tip', 'panic-2-cold');
+  await expect(front).toHaveAttribute('data-tip', 'panic-2-cold');
+  await expect.poll(() => page.locator('.fl-deck').evaluate(el => Math.round(el.scrollLeft / el.clientWidth))).toBe(1);
+  // a plain thing ticked draws its check, and the strip turns to the next one not done
+  await page.locator('[data-tip="panic-2-cold"] [role="checkbox"]').click();
+  await expect(front).toHaveAttribute('data-tip', 'panic-2-ring');
+  await expect(page.locator('.fl-pips i.done')).toHaveCount(1);
+  // the wise line sits under the strip, not on a card
+  await expect(page.locator('.fl-walk > .fl-wise')).toHaveText("Let it crest. You don't have to go anywhere.");
+  // the card's own ring is held like the middle of the drawing
+  const ring = page.getByRole('button', { name: 'Hold the ring' });
+  const rb = (await ring.boundingBox())!;
+  await page.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2);
+  await page.mouse.down();
+  await expect(ring.locator('i')).toHaveText('in');
+  await expect(page.locator('.fs-cycle-halo.held')).toHaveCount(1);
+  await page.mouse.up();
+  await expect(ring.locator('i')).toHaveText('hold');
   // a thumb held on the middle runs the breath
   const mid = page.getByRole('button', { name: 'Hold to breathe' });
   const b = (await mid.boundingBox())!;

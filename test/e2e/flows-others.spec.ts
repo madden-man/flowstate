@@ -18,9 +18,12 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await expect(body).toHaveAttribute('data-showing', '4');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'The bottom' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(body.locator('.fl-said').first()).toContainText('the floor is where it turns');
+  await expect(body.locator('.fl-step-page > .fl-said').first()).toContainText('the floor is where it turns');
   const safety = body.locator('.fl-print');
   await expect(safety).toHaveText("If you're thinking about suicide, call or text 988. Someone answers, any hour.");
+  // the walk: the line carries its two links, the phone's own Phone and Messages
+  await expect(body.locator('.fl-988 a')).toHaveText(['Call 988', 'Text 988']);
+  expect(await body.locator('.fl-988 a').evaluateAll(as => as.map(a => a.getAttribute('href')))).toEqual(['tel:988', 'sms:988']);
   // a printed line, not a row: nothing to tick
   await expect(safety).not.toHaveAttribute('role', /.+/);
   await expect(body.locator('[role="checkbox"]', { hasText: '988' })).toHaveCount(0);

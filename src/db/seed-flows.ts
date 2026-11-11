@@ -50,7 +50,6 @@ export const PANIC: FlowSeed = withPicks({
         { id: 'panic-1-out', text: 'Out longer than in: four in, six out', short: 'Out longer than in', helper: 'ring' },
         { id: 'panic-1-cold', text: 'Cold water on your wrists and face', short: 'Cold water on your wrists' },
         { id: 'panic-1-name', text: 'Name it: too much in, not danger.', wise: true },
-        { id: 'panic-1-let', text: 'Let it be there.', wise: true },
       ],
     },
     {
@@ -69,8 +68,6 @@ export const PANIC: FlowSeed = withPicks({
         { id: 'panic-2-ring', text: 'Breathe with the ring: in four, out six', short: 'Breathe with the ring', helper: 'ring' },
         { id: 'panic-2-cold', text: 'Cold water on your face', short: 'Cold water on your face' },
         { id: 'panic-2-crest', text: "Let it crest. You don't have to go anywhere.", wise: true },
-        { id: 'panic-2-tense', text: 'Tense, then let go on the out-breath' },
-        { id: 'panic-2-wait', text: "Wait with it. You don't have to fix it.", wise: true },
       ],
     },
     {
@@ -86,9 +83,7 @@ export const PANIC: FlowSeed = withPicks({
       tips: [
         { id: 'panic-3-five', text: 'Five things you can see, then four you can hear, three you can touch', short: 'Five things you can see', helper: 'five' },
         { id: 'panic-3-window', text: 'Stand, and walk to a window' },
-        { id: 'panic-3-shake', text: 'Shake out your hands; drop your shoulders' },
         { id: 'panic-3-okay', text: "You're okay. It's passing.", wise: true },
-        { id: 'panic-3-tea', text: 'Something small and ordinary: make tea', short: 'Make tea' },
         // Avoidance, folded in (PLAN-FLOWS.md 3.5, F4): "do the small version". Leaving is what teaches the brain it
         // would have kept rising, so the step after the peak says go back, for a minute, rather than not at all
         { id: 'panic-3-avoid', text: 'If you left, go back for a minute: the small version', short: 'Go back, for a minute' },
@@ -107,10 +102,8 @@ export const PANIC: FlowSeed = withPicks({
       tips: [
         { id: 'panic-4-water', text: 'Water, then something to eat', short: 'Water, then food' },
         { id: 'panic-4-album', text: 'An album, or the TV', helper: 'on' },
-        { id: 'panic-4-shower', text: 'A warm shower' },
         // Meditate S3 (PLAN-MEDITATE.md): the row opens the circle, and a sit of a minute or more ticks it
         { id: 'panic-4-sit', text: 'Sit with the rain', helper: 'sit' },
-        { id: 'panic-4-walk', text: 'A slow walk around the block' },
         { id: 'panic-4-pick', text: "Don't pick at it yet. It's draining.", wise: true },
         { id: 'panic-4-write', text: 'Write it down, later', helper: 'journal' },
         // a hand-off (PLAN-FLOWS.md 3.7: Panic's tail into Depress)

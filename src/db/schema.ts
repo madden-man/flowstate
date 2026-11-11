@@ -230,8 +230,9 @@ export type PageMusic = NonNullable<Page['music']>;
 export type DiagramName = 'ring' | 'valley' | 'arc' | 'mountain' | 'curve' | 'coil' | 'clock' | 'stairs' | 'fork';
 /** prediction (F6, not in PLAN-FLOWS.md section 5): one rule under the row for the worry written as a prediction,
  *  kept on the episode (episodes.prediction), so the morning after can ask for its outcome. sit (PLAN-MEDITATE.md
- *  section 5, S3): the row opens Meditate carrying the episode, and a sit of a minute or more ends by ticking it. */
-export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit' | 'on';
+ *  section 5, S3): the row opens Meditate carrying the episode, and a sit of a minute or more ends by ticking it.
+ *  calendar (the walk): the card opens the phone's Calendar; the app writes nothing there. */
+export type TipHelper = 'still' | 'music' | 'ring' | 'five' | 'journal' | 'timer' | 'person' | 'prediction' | 'sit' | 'on' | 'calendar';
 /** What a pick is (PLAN-PICKS.md section 6): an album is a cover, the rest are written lines with their kind word. */
 export type PickKind = 'album' | 'show' | 'film' | 'switch' | 'phone';
 /** Something to put on at a step (PLAN-PICKS.md section 6, P0): a title and its kind, nothing more; no note (Tommy,

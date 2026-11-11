@@ -49,7 +49,7 @@ export const SHUTDOWN: FlowSeed = withPicks({
       peak: true,
       tips: [
         still('shutdown-3'),
-        { id: 'shutdown-3-voice', text: "A trusted voice, or someone's eyes", short: 'A voice, or a face' },
+        { id: 'shutdown-3-voice', text: "A trusted voice, or someone's eyes", short: 'A voice, or a face', helper: 'person' },
         { id: 'shutdown-3-breath', text: 'Slow the breath', helper: 'ring' },
       ],
     },

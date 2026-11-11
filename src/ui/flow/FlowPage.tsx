@@ -41,6 +41,7 @@ import {
 import { clockFrom, washLeft, whatHelped } from '../../model/tips';
 import { light } from '../light';
 import { Tips } from './Tips';
+import { shortList } from '../../model/walk';
 import { Clock, Wash } from './Clock';
 import { StepSheet, AddStep, tickSheet } from './StepSheet';
 import { useBreath, useNow } from './breath';
@@ -127,6 +128,7 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
   };
 
   const lt = !doorOnly && last && lastTimeOf(flow, last);
+  const short = shortList(flow);
   // F2: the dot is on the step the page shows, in a live episode: the clock, the halo, the wake lock at the peak, the wash
   const still = light.value === 'still';
   const onStep = !!live && moved === null && showing > 0 && showing === at;
@@ -173,13 +175,14 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             {ride && !doorOnly && <div class="fx-cards fx-riding"><FixationCard f={ride} now={now} ride /></div>}
             {shown.line && <p class="fl-line">{shown.line}</p>}
             {!doorOnly && <NoteAtStep flow={flow} step={shown} />}
+            {/* the walk (rule 33): what to do comes first under the thumb (rule 6); what the page says reads after it */}
+            {(doorOnly || !flow.locked) && (
+              <Tips step={shown} flowId={flow.id} flowTips={flow.steps.flatMap(s => s.tips)} live={live} still={still} now={now} door={doorOnly} breath={ringy ? breath : undefined}
+                onChanged={() => setVersion(v => v + 1)} />
+            )}
             {!fixing && shown.said && <p class="fl-said fs-notstill">{shown.said}</p>}
             {!fixing && shown.usual && <p class="fl-usual fs-notstill">Usually: {shown.usual}</p>}
             {shown.usualShort && <p class="fl-usual fs-stillonly">{shown.usualShort}</p>}
-            {(doorOnly || !flow.locked) && (
-              <Tips step={shown} flowId={flow.id} flowTips={flow.steps.flatMap(s => s.tips)} live={live} still={still} now={now} door={doorOnly}
-                onChanged={() => setVersion(v => v + 1)} />
-            )}
           </section>
         ) : fixing ? (
           fixed && !doorOnly && <Fixations three={fixed.three} deck={fixed.deck} now={now} onChanged={landed} onSpark={sparked} />
@@ -188,6 +191,16 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
             {flow.line && <p class="fl-line">{flow.line}</p>}
             {asking && last?.id === asking && <AskNote flow={flow} episode={last} onDone={unask} />}
             {flow.restLine && <p class="fl-said fl-print">{flow.restLine}</p>}
+            {/* the walk: the whole flow on a few lines, each step with the first thing to do there; a tap reads it */}
+            {!flow.locked && short.length > 0 && (
+              <div class="fl-short" aria-label="The short version">
+                {short.map(r => (
+                  <a key={r.stepId} class="fl-short-row" data-short={r.stepId} href={`#/flow/${flow.id}/${r.k}`} onClick={e => { e.preventDefault(); read(r.k); }}>
+                    <small>{r.name}</small><span>{r.text}</span>
+                  </a>
+                ))}
+              </div>
+            )}
             {lt && (
               <p class="fl-last fs-notstill">
                 Last time · {shortDate(new Date(lt.at))}

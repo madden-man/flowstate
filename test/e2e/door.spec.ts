@@ -130,6 +130,7 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   // F2's rows through the door: the ring can still be held; a tick draws and writes nothing; the rows that write or
   // leave (Journal, Timer, ♪, Five), what helped, Edit and the step sheet stay behind the PIN
   await expect(page.getByRole('button', { name: 'Hold to breathe' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hold the ring' })).toBeVisible();
   await page.goto('/#/flow/panic/4');
   await expect(keypad(page)).toHaveCount(0);
   await expect(page.locator('.fs-flowpage[data-door]')).toBeVisible();

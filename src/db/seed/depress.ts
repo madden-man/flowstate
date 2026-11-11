@@ -24,8 +24,7 @@ export const DEPRESS: FlowSeed = withPicks({
       tips: [
         { id: 'depress-1-wake', text: 'Same wake time and meals, whatever the night was', short: 'Same wake time' },
         { id: 'depress-1-light', text: 'Daylight early, outside if you can', short: 'Daylight early' },
-        { id: 'depress-1-look', text: 'Put one thing you look forward to on the calendar', short: 'One thing to look forward to' },
-        { id: 'depress-1-drink', text: 'No alcohol tonight; it lifts, then drops', short: 'No alcohol tonight' },
+        { id: 'depress-1-look', text: 'Put one thing you look forward to on the calendar', short: 'One thing to look forward to', helper: 'calendar' },
       ],
     },
     {
@@ -38,9 +37,7 @@ export const DEPRESS: FlowSeed = withPicks({
       spanMin: 7 * DAY,
       tips: [
         { id: 'depress-2-small', text: 'One small thing, with a time on it: the dishes at four', short: 'One small thing, with a time' },
-        { id: 'depress-2-next', text: 'The smallest next step, easiest first', short: 'The smallest next step' },
-        { id: 'depress-2-person', text: 'Message one person', short: 'Message one person' },
-        { id: 'depress-2-up', text: 'Out of bed by day, even to the couch', short: 'Out of bed by day' },
+        { id: 'depress-2-person', text: 'Message one person', short: 'Message one person', helper: 'person' },
         // Avoidance, folded in (PLAN-FLOWS.md 3.5, F4): the engine of pulling in, so "do the small version" sits here
         { id: 'depress-2-avoid', text: "The thing you've been putting off: do the small version", short: 'The small version' },
       ],
@@ -53,7 +50,6 @@ export const DEPRESS: FlowSeed = withPicks({
       spanMin: DAY,
       tips: [
         { id: 'depress-3-how', text: 'Ask how: what happened, and one thing you can do now', short: 'What happened, and one thing' },
-        { id: 'depress-3-you', text: 'Talk to yourself as "you", or by your name', short: 'Talk to yourself as "you"' },
         { id: 'depress-3-absorb', text: 'Eight minutes of something absorbing', short: 'Something absorbing', helper: 'on' },
         { id: 'depress-3-write', text: 'Write it down once, then one action', short: 'Write it once', helper: 'journal' },
       ],
@@ -96,9 +92,8 @@ export const DEPRESS: FlowSeed = withPicks({
       spanMin: 30 * DAY,
       tips: [
         { id: 'depress-6-keep', text: 'Keep the routine that worked; no five new goals', short: 'Keep the routine' },
-        { id: 'depress-6-calendar', text: 'Keep putting good things on the calendar', short: 'Keep the calendar' },
+        { id: 'depress-6-calendar', text: 'Keep putting good things on the calendar', short: 'Keep the calendar', helper: 'calendar' },
         { id: 'depress-6-wobble', text: 'A wobble is part of climbing, not sliding.', wise: true },
-        { id: 'depress-6-easy', text: 'Go easy: do what you can, and decide what can wait', short: 'Go easy' },
       ],
     },
   ],

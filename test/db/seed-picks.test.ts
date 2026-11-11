@@ -76,9 +76,9 @@ describe('the seed', () => {
       'night-4': 'Something dull in dim light, away from bright screens',
       'shutdown-4': 'An album, or the TV',
     });
-    // Replay's "An album" stays a ♪ row; it is the one music row left
+    // the walk's audit (seed/walk.ts) took Replay's "An album", the last ♪ row: the On row beside it is the album
     const music = SEED_FLOWS.flatMap(f => f.steps.flatMap(s => s.tips.filter(t => t.helper === 'music').map(t => t.id)));
-    expect(music).toEqual(['replay-3-album']);
+    expect(music).toEqual([]);
     for (const id of ['energize-3-on', 'fight-3-on', 'whatif-3-on', 'whatif-5-on']) expect(SEED_TIPS_LATER).toContain(id);
   });
 
@@ -153,7 +153,7 @@ describe('the guards', () => {
   });
   it('a step over six rows, three covers or three lines fails', () => {
     const rows = base();
-    rows.tips = [...rows.tips, { id: 'x1', text: 'x' }, { id: 'x2', text: 'y' }];
+    rows.tips = [...rows.tips, ...['x1', 'x2', 'x3', 'x4'].map(id => ({ id, text: id }))];
     expect(guard([rows])).toEqual(['panic-4: more than six rows']);
     const cov = base();
     cov.picks = [...cov.picks!, cov.picks![0]];
@@ -217,7 +217,7 @@ describe('a journal that had the flows before the picks', () => {
     expect((await store.all('flows')).map(f => f.revisions.length)).toEqual(before);
     // the new On row comes in its seed place: after the row before it in the seed
     const energize = (await flowById('energize'))!;
-    expect(energize.steps[2].tips.map(t => t.id)).toEqual(['energize-3-timer', 'energize-3-park', 'energize-3-cap', 'energize-3-on']);
+    expect(energize.steps[2].tips.map(t => t.id)).toEqual(['energize-3-timer', 'energize-3-park', 'energize-3-on']);
   });
 
   it('an On row he struck gets no picks; one he deleted gets none; one he gave another helper keeps it', async () => {

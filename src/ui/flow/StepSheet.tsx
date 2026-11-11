@@ -52,7 +52,7 @@ export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => vo
 /** The helpers a tip can carry from this sheet. Person (F6) opens the person sheet over this one: who, the number,
  *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode; Sit
  *  (PLAN-MEDITATE.md S3) opens Meditate and is ticked by a sit of a minute or more. */
-export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit', 'on'];
+export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit', 'on', 'calendar'];
 /** The kinds a written line can be (P2): an album comes only from the ♪ grid. */
 const LINE_KINDS: Exclude<PickKind, 'album'>[] = ['show', 'film', 'switch', 'phone'];
 

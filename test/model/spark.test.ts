@@ -127,7 +127,7 @@ describe('the doctor line moves (one-time pass)', () => {
     expect(f.revisions).toHaveLength(revs + 1);
     // a print line is not a row: the step's rows and their cap are as they were
     expect(shownTips(step, false).map(t => t.id)).not.toContain('energize-4-doctor');
-    expect(shownTips(step, false)).toHaveLength(5);
+    expect(shownTips(step, false)).toHaveLength(4);
     expect((await store.get('settings', 'app'))!.cleaned).toContain(DOCTOR_PASS);
     const after = await flowById('energize');
     expect(await moveDoctorLineOnce()).toBe(false);
