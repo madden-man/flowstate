@@ -95,7 +95,17 @@
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
   color: var(--print); line-height: var(--lh-ink);
 }
-.ck-drawing { scroll-margin-top: var(--lh-ink); }
+/* a flow in front: its step words on one line that wraps, print, the one being read in ink; each a full tap target */
+.ck-steps { display: flex; flex-wrap: wrap; margin: 0 calc(var(--s1) * -1); }
+.ck-step {
+  appearance: none; border: 0; background: transparent; padding: 0 var(--s1); margin: 0; cursor: pointer;
+  min-height: var(--hit); display: inline-flex; align-items: center; -webkit-tap-highlight-color: transparent;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  line-height: 1; color: var(--print);
+}
+.ck-step[aria-current] { color: var(--ink); }
+.ck-step:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
+.ck-done { margin-left: auto; }
 .ck-rows:empty { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -112,12 +122,3 @@
 .fl-signpick .fs-sign { width: calc(var(--lh-ink) * .9); height: calc(var(--lh-ink) * .9); }
 .fl-signpick:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; border-radius: 50%; }
 
-/* a second drawing under the sign, folded (Root): small, quiet, a tap opens it in place */
-.ck-fold {
-  appearance: none; border: 0; background: transparent; padding: 0; cursor: pointer; display: block;
-  width: 50%; margin: 0 auto; opacity: .62; -webkit-tap-highlight-color: transparent;
-  transition: opacity var(--t-ui) var(--ease);
-}
-.ck-fold[data-down], .ck-fold:hover { opacity: .9; }
-.ck-fold:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
-.ck-fold-art { display: block; pointer-events: none; }

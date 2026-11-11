@@ -31,7 +31,7 @@ const ROUTE: Record<Step, string> = {
 /** What the page must show before the load reports ready. */
 const DRAWN: Record<Step, string> = {
   arrive: '.mt-plate', water: '.mt-plate[data-arrive="done"]', heavy: '.mt-plate', close: '.mt-plate', open: '.mt-plate',
-  tap: '.mt-plate', page: '.ck-page .ck-plate', live: '.ck-page[data-front="depress"] .ck-plate', root: '.ck-page .ck-drawing[data-folded]',
+  tap: '.mt-plate', page: '.ck-page .ck-plate', live: '.ck-page[data-front="depress"] .ck-plate', root: '.ck-page .ck-plate',
   sea: '.mt-plate', still: '.mt-plate',
 };
 
@@ -147,14 +147,6 @@ async function act(): Promise<void> {
       await wait(1800);
       await bring('.ck-page .fl-prints [data-tip="depress-4-988"]');
       return;
-    case 'root': {
-      // the fold is brought up from below only as far as it needs, so Root's place stays in view above it
-      await wait(1600);
-      const fold = await bring('.ck-page .ck-drawing[data-folded] .ck-fold', 'end');
-      await wait(1100);
-      fold?.click();
-      return;
-    }
     case 'sea':
       await wait(700);
       await bring('.mt-plate a.mt-circle', 'end');

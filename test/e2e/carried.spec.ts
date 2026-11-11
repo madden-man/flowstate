@@ -101,47 +101,13 @@ test('a flow under no sign: the note asked once and shown at its step offline, g
   await page.getByRole('button', { name: 'Leave Still' }).click();
 });
 
-test('carried forward: ghost rings offline and gone in Still, no note on a sign\'s page, the person row', async ({ page }) => {
-  await enter(page, '/#/flow/panic');
-  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
-  await expect(page.locator('.fl-ghosts')).toHaveCount(0);
-
-  // an episode: Overstimulated, then back to rest. Ended in front of the page, so nothing asks yet.
-  await dot.focus();
-  for (const [key, to] of [['ArrowRight', '1'], ['ArrowLeft', '0']]) {
-    await page.keyboard.press(key);
-    await expect(dot).toHaveAttribute('aria-valuenow', to);
-    await expect(page.locator('.fs-flowpage')).toHaveAttribute('data-saved', 'true');
-  }
-  await expect.poll(async () => (await all(page, 'episodes')).map(e => e.endedAt !== undefined)).toEqual([true]);
-  await expect(page.locator('.fl-ask')).toHaveCount(0);
-
-  // opened again at rest: the ghost ring of the ended episode. R3: Panic opens on the Root's page, and the note to the
-  // next one of you leaves the page with the copy (PLAN-MOUNTAIN.md section 6, open question 3): no question asks, and
-  // the notes already kept stay in the data. Notes on a flow with no sign are FlowPage's, as before.
-  await page.reload();
-  await expect(page.locator('.fl-ghosts [data-ghost]')).toHaveCount(1);
-  await expect(page.locator('.fl-ghosts')).toBeVisible();
-  await expect(page.locator('.fl-ghosts')).not.toContainText(/\d/);
-  await expect(page.locator('.fl-ask, .fl-carried, .fl-note')).toHaveCount(0);
-
-  // offline, the ghost ring is still drawn
-  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
-  await page.context().setOffline(true);
-  await page.reload();
-  await expect(page.locator('.fl-step-page')).toBeVisible();
-  await expect(page.locator('.fl-ghosts [data-ghost]')).toHaveCount(1);
-
-  // Still: the ghost rings go
-  await page.getByRole('button', { name: 'Still', exact: true }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(page.locator('.fl-ghosts')).toBeHidden();
-  await page.getByRole('button', { name: 'Leave Still' }).click();
+test('carried forward on a sign\'s page: no ghost rings and no note (the old drawings are gone), the person row', async ({ page }) => {
+  // Panic opens on the Root's page; its drawing left the page (Tommy, 2026-11-11), and the ghost rings with it
+  await enter(page, '/#/flow/panic/3');
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-showing', '3');
+  await expect(page.locator('.fl-ghosts, .fl-ask, .fl-carried, .fl-note')).toHaveCount(0);
 
   // the person row at Settling: no name yet, so it opens its sheet; filled, it is a link to Messages
-  await page.getByRole('button', { name: 'Settling' }).click();
   const empty = page.locator('[data-tip="panic-3-person"] .fl-person-empty');
   await expect(empty).toHaveText(/Someone, written when calm/);
   await empty.click();
@@ -160,7 +126,7 @@ test('carried forward: ghost rings offline and gone in Still, no note on a sign\
   await expect(link).toHaveAttribute('href', 'sms:5550104471?&body=Hard%20hour.%20Can%20you%20talk%20to%20me%20for%20ten%20minutes%3F');
 });
 
-test('your own stamps: the morning after a prediction, one tap, and the mark is drawn', async ({ page }) => {
+test('your own stamps: the morning after a prediction, one tap, and the outcome is kept', async ({ page }) => {
   await enter(page, '/#/flow');
   const DAY = 24 * 3_600_000;
   const at = Date.now() - DAY;
@@ -179,10 +145,7 @@ test('your own stamps: the morning after a prediction, one tap, and the mark is 
   await page.reload();
   await expect(page.locator('.fl-stampask')).toHaveCount(0);
   await page.goto(`/#/flow/${flowId}`);
-  // F4: the curve draws his mark itself on its flat, and the seeded nine in ten give way to it
-  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="curve"] path.stamp.own')).toHaveCount(1);
-  await expect(page.locator('.fl-stamps')).toHaveCount(0);
-  // R3: What if's curve is the second drawing on the Root page
-  await expect(page.locator('.ck-drawing[data-flow="whatif"] .fl-drawing')).toHaveAttribute('data-own', '');
-  await expect(page.locator('.fs-cycle .seedstamp').first()).toBeHidden();
+  // the old drawings are gone from a sign's page, so the mark is kept on the episode and not drawn there
+  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', flowId);
+  await expect(page.locator('.fs-cycle')).toHaveCount(0);
 });
