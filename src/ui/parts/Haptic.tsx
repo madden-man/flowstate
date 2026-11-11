@@ -5,8 +5,8 @@ import { settings } from '../settings';
 
 /** The ticks DESIGN.md rule 19 allows, and nowhere else. swap and deal: a fixation put in a slot, and Deal me one
  *  (PLAN-ENERGIZE.md X3, ui/flow/DeckSheet.tsx). for: a line confirmed as spoken for a value (PLAN-VALUES.md C4,
- *  parts/SpokeFor.tsx). */
-export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit' | 'swap' | 'deal' | 'for';
+ *  parts/SpokeFor.tsx). champion: a voice takes up a value or leaves it (PLAN-VALUES.md C3, ui/be/ChampionSheet.tsx). */
+export type TickName = 'unlock' | 'tab' | 'check' | 'drop' | 'detent' | 'still' | 'keep' | 'sheet' | 'breath' | 'album' | 'sit' | 'swap' | 'deal' | 'for' | 'champion';
 
 export function tick(_name: TickName): void {
   if (!settings.value.haptics || typeof document === 'undefined') return;

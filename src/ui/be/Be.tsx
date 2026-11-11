@@ -95,7 +95,9 @@ function BeTop({ here }: { here: 'values' | 'champions' }) {
 }
 
 export function Be({ id }: { id?: string }) {
-  return id === 'champions' ? <ChampionsPage /> : <Values id={id} />;
+  // in Still Be is the words alone, so a hand-typed #/be/champions shows them (rule 13; C3)
+  if (id === 'champions') return light.value === 'still' ? <Values /> : <ChampionsPage />;
+  return <Values id={id} />;
 }
 
 function ChampionsPage() {
