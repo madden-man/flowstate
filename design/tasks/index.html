@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en" data-light="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlowState: unblocking on the mountain</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+.g{fill:var(--glow)}.gs{fill:none;stroke:var(--glow)}.ps{fill:none;stroke:var(--plate-print)}.veil{fill:var(--plate-deep)}
+.hue{fill:oklch(var(--plate-voice-l) var(--plate-voice-c) var(--h))}.hs{fill:none;stroke:oklch(var(--plate-voice-l) var(--plate-voice-c) var(--h))}
+.ink{fill:var(--plate-line);font-family:var(--serif)}.dim{fill:var(--plate-print);font-family:var(--serif);font-style:italic}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--plate-sky);color:var(--ink);font-family:var(--serif)}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 12px 40px}
+nav{width:100%;max-width:430px;display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--print)}
+nav .dots{display:flex;gap:6px;flex:1;justify-content:center}
+nav .dots a{width:8px;height:8px;border-radius:50%;border:1px solid var(--print);display:block}
+nav .dots a[aria-current]{background:var(--glow);border-color:var(--glow)}
+nav button{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--ink);background:none;border:1px solid var(--rule);border-radius:18px;padding:8px 12px;cursor:pointer}
+nav button:disabled{opacity:.3;cursor:default}
+.count{margin:14px 0 0;font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--print)}
+section{display:none;width:100%;max-width:430px;flex-direction:column;align-items:center}
+section.on{display:flex}
+h2{font-weight:400;font-size:23px;line-height:1.25;margin:6px 0 4px;text-align:center}
+section>p{margin:0 0 14px;color:var(--ink);font-size:16px;line-height:1.45;text-align:center;max-width:36ch}
+.fit{width:390px;transform-origin:top center}
+.phone{width:390px;border-radius:34px;overflow:hidden;border:1px solid var(--seam);background:var(--page);box-shadow:0 20px 60px color-mix(in srgb, var(--plate-deep) 60%, transparent)}
+.bar{height:46px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 9px;font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--print)}
+.place{position:relative;width:390px;height:348px;background-color:var(--plate);background-repeat:no-repeat;background-size:585px 348px;overflow:hidden}
+.place svg{position:absolute;inset:0;width:100%;height:100%}
+.tall{height:588px;background-size:390px 588px}
+.w{paint-order:stroke;stroke:var(--plate);stroke-width:3px;font-family:var(--sans);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;fill:var(--plate-print)}
+.w.lit{fill:var(--glow);filter:drop-shadow(0 0 5px var(--glow))}
+.s{font-family:var(--serif);font-style:italic;font-size:15px;fill:var(--glow)}
+.foot{padding:12px 20px 16px;background:linear-gradient(var(--page),var(--page));border-top:1px solid var(--seam);min-height:92px;
+  background-image:repeating-linear-gradient(transparent 0 27px,var(--rule) 27px 28px)}
+.gloss{font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--print);line-height:28px}
+.gate{position:relative;height:28px}
+.gate i{position:absolute;left:0;right:0;top:13px;height:1px;background:var(--print)}
+.gate b{position:absolute;top:5px;width:2px;height:17px;background:var(--glow);border-radius:1px}
+.gate u{position:absolute;right:0;top:6px;width:1px;height:15px;background:var(--print)}
+.shelf{display:flex;gap:10px;padding:8px 0 6px}
+.shelf img{width:74px;height:74px;display:block;border-radius:2px}
+.shelf span{width:74px;height:74px;border:1px dashed var(--seam);border-radius:2px}
+.safe{font-size:14.5px;line-height:28px;color:var(--print);margin:0}
+.safe a{color:var(--ink);font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-right:14px;text-decoration:underline;text-underline-offset:4px}
+.eg{font-family:var(--sans);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--print);text-align:right;line-height:20px}
+.tabs{display:flex;justify-content:space-around;padding:14px 0 18px;font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--print);border-top:1px solid var(--seam)}
+.tabs b{color:var(--ink);font-weight:400;border-bottom:1px solid var(--ink);padding-bottom:4px}
+details{width:100%;max-width:390px;margin-top:16px;font-family:var(--sans);font-size:12.5px;color:var(--print)}
+summary{cursor:pointer;letter-spacing:.14em;text-transform:uppercase;font-size:10.5px;padding:8px 0}
+table{border-collapse:collapse;width:100%;margin-top:6px}
+th,td{text-align:left;vertical-align:top;padding:6px 8px 6px 0;border-top:1px solid var(--rule);line-height:1.4}
+th{font-weight:400;color:var(--print);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+td code{font-size:11.5px;color:var(--ink)}
+@keyframes drift{from{opacity:.25}50%{opacity:1}to{opacity:.25}}
+.tw{animation:drift calc(var(--t-orbit) / 3) var(--ease) infinite}
+@keyframes ring{from{r:8;opacity:.9}to{r:74;opacity:0}}
+.rg{animation:ring calc(var(--t-breath) / 2) linear infinite}
+@media (prefers-reduced-motion:reduce){.tw,.rg{animation:none}}
+</style>
+</head>
+<body>
+<nav aria-label="Steps">
+  <button type="button" id="prev">Previous</button>
+  <span class="dots" id="dots"></span>
+  <button type="button" id="next">Next</button>
+</nav>
+<div class="count" id="count"></div>
+
+<section id="mountain">
+  <h2>The water stops where I'm blocked</h2>
+  <p>The mountain already shows it: a shut sign holds the stream above it, and everything below runs thin and dark.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>Flow</span><span>Date: 11 / 11 / 26</span></div>
+    <div class="place tall" style="background-image:url(mountain.jpg)"></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Already built</th><th>This plan adds</th></tr>
+    <tr><td>Meter, gates, pools and surges (<code>model/mountain.ts</code>, <code>mountain/water.ts</code>)</td><td>A task done on a sign's page sends a surge from that sign's pool; the reading itself stays his hand's</td></tr></table>
+  </details>
+</section>
+
+<section id="crown">
+  <h2>Crown: I turn the clock away</h2>
+  <p>Lowering the lantern takes the page into Still, and the snow it held lifts off the cornice as spindrift.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Crown chakra</span></div>
+    <div class="place" style="background-image:url(crown.jpg);background-position:-42px 0">
+      <svg viewBox="0 0 390 348">
+        <rect width="390" height="348" class="veil" opacity=".5"/>
+        <g class="g">
+          <circle class="tw" cx="214" cy="140" r="1.6"/><circle class="tw" cx="236" cy="118" r="1.3" style="animation-delay:calc(var(--t-breath) * 0.06)"/>
+          <circle class="tw" cx="262" cy="100" r="1.1" style="animation-delay:calc(var(--t-breath) * 0.11)"/><circle class="tw" cx="291" cy="88" r="1" style="animation-delay:calc(var(--t-breath) * 0.17)"/>
+          <circle class="tw" cx="322" cy="80" r=".9" style="animation-delay:calc(var(--t-breath) * 0.22)"/><circle class="tw" cx="248" cy="134" r="1" style="animation-delay:calc(var(--t-breath) * 0.09)"/>
+          <circle class="tw" cx="280" cy="116" r=".8" style="animation-delay:calc(var(--t-breath) * 0.19)"/><circle class="tw" cx="350" cy="72" r=".7" style="animation-delay:calc(var(--t-breath) * 0.26)"/>
+        </g>
+        <path d="M195 150 V196" class="gs" stroke-width="1" stroke-dasharray="2 5" opacity=".7"/>
+        <circle cx="195" cy="204" r="5" class="gs" stroke-width="1.2"/>
+        <text class="w" x="20" y="28">Lying there</text>
+        <text class="w lit" x="212" y="208">Dim</text>
+        <text class="w" x="64" y="262">Breathe</text>
+        <text class="w" x="150" y="318">Away</text>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Crown · letting go, sleep</div><div class="gate"><i></i><b style="left:38%"></b><u></u></div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>3 a.m. rows today</th><th>Becomes</th></tr>
+    <tr><td>Turn the clock away; leave it turned</td><td><b>Dim</b>: the Still helper, drawn as the lantern lowering</td></tr>
+    <tr><td>Out longer than in</td><td><b>Breathe</b>: a thumb held on the water (<code>ring</code>)</td></tr>
+    <tr><td>Up after twenty minutes; something dull</td><td><b>Away</b>, with the dull picks on the shelf</td></tr>
+    <tr><td>Same wake time; daylight early</td><td>Off the page, kept in the step sheet</td></tr></table>
+  </details>
+</section>
+
+<section id="third-eye">
+  <h2>Third eye: I write what happened</h2>
+  <p>One line set on the water drifts out over the ledge, and the far ranges come clear behind it.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Third eye chakra</span></div>
+    <div class="place" style="background-image:url(third-eye.jpg);background-position:-58px 0">
+      <svg viewBox="0 0 390 348">
+        <defs><path id="te" d="M206 136 C240 150 262 166 282 196 S290 300 290 340"/></defs>
+        <text class="s"><textPath href="#te" startOffset="4%">this is the replay</textPath></text>
+        <path d="M300 150 H378 M304 168 H372" class="gs" stroke-width=".8" opacity=".55"/>
+        <text class="w" x="20" y="28">Why did I</text>
+        <text class="w lit" x="92" y="168">Name it</text>
+        <text class="w" x="92" y="196">Write</text>
+        <path d="M92 214 H180" class="ps" stroke-width=".8"/><path class="tw gs" d="M94 201 V213" stroke-width="1.2"/>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Third eye · seeing clearly</div><div class="gate"><i></i><b style="left:22%"></b><u></u></div><div class="eg">example data</div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Replay rows today</th><th>Becomes</th></tr>
+    <tr><td>Name it: this is the replay; "How", not "why"</td><td><b>Name it</b>: one rule on the water, his words kept sealed on the episode (new <code>name</code> helper)</td></tr>
+    <tr><td>Write what happened, and what next time</td><td><b>Write</b>: today's page, linked (<code>journal</code>)</td></tr>
+    <tr><td>Eight minutes of something absorbing; an album</td><td>The shelf</td></tr>
+    <tr><td>Talk to yourself by your name</td><td>Off the page</td></tr></table>
+  </details>
+</section>
+
+<section id="throat">
+  <h2>Throat: I say I'm going</h2>
+  <p>The message leaves as a bubble, the fall holds at the lip while I'm away, and it drops when I'm back.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Throat chakra</span></div>
+    <div class="place" style="background-image:url(throat.jpg);background-position:-112px 0">
+      <svg viewBox="0 0 390 348">
+        <rect x="178" y="176" width="36" height="150" class="veil" opacity=".72"/>
+        <ellipse cx="195" cy="168" rx="30" ry="7" class="g" opacity=".5" filter="blur(4px)"/>
+        <ellipse cx="195" cy="168" rx="20" ry="3" class="g" opacity=".9"/>
+        <g transform="translate(232 40)">
+          <path d="M10 0 H138 a10 10 0 0 1 10 10 V44 a10 10 0 0 1 -10 10 H26 L8 68 L12 54 H10 a10 10 0 0 1 -10 -10 V10 a10 10 0 0 1 10 -10Z" class="hs" style="--h:250;fill:var(--plate-deep)" stroke-width="1.2"/>
+          <text x="12" y="23" class="ink" style="font-size:14px">I'm going.</text>
+          <text x="12" y="42" class="ink" style="font-size:14px">Back at 7:40.</text>
+        </g>
+        <text class="w" x="246" y="124">To Sam</text>
+        <text class="w" x="20" y="28">Flooded</text>
+        <text class="w lit" x="232" y="172">Back at 7:40</text>
+        <text class="w lit" x="72" y="112">Say it</text>
+        <text class="w" x="72" y="236">Breathe</text>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Throat · speech</div><div class="gate"><i></i><b style="left:64%"></b><u></u></div><div class="eg">example data</div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Fight rows today</th><th>Becomes</th></tr>
+    <tr><td>Say "I'm going, back at 7:40"; tell them, written when calm</td><td><b>Say it</b> and <b>Away</b>: <code>person</code> and <code>timer</code> as one touch; the pool at the lip is the return time</td></tr>
+    <tr><td>Name it: "I'm angry"; the fact in one line, the story in another</td><td><b>Name it</b>, two rules: the fact stays as a stone, the story goes over the fall</td></tr>
+    <tr><td>Out longer than in</td><td><b>Breathe</b></td></tr>
+    <tr><td>One album: that's the twenty minutes</td><td>The shelf</td></tr>
+    <tr><td>Check your pulse; your break word; the repair lines</td><td>Off the page</td></tr></table>
+  </details>
+</section>
+
+<section id="heart">
+  <h2>Heart: one small thing, with a time on it</h2>
+  <p>It lands in the tarn as a stone, and what I could put on waits as covers on the bank.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Heart chakra</span></div>
+    <div class="place" style="background-image:url(heart.jpg);background-position:-93px 0">
+      <svg viewBox="0 0 390 348">
+        <g class="gs" stroke-width="1">
+          <ellipse cx="112" cy="286" rx="16" ry="4" opacity=".9"/><ellipse cx="112" cy="286" rx="36" ry="9" opacity=".55"/><ellipse cx="112" cy="286" rx="62" ry="15" opacity=".28"/>
+        </g>
+        <ellipse cx="112" cy="285" rx="5" ry="2.4" class="g"/>
+        <text class="s" x="50" y="262">the dishes at four</text>
+        <text class="w" x="20" y="28">The bottom</text>
+        <text class="w lit" x="50" y="318">One small thing</text>
+        <text class="w" x="286" y="286">Reach</text>
+      </svg>
+    </div>
+    <div class="foot">
+      <div class="gloss">Heart · love and grief</div><div class="gate"><i></i><b style="left:88%"></b><u></u></div>
+      <div class="shelf"><img src="cover1.jpg" alt="Atlas: I"><img src="cover2.jpg" alt="Carrie &amp; Lowell"><img src="cover3.jpg" alt="Birthplace"></div>
+      <p class="safe">If you're thinking about suicide, call or text 988. Someone answers, any hour.</p>
+      <p class="safe"><a href="tel:988">Call 988</a><a href="sms:988">Text 988</a></p>
+      <div class="eg">example data</div>
+    </div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Depress rows today</th><th>Becomes</th></tr>
+    <tr><td>One small thing, with a time on it; one thing to look forward to on the calendar</td><td><b>One small thing</b>: a rule and a time, into Calendar (the walk's <code>calendar</code> helper)</td></tr>
+    <tr><td>Message one person</td><td><b>Reach</b> (<code>person</code>)</td></tr>
+    <tr><td>Music you choose; a walk, any length; eight minutes of something absorbing</td><td>The shelf, wordless, the step's picks first</td></tr>
+    <tr><td>The 988 line</td><td>Stays printed in every light, with Call and Text</td></tr>
+    <tr><td>Same wake time; daylight; no alcohol; eat; out of bed by day</td><td>Off the page</td></tr></table>
+  </details>
+</section>
+
+<section id="solar-plexus">
+  <h2>Solar plexus: I strike the verdict</h2>
+  <p>"I am bad" is struck and goes to the fire; the deed I can repair stays written on the shelf of rock.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Solar plexus chakra</span></div>
+    <div class="place" style="background-image:url(solar-plexus.jpg);background-position:-172px 0">
+      <svg viewBox="0 0 390 348">
+        <text x="40" y="218" class="dim" style="font-size:17px">I am bad</text>
+        <path d="M36 213 C60 208 86 216 112 210" class="hs" style="--h:95" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <text x="40" y="246" class="ink" style="font-size:17px">I snapped at Sam</text>
+        <path d="M40 254 H176" class="ps" stroke-width=".8"/>
+        <g class="hue" style="--h:95">
+          <circle class="tw" cx="186" cy="140" r="1.6"/><circle class="tw" cx="200" cy="118" r="1.2" style="animation-delay:calc(var(--t-breath) * 0.07)"/>
+          <circle class="tw" cx="192" cy="96" r="1" style="animation-delay:calc(var(--t-breath) * 0.13)"/><circle class="tw" cx="208" cy="78" r=".9" style="animation-delay:calc(var(--t-breath) * 0.20)"/>
+          <circle class="tw" cx="178" cy="112" r=".9" style="animation-delay:calc(var(--t-breath) * 0.25)"/>
+        </g>
+        <text class="w" x="20" y="28">I'm worthless</text>
+        <text class="w lit" x="40" y="284">Reword</text>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Solar plexus · will and worth</div><div class="gate"><i></i><b style="left:51%"></b><u></u></div><div class="eg">example data</div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Shame rows today</th><th>Becomes</th></tr>
+    <tr><td>Name it: shame; reword "I am bad" as "I did a bad thing"; one specific repair</td><td><b>Reword</b>: <code>name</code> with two rules; the first takes the drawn strike (rule 10) and feeds the embers</td></tr>
+    <tr><td>If it's hot: the Fight flow</td><td>A hand-off that follows the water up to the Throat</td></tr>
+    <tr><td>Talk the way you'd talk to a friend; notice the pull; own it in short phrases</td><td>Off the page</td></tr>
+    <tr><td>(no picks seeded)</td><td>No shelf is drawn</td></tr></table>
+  </details>
+</section>
+
+<section id="sacral">
+  <h2>Sacral: a thumb in the pool</h2>
+  <p>Holding the water sends a ring out on every out-breath, until feeling comes back to the edges.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Sacral chakra</span></div>
+    <div class="place" style="background-image:url(sacral.jpg);background-position:-102px 0">
+      <svg viewBox="0 0 390 348">
+        <g transform="translate(195 292) scale(1 .32)" class="hs" style="--h:55" stroke-width="2.4">
+          <circle class="rg" r="8"/><circle class="rg" r="8" style="animation-delay:calc(var(--t-breath) * -0.17)"/><circle class="rg" r="8" style="animation-delay:calc(var(--t-breath) * -0.34)"/>
+        </g>
+        <circle cx="195" cy="292" r="21" class="g" opacity=".1"/><circle cx="195" cy="292" r="21" class="gs" stroke-width="1" opacity=".6"/>
+        <text class="w" x="20" y="28">Stuck</text>
+        <text class="w lit" x="228" y="296">Hold</text>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Sacral · feeling</div><div class="gate"><i></i><b style="left:70%"></b><u></u></div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Shutdown rows today</th><th>Becomes</th></tr>
+    <tr><td>Slow the breath; feet on the floor; feel the chair</td><td><b>Hold</b>: <code>ring</code> on the pool; the breath tone and the tick are the ones the ring has now</td></tr>
+    <tr><td>A trusted voice, or someone's eyes</td><td><b>Reach</b></td></tr>
+    <tr><td>An album, or the TV</td><td>The shelf</td></tr>
+    <tr><td>Name it: my body pulled a brake</td><td><b>Name it</b></td></tr>
+    <tr><td>Rest, with nothing to finish</td><td>Off the page</td></tr></table>
+  </details>
+</section>
+
+<section id="root">
+  <h2>Root: five things I can see</h2>
+  <p>Each one I write becomes a stepping stone across the stream, and the fireflies gather where I cross.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>‹ Flow</span><span>Root chakra</span></div>
+    <div class="place" style="background-image:url(root.jpg);background-position:-93px 0">
+      <svg viewBox="0 0 390 348">
+        <g>
+          <ellipse cx="138" cy="246" rx="15" ry="6" class="g"/><ellipse cx="178" cy="256" rx="15" ry="6" class="g"/><ellipse cx="218" cy="262" rx="15" ry="6" class="g"/>
+          <ellipse cx="258" cy="264" rx="15" ry="6" class="gs" stroke-width="1" stroke-dasharray="2 3"/><ellipse cx="298" cy="262" rx="15" ry="6" class="ps" stroke-width="1" stroke-dasharray="2 3"/>
+        </g>
+        <text class="s" x="122" y="232" style="font-size:13px">lamp</text><text class="s" x="158" y="282" style="font-size:13px">window</text><text class="s" x="206" y="248" style="font-size:13px">mug</text>
+        <path class="tw gs" d="M258 272 V286" stroke-width="1.2"/>
+        <g class="hue" style="--h:25">
+          <circle class="tw" cx="150" cy="212" r="1.6"/><circle class="tw" cx="196" cy="226" r="1.3" style="animation-delay:calc(var(--t-breath) * 0.08)"/><circle class="tw" cx="232" cy="220" r="1.4" style="animation-delay:calc(var(--t-breath) * 0.15)"/>
+          <circle class="tw" cx="170" cy="198" r="1" style="animation-delay:calc(var(--t-breath) * 0.21)"/><circle class="tw" cx="246" cy="238" r="1" style="animation-delay:calc(var(--t-breath) * 0.27)"/>
+        </g>
+        <text class="w" x="20" y="28">Settling</text>
+        <text class="w lit" x="40" y="250">Five</text>
+        <text class="w" x="40" y="128">Breathe</text>
+        <text class="w" x="296" y="128">Reach</text>
+      </svg>
+    </div>
+    <div class="foot"><div class="gloss">Root · feeling safe</div><div class="gate"><i></i><b style="left:45%"></b><u></u></div><div class="eg">example data</div></div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Panic and What if rows today</th><th>Becomes</th></tr>
+    <tr><td>Five things you can see</td><td><b>Five</b>: the five rules it has now, drawn as stones (<code>five</code>)</td></tr>
+    <tr><td>Breathe with the ring; out longer than in</td><td><b>Breathe</b>: the ring moves onto the water</td></tr>
+    <tr><td>One person, written when calm</td><td><b>Reach</b></td></tr>
+    <tr><td>Write the worry as a prediction</td><td><b>Name it</b>, left as a stone to check after (<code>prediction</code>)</td></tr>
+    <tr><td>Less coming in; sit with the rain</td><td><b>Dim</b>; <b>Sit</b>, which follows the water to the sea</td></tr>
+    <tr><td>Cold water; a window; tea; a shower; a walk</td><td><b>Away</b>, at most three words on the dimmed place</td></tr></table>
+  </details>
+</section>
+
+<section id="sea">
+  <h2>What I unblocked runs on to the sea</h2>
+  <p>Back on the mountain the surge travels down through every sign below, and arrives where Meditate and Energize float.</p>
+  <div class="fit"><div class="phone" data-mock>
+    <div class="bar"><span>Flow</span><span>Date: 11 / 11 / 26</span></div>
+    <div class="place tall" style="background-image:url(mountain-clear.jpg)">
+      <svg viewBox="0 0 390 588">
+        <circle cx="212" cy="486" r="26" class="g" opacity=".22" filter="blur(8px)"/>
+        <circle class="tw g" cx="212" cy="486" r="5"/>
+        <circle cx="212" cy="486" r="13" class="gs" stroke-width="1" opacity=".5"/>
+      </svg>
+    </div>
+    <div class="tabs"><span>Journal</span><span>Council</span><span>?</span><span>Be</span><b>Flow</b></div>
+  </div></div>
+  <details><summary>How this is built</summary>
+    <table><tr><th>Rule</th><th>Why</th></tr>
+    <tr><td>A touch moves water, never the reading</td><td>The gate is what he says is true; afterwards its handle goes dashed, asking without words</td></tr>
+    <tr><td>Runs once, then still</td><td>DESIGN.md rule 31; nothing travels under Reduce Motion</td></tr>
+    <tr><td>No tally of touches anywhere</td><td>Rule 15</td></tr></table>
+  </details>
+</section>
+
+<script>
+const steps=[...document.querySelectorAll('section')],dots=document.getElementById('dots');
+steps.forEach(s=>{const a=document.createElement('a');a.href='#'+s.id;a.title=s.querySelector('h2').textContent;dots.append(a)});
+const fit=()=>{const k=Math.min(1,(innerWidth-24)/390);document.querySelectorAll('.fit').forEach(f=>{f.style.transform=`scale(${k})`;f.style.marginBottom=`${(k-1)*f.offsetHeight}px`})};
+function show(){let i=steps.findIndex(s=>'#'+s.id===location.hash);if(i<0)i=0;
+  steps.forEach((s,k)=>s.classList.toggle('on',k===i));
+  [...dots.children].forEach((a,k)=>k===i?a.setAttribute('aria-current','step'):a.removeAttribute('aria-current'));
+  document.getElementById('count').textContent=`Step ${i+1} of ${steps.length}`;
+  document.getElementById('prev').disabled=i===0;document.getElementById('next').disabled=i===steps.length-1;fit();scrollTo(0,0);return i}
+const go=d=>{const i=show()+d;if(steps[i])location.hash=steps[i].id};
+document.getElementById('prev').onclick=()=>go(-1);document.getElementById('next').onclick=()=>go(1);
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1)});
+addEventListener('hashchange',show);addEventListener('resize',fit);show();
+</script>
+</body>
+</html>
