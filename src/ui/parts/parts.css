@@ -1546,3 +1546,23 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
   .fs-value-open.written .b, .fs-value-open.written i { animation: none; }
 }
 /* ---- C2 ends ---- */
+
+/* ---- Said for it (PLAN-VALUES.md C5) ---- */
+/* under an open value: the label, then a line a rule: its day in print (the shadow's word after it in italic print for a
+   line spoken for the shadow), its words cut on one line (rule 5), its voice's 3px rule on the left (a deep twin's
+   doubled, plain ink's ink); a row is a link to the page it lives on */
+.fs-sheetof .fs-said-label { margin: 0; line-height: var(--lh-ink); }
+.fs-saidline {
+  --vc: var(--ink);
+  display: grid; grid-template-columns: auto 1fr; gap: var(--s1); align-items: baseline;
+  border-left: 3px solid var(--vc); padding-left: var(--s1);
+  font-size: var(--fs-fill); line-height: var(--lh-ink); color: var(--ink); text-decoration: none;
+}
+.fs-saidline.deep { border-left-style: double; border-left-width: 5px; }
+.fs-saidline small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); white-space: nowrap; }
+.fs-saidline span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-saidline:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fs-sheetof .fs-said-earlier { margin: 0; min-height: var(--lh-ink); display: flex; align-items: end; }
+.fs-said-earlier .fs-word { position: relative; min-height: var(--lh-ink); color: var(--print); }
+.fs-said-earlier .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+/* ---- C5 ends ---- */
