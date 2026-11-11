@@ -39,7 +39,7 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await today.pressSequentially(line, { delay: 2 });
   await expect(today).toHaveAttribute('data-saved', 'true');
   await page.goto('/#/flow/panic');
-  const dot = page.getByRole('slider', { name: 'Where you are' });
+  const dot = page.getByRole('slider', { name: 'Where you are' }).first();
   await dot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(dot).toHaveAttribute('aria-valuenow', '1');
@@ -47,7 +47,8 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await page.keyboard.press('ArrowLeft');
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
-  await expect(page.locator('.fl-last')).toBeVisible();
+  // R3: behind the PIN Panic is the Root's page, at rest on its one list ("Last time" left with the copy)
+  await expect(page.locator('.ck-rows[aria-label="At rest"]')).toBeVisible();
   // F6: a note to the next one of you at the wave, and the ended episode is a ghost ring; both stay behind the PIN
   await page.evaluate(([text]) => new Promise<void>((resolve, reject) => {
     const open = indexedDB.open('flowstate');

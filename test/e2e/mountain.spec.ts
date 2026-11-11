@@ -67,7 +67,8 @@ test('mountain: every seeded flow, Meditate, Energize and a flow of his own are 
     await expect(plate.locator(`a.mt-stop[data-chakra="${chakra}"]`)).toHaveAttribute('href', `#/flow/c/${chakra}`);
     // and the flow's own page still opens from its old route (the door, Right now and hand-offs use it)
     await page.evaluate(h => { location.hash = h; }, `#/flow/${id}`);
-    await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle'), id).toBeVisible();
+    // R3: on its sign's page, in front and open (Root holds two drawings)
+    await expect(page.locator(`.ck-drawing[data-flow="${id}"]:not([data-folded]) .fl-drawing .fs-cycle`), id).toBeVisible();
     await page.evaluate(() => { location.hash = '#/flow'; });
     await expect(plate).toBeVisible();
   }

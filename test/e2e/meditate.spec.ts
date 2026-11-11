@@ -325,7 +325,8 @@ test('meditate S3: the Sit row on Under the skin opens Meditate, and a sit of a 
 
   // the row: after A warm shower, Sit in print at its end; the six rows before S3 all still there
   const tips = page.locator('.fl-tips .fl-tip, .fl-tips .fl-wise');
-  await expect(tips).toHaveCount(7);
+  // R3: the wise line leaves the Root's page with the copy, so the six check rows are the rows
+  await expect(tips).toHaveCount(6);
   const ids = await tips.evaluateAll(els => els.map(el => el.getAttribute('data-tip')));
   expect(ids.slice(2, 5)).toEqual(['panic-4-shower', 'panic-4-sit', 'panic-4-walk']);
   const row = page.locator('[data-tip="panic-4-sit"] [role="checkbox"]');

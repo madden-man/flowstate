@@ -29,7 +29,9 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
   await expect(page.getByRole('button', { name: "I'm worthless" })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.fs-cycle text.hand')).toHaveText(['hide', 'hit back', 'I can fix it']);
-  await expect(body.locator('.fl-said').first()).toContainText('has a door in it');
+  // R3: a flow under a sign opens on its sign's page, and the said paragraph leaves it (PLAN-MOUNTAIN.md section 6)
+  await expect(body).toHaveAttribute('data-chakra', 'solar-plexus');
+  await expect(body.locator('.fl-said:not(.fl-print)')).toHaveCount(0);
 
   // the service worker takes the page over from the next load
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -50,12 +52,13 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
 
   // the hand-off is a printed line, not a row, and a tap opens Fight on its trigger
   const line = body.locator('.fl-print a.fl-handoff');
-  await expect(line).toHaveText("If it's hot: the Fight flow.");
-  await expect(body.locator('[role="checkbox"]', { hasText: 'the Fight flow' })).toHaveCount(0);
+  // R3: the hand-off reads as the sign it lands on
+  await expect(line).toHaveText("If it's hot: the Throat chakra.");
+  await expect(body.locator('[role="checkbox"]', { hasText: 'the Throat chakra' })).toHaveCount(0);
   await line.click();
   await expect(page).toHaveURL(/#\/flow\/fight\/1$/);
   const from = page.locator('.fl-from a.fs-link');
-  await expect(from).toContainText(/From Shame · Hide or hit back · \d\d:\d\d/i);
+  await expect(from).toContainText(/From Solar plexus chakra · Hide or hit back · \d\d:\d\d/i);
   await expect(from).toHaveAttribute('href', '#/flow/shame/3');
   await expect(page.getByRole('slider', { name: 'Where you are' })).toHaveAttribute('aria-valuetext', 'Trigger');
   const check = async () => {
@@ -75,7 +78,7 @@ test('Shame: the fork, and the hand-off to Fight keeps where it came from, offli
   await page.reload();
   await threshold(page);
   await expect(page).toHaveURL(/#\/flow\/fight\/1$/);
-  await expect(page.locator('.fl-from a.fs-link')).toContainText('From Shame · Hide or hit back');
+  await expect(page.locator('.fl-from a.fs-link')).toContainText('From Solar plexus chakra · Hide or hit back');
   await check();
 
   // the link row leads back to the step it left, which reads
@@ -90,7 +93,8 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   await threshold(page);
   const body = page.locator('.fs-flowpage');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="clock"]')).toBeVisible();
-  await expect(page.locator('.fs-flowpage .fl-usual.fs-notstill')).toContainText('twenty minutes');
+  // R3: "Usually" leaves the page with the copy
+  await expect(page.locator('.fs-flowpage .fl-step-page > .fl-usual')).toHaveCount(0);
   await expect(page.locator('.fs-cycle text.num')).toHaveText(['12', '7']);
   // the quiet clock (F4): on a live episode the middle reads in words in Day too, never minutes in digits
   await page.goto('/#/flow/night');
@@ -107,7 +111,7 @@ test('3 a.m. in Still: the clock with no digit on the page; the list of nine scr
   // Still by the moon (rule 13): the drawing's numeral and the step numbers go, the words-only line comes
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(body.locator('.fs-stillonly')).toHaveText('The bed is for sleeping.');
+  await expect(body.locator('.fl-step-page > .fl-usual')).toHaveCount(0);
   await expect.poll(() => body.evaluate(el => (el as HTMLElement).innerText)).not.toMatch(/\d/);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 

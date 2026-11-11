@@ -26,4 +26,9 @@ describe('kindOf', () => {
     expect(kindOf('/flow/panic/2', '/flow/panic/3')).toBeNull();
     expect(kindOf('/be', '/be')).toBeNull();
   });
+  it('turns between two signs\' pages: #/flow/c/heart and #/flow/c/root are two pages (R3 review)', () => {
+    expect(kindOf('/flow/c/heart', '/flow/c/root')).toBe('open');
+    expect(kindOf('/flow', '/flow/c/root')).toBe('open');
+    expect(kindOf('/flow/c/root', '/flow')).toBe('close');
+  });
 });

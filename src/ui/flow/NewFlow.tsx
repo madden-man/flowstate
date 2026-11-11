@@ -9,6 +9,8 @@ import { SHAPES } from '../parts/cycle/index';
 import { tick } from '../parts/Haptic';
 import type { DiagramName } from '../../db/schema';
 import { DIAGRAMS, makeFlow } from '../../model/flow-make';
+import { Sign } from '../parts/Sign';
+import { CHAKRAS, type ChakraId } from '../../model/mountain';
 
 /** The shapes' names on the sheet; a shape not drawn yet (F4's) still has its name. */
 const TITLES: Record<DiagramName, string> = {
@@ -35,6 +37,8 @@ function FlowForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { route } = useLocation();
   const [name, setName] = useState('');
   const [diagram, setDiagram] = useState<DiagramName>('ring');
+  // R3: which sign it sits under; none chosen leaves it on its own page. A second tap on the chosen sign unchooses it.
+  const [chakra, setChakra] = useState<ChakraId | undefined>(undefined);
   const done = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const ok = !!name.trim();
@@ -47,7 +51,7 @@ function FlowForm({ open, onClose }: { open: boolean; onClose: () => void }) {
   const make = async () => {
     if (done.current || !ok) return;
     done.current = true;
-    const flow = await makeFlow(name, diagram);
+    const flow = await makeFlow(name, diagram, Date.now(), chakra);
     onClose();
     route(`/flow/${flow.id}`);
   };
@@ -67,6 +71,17 @@ function FlowForm({ open, onClose }: { open: boolean; onClose: () => void }) {
               <button key={d} type="button" class="fl-shape" aria-pressed={diagram === d} data-diagram={d} onClick={() => setDiagram(d)}>
                 <span class="fl-shape-draw" aria-hidden="true"><Cycle small diagram={d} steps={SAMPLE} at={0} /></span>
                 <span class="fl-shape-name">{titleOf(d)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="fs-row stack">
+          <span class="fs-print">Under</span>
+          <div class="fl-signs" role="group" aria-label="Under">
+            {CHAKRAS.map(c => (
+              <button key={c.id} type="button" class="fl-signpick" aria-pressed={chakra === c.id} aria-label={c.name}
+                onClick={() => setChakra(was => (was === c.id ? undefined : c.id))}>
+                <Sign kind={c.sign} hue={c.hue} closed={chakra === c.id ? 0 : 1} size="small" />
               </button>
             ))}
           </div>
