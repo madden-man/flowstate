@@ -116,10 +116,7 @@
 .fs-chip[aria-pressed="true"] { background: var(--ink); color: var(--page); }
 .fs-chip.add { border-style: dashed; color: var(--print); }
 
-/* ---- the facing pages (Be placeholder; package 3 draws the full spread) ---- */
-.fs-facing { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--s3); }
-.fs-facing > * { margin: 0; min-height: var(--lh-ink); }
-.fs-facing .b { text-align: right; }
+/* ---- tags and struck words ---- */
 .fs-tag { font-family: var(--serif); font-size: var(--fs-chip); color: var(--ink); border-bottom: 1px solid var(--ink); }
 .fs-strike { position: relative; display: inline-block; color: var(--print); font-size: var(--fs-chip); }
 .fs-strike::after { content: ""; position: absolute; left: -2px; right: -2px; top: 52%; height: 2px; background: var(--ink); transform: rotate(-1.5deg); opacity: .8; }
@@ -338,11 +335,10 @@ a.fs-row { text-decoration: none; cursor: pointer; }
   outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1);
 }
 
-/* ---- Be: the spread, upright (V4, DESIGN.md rule 11). Pole A on the top rule, pole B on the bottom rule,
-   the seam between; a pair shares a row, tied across the seam; the middle word sits on the seam ---- */
+/* ---- Be (DESIGN.md rule 11): the top row, then the list of values (PLAN-VALUES.md; the spread left in C6) ---- */
 .fs-be-top { display: flex; justify-content: space-between; align-items: center; padding: 0 calc(var(--gutter) - var(--s1)); }
 .fs-be { padding-top: 0; }
-/* V8: the list. A row a paradox, its two poles facing across a short seam, two rules high; a tap opens the spread under it */
+/* V8: the list. A row a value, two rules high; a tap opens it where it stands (.fs-dichotomy, the seam) */
 .fs-be-row { border-bottom: 1px solid var(--seam); scroll-margin-top: var(--s1); }
 .fs-be-row:last-child { border-bottom: 0; }
 /* V13: a row lifted by a long press rides under the finger, as a voice does on the Voices screen */
@@ -360,62 +356,9 @@ a.fs-row { text-decoration: none; cursor: pointer; }
 .fs-dichotomy.resting { color: var(--print); font-style: italic; }
 .fs-dichotomy[aria-expanded="true"] i { background: var(--ink); }
 .fs-dichotomy:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-.fs-spread { position: relative; padding: var(--s1) 0 var(--s3); }
-.fs-spread-pages { position: relative; min-height: var(--s4); font-family: var(--serif); }
-.fs-spread-ink { position: absolute; inset: 0; overflow: visible; pointer-events: none; color: var(--ink); }
-.fs-seam { stroke: var(--seam); stroke-width: 1; fill: none; }
-.fs-pair { fill: none; stroke: var(--print); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
-.fs-pair.open { stroke-dasharray: 1.5 6; }
-.fs-arrow { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
-
-/* the poles: each word centred on its rule (A above the top rule, B below the bottom one), its shadow in brackets */
-.fs-pole {
-  position: absolute; left: 0; right: 0; margin: 0; padding: 0 var(--s4);
-  text-align: center; font-size: var(--fs-chip); letter-spacing: .02em; line-height: var(--lh-ink); color: var(--ink);
-  transition: border-color var(--t-light) var(--ease);
-}
-.fs-pole.a { top: 0; border-bottom: 1px solid var(--rule); }
-.fs-pole.b { border-top: 1px solid var(--rule); }
-.fs-pole i { font-style: italic; color: var(--print); }
-/* the middle word on the seam, on a patch of page so the line breaks around it; the patch relights with the page */
-.fs-mid {
-  position: absolute; left: 50%; transform: translateX(-50%); display: block; width: max-content; max-width: 64%; margin: 0; padding: 0 var(--s1);
-  text-align: center; font-size: var(--fs-chip); font-style: italic; line-height: 1.35; color: var(--print);
-  background: var(--page); transition: background-color var(--t-light) var(--ease);
-}
-
-/* a goal on its pole's side of the seam, and the dashed slot for a missing balance on the other side of its row */
-.fs-goal, .fs-slot {
-  appearance: none; position: absolute; width: 44%; margin: 0; border: 0; background: transparent; color: var(--ink);
-  font: inherit; font-size: var(--fs-chip); line-height: 1.35; text-align: left; padding: 4px 2px;
-  cursor: grab; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
-  transition: transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease);
-}
-/* a row reads along its first line: the goal's first line, the tie and the slot's words share one height */
-.fs-goal { min-height: var(--hit); display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
-.fs-goal.a, .fs-slot.a { left: 0; }
-.fs-goal.b, .fs-slot.b { right: 0; text-align: right; }
-.fs-goal-text { display: block; }
-.fs-cadence { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
-.fs-goal.lift { transform: translateY(-2px); background: var(--page); box-shadow: var(--shadow-tile); border-radius: var(--s1); cursor: grabbing; transition: none; z-index: 2; }
-.fs-goal.riding { transition: none; }
-.fs-slot { border: 1px dashed var(--print); border-radius: var(--s1); color: var(--print); font-style: italic; padding: 3px var(--s1); cursor: pointer; display: flex; align-items: flex-start; }
-.fs-slot.b { justify-content: flex-end; }
-/* the slot is drawn one line tall; its tap reaches the full 44px, as the chips do */
-.fs-slot::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - max(50%, var(--hit) / 2)); bottom: calc(50% - max(50%, var(--hit) / 2)); }
-.fs-goal:focus-visible, .fs-slot:focus-visible, .fs-addgoal:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
-
 /* earlier versions of the three words, struck through, in the sheet Edit opens */
 .fs-was { margin: 0; font-size: var(--fs-chip); line-height: 1.5; }
 
-/* "+ Goal" under the spread, the first thing under the thumb; Edit at the right end of the top rule */
-.fs-addgoal {
-  appearance: none; margin: 0; cursor: pointer; min-height: var(--hit);
-  padding: 0 var(--s2); border-radius: 999px; border: 1px solid var(--ink); background: var(--page); color: var(--ink);
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: 1;
-  transition: background-color var(--t-light) var(--ease);
-}
-.fs-spread-words { position: absolute; right: calc(var(--s1) * -1); top: 0; height: var(--lh-ink); display: flex; align-items: center; z-index: 1; }
 .fs-print { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: 1.4; }
 
 /* the Be sheets */
@@ -539,9 +482,7 @@ a.fs-word { text-decoration: none; }
 .fs-picker { border-top: 0; }
 a.fs-row { color: var(--ink); text-decoration: none; }
 
-/* ==== Today's checks and the lean slider (package 4; under a paradox's spread on Be since F0) ==== */
-.fs-due { padding: var(--s1) 0 var(--lh-ink); }
-.fs-due-head { margin: 0; line-height: var(--lh-ink); font-weight: 400; }
+/* ==== The drawn checks (package 4; a flow's tips, the On sheet and the playlists since PLAN-VALUES.md C6) ==== */
 
 /* the drawn check: a row on the rules, a box in print grey, the check stroked in ink over --t-ui */
 .fs-check {
@@ -562,28 +503,7 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 .fs-check.done .fs-check-ink { stroke-dashoffset: 0; }
 .fs-check-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .fs-check small { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
-.fs-check:focus-visible, .fs-lean-rule:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
-
-/* the lean slider: pole A at the left, pole B at the right, a rule, three detents, the drawn mark */
-.fs-lean-poles {
-  display: flex; justify-content: space-between; gap: var(--s2);
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink);
-}
-.fs-lean-rule { position: relative; height: calc(var(--lh-ink) * 2); touch-action: pan-y; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent; }
-.fs-lean-rule[aria-disabled="true"] { cursor: default; }
-.fs-lean-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.fs-lean-ink line { stroke: var(--print); stroke-width: 1; }
-.fs-lean-ink .fs-lean-detent { stroke-width: 1.5; }
-.fs-lean-mark {
-  position: absolute; top: 50%; transform: translate(-50%, -50%); overflow: visible; pointer-events: none;
-  transition: left var(--t-ui) var(--ease);
-}
-.fs-lean-rule.drag .fs-lean-mark { transition: none; }
-.fs-lean-mark path { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
-.fs-lean-noteword { position: relative; display: block; margin-left: calc(var(--s1) * -1); min-height: var(--lh-ink); line-height: var(--lh-ink); max-width: 100%; text-align: left; }
-.fs-lean-noteword::before { content: ""; position: absolute; inset: calc((var(--lh-ink) - var(--hit)) / 2) 0; } /* a 44px target on one rule line */
-.fs-lean-notetext { display: block; font-family: var(--serif); font-size: var(--fs-fill); font-style: italic; letter-spacing: 0; text-transform: none; color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fs-lean-note { display: block; font-size: var(--fs-fill); font-style: italic; height: var(--lh-ink); }
+.fs-check:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
 
 /* ==== package 7: music. The ♪ word, the small cover beside it, the album grid, the Settings rows ==== */
 .fs-musicword { font-size: var(--fs-fill); letter-spacing: 0; text-transform: none; padding: 0 var(--s1); }
@@ -703,10 +623,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   left: calc(50% - max(50%, var(--hit) / 2)); right: calc(50% - max(50%, var(--hit) / 2));
 }
 .fs-musicword { min-width: var(--hit); justify-content: center; }
-/* "+ Goal" stays under the thumb while its spread scrolls past (DESIGN.md rule 6) */
-.fs-addgoal { position: sticky; bottom: var(--s1); z-index: 2; }
-/* the lean before the first drag: the mark waits at the middle in print grey */
-.fs-lean-mark.waiting path { stroke: var(--print); stroke-dasharray: 2 3; }
 
 /* ---- V6: the pull shows earlier pages ---- */
 /* the rail hangs above the page in the page's own light: the rows of the Pages screen on ruled paper, as
@@ -1036,7 +952,7 @@ a.fs-check.fl-person { color: inherit; text-decoration: none; }
   display: block; margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
   text-transform: uppercase; line-height: var(--lh-ink); color: var(--print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* an empty slot is a dashed slot, as on the Be spread (rule 11) */
+/* an empty slot is a dashed slot, the mark for something owed (rule 11) */
 .fx-card.fx-empty { border-left-style: dashed; border-left-color: var(--seam); background: transparent; color: var(--print); }
 /* on deck, peeking under the three: one blank rule above, the chips on the next */
 .fx-deckpeek { display: flex; align-items: center; gap: var(--s1); margin-top: var(--lh-ink); height: var(--lh-ink); }
@@ -1173,8 +1089,8 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 .fs-key[data-down] { background-color: var(--seam); transition: none; }
 .fs-key[data-down] b { translate: 0 1px; transition: none; }
 
-/* pills (chips, options, "+ voice", New, + Goal): the border goes to ink, a little ink washes in, 1px down */
-.fs-chip, .fs-opt, .fs-new, .fs-addgoal, .fs-vslot {
+/* pills (chips, options, "+ voice", New): the border goes to ink, a little ink washes in, 1px down */
+.fs-chip, .fs-opt, .fs-new, .fs-vslot {
   transition: background-color var(--t-ui) var(--ease), color var(--t-ui) var(--ease), border-color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease);
 }
 .fs-chip[data-down], .fs-opt[data-down], .fs-new[data-down], .fs-vslot[data-down] {
@@ -1182,18 +1098,15 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 }
 /* a chosen pill is already ink: it only gives */
 .fs-chip[aria-pressed="true"][data-down], .fs-opt[aria-pressed="true"][data-down] { background-color: var(--ink); }
-/* + Goal rides over the spread, so its wash is mixed into the page, not into what scrolls under it */
-.fs-addgoal[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, var(--page)); translate: 0 1px; transition: none; }
 
 /* rows: a 6% ink wash, on at the touch, easing out over --t-page */
-.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fs-goal, .fs-slot, .fl-shape {
+.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fl-shape {
   transition: background-color var(--t-page) var(--ease);
 }
 .fs-row[data-down], .fs-list-row[data-down], .fs-crow[data-down], .fs-link[data-down], .fs-qrow[data-down], .fs-dichotomy[data-down],
-.fs-echo-tap[data-down], .fs-vname[data-down], .fs-goal[data-down], .fs-slot[data-down], .fl-shape[data-down] {
+.fs-echo-tap[data-down], .fs-vname[data-down], .fl-shape[data-down] {
   background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none;
 }
-.fs-goal { transition: background-color var(--t-page) var(--ease), transform var(--t-ui) var(--ease), top var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease); }
 /* the step words on a flow's drawing: the wash fills their 44pt target */
 .fs-cycle-hit { transition: fill var(--t-page) var(--ease); }
 .fs-cycle-word[data-down] .fs-cycle-hit { fill: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
@@ -1342,12 +1255,10 @@ html[data-turn="close"]::view-transition-new(fs-drawing) { animation: fs-turn-in
 @keyframes fs-ink-in-right { from { transform: translateX(18px); opacity: 0; } }
 @keyframes fs-ink-in-left { from { transform: translateX(-18px); opacity: 0; } }
 
-/* Be: a spread grows down from its row and folds back up into it (Be.tsx Fold sets the heights). Laid out at its full
+/* Be: an open value grows down from its row and folds back up into it (Be.tsx Fold sets the heights). Laid out at its full
    height behind a fold of nothing, then the fold opens to it; the rows under it ride down with its edge. */
 .fs-be-fold[data-fold] { overflow: hidden; transition: height var(--t-page) var(--ease-settle); }
 .fs-be-fold[data-fold="shut"] { height: 0; transition: none; }
-/* "+ Goal" keeps to the spread's foot while it moves, not to the fold's edge */
-.fs-be-fold[data-fold] .fs-addgoal { position: relative; bottom: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .fs-tab-mark, .fs-tab-mark[data-drawing], .fs-be-fold[data-fold] { transition: none; }

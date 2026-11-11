@@ -14,7 +14,7 @@ function calls(kind: 'tick' | 'bell'): string[] {
   return code.flatMap(([f, text]) => [...text.matchAll(re)].map(m => `${f}: ${kind}(${m[1]})`));
 }
 
-// Rule 19: unlock, tab change, a check, an item dropped, a lean or flow detent, entering Still, keep close, a sheet opening,
+// Rule 19: unlock, tab change, a check, an item dropped, a flow detent, entering Still, keep close, a sheet opening,
 // the ring's turn points while a thumb holds it (F2), a cover chosen on the music sheet (M3), beginning and ending a
 // sit (Meditate, S1), a swap and a deal on the deck sheet (PLAN-ENERGIZE.md X3).
 // PLAN-PICKS.md P1: the On sheet opening is a sheet opening (On.tsx showOn); its covers tick through music/state.ts play.
@@ -22,8 +22,8 @@ const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
   check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx'],
-  drop: ['src/ui/parts/Spread.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
-  detent: ['src/ui/parts/LeanSlider.tsx', 'src/ui/parts/Cycle.tsx'],
+  drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx'],
+  detent: ['src/ui/parts/Cycle.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
   sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx', 'src/ui/parts/SpokeFor.tsx', 'src/ui/be/ChampionSheet.tsx'],
@@ -40,13 +40,11 @@ const TICKS: Record<string, string[]> = {
   // PLAN-VALUES.md C3: a voice takes up a value or leaves it, from the value, from the voice, or on the voice sheet
   champion: ['src/ui/be/ChampionSheet.tsx'],
 };
-// Rule 21: unlock, settling, keep close, the lean's two ends, choosing an album, the breath tone while the ring is held (F2),
+// Rule 21: unlock, settling, keep close, choosing an album, the breath tone while the ring is held (F2),
 // the bell that closes a sit with an end (Meditate, S2), the rising fifth on a swap (PLAN-ENERGIZE.md X3).
 const BELLS: Record<string, string[]> = {
   settle: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  leanLow: ['src/ui/parts/LeanSlider.tsx'],
-  leanHigh: ['src/ui/parts/LeanSlider.tsx'],
   album: ['src/ui/music/'],
   unlock: ['src/ui/lock/Lock.tsx'],
   breathIn: ['src/ui/flow/breath.ts'],
@@ -74,7 +72,7 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal', 'for', 'champion']) expect(ticks, t).toContain(t);
-    for (const b of ['unlock', 'settle', 'keep', 'leanLow', 'leanHigh', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap']) expect(bells, b).toContain(b);
+    for (const b of ['unlock', 'settle', 'keep', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');
