@@ -101,7 +101,7 @@ export class Water {
       const { pace, wide } = this.flow(i, j);
       place(s, c, p);
       const v = BASE * pace * Math.max(this.k, 0.4);
-      const ox = -p.ty * this.u[i] * wide, oy = p.tx * this.u[i] * wide, dash = Math.max(0.4, Math.min(11, v * 0.13));
+      const ox = -p.ty * this.u[i] * wide, oy = p.tx * this.u[i] * wide, dash = Math.max(0.4, Math.min(7, v * 0.1)) * (s > c.mouth ? 0.25 : 1);
       out[o] = p.x + ox; out[o + 1] = p.y + oy;
       out[o + 2] = p.x + ox - p.tx * dash; out[o + 3] = p.y + oy - p.ty * dash;
       out[o + 4] = this.a[i];

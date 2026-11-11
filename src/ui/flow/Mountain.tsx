@@ -74,6 +74,8 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
 
   useEffect(() => {
     const el = host.current!;
+    // no canvas to draw on (a test's DOM, a browser without 2D canvas): the land and the signs are the whole of it
+    if (typeof ResizeObserver === 'undefined' || !canvas.current?.getContext('2d')) { el.dataset.arrive = 'done'; return; }
     const stops = [...el.querySelectorAll<HTMLElement>('.mt-stop')];
     const p = new Plate({
       host: el, canvas: canvas.current!, land: L,
@@ -96,7 +98,9 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
     const w = window as unknown as { __mountain?: unknown };
     if (typeof navigator !== 'undefined' && navigator.webdriver) {
       w.__mountain = {
-        set: (dd: number, gg: number[]) => { el.dataset.d = String(dd); el.dataset.gates = gg.join(','); p.setWater(dd, gg, true); },
+        // as R2's controls would: through waterLive, so the signs, the attributes and the water all answer
+        set: (dd: number, gg: number[]) => { waterLive.value = { d: dd, gates: gg }; },
+        clear: () => { waterLive.value = null; },
         arrive: () => { stops.forEach(s => delete s.dataset.lit); p.arrive(); },
         finish: () => p.finish(),
         plate: p,
@@ -112,7 +116,8 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
   const shadeStops = CHAKRA_IDS.flatMap(id => [STOPS[id].y - 2, STOPS[id].y + 12]);
 
   return (
-    <section ref={host} class="mt-plate" aria-label="The mountain" data-d={unit(d).toFixed(3)} data-gates={gateKey}
+    <div class="mt-wrap">
+    <section ref={host} class="mt-plate on-plate" aria-label="The mountain" data-d={unit(d).toFixed(3)} data-gates={gateKey}
       data-arrive={arrived() ? 'done' : 'run'}>
       <svg class="mt-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
         <defs>
@@ -145,12 +150,12 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
                 <path class="mt-snow-rim" d={snow.rim} />
               </g>
             )
-            : <path key={i} class={`mt-fill mt-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
-          : <path key={i} class={`mt-pen mt-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len }} />))}
+            : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
+          : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len }} />))}
         {/* below a closed gate the mountain goes darker, stop by stop */}
         <rect class="mt-dark" x="0" y="0" width={W} height={H} clip-path="url(#mt-horn)" fill="url(#mt-shade)" />
         <g class="mt-chans">
-          {CHANNELS.map((c, i) => <path key={i} class="mt-chan" d={c} />)}
+          {CHANNELS.map((c, i) => <path key={i} class="mt-chan" d={c} pathLength={1} />)}
         </g>
         <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
       </svg>
@@ -181,6 +186,7 @@ export function MountainPlate({ d, gates, live, cap }: Props) {
         ))}
       </div>
     </section>
+    </div>
   );
 }
 

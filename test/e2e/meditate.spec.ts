@@ -2,7 +2,7 @@
 // (the header and the tabs leave, the page says it is sitting) and a tap comes back; the chosen sound and length survive
 // a reload offline; with Reduce Motion the circle does not breathe; and "meditate" is never read as a flow's id. S2: a
 // sit with an end draws its line and closes on the bell, the page after it links today's page, a sit of a minute or
-// more is written and one under it is not, "last sat" shows on the row and the page, and Still shows none of it. The
+// more is written and one under it is not, "last sat" shows on the page, and Still shows none of it. The
 // sits run on Quiet, whose clock is the page's own, so Playwright's clock can move them on without waiting minutes.
 // Nobody can hear a headless browser: the sound itself is the iPhone check in the plan.
 import { test, expect, type Page } from '@playwright/test';
@@ -29,15 +29,11 @@ const open = async (page: Page, hash: string) => {
 
 test('meditate: the row, a sit and back, the sound kept offline', async ({ page }) => {
   await open(page, '#/flow');
-  // the second row of the list, under Right now and above the flows
-  const rows = page.locator('.fs-flows > a.fl-flow');
-  await expect(rows.nth(0)).toHaveAttribute('href', '#/flow/now');
-  await expect(rows.nth(1)).toHaveAttribute('href', '#/flow/meditate');
-  await expect(rows.nth(1).locator('.fs-list-line')).toHaveText('Meditate');
-  await expect(rows.nth(1).locator('.fs-list-meta')).toHaveText('The circle');
-  await expect(rows.nth(1).locator('.fl-mini [data-circle="row"] path.arc')).toHaveCount(1);
-  await expect(rows.nth(2)).toHaveAttribute('href', '#/flow/panic');
-  await rows.nth(1).click();
+  // the empty circle afloat in the mountain's sea (R1)
+  const circle0 = page.locator('.mt-plate a.mt-circle').first();
+  await expect(circle0).toHaveAttribute('href', '#/flow/meditate');
+  await expect(circle0).toHaveText('Meditate');
+  await circle0.click();
   await expect(page).toHaveURL(/#\/flow\/meditate$/);
 
   // at rest: the circle with "begin", the five chips, rain chosen
@@ -179,9 +175,10 @@ test('meditate: a sit with an end draws round, the bell closes it, and the page 
   await expect(page.locator('.fl-journal-link')).toContainText('quiet');
   await expect.poll(async () => (await sits(page))[0].pageId).toBeTruthy();
 
-  // the list row and the page at rest say when the last sit was, a date and a sound
+  // the page at rest says when the last sit was, a date and a sound (the circle on the mountain carries no words but
+  // its name since R1)
   await page.evaluate(() => { location.hash = '#/flow'; });
-  await expect(page.locator('.md-row .fs-list-meta')).toHaveText('The circle · last sat 11 / 9');
+  await expect(page.locator('.mt-plate a.mt-circle').first()).toHaveText('Meditate');
   await page.evaluate(() => { location.hash = '#/flow/meditate'; });
   await expect(md).toHaveAttribute('data-state', 'rest');
   await expect(page.locator('.md-quiet .fl-last')).toHaveText('Last sat · 11 / 9 · quiet');
@@ -241,11 +238,9 @@ test('meditate: in Still a sit is open, and nothing about the last one shows', a
   await page.getByRole('button', { name: 'End the sit' }).click();
   await expect(page.locator('.md-page')).toHaveAttribute('data-state', 'after');
   await page.evaluate(() => { location.hash = '#/flow'; });
-  await expect(page.locator('.md-row .fs-list-meta')).toHaveText('The circle · last sat 11 / 9');
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(page.locator('.md-row .fs-list-meta')).toHaveText('The circle · last sat 11 / 9');
-  await expect(page.locator('.md-row .fs-list-meta .fs-notstill')).toBeHidden();
+  await expect(page.locator('.mt-plate a.mt-circle').first()).toHaveText('Meditate');
   await page.evaluate(() => { location.hash = '#/flow/meditate'; });
   const md = page.locator('.md-page');
   await expect(page.locator('.md-sounds .fs-chip')).toHaveCount(5);
@@ -364,7 +359,7 @@ test('meditate S3: the Sit row on Under the skin opens Meditate, and a sit of a 
 
   // Meditate reached any other way carries no episode
   await page.evaluate(() => { location.hash = '#/flow'; });
-  await page.locator('a.md-row').click();
+  await page.locator('.mt-plate a.mt-circle[href="#/flow/meditate"]').click();
   await expect(page).toHaveURL(/#\/flow\/meditate$/);
   await page.getByRole('button', { name: 'Begin' }).click();
   await page.clock.fastForward(65_000);

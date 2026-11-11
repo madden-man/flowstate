@@ -1,0 +1,127 @@
+/* The mountain (PLAN-MOUNTAIN.md pass 6, R1; ui/flow/Mountain.tsx). Tokens only. The plate is a night print in every
+   light: by Day set on the cream page inside the column, a print pasted in; by Night and in Still it runs out to the
+   screen's edges and its edges go softly into the page (--plate-bleed, --plate-feather). Its height is rounded up to
+   whole rules, so the rows under it (Right now, + flow) sit on the page's rules. The drawing keeps its 328 by 476 box,
+   standing on the plate's foot; any spare height is sky. */
+
+/* a sign kindling (the arrival): --closed eases, so the lantern fills with its light instead of switching on */
+@property --closed { syntax: '<number>'; inherits: true; initial-value: 0; }
+
+.mt-wrap { container-type: inline-size; margin: 0 calc(-1 * var(--plate-bleed)); }
+.mt-plate {
+  --u: calc(100cqw / 328);
+  position: relative; overflow: hidden; isolation: isolate;
+  height: calc(100cqw * 476 / 328);
+  height: round(up, calc(100cqw * 476 / 328), var(--lh-ink));
+  background: linear-gradient(to bottom, var(--plate-sky), var(--plate) 55%, var(--plate));
+  box-shadow: var(--shadow-tile);
+  -webkit-mask-image: linear-gradient(to right, transparent, black var(--plate-feather), black calc(100% - var(--plate-feather)), transparent),
+    linear-gradient(to bottom, transparent, black var(--plate-feather), black calc(100% - var(--plate-feather) * 1.6), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, black var(--plate-feather), black calc(100% - var(--plate-feather)), transparent),
+    linear-gradient(to bottom, transparent, black var(--plate-feather), black calc(100% - var(--plate-feather) * 1.6), transparent);
+  mask-composite: intersect;
+  -webkit-tap-highlight-color: transparent;
+}
+.mt-land, .mt-light, .mt-over { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mt-land { display: block; overflow: visible; }
+/* the light is added, never laid over: the dark stays dark where no water is */
+.mt-light { mix-blend-mode: screen; pointer-events: none; }
+
+/* ---- the land: masses, then chalk ---- */
+.mt-sky { fill: none; }
+.mt-star { fill: var(--plate-line); opacity: .5; }
+.mt-sea { fill: url(#mt-sea); }
+.mt-sea-top { stop-color: var(--plate-deep); }
+.mt-sea-foot { stop-color: var(--plate); }
+.mt-vignette { pointer-events: none; }
+.mt-vig-in { stop-color: var(--plate-deep); stop-opacity: 0; }
+.mt-vig-out { stop-color: var(--plate-deep); stop-opacity: .75; }
+.mt-shade-stop { stop-color: var(--plate-deep); }
+
+.mt-f-far { fill: color-mix(in oklch, var(--plate) 90%, var(--plate-line)); }
+.mt-f-horn { fill: color-mix(in oklch, var(--plate) 94%, var(--plate-line)); }
+.mt-f-horn-deep { fill: var(--plate-deep); opacity: .85; }
+.mt-f-face { fill: color-mix(in oklch, var(--plate) 95%, var(--plate-line)); }
+.mt-f-deep, .mt-f-tarn, .mt-f-cliff, .mt-f-trees { fill: var(--plate-deep); }
+.mt-f-trees-back { fill: color-mix(in oklch, var(--plate-deep) 70%, var(--plate)); }
+
+.mt-pen { fill: none; stroke: var(--plate-line); stroke-linecap: round; stroke-linejoin: round; opacity: var(--plate-dim); }
+.mt-p-rock { stroke-width: 1.8; }
+.mt-p-bold { stroke-width: 2.6; }
+.mt-p-arete { stroke-width: 1.5; }
+.mt-p-thin { stroke-width: 1; }
+.mt-p-crack { stroke-width: 1; opacity: calc(var(--plate-dim) * .85); }
+.mt-p-far { stroke-width: .8; opacity: calc(var(--plate-dim) * .6); }
+.mt-p-ridge { stroke-width: .6; opacity: calc(var(--plate-dim) * .45); }
+.mt-p-tree { stroke-width: .5; opacity: calc(var(--plate-dim) * .35); }
+.mt-p-hatch { stroke-width: .6; opacity: calc(var(--plate-dim) * .7); }
+
+.mt-snow-lit { fill: var(--plate-line); opacity: .3; }
+.mt-snow-shade { fill: var(--plate-line); opacity: .1; }
+.mt-snow-rim { fill: none; stroke: var(--plate-line); stroke-width: .8; stroke-linejoin: round; opacity: calc(var(--plate-dim) * 1.2); }
+
+/* the channel: as wide as what runs in it (the plate sets the widths), so it still tells it with Reduce Motion on */
+.mt-chan { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; opacity: .2; }
+
+/* ---- the things a finger finds ---- */
+.mt-over { pointer-events: none; }
+.mt-stop, .mt-circle { pointer-events: auto; text-decoration: none; color: var(--plate-print); -webkit-tap-highlight-color: transparent; }
+.mt-stop {
+  position: absolute; display: flex; align-items: center; gap: calc(var(--s1) / 2);
+  min-height: var(--hit); padding: 0 var(--s1);
+  top: calc(100% - (476 - var(--y)) * var(--u) - var(--hit) / 2);
+}
+.mt-stop[data-side="right"] { left: calc(var(--x) * var(--u) - var(--lh-ink) / 2 - var(--s1)); }
+.mt-stop[data-side="left"] { right: calc((328 - var(--x)) * var(--u) - var(--lh-ink) / 2 - var(--s1)); flex-direction: row-reverse; }
+.mt-sign { position: relative; display: block; width: var(--lh-ink); height: var(--lh-ink); line-height: 0; }
+.mt-sign .fs-sign { transition: --closed var(--t-page) var(--ease); }
+.mt-name {
+  font-family: var(--sans); font-size: var(--fs-chip); letter-spacing: var(--track-print); color: var(--plate-print);
+  white-space: nowrap; text-shadow: 0 0 6px var(--plate-deep), 0 0 2px var(--plate-deep);
+  transition: opacity var(--t-page) var(--ease);
+}
+.mt-stop:focus-visible, .mt-circle:focus-visible { outline: 1px solid var(--plate-line); outline-offset: -4px; }
+
+/* an episode open on a flow under this sign: the dot, and its halo on the breath */
+.mt-dot { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--glow); }
+.mt-halo {
+  position: absolute; inset: -6px; border-radius: 50%; border: 1px solid var(--glow);
+  animation: fs-breathe var(--t-breath) var(--ease) infinite;
+}
+
+/* the sea's circles: rings of light riding the swell (the plate moves them), standing out the more water arrives */
+.mt-circle {
+  --box: max(var(--hit), calc(40 * var(--u)));
+  position: absolute; width: var(--box); height: var(--box);
+  left: calc(var(--x) * var(--u) - var(--box) / 2); top: calc(100% - (476 - var(--y)) * var(--u) - var(--box) / 2);
+}
+.mt-ring { display: block; width: 100%; height: 100%; overflow: visible; }
+.mt-ring circle, .mt-ring path { fill: none; stroke: var(--glow); stroke-width: 1.2; stroke-linecap: round; opacity: calc(.4 + .6 * var(--sea, 1)); }
+.mt-circle .mt-name { position: absolute; left: 50%; top: calc(100% - var(--s1) / 2); transform: translateX(-50%); }
+
+/* ---- the arrival (./arrival.ts; land.ts gives each mark its --at and --len, fractions of --t-arrive) ---- */
+.mt-plate[data-arrive="run"] .mt-pen {
+  stroke-dasharray: 1;
+  /* a pen moves at its own pace, a little slower into the turns: no ease-out rush */
+  animation: mt-pen calc(var(--t-arrive) * var(--len)) ease-in-out calc(var(--t-arrive) * var(--at)) both;
+}
+.mt-plate[data-arrive="run"] .mt-fill,
+.mt-plate[data-arrive="run"] .mt-snow { animation: mt-in calc(var(--t-arrive) * var(--len)) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
+.mt-plate[data-arrive="run"] .mt-snow { animation-name: mt-settle; }
+.mt-plate[data-arrive="run"] .mt-star { animation: mt-prick calc(var(--t-arrive) * .1) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
+/* the channel is drawn by the head as it runs (plate.ts), so the CSS leaves it be */
+.mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .fs-sign { --gate: 1 !important; }
+.mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .mt-name { opacity: 0; }
+.mt-plate[data-arrive="run"] .mt-circle { opacity: 0; }
+/* Still: no arrival, only a slow fade */
+.mt-plate[data-fade] { animation: mt-in var(--t-light) var(--ease) both; }
+
+@keyframes mt-pen { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes mt-in { from { opacity: 0; } }
+@keyframes mt-settle { from { opacity: 0; transform: translateY(-3px); } }
+@keyframes mt-prick { 0% { opacity: 0; } 40% { opacity: .9; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mt-plate, .mt-plate * { animation: none !important; transition: none !important; }
+}

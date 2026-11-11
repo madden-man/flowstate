@@ -46,11 +46,9 @@ test('the bottom of the valley and its printed safety line; Energize at rest; Fi
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
   await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Slower now?');
 
-  // the list: Right now (F5) and Meditate (S1) first, then Panic, Depress, Energize, Fight (F4's five follow, flows-five.spec.ts)
+  // on the mountain Fight sits under the throat's sign (PLAN-MOUNTAIN.md section 6), reached through it
   await page.goto('/#/flow');
-  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line').first()).toHaveText('Panic');
-  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-line').nth(3)).toHaveText('Fight');
-  await expect(page.locator('a.fl-flow:not(.fl-now, .md-row) .fs-list-meta').nth(3)).toHaveText('The mountain');
+  await expect(page.locator('a.mt-stop[data-chakra="throat"]')).toHaveAttribute('href', '#/flow/c/throat');
 });
 
 test('"+ flow" makes a flow from nothing that survives an offline reload', async ({ page }) => {

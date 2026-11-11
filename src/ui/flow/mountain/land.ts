@@ -39,7 +39,7 @@ const f1 = (n: number) => n.toFixed(1);
 const line = (pts: readonly (readonly [number, number])[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${f1(p[0])} ${f1(p[1])}`).join(' ');
 
 /** Half the horn's width at a height: a spire that steepens to the summit. */
-export const half = (y: number) => { const t = Math.max(0, (y - PEAK.y) / (SHORE - PEAK.y)); return 3 + 150 * Math.pow(t, 1.5); };
+export const half = (y: number) => { const t = Math.max(0, (y - PEAK.y) / (SHORE - PEAK.y)); return 3 + 126 * Math.pow(t, 1.5) + 26 * Math.pow(t, 7); };
 
 /** The arete's x at a height: falling from the summit to the right, wandering as rock does. */
 export const arete = (y: number) => (y <= PEAK.y ? PEAK.x : PEAK.x + 5 + (y - PEAK.y) * 0.13 + 5 * Math.sin(y / 23) + 3 * Math.sin(y / 9));
@@ -66,8 +66,8 @@ function flank(side: 1 | -1): [number, number][] {
   const pts: [number, number][] = [];
   let out = 0;
   for (let y = PEAK.y; y <= SHORE; y += STEP) {
-    const amp = y < 200 ? 7.5 : 4.5;
-    if (rnd() < 0.22) out = (rnd() - 0.3) * amp * 1.7; // a crag breaks out, or a notch bites in, and holds a while
+    const amp = y < 120 ? 6 : y < 230 ? 10 : 5.5;
+    if (rnd() < 0.2) out = (rnd() - 0.35) * amp * 1.8; // a crag breaks out, or a notch bites in, and holds a while
     const shape = side < 0 ? ledge(y) + shoulder(y) : buttress(y);
     pts.push([PEAK.x + side * (half(y) + shape + out + (rnd() - 0.5) * amp * 0.5), y]);
   }
@@ -136,28 +136,28 @@ export function land(): Land {
   // the far ranges, sawtoothed, low behind everything; drawn out from their highest points
   const farL: [number, number][] = [[0, 252], [12, 230], [22, 238], [40, 198], [50, 212], [62, 176], [74, 202], [82, 190], [98, 224], [110, 236]];
   const farR: [number, number][] = [[222, 226], [234, 204], [246, 186], [254, 198], [270, 158], [280, 182], [292, 170], [306, 204], [316, 194], [328, 214]];
-  fills.push({ d: `${line(farL)} L110 344 L0 344 Z`, cls: 'far', at: 0.2, len: 0.16 });
-  fills.push({ d: `${line(farR)} L328 344 L222 344 Z`, cls: 'far', at: 0.2, len: 0.16 });
-  pen(`${line(farL.slice(0, 6).reverse())} ${line(farL.slice(5))}`, 'far', 0.8, 0.2, 0.14, 0.2);
-  pen(`${line(farR.slice(0, 5).reverse())} ${line(farR.slice(4))}`, 'far', 0.8, 0.2, 0.14, 0.2);
+  fills.push({ d: `${line(farL)} L110 398 L0 398 Z`, cls: 'far', at: 0.2, len: 0.16 });
+  fills.push({ d: `${line(farR)} L328 398 L222 398 Z`, cls: 'far', at: 0.2, len: 0.16 });
+  pen(`${line(farL.slice(0, 6).reverse())} ${line(farL.slice(5))}`, 'ridge', 0.6, 0.2, 0.14, 0.1);
+  pen(`${line(farR.slice(0, 5).reverse())} ${line(farR.slice(4))}`, 'ridge', 0.6, 0.2, 0.14, 0.1);
 
   // two lesser horns shouldering in behind the peak, each with its dark side, outlined out from the summit
   const horns: { pts: [number, number][]; top: number; dark: [number, number][] }[] = [
-    { pts: [[0, 344], [20, 300], [30, 312], [52, 250], [60, 262], [82, 196], [90, 210], [104, 148], [111, 166], [117, 158], [126, 196], [132, 260], [120, 344]], top: 7,
-      dark: [[104, 148], [111, 166], [117, 158], [126, 196], [132, 260], [120, 344], [96, 344], [104, 300], [100, 240], [106, 190]] },
-    { pts: [[200, 344], [198, 190], [206, 172], [214, 136], [221, 150], [232, 116], [240, 142], [246, 134], [262, 184], [272, 174], [292, 236], [300, 226], [328, 290], [328, 344]], top: 5,
-      dark: [[232, 116], [240, 142], [246, 134], [262, 184], [272, 174], [292, 236], [300, 226], [328, 290], [328, 344], [262, 344], [250, 260], [244, 196], [236, 150]] },
+    { pts: [[0, 398], [0, 344], [20, 300], [30, 312], [52, 250], [60, 262], [82, 196], [90, 210], [104, 148], [111, 166], [117, 158], [126, 196], [132, 260], [120, 344], [120, 398]], top: 8,
+      dark: [[104, 148], [111, 166], [117, 158], [126, 196], [132, 260], [120, 398], [96, 398], [104, 300], [100, 240], [106, 190]] },
+    { pts: [[200, 398], [198, 190], [206, 172], [214, 136], [221, 150], [232, 116], [240, 142], [246, 134], [262, 184], [272, 174], [292, 236], [300, 226], [328, 290], [328, 398]], top: 5,
+      dark: [[232, 116], [240, 142], [246, 134], [262, 184], [272, 174], [292, 236], [300, 226], [328, 290], [328, 398], [262, 398], [250, 260], [244, 196], [236, 150]] },
   ];
   horns.forEach(h => {
     fills.push({ d: `${line(h.pts)} Z`, cls: 'horn', at: 0.14, len: 0.16 });
     fills.push({ d: `${line(h.dark)} Z`, cls: 'horn-deep', at: 0.18, len: 0.16 });
-    const up = h.pts.slice(0, h.top + 1).reverse(), down = h.pts.slice(h.top, h.pts.length - 1);
+    const up = h.pts.slice(1, h.top + 1).reverse(), down = h.pts.slice(h.top, h.pts.length - 2);
     pen(`${line(up)} ${line(down)}`, 'rock', 1.3, 0.12, 0.2, 0.45);
   });
   let dark = '';
-  for (let y = 160; y < 336; y += 7) for (let x = 108 + (y - 148) * 0.06; x < 112 + (y - 148) * 0.13; x += 3.6) dark += `M${f1(x)} ${y} l-3 7 `;
-  for (let y = 128; y < 336; y += 7) for (let x = 236 + (y - 116) * 0.1; x < 240 + (y - 116) * 0.42; x += 4.4) dark += `M${f1(x)} ${y} l-3 7 `;
-  pen(dark, 'hatch', 0.55, 0.22, 0.2, 0.25);
+  for (let y = 160; y < 380; y += 7) for (let x = 108 + (y - 148) * 0.06; x < 112 + (y - 148) * 0.13; x += 3.6) dark += `M${f1(x)} ${y} l-3 7 `;
+  for (let y = 128; y < 380; y += 7) for (let x = 236 + (y - 116) * 0.1; x < 240 + (y - 116) * 0.42; x += 4.4) dark += `M${f1(x)} ${y} l-3 7 `;
+  pen(dark, 'hatch', 0.55, 0.22, 0.2, 0.12);
 
   // the horn: its two flanks first, from the summit down
   const lf = flank(-1), rt = flank(1);
@@ -175,14 +175,14 @@ export function land(): Land {
     // cross-hatched closer still against the arete, so the face goes black where it turns away
     for (let x = x0 + 1, k = 0; x < Math.min(x1, x0 + 22) && k < 6; x += 4.2, k++) cross += `M${f1(x)} ${y + 1} l3 ${f1(5 + rnd() * 2)} `;
   }
-  pen(hatch, 'hatch', 0.6, 0.2, 0.28, 0.35);
+  pen(hatch, 'hatch', 0.6, 0.18, 0.3, 0.35);
   pen(cross, 'hatch', 0.5, 0.26, 0.24, 0.2);
 
   // gullies cut down the lit face from the arete, bedding across it, and the broken rock between
   let cut = '';
   for (let k = 0; k < 7; k++) { const gy = 70 + k * 40; cut += fall(arete(gy) - 2, gy, -0.4 - k * 0.04, 46 + k * 16, 6); }
   for (let k = 0; k < 4; k++) { const sy = 104 + k * 62; cut += fall(arete(sy) + 4, sy, 0.3, 40 + k * 10, 7); }
-  pen(cut, 'crack', 1, 0.22, 0.22, 0.8);
+  pen(cut, 'crack', 1, 0.22, 0.22, 0.45);
   let bed = '';
   for (let k = 0; k < 9; k++) {
     const y = 150 + k * 24 + rnd() * 8, x0 = edge(-1, y) + 6 + rnd() * 10, x1 = Math.min(arete(y) - 8, x0 + 22 + rnd() * 30);
@@ -211,9 +211,9 @@ export function land(): Land {
   pen('M132 327 q16 -7 32 0 q-16 8 -32 0 Z', 'thin', 0.9, 0.32, 0.08, 1);
 
   // the flanks in chalk: the shadow side heaviest, both from the summit down at once; the arete close behind them
-  pen(line(lf), 'rock', 1.8, 0.04, 0.26, 1);
-  pen(line(rt), 'bold', 2.6, 0.04, 0.26, 0.9);
-  pen(line(ridge.slice(0, 70)), 'arete', 1.5, 0.08, 0.22, 1);
+  pen(line(lf), 'rock', 1.8, 0.02, 0.34, 1);
+  pen(line(rt), 'bold', 2.6, 0.02, 0.34, 0.9);
+  pen(line(ridge.slice(0, 70)), 'arete', 1.5, 0.07, 0.3, 1);
   pen(line(ridge.slice(1, 40).map(([x, y]) => [x + 1.6, y + 1] as [number, number])), 'thin', 0.7, 0.1, 0.18, 0.8);
   // crags: a hook of overhang where a flank breaks out
   let crag = '';
@@ -223,7 +223,7 @@ export function land(): Land {
       if (side * (x - px) > 3.5) crag += `M${f1(x)} ${f1(y)} l${f1(-side * (4 + rnd() * 4))} ${f1(1 + rnd() * 2)} `;
     }
   }
-  pen(crag, 'rock', 1.2, 0.16, 0.16, 0.9);
+  pen(crag, 'rock', 1.2, 0.26, 0.14, 0.9);
   // spindrift torn off the summit, downwind
   pen('M167 41 q20 -13 50 -10 M171 47 q28 -9 64 -2 M169 35 q12 -9 30 -10 M178 53 q22 -4 44 4', 'far', 0.7, 0.4, 0.1, 0.5);
 
@@ -243,9 +243,8 @@ export function land(): Land {
   fills.push({ d: back, cls: 'trees-back', at: 0.32, len: 0.12 });
   fills.push({ d: clump, cls: 'trees', at: 0.34, len: 0.12 });
   fills.push({ d: front, cls: 'trees', at: 0.34, len: 0.12 });
-  pen(back, 'far', 0.6, 0.32, 0.12, 0.35);
-  pen(clump, 'thin', 0.7, 0.34, 0.12, 0.7);
-  pen(front, 'thin', 0.8, 0.34, 0.12, 0.6);
+  pen(clump, 'tree', 0.5, 0.34, 0.12, 0.35);
+  pen(front, 'tree', 0.5, 0.34, 0.12, 0.2);
   pen('M136 392 q5 -9 12 -2 q6 -4 8 4 M178 394 q4 -8 10 -3 q5 -1 6 5 M146 384 q3 -5 7 -1 M176 386 q3 -5 7 -1 M156 396 q2 -4 5 -1 M168 397 q2 -3 5 0', 'thin', 0.9, 0.36, 0.08, 0.9);
 
   // the sea cliffs either side of the mouth, the rock dropping into the water
@@ -256,7 +255,7 @@ export function land(): Land {
   fills.push({ d: `${line([...cliffR, ...foot(cliffR)])} Z`, cls: 'cliff', at: 0.36, len: 0.1 });
   pen(`${line(cliffL.slice().reverse())} ${line(cliffR)}`, 'rock', 1.6, 0.36, 0.1, 0.7);
   let drop = '';
-  for (let x = 3; x < W - 2; x += 3.4) { if (x > 138 && x < 190) continue; drop += `M${f1(x)} ${SHORE + 4} v${f1(4 + rnd() * 6)} `; }
+  for (let x = 3; x < W - 2; x += 5 + rnd() * 6) { if (x > 138 && x < 190) continue; drop += `M${f1(x)} ${SHORE + 4} v${f1(3 + rnd() * 7)} `; }
   pen(drop, 'hatch', 0.6, 0.38, 0.08, 0.4);
 
   return { marks, stars };

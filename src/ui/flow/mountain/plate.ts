@@ -16,8 +16,6 @@
 // move (--stream above zero); it stops on stop(). Nothing is read from layout or style in a frame: the box size comes
 // from a ResizeObserver and the colours from ./palette.ts, read at the start and again when the light changes.
 // devicePixelRatio is capped at 2 for the frame rate (the light is soft; the SVG keeps the lines sharp).
-import { effect } from '@preact/signals';
-import { light } from '../../light';
 import { IN_MS, OUT_MS } from '../breath';
 import { CHAKRA_IDS, reach, spring } from '../../../model/mountain';
 import { COURSE, H, W, STOPS, SEA_Y, CIRCLE_R, PEAK, place, stretchAt, stretches, type Placed } from '../../parts/cycle/river';
@@ -67,7 +65,7 @@ export class Plate {
   private buf = new Float32Array(this.water.n * STRIDE);
   private order = new Int32Array(this.water.n);
   private keys = new Int32Array(this.water.n);
-  private w = 0; private h = 0; private dpr = 1; private scale = 1; private oy = 0;
+  private w = 0; private dpr = 1; private litK = 1; private scale = 1; private oy = 0;
   private raf = 0; private prev = 0; private seen = typeof IntersectionObserver === 'undefined'; private live = false;
   private io?: IntersectionObserver; private ro?: ResizeObserver; private mq?: MediaQueryList; private unlight?: () => void;
   private litDirty = true; private rockDirty = true;
@@ -100,7 +98,8 @@ export class Plate {
     this.d = d; this.gates = CHAKRA_IDS.map((_, i) => gates[i] ?? 0);
     const st = this.state;
     const q = st ? stretches(spring(d), reach(d, this.gates)) : new Array(8).fill(1);
-    this.water.set(q, st ? this.gates : [0, 0, 0, 0, 0, 0, 0], atOnce);
+    // with no loop to ease it (Reduce Motion, hidden) the water is simply as it was set
+    this.water.set(q, st ? this.gates : [0, 0, 0, 0, 0, 0, 0], atOnce || !this.raf);
     this.litDirty = true;
     this.wake();
     if (!this.raf) this.paint(performance.now());
@@ -130,7 +129,10 @@ export class Plate {
     document.addEventListener('visibilitychange', this.wake);
     this.mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : undefined;
     this.mq?.addEventListener?.('change', this.reread);
-    this.unlight = effect(() => { void light.value; queueMicrotask(this.reread); });
+    // the light changes data-light on <html> (the sky, the pin, the moon): read the tokens again once it has landed
+    const mo = new MutationObserver(() => queueMicrotask(this.reread));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-light'] });
+    this.unlight = () => mo.disconnect();
     // Still has no arrival beyond a slow fade (rule 13)
     if (arrive && this.state === 0 && this.pal.light > 0) this.parts.host.dataset.fade = '';
     if (arrive && this.pal.stream > 0 && this.pal.arrive > 0 && this.state > 0) this.arrive();
@@ -154,6 +156,8 @@ export class Plate {
     this.kindled.fill(0);
     this.water.reveal = 0;
     this.seaOn = 0; this.circlesOn = 0;
+    this.rings = [];
+    this.litDirty = true;
     this.parts.host.dataset.arrive = 'run';
     this.wake();
   }
@@ -165,6 +169,7 @@ export class Plate {
     this.seaOn = 1; this.circlesOn = 1;
     for (let i = 0; i < 7; i++) if (!this.kindled[i]) { this.kindled[i] = 1; this.parts.kindle(i); }
     for (const c of this.parts.circles) c.style.opacity = '';
+    for (const el of this.parts.channels) { el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; }
     this.parts.host.dataset.arrive = 'done';
     this.litDirty = true;
     this.parts.arrived();
@@ -175,11 +180,16 @@ export class Plate {
 
   private size(w: number, h: number) {
     if (!w || !h) return;
-    this.w = w; this.h = h;
+    this.w = w;
     this.dpr = Math.min(DPR_CAP, globalThis.devicePixelRatio || 1);
     this.scale = w / W; this.oy = h - H * this.scale;
     const cw = Math.round(w * this.dpr), ch = Math.round(h * this.dpr);
-    for (const c of [this.parts.canvas, this.rock, this.lit]) { c.width = cw; c.height = ch; }
+    const c0 = this.parts.canvas;
+    c0.width = cw; c0.height = ch;
+    // the lit rock is soft light over sharp SVG lines: it is cached at a little over the CSS pixel, which keeps its
+    // rebuilds cheap while the head runs (four times fewer pixels than the canvas at 2x)
+    this.litK = Math.max(1, this.dpr * 0.6);
+    for (const c of [this.rock, this.lit]) { c.width = Math.round(w * this.litK); c.height = Math.round(h * this.litK); }
     this.field.width = Math.max(1, Math.round(w * FIELD)); this.field.height = Math.max(1, Math.round(h * FIELD));
     this.rockDirty = true; this.litDirty = true;
     if (this.live && !this.raf) this.paint(performance.now());
@@ -248,6 +258,15 @@ export class Plate {
       }
       this.litDirty = true;
     }
+    // the channel is drawn by the head itself, as far as it has run (here, not in the CSS, so the two never part)
+    for (let i = 0; i < 8; i++) {
+      const el = this.parts.channels[i];
+      if (!el) continue;
+      const from = COURSE.at[i], to = i === 7 ? COURSE.mouth : COURSE.at[i + 1];
+      const got = s === null ? 0 : Math.max(0, Math.min(1, (s - from) / (to - from)));
+      el.style.strokeDasharray = '1';
+      el.style.strokeDashoffset = (1 - got).toFixed(3);
+    }
     this.seaOn = seaIn(f); this.circlesOn = circlesIn(f);
     for (const c of this.parts.circles) c.style.opacity = this.circlesOn < 1 ? this.circlesOn.toFixed(3) : '';
     if (f >= 1) { this.finish(); return { f: 1, head: null }; }
@@ -263,12 +282,12 @@ export class Plate {
     const g = this.rock.getContext('2d')!, pal = this.pal;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, this.rock.width, this.rock.height);
-    this.toBox(g);
+    this.toBox(g, this.litK);
     g.lineCap = 'round'; g.lineJoin = 'round';
     // the lit face and the snow take a little of the light too, so the rock reads as rock and not as wire
     for (const m of this.parts.land.marks) {
       if (m.kind !== 'fill' || (m.cls !== 'face' && m.cls !== 'horn')) continue;
-      g.fillStyle = rgb(pal.glow, m.cls === 'face' ? 0.07 : 0.03);
+      g.fillStyle = rgb(pal.glow, m.cls === 'face' ? 0.05 : 0.02);
       g.fill(new Path2D(m.d));
     }
     const cap = snowCap(this.weather.cap.snowline);
@@ -295,7 +314,8 @@ export class Plate {
       const grd = g.createRadialGradient(x, y, 0, x, y, r);
       // only the field's alpha is used (it masks the rock), so its colour is the glow's
       grd.addColorStop(0, rgb(this.pal.glow, a));
-      grd.addColorStop(0.45, rgb(this.pal.glow, a * 0.45));
+      grd.addColorStop(0.25, rgb(this.pal.glow, a * 0.55));
+      grd.addColorStop(0.6, rgb(this.pal.glow, a * 0.15));
       grd.addColorStop(1, rgb(this.pal.glow, 0));
       g.fillStyle = grd;
       g.fillRect(x - r, y - r, 2 * r, 2 * r);
@@ -305,14 +325,14 @@ export class Plate {
       const j = stretchAt(s), v = q[j];
       place(s, COURSE, this.p);
       const sea = s > COURSE.mouth ? 1.6 : 1;
-      disc(this.p.x, this.p.y, (16 + 30 * v) * sea, 0.28 * Math.pow(v, 0.8));
+      disc(this.p.x, this.p.y, (12 + 26 * v) * sea, 0.16 * Math.pow(v, 1.2));
     }
     // the snow lets the water go: the spring glows as much as there is to let go
-    if (reach > 0) disc(PEAK.x, PEAK.y + 22, 46, 0.45 * (0.4 + 0.6 * q[0]));
+    if (reach > 0) disc(PEAK.x, PEAK.y + 22, 40, 0.4 * (0.4 + 0.6 * q[0]));
     CHAKRA_IDS.forEach((id, i) => {
       if (!this.kindled[i]) return;
       const st = STOPS[id];
-      disc(st.x, st.y, 40, 0.75 * (1 - b[i]) * q[i]);
+      disc(st.x, st.y, 34, 0.55 * (1 - b[i]) * q[i]);
     });
     if (reach >= COURSE.mouth) disc(PEAK.x, 410, 70, 0.5 * q[7]);
     // the head lights everything it passes, brightest where it is
@@ -334,7 +354,7 @@ export class Plate {
     g.drawImage(this.field, 0, 0, this.lit.width, this.lit.height);
     // each lantern throws a little of its hue on the rock round it
     g.globalCompositeOperation = 'source-atop';
-    this.toBox(g);
+    this.toBox(g, this.litK);
     CHAKRA_IDS.forEach((id, i) => {
       const a = 0.85 * (1 - b[i]) * q[i] * this.kindled[i];
       if (a < 0.02) return;
@@ -344,13 +364,39 @@ export class Plate {
       g.fillStyle = grd;
       g.fillRect(st.x - 46, st.y - 46, 92, 92);
     });
+    // the river itself: a thread of light along the course, as wide and as bright as what runs in each stretch, up to
+    // where the water has got; the motes sparkle along it
+    g.globalCompositeOperation = 'lighter';
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const c = COURSE, upto = Math.min(c.mouth + 6, head ?? (this.water.reveal === Infinity ? c.total : this.water.reveal));
+    for (const [wide, alpha] of [[7, 0.06], [2.6, 0.16], [0.9, 0.3]] as const) {
+      for (let j = 0; j < 8; j++) {
+        const from = c.at[j], to = Math.min(upto, j === 7 ? c.mouth + 6 : c.at[j + 1]);
+        if (to <= from) continue;
+        g.beginPath();
+        for (let k = 0; k < c.ls.length; k++) {
+          if (c.ls[k] < from || c.ls[k] > to) continue;
+          if (c.ls[k] === from || k === 0 || c.ls[k - 1] < from) g.moveTo(c.xs[k], c.ys[k]); else g.lineTo(c.xs[k], c.ys[k]);
+        }
+        const tint = j > 0 && this.kindled[j - 1] ? mix(pal.hues[j - 1], pal.glow, 0.55 + 0.45 * b[j - 1]) : pal.glow;
+        g.strokeStyle = rgb(tint, alpha * (0.25 + 0.75 * q[j]));
+        g.lineWidth = wide * (0.4 + 0.6 * q[j]);
+        g.stroke();
+      }
+    }
     g.globalCompositeOperation = 'source-over';
-    // the SVG answers too: each channel as wide as what runs in it, and the dark coming down below a closed gate
+    this.answer();
+  }
+
+  /** The SVG answers the water too: each channel as wide as what runs in it, the dark coming down below a closed gate,
+   *  and the circles standing out with what reaches the sea. In Still every stretch is the same and nothing is dark. */
+  private answer() {
+    const q = this.water.q;
     for (let i = 0; i < 8; i++) this.parts.channels[i]?.setAttribute('stroke-width', (1 + 2.5 * q[i]).toFixed(2));
     // two stops a sign: what runs above it, then a little below it what gets through
     for (let i = 0; i < this.parts.shade.length; i++) {
       const v = q[(i >> 1) + (i & 1)];
-      this.parts.shade[i].setAttribute('stop-opacity', (0.7 * (1 - v) * this.state).toFixed(3));
+      this.parts.shade[i].setAttribute('stop-opacity', (0.85 * (1 - v) * this.state).toFixed(3));
     }
     this.parts.host.style.setProperty('--sea', q[7].toFixed(3));
     this.litDirty = false;
@@ -361,12 +407,13 @@ export class Plate {
     const { head } = this.arrival(now);
     const g = this.g, pal = this.pal, q = this.water.q, b = this.water.b, st = this.state, k = this.water.k;
     if (st && (this.litDirty || this.rockDirty)) this.buildLit(head);
+    else if (!st && this.litDirty) this.answer();
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
     g.clearRect(0, 0, this.parts.canvas.width, this.parts.canvas.height);
     g.globalCompositeOperation = 'lighter';
-    if (st) g.drawImage(this.lit, 0, 0);
+    if (st) g.drawImage(this.lit, 0, 0, this.parts.canvas.width, this.parts.canvas.height);
     this.toBox(g);
     g.lineCap = 'round';
 
@@ -394,8 +441,8 @@ export class Plate {
     // each sign kindling sends a ring out in its hue
     for (const r of this.rings) {
       const s = STOPS[CHAKRA_IDS[r.i]], f = r.age / 1.6, rad = 8 + 30 * (1 - Math.pow(1 - f, 2));
-      g.strokeStyle = rgb(mix(pal.hues[r.i], pal.glow, 0.2), 0.8 * (1 - f));
-      g.lineWidth = 1.4 * (1 - f) + 0.3;
+      g.strokeStyle = rgb(mix(pal.hues[r.i], pal.glow, 0.2), 0.55 * (1 - f) * (1 - f));
+      g.lineWidth = 0.9 * (1 - f) + 0.2;
       g.beginPath(); g.arc(s.x, s.y, rad, 0, TAU); g.stroke();
     }
     g.globalAlpha = 1;
@@ -497,7 +544,7 @@ export class Plate {
     if (this.circlesOn <= 0) return;
     for (const cx of this.parts.slots) {
       const cy = SEA_Y + (k ? (0.5 - br) * 2.5 : 0) + (1 - this.circlesOn) * 10;
-      const halo = g.createRadialGradient(cx, cy, CIRCLE_R * 0.6, cx, cy, CIRCLE_R * 2.4);
+      const halo = g.createRadialGradient(cx, cy, CIRCLE_R * 0.95, cx, cy, CIRCLE_R * 2.4);
       halo.addColorStop(0, rgb(pal.glow, (0.06 + 0.22 * arrive) * this.circlesOn));
       halo.addColorStop(1, rgb(pal.glow, 0));
       g.fillStyle = halo;
