@@ -16,7 +16,7 @@ import { light } from '../light';
 import { useLongPress } from '../council/state';
 import { tick } from '../parts/Haptic';
 import { moves, tokenMs } from '../turns';
-import { CORE, held as readHeld, moveValue, resting as readResting } from '../../model/values';
+import { CORE, callCouncil, held as readHeld, moveValue, resting as readResting } from '../../model/values';
 import { allVoices } from '../../model/council';
 import type { Value, Voice } from '../../db/schema';
 import type { Read } from '../../db/fields';
@@ -280,6 +280,8 @@ function Values({ id }: { id?: string }) {
               {/* C5: what was said for it */}
               <Said value={v} />
               <div class="fs-value-acts">
+                {/* C5: a new council about this value, its champions seated, on "Who sits?" */}
+                <button type="button" class="fs-word" onClick={() => void callCouncil(vid).then(p => { location.hash = `/council/${p.id}`; })}>Call a council</button>
                 <button type="button" class="fs-word" onClick={() => openValue({ valueId: vid })}>Edit</button>
               </div>
             </div>
