@@ -22,7 +22,7 @@ describe('layers', () => {
     }
   });
   it('every table holding Tommy\'s own text goes through the sealing spec, page titles included', () => {
-    expect([...SECRET_TABLES].sort()).toEqual(['episodes', 'fixations', 'flows', 'items', 'leans', 'messages', 'pages', 'paradoxes', 'readings', 'settings', 'values']);
+    expect([...SECRET_TABLES].sort()).toEqual(['days', 'episodes', 'fixations', 'flows', 'items', 'leans', 'marks', 'messages', 'pages', 'paradoxes', 'readings', 'settings', 'signShelves', 'values']);
   });
   it('the Questions list reads titles through the model and store, never the database', () => {
     const journal = fs.readFileSync('src/ui/questions/Questions.tsx', 'utf8');

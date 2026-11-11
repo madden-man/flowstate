@@ -126,7 +126,9 @@ export function parseBackup(text: string): BackupFile {
  *  (the table comes in empty, above); its paradoxes are opened only in importData, which makes them values there
  *  (madeAt says it is older). A file from before MOUNTAIN_VERSION (a version 6 file included) has no readings (the
  *  table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade gives a
- *  stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. */
+ *  stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. A file from
+ *  before TASKS_VERSION (version 7) has no signs' shelves, marks or days (the tables come in empty, above): each shelf
+ *  reads as its starters (model/acts.ts), as on a phone upgraded from version 7. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };

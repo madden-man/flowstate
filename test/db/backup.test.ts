@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshDB } from './helpers';
-import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, VALUES_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
+import { type FlowDB, SCHEMA_VERSION, MOUNTAIN_VERSION, VALUES_VERSION, TASKS_VERSION, POEMS_ID, coverBytes } from '../../src/db/schema';
 import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp, fileName, fileLock } from '../../src/db/backup';
 import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError, tombstone } from '../../src/db/fields';
@@ -145,6 +145,55 @@ describe('round trip', () => {
     const fourth = await freshDB();
     await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
     expect((await fourth.readings.toArray()).sort((a, b) => a.at - b.at)).toEqual(rows);
+  });
+
+  it('the signs\' shelves, marks and days round-trip, plain and sealed (T0)', async () => {
+    const shelfRow = { id: 'heart' as const, picks: [{ id: 'pk1', kind: 'film' as const, title: 'The Big Sick' }], updatedAt: 1000 };
+    const marks = [
+      { id: 'mk1', chakra: 'heart' as const, touch: 'grieve', text: 'Grandpa', at: 1000 },
+      { id: 'mk2', chakra: 'solar-plexus' as const, touch: 'reword', text: 'I sent it', struck: 'I am late', at: 2000 },
+    ];
+    const day = { id: '2026-11-11', basics: ['ate' as const, 'water' as const], updatedAt: 3000 };
+    await store.put('signShelves', shelfRow);
+    await store.bulkPut('marks', marks);
+    await store.put('days', day);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect(await other.signShelves.toArray()).toEqual([shelfRow]);
+    expect((await other.marks.toArray()).sort((a, b) => a.at - b.at)).toEqual(marks);
+    expect(await other.days.toArray()).toEqual([day]);
+    // sealed: none of his words in the file, and they open again with its PIN
+    await init(db);
+    await ensureSeeded(7);
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    const sealed = await roundTrip(db);
+    const text = JSON.stringify([sealed.tables.signShelves, sealed.tables.marks, sealed.tables.days]);
+    expect(text).not.toMatch(/Big Sick|Grandpa|I sent it|I am late|water/);
+    const fourth = await freshDB();
+    await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
+    expect(await fourth.signShelves.toArray()).toEqual([shelfRow]);
+    expect((await fourth.marks.toArray()).sort((a, b) => a.at - b.at)).toEqual(marks);
+    expect(await fourth.days.toArray()).toEqual([day]);
+  });
+
+  it('a file from before the tasks (TASKS_VERSION - 1) imports whole, with the three new tables empty', async () => {
+    await ensureSeeded(7);
+    await store.put('readings', { id: 'r1', at: 1, of: 'root', value: 0.3 });
+    const f = await exportData(db, 1000);
+    const v7 = { ...f, schemaVersion: TASKS_VERSION - 1, tables: { ...f.tables, signShelves: undefined, marks: undefined, days: undefined } };
+    const parsed = parseBackup(JSON.stringify(v7));
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.tables.signShelves).toEqual([]);
+    expect(parsed.tables.marks).toEqual([]);
+    expect(parsed.tables.days).toEqual([]);
+    expect(parsed.tables.flows).toEqual(f.tables.flows);
+    expect(parsed.tables.readings).toEqual(f.tables.readings);
+    const other = await freshDB();
+    await importData(parsed, 'replace', other);
+    expect(await other.readings.get('r1')).toEqual({ id: 'r1', at: 1, of: 'root', value: 0.3 });
+    expect(await other.signShelves.count()).toBe(0);
   });
 
   it('a file from before the mountain (MOUNTAIN_VERSION - 1) imports with empty readings and its seed flows under their signs', async () => {

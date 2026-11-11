@@ -22,9 +22,9 @@ export interface Chakra { id: ChakraId; name: string; pageName: string; sign: Si
 const stop = (id: ChakraId, name: string, sign: SignKind, hue: number, forWords: string): Chakra =>
   ({ id, name, pageName: `${name} chakra`, sign, hue, gloss: `${name} · ${forWords}` });
 
-/** Summit to foot (BUILD-MOUNTAIN.md section 3). */
+/** Summit to foot (BUILD-MOUNTAIN.md section 3). Crown's gloss is "letting go" since PLAN-TASKS.md section 2 (sleep is one of Root's basics). */
 export const CHAKRAS: readonly Chakra[] = [
-  stop('crown', 'Crown', 'crown', 305, 'letting go, sleep'),
+  stop('crown', 'Crown', 'crown', 305, 'letting go'),
   stop('third-eye', 'Third eye', 'eye', 275, 'seeing clearly'),
   stop('throat', 'Throat', 'voice', 250, 'speech'),
   stop('heart', 'Heart', 'heart', 150, 'love and grief'),
