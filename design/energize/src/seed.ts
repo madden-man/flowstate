@@ -1,4 +1,4 @@
-// Example data for the Energize walkthrough, on top of the app's own seed (the paradoxes, the voices and the nine
+// Example data for the Energize walkthrough, on top of the app's own seed (the values, the voices and the nine
 // flows from ensureSeeded): the passes the app runs once the journal is open (the flows, the picks, the fixations,
 // the doctor line) are run here first, so the first render already has the three and the deck, and then a little
 // history is written through the app's store (the fields layer, never Dexie directly) so What stuck has ribbons:

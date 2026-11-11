@@ -1,8 +1,8 @@
 // The seams pass (package 8): the whole journey end to end, offline, in one go. Cold load and the threshold
 // breath; write a paragraph, give the next one the Mystic's voice from the margin dot, keep it close, ask
 // the first line (a new question page; the day stays whole), write under the question, take that line to
-// the council, speak there as two voices; find the entry on Pages; add a goal pair on Be, check it due under the
-// spread, drag the lean; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
+// the council, speak there as two voices; find the entry on Pages; open a value on Be and write a new one with its
+// shadow; tap the moon into Still and see the kept line, leave Still; set a PIN, reload, unlock
 // with the word, and everything is still there; export makes a file. Nothing leaves the origin.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -99,41 +99,23 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
 
-  // ---- Be: a goal and its balance, daily ----
+  // ---- Be: the values; a tap opens one on its shadow; a new value, a word and the one that looks after me ----
   await tab(page, 'Be').click();
-  const card = page.locator('#be-px-selfless-selfish');
-  // V8: the tab is a list of pole pairs; a tap opens the spread under its row
-  const row = card.getByRole('button', { name: /selfless\s*selfish/ });
+  const card = page.locator('#be-value-px-selfless-selfish');
+  const row = card.locator('.fs-dichotomy');
   await expect(row).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.fs-values')).not.toContainText('selfish');
   await row.click();
   await expect(row).toHaveAttribute('aria-expanded', 'true');
-  await expect(card.locator('[data-laid="true"]')).toBeAttached();
-  await card.getByRole('button', { name: '+ Goal' }).click();
-  const giving = 'Chop vegetables at the Evergreen kitchen';
-  const keeping = 'An hour of the playlist, nothing else';
-  await page.getByRole('textbox', { name: 'selfless goal' }).fill(giving);
-  await page.getByRole('textbox', { name: 'selfish goal' }).fill(keeping);
-  await page.getByRole('group', { name: 'Cadence' }).getByRole('button', { name: 'daily' }).click();
-  await page.getByRole('button', { name: 'Save both' }).click();
-  await expect(card.getByRole('button', { name: new RegExp(giving) })).toBeVisible();
-  await expect(card.getByRole('button', { name: new RegExp(keeping) })).toBeVisible();
-
-  // ---- under the spread: the new goal is due today; check it, drag the lean (F0, moved from Flow) ----
-  const group = card.getByRole('region', { name: 'Today, selfless and selfish' });
-  const due = group.getByRole('checkbox', { name: new RegExp(giving) });
-  await expect(due).toHaveAttribute('aria-checked', 'false');
-  await due.click();
-  await expect(due).toHaveAttribute('aria-checked', 'true');
-  const slider = group.getByRole('slider', { name: 'Lean between selfless and selfish' });
-  const sb = (await slider.boundingBox())!;
-  const sy = sb.y + sb.height / 2;
-  await page.mouse.move(sb.x + sb.width / 2, sy);
-  await page.mouse.down();
-  await page.mouse.move(sb.x + sb.width * 0.8, sy, { steps: 6 });
-  await page.mouse.move(sb.x + sb.width - 2, sy, { steps: 4 });
-  await page.mouse.up();
-  await expect(slider).toHaveAttribute('aria-valuenow', '1');
-  await expect(group).toHaveAttribute('data-saved', 'true');
+  await expect(row.locator('.b')).toHaveText('selfish');
+  await page.getByRole('button', { name: 'New value' }).click();
+  const valueSheet = page.locator('[data-sheet="Value"]');
+  await valueSheet.getByRole('textbox', { name: 'Value' }).fill('courage');
+  await valueSheet.getByRole('textbox', { name: 'Shadow' }).fill('safety');
+  await valueSheet.getByRole('button', { name: 'Done' }).click();
+  await expect(valueSheet).toHaveCount(0);
+  const courage = page.locator('.fs-values .fs-be-row', { has: page.locator('.a', { hasText: /^courage$/ }) });
+  await expect(courage).toBeVisible();
 
   // ---- Still: tap the moon on the Journal page; a kept line at the top; the ring brings it back ----
   await tab(page, 'Journal').click();
@@ -184,11 +166,10 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.goto(councilUrl);
   await expect(page.locator('.fs-council .fs-msg', { hasText: warrior })).toHaveAttribute('data-voice', 'Warrior');
   await expect(page.locator('.fs-council .fs-msg', { hasText: skeptic })).toHaveAttribute('data-voice', 'Skeptic');
+  // the new value was sealed with the PIN and reads back whole, its shadow behind it
   await tab(page, 'Be').click();
-  await row.click();
-  await expect(card.getByRole('button', { name: new RegExp(giving) })).toBeVisible();
-  await expect(due).toHaveAttribute('aria-checked', 'true');
-  await expect(slider).toHaveAttribute('aria-valuenow', '1');
+  await courage.locator('.fs-dichotomy').click();
+  await expect(courage.locator('.fs-dichotomy .b')).toHaveText('safety');
 
   // ---- export: a file, sealed with the PIN, and the Export row says when ----
   // (headless Chromium may offer navigator.share; the file is wanted as a download here)

@@ -1,6 +1,6 @@
 // The reduced-motion pass (package 8, DESIGN.md rule 18): with prefers-reduced-motion: reduce, nothing on
 // any screen moves. Open the app (no threshold breath), enter Still (a static ring), open a sheet (it
-// appears without rising), check an item on Be (the check draws at once), and at every step no element, nor its
+// appears without rising), open a value on Be (it opens at once), and at every step no element, nor its
 // ::before or ::after, has a non-zero computed animation-duration or transition-duration.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -21,7 +21,7 @@ const moving = (page: Page) => page.evaluate(() => {
   return out;
 });
 
-test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a check drawn', async ({ page }) => {
+test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a value opened', async ({ page }) => {
   await page.goto('/');
   // the threshold's breath is skipped: the page is straight there
   await expect(page.locator('[data-threshold]')).toHaveCount(0);
@@ -51,12 +51,14 @@ test('reduced motion: nothing moves, in Day, in Still, with a sheet up and a che
   await expect(page.locator('html')).not.toHaveAttribute('data-light', 'still');
   expect(await moving(page)).toEqual([]);
 
-  // Be, under a spread (the checks leave in Still): a check draws at once, and the lean mark does not travel
+  // Be (PLAN-VALUES.md C2): a value opens on its shadow at once; the word does not travel, nothing folds or is written
   await page.getByRole('link', { name: 'Be' }).click();
-  await page.getByRole('button', { name: /selfless\s*selfish/ }).click();
-  const item = page.getByRole('checkbox', { name: /write for its own sake/ });
-  await item.click();
-  await expect(item).toHaveAttribute('aria-checked', 'true');
+  const value = page.locator('.fs-values .fs-dichotomy').first();
+  await value.click();
+  await expect(value).toHaveAttribute('aria-expanded', 'true');
+  await expect(value.locator('.b')).toHaveText('selfish');
+  expect(await page.evaluate(() => document.documentElement.dataset.turn ?? null)).toBeNull();
+  await expect(page.locator('.fs-be-fold[data-fold]')).toHaveCount(0);
   expect(await moving(page)).toEqual([]);
 });
 

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: Be, values and their champions</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: Be</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="be" data-name="Be is who I am building">
+  <h2>Be is who I am building</h2>
+  <p class="line">A list of values, each marked with the voices that fight for it. Example data, live.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Screen</td><td><code>src/ui/be/Be.tsx</code> lists <code>held()</code> from <code>src/model/values.ts</code> under <code>CORE</code>; long press drags a row (<code>moveValue</code>), "Resting" shows the ones put down.</td></tr>
+    <tr><td>Marks</td><td><code>parts/SpokeRules</code> draws one rule per champion (<code>be/lines.ts</code> <code>ruleIds</code>); wonder has none, so a dashed one.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/values/src</code>), storage in memory, no network, "today" pinned to 11 / 11. Each step loads it afresh.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="new" data-name="A new value">
+  <h2>A new value is a word, and the one that looks after me</h2>
+  <p class="line">Courage, and the safety that stands behind it; every word is mine.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>src/ui/be/ValueSheet.tsx</code>: Value, Shadow, What it looks like, Held or Resting; kept on close, no save button.</td></tr>
+    <tr><td>Write</td><td><code>createValue</code>, <code>saveValue</code> (a later day's edit keeps the old words struck), <code>deleteValue</code> in two taps with a tombstone.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="shadow" data-name="A tap shows its shadow">
+  <h2>A tap shows its shadow</h2>
+  <p class="line">Honesty opens on discretion, the value that looks after me, and who fights for each.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Row</td><td><code>Be.tsx</code>: the word travels left through <code>parts/Turn</code> (<code>be-value</code>), the shadow is written across the seam, and <code>Fold</code> grows the value open.</td></tr>
+    <tr><td>Champions</td><td><code>src/ui/be/Champions.tsx</code> <code>ChampionsOf</code>: each a voiced line holding his why (<code>setWhy</code>).</td></tr>
+    <tr><td>Data</td><td><code>values.champions: { voiceId, side, at, why }[]</code>, schema 6 (<code>src/db/schema.ts</code>).</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="champion" data-name="Anyone can take up a value">
+  <h2>Anyone can take up a value</h2>
+  <p class="line">Every voice is a chip; a tap puts it on honesty or takes it off.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>src/ui/be/ChampionSheet.tsx</code>: "Who fights for honesty?", then "And for discretion?"; a champion with a why lets go on a second tap.</td></tr>
+    <tr><td>Write</td><td><code>champion</code> and <code>unchampion</code> in <code>model/values.ts</code>, one write to the value row, one <code>tick('champion')</code>.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="champions" data-name="Each voice, and what it fights for">
+  <h2>Each voice, and what it fights for</h2>
+  <p class="line">The same links from the other side: tap a voice to change its values.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Route</td><td><code>#/be/champions</code>, <code>Champions</code> in <code>be/Champions.tsx</code> from <code>byVoice()</code>: values in his order, each shadow in italic after its value.</td></tr>
+    <tr><td>Also</td><td>The voice sheet (<code>src/ui/council/VoiceSheet.tsx</code>) carries the same chips under "Fights for".</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="seats" data-name="A council sits around what is at stake">
+  <h2>A council sits around what is at stake</h2>
+  <p class="line">Tap honesty and its champions take their seats, both sides.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Screen</td><td><code>src/ui/council/Council.tsx</code>: "For what?" under "Who sits?"; <code>aboutValue</code> seats the value's champions, then the shadow's.</td></tr>
+    <tr><td>From Be</td><td>"Call a council" is <code>callCouncil</code>, <code>newCouncil({ valueId })</code> in <code>model/council.ts</code>.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="for" data-name="Tap a line to say what it was for">
+  <h2>Tap a line, and say what it was for</h2>
+  <p class="line">Most lines are only talk; the one that stood for honesty gets one tap.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Chips</td><td><code>src/ui/parts/SpokeFor.tsx</code> in the reply bar a tap already opens; one tap confirms with <code>tick('for')</code>, a second takes it back.</td></tr>
+    <tr><td>Label</td><td><code>speakFor</code> writes <code>message.for</code>; <code>parts/Speaker.tsx</code> prints "· for honesty" after the speaker.</td></tr>
+    <tr><td>Never before</td><td><code>speak</code> never takes a label: a line is spoken first and claimed after, or not at all.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="deep" data-name="The shadow gets a voice too">
+  <h2>The shadow gets a voice too</h2>
+  <p class="line">Mystic's line was for discretion, and it is marked the same way.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Chips</td><td>Every value and shadow the voice fights for; "+ value" takes up a new one and confirms in one go.</td></tr>
+    <tr><td>Same drawing</td><td><code>{ valueId, side: 'shadow' }</code>; no doubled rule, no dimmer ink.</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="journal" data-name="The journal does the same">
+  <h2>The journal does the same</h2>
+  <p class="line">A voiced line on a page, tapped, offers what that voice fights for.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Where</td><td><code>src/ui/journal/PageView.tsx</code>: the same <code>SpokeFor</code> row steps out under the tapped line.</td></tr>
+    <tr><td>Same call</td><td><code>speakFor(messageId, for)</code>, shared with the council.</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="said" data-name="The value keeps what was said for it">
+  <h2>The value keeps what was said for it</h2>
+  <p class="line">Under honesty, the lines spoken for it lead back to their councils.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Read</td><td><code>src/ui/be/Said.tsx</code> from <code>saidFor</code>: newest first, five, then "Earlier"; rows from <code>be/saidRows.ts</code>, dated, no number.</td></tr>
+    <tr><td>Call</td><td>"Call a council" opens step 6 with honesty already chosen.</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="still" data-name="In Still, only the words">
+  <h2>In Still, only the words</h2>
+  <p class="line">The values alone; nothing to open.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td><code>Be.tsx</code> draws the core line and the held words only: no segment, no rules, no shadow, nothing to tap.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

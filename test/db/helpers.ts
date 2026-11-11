@@ -9,3 +9,12 @@ export async function freshDB(): Promise<FlowDB> {
   await init(db);
   return db;
 }
+
+/** The notebook's two paradoxes and their goals, as a journal from before the values held them (PLAN-VALUES.md C1:
+ *  a fresh install seeds values and no paradoxes, so a test of the older Be screens writes them itself). */
+export async function writeSeedParadoxes(): Promise<void> {
+  const { seedParadoxes } = await import('../../src/db/seed');
+  const { store } = await import('../../src/db/fields');
+  const { paradoxes, items } = seedParadoxes();
+  await store.many({ paradoxes, items });
+}

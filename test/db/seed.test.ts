@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
-import { freshDB } from './helpers';
+import { freshDB, writeSeedParadoxes } from './helpers';
 import type { FlowDB } from '../../src/db/schema';
-import { ensureSeeded, HUES, BROWN_CHROMA, MANIFESTO, antonymsOf, ANTONYMS, cleanSeedPages, OLD_SEED_PAGES, SEED_PAGES_PASS } from '../../src/db/seed';
+import { ensureSeeded, VALUES_PASS, HUES, BROWN_CHROMA, MANIFESTO, antonymsOf, ANTONYMS, cleanSeedPages, OLD_SEED_PAGES, SEED_PAGES_PASS } from '../../src/db/seed';
 import { store, setKey, lock, unlock } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 
@@ -53,8 +53,24 @@ describe('seed', () => {
     expect(css).toMatch(/--v-brown:\s+oklch\(var\(--voice-l\) calc\(var\(--voice-c\) \* \.5\)/);
   });
 
-  it('seeds both paradoxes, both middles kept as revisions, and the items with their pairs', async () => {
+  it('seeds the two values and no paradoxes (PLAN-VALUES.md section 5), the values pass marked done', async () => {
     await ensureSeeded();
+    expect(await db.paradoxes.count()).toBe(0);
+    expect(await db.items.count()).toBe(0);
+    const vs = (await store.all('values')).sort((a, b) => a.order! - b.order!);
+    expect(vs.map(v => [v.id, v.status, v.word, v.shadow, v.looks ?? null, v.order])).toEqual([
+      ['value-px-selfless-selfish', 'held', 'selfless', 'selfish', 'vegetable chopping in Evergreen', 0],
+      ['value-px-thoughtful-reactive', 'held', 'thoughtful', 'reactive', null, 1],
+    ]);
+    // what the value has no field for is kept in its first revision: pole B's aspect, and pole A's bracket word
+    expect(vs[0].revisions).toEqual([{ at: vs[0].updatedAt, word: 'selfless', shadow: 'selfish', fromParadox: { shadowLooks: 'something that gives breathing room' } }]);
+    expect(vs[1].revisions).toEqual([{ at: vs[1].updatedAt, word: 'thoughtful', shadow: 'reactive', fromParadox: { overdone: 'obsessive' } }]);
+    expect(vs.every(v => v.champions.length === 0)).toBe(true);
+    expect((await store.get('settings', 'app'))!.cleaned).toContain(VALUES_PASS);
+  });
+
+  it('keeps the notebook paradoxes, both middles kept as revisions, and the items with their pairs, for the pass', async () => {
+    await writeSeedParadoxes();
     const p1 = (await store.get('paradoxes', 'px-selfless-selfish'))!;
     expect([p1.poleA.value, p1.poleB.value]).toEqual(['selfless', 'selfish']);
     expect(p1.middle).toBeUndefined();
@@ -106,6 +122,7 @@ describe('the seed pages pass (V5)', () => {
   // A journal as packages 1 to 8 seeded it: settings without the pass, and the two seed pages.
   async function oldJournal() {
     await ensureSeeded();
+    await writeSeedParadoxes();
     await db.settings.update('app', { cleaned: undefined, seedsAdded: ['models'] } as never);
     for (const { page, messages } of OLD_SEED_PAGES) await store.many({ pages: [page], messages });
   }

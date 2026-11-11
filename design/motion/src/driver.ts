@@ -8,8 +8,6 @@ import { enterStill, leaveStill, still } from '../../../src/ui/light';
 import { choosePin, tryPin, relock, gateState } from '../../../src/ui/lock/pin';
 import { tapMusic, openPlaylist, playNote } from '../../../src/ui/music/state';
 import { liveEpisode, currentStepId, moveDot } from '../../../src/model/flows';
-import { goalsOf } from '../../../src/model/paradox';
-import { setDone, doneOn } from '../../../src/model/flow';
 import { MASTER_ID } from './net';
 
 /** The PIN the walkthrough's first step asks for. Written once, with few PBKDF2 rounds so the demo answers at once. */
@@ -25,7 +23,6 @@ export const DESIGNED: Record<Step, Light> = {
   still: 'night', stream: 'night', nine: 'night', dot: 'night', hold: 'night', quiet: 'still',
 };
 
-const PARADOX = 'px-selfless-selfish';
 const frames = (n = 2) => new Promise<void>(r => { const f = (k: number) => (k ? requestAnimationFrame(() => f(k - 1)) : r()); f(n); });
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -73,18 +70,12 @@ async function drive(step: Step, l: Light): Promise<void> {
       relock();
       await go('/journal');
       return;
-    case 'press': {
-      // today's checks unchecked again, so each one can be drawn
-      const goals = await goalsOf(PARADOX);
-      const done = goals.filter(g => doneOn(g, Date.now()));
-      for (const g of done) await setDone(g.id, false);
-      if (done.length) dataVersion.value++;
-      await go(`/be/${PARADOX}`);
-      // the checks sit under the spread: bring them up, as his thumb would
-      await frames();
-      document.querySelector(`#be-${PARADOX} [role="region"][aria-label^="Today"]`)?.scrollIntoView({ block: 'center' });
+    case 'press':
+      // a flow's step at rest: its tips are drawn checks that only draw (PLAN-FLOWS.md 3.7), so each visit starts
+      // unchecked (Be's checks left with the spread, PLAN-VALUES.md C6)
+      await dot('panic', 'rest');
+      await go('/flow/panic/1');
       return;
-    }
     case 'tabs': case 'sheet': case 'still':
       await go('/journal');
       return;
