@@ -48,8 +48,9 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
   // through the door the flow page still draws the ring, and its dot is the slider
   const dot = page.getByRole('slider', { name: 'Where you are' });
-  // R3: behind the PIN Panic is the Root's page, at rest on its one list ("Last time" left with the copy)
-  await expect(page.locator('.ck-rows[aria-label="At rest"]')).toBeVisible();
+  // R3: behind the PIN Panic is the Root's page, at rest on its place, its touch words and no checklist (T1)
+  await expect(page.locator('.ck-touches')).toBeVisible();
+  await expect(page.locator('.ck-rows')).toHaveCount(0);
   // F6: a note to the next one of you at the wave, and an ended episode (a ghost ring on the flow page); both stay
   // behind the PIN
   await page.evaluate(([text]) => new Promise<void>((resolve, reject) => {

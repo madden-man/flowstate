@@ -114,9 +114,10 @@ test('flows on a sign\'s page: a deep link reads a step, Right now starts the ep
   await expect(pageBody.locator('.fl-step-page > .fl-said, .fl-step-page > .fl-usual')).toHaveCount(0);
   const shown = await visibleWords(page);
   expect(shown).toContain('The wave');
-  expect(shown).not.toMatch(/\d/);
+  // the 988 line is printed on the Root's page in every light (PLAN-TASKS.md section 2): a number to call, not a count
+  expect(shown.replace(/988/g, '')).not.toMatch(/\d/);
 
-  // Done: the episode ends, and the page is at rest on its one list of rows ("Last time" left with the copy)
+  // Done: the episode ends, and the page is at rest: the place and its touch words, no checklist (PLAN-TASKS.md T1)
   await page.getByRole('button', { name: 'Leave Still' }).click();
   await pageBody.locator('.ck-done').click();
   await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
@@ -124,7 +125,8 @@ test('flows on a sign\'s page: a deep link reads a step, Right now starts the ep
   await expect(pageBody).toHaveAttribute('data-showing', '0');
   await expect(pageBody.locator('.ck-done')).toHaveCount(0);
   await expect(pageBody.locator('.fl-last')).toHaveCount(0);
-  await expect(pageBody.locator('.ck-rows')).toHaveAttribute('aria-label', 'At rest');
+  await expect(pageBody.locator('.ck-rows')).toHaveCount(0);
+  await expect(pageBody.locator('.ck-touch[data-lit]')).toHaveAttribute('data-touch', 'five');
 });
 
 test('flows under no sign: the drawing, a drag to a detent, the keys, the clock and the held breath, Still\'s words, last time', async ({ page }) => {
@@ -189,7 +191,8 @@ test('flows under no sign: the drawing, a drag to a detent, the keys, the clock 
   await expect(pageBody.locator('.fl-mid .fs-stillonly')).toHaveText('a few minutes in');
   const shown = await visibleWords(page);
   expect(shown).toContain('The wave');
-  expect(shown).not.toMatch(/\d/);
+  // the 988 line is printed on the Root's page in every light (PLAN-TASKS.md section 2): a number to call, not a count
+  expect(shown.replace(/988/g, '')).not.toMatch(/\d/);
 
   // back along the ring: the episode ends at rest; in Day there is one last-time line
   await page.getByRole('button', { name: 'Leave Still' }).click();
@@ -281,13 +284,12 @@ test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row 
   await link.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/4$/);
 
-  // Done, back on rest: what helped is no sentence; it heads the Root's rest list, in the order it was ticked
+  // Done, back on rest: what helped is no sentence, and the checklist is gone at rest (PLAN-TASKS.md T1)
   await body.locator('.ck-done').click();
   await expect.poll(async () => (await episode(page))?.endedAt ?? null).not.toBeNull();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
   await expect(page.locator('.fl-helped')).toHaveCount(0);
-  await expect.poll(() => page.locator('.ck-rows[aria-label="At rest"] [data-tip]').evaluateAll(els => els.slice(0, 2).map(e => (e as HTMLElement).dataset.tip)))
-    .toEqual(['panic-1-cold', 'panic-1-less']);
+  await expect(page.locator('.ck-rows')).toHaveCount(0);
 
   // the step sheet: strike a tip; Earlier shows it struck, and the page no longer does
   await steps.first().click();

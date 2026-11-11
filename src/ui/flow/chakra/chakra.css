@@ -1,11 +1,12 @@
 /* A stop's page (PLAN-MOUNTAIN.md section 6 and pass 6, R3): the plate at the top, the gloss, the gate, the drawings.
    Every colour is a token; the plate's are R0's (--plate, --plate-deep, --plate-line, --plate-print, --glow). */
 
-/* ---- the plate: a piece of the mountain's night plate, the full width of the page, eight rules tall ---- */
+/* ---- the plate: a piece of the mountain's night plate, the full width of the page, twelve rules tall: the place is
+   the page (PLAN-TASKS.md T1), with the touch words printed on it ---- */
 .ck-plate {
   /* the hue goes out of the light in Still (rule 13): the canvas reads this (chakra/water.ts) */
   --ck-tint: 1;
-  --ck-h: calc(var(--lh-ink) * 8 + var(--s1));
+  --ck-h: calc(var(--lh-ink) * 12 + var(--s1));
   position: relative; overflow: hidden; height: var(--ck-h);
   margin: calc(var(--s1) * -1) calc(var(--gutter) * -1) 0;
   background: var(--plate);
@@ -90,7 +91,38 @@
 .ck-tarn { position: absolute; border-radius: 50%; overflow: hidden; pointer-events: none; }
 .ck-reflect { transform: scaleY(-1); opacity: .3; }
 
-/* ---- under the plate: paper as before ---- */
+/* ---- the touch words (PLAN-TASKS.md T1, ./Touches.tsx): print on the plate beside the stream, as the mock sets them,
+   haloed in the plate's own dark so they read over chalk; the lead one, or the one touched, lit in the water's light.
+   Each is a thumb tall (--hit), its words centred on its place. In Still --glow is the line colour: no hue anywhere. */
+.ck-touches, .ck-stage { position: absolute; inset: 0; pointer-events: none; }
+.ck-touch {
+  position: absolute; transform: translateY(-50%); pointer-events: auto;
+  appearance: none; border: 0; background: transparent; margin: 0 calc(var(--s1) * -1); padding: 0 var(--s1); cursor: pointer;
+  height: var(--hit); display: block; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: calc(var(--track-print) * 2.5); text-transform: uppercase;
+  line-height: var(--hit); color: var(--plate-print);
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 var(--s1) var(--plate), 0 0 2px var(--plate);
+  transition: color var(--t-ui) var(--ease), text-shadow var(--t-ui) var(--ease);
+}
+.ck-touch[data-lit] { color: var(--glow); text-shadow: 0 0 var(--s1) var(--plate), 0 0 calc(var(--s1) * 2) var(--glow); }
+.ck-touch[data-down] { color: var(--glow); transition: none; }
+.ck-touch:focus-visible { outline: 2px solid var(--glow); outline-offset: -4px; border-radius: var(--s1); }
+.ck-to { color: var(--plate-print); }
+.ck-touch[data-lit] .ck-to { color: inherit; }
+
+/* ---- under the plate: the paper foot (gloss, gate, the shelf's slot, the safety line) ---- */
+/* T5's shelf mounts in the slot; empty, it takes no room */
+.ck-shelf:empty { display: none; }
+/* the 988 line (PLAN-TASKS.md section 2): Heart and Root, every light; the line in print, then Call and Text */
+.ck-safe-line { color: var(--print); line-height: var(--lh-ink); margin: 0; }
+.ck-safe-links { display: flex; gap: var(--s3); margin: 0; }
+.ck-safe-link {
+  /* on its rule, its target a thumb tall: the padding reaches past the rule and the margin gives it back */
+  display: inline-block; line-height: var(--lh-ink); color: var(--ink);
+  padding: calc((var(--hit) - var(--lh-ink)) / 2) 0; margin: calc((var(--hit) - var(--lh-ink)) / -2) 0;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: calc(var(--track-print) * 2); text-transform: uppercase;
+  text-decoration: underline; text-underline-offset: 4px;
+}
 .ck-gloss {
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
   color: var(--print); line-height: var(--lh-ink);
@@ -110,6 +142,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ck-ink, .ck-line, .ck-hatch, .ck-stars, .ck-mass, .ck-deep, .ck-snow, .ck-lit, .ck-sign .fs-sign-body, .ck-sign .fs-sign-line { animation: none; }
+  .ck-touch { transition: none; }
 }
 
 /* "+ flow" asks which sign it sits under (R3): the seven small signs in a row, each a 44px target; the chosen one is
