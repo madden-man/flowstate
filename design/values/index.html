@@ -3,261 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FlowState Be: values and their champions</title>
+<title>FlowState: Be, values and their champions</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="parts.css">
-<style>
-/* Page chrome around the phones; the phones themselves run on tokens.css and parts.css unchanged. */
-:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow: walkthrough chrome */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow: walkthrough chrome */
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px 16px 40px}
-.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
-@media (max-width:760px){.wrap{grid-template-columns:1fr}}
-header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
-header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
-.lights{margin-left:auto;display:flex;gap:4px;background:var(--rail);border:1px solid var(--line);border-radius:999px;padding:3px}
-.lights button,.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
-.lights button[aria-pressed="true"]{background:var(--fg);color:var(--rail)}
-.lights button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
-nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
-nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
-nav.rail a[aria-current]{background:var(--bg)}
-nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
-@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
-main{min-width:0}
-.step{display:none}
-.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
-.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
-.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
-.ctl{display:flex;gap:10px;justify-content:center}
-.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
-details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
-summary{cursor:pointer;color:var(--fg)}
-details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
-details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
-details td:first-child{color:var(--fg);white-space:nowrap}
-details code{font-size:12px}
-details s{color:var(--muted)}
-
-/* ---------- the phone ---------- */
-.phone{width:min(100%,380px);aspect-ratio:390/800;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative;user-select:none;-webkit-user-select:none} /* design-lint: allow: the phone shell */
-.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--page);color:var(--ink);font-family:var(--serif);font-size:var(--fs-ink);line-height:var(--lh-ink);transition:background-color var(--t-light) var(--ease),color var(--t-light) var(--ease)}
-.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow: the phone shell */
-.status{display:flex;justify-content:space-between;padding:15px 28px 0;font-family:var(--sans);font-size:12px;color:var(--print);position:relative}
-.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent;position:relative}
-.screen .fs-moon b{display:none}
-.screen[data-light="still"] .fs-moon i{display:none}
-.screen[data-light="still"] .fs-moon b{display:block;animation:breathe var(--t-breath) var(--ease) infinite}
-@keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
-.screen .fs-hdr-l .fs-word{padding-inline:var(--s1)}
-.screen .fs-sheetof{overflow:hidden}
-/* the ? mark in the bar: a glyph like the header's ♪, so the four words stay */
-.screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
-
-/* ---------- values pieces that do not exist yet (the proposal) ---------- */
-.screen .fs-be-top .fs-seg{padding:0 var(--s1)}
-.cv-core{margin:0;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);line-height:var(--lh-ink)}
-.cv-value{appearance:none;border:0;background:transparent;margin:0;padding:0;width:100%;color:var(--ink);display:flex;justify-content:space-between;align-items:center;min-height:calc(var(--lh-ink) * 2);font-family:var(--serif);font-size:var(--fs-manifesto);line-height:var(--lh-ink);text-align:left}
-.cv-none{width:14px;height:14px;border-left:3px dashed var(--print)}
-.cv-shadow{font-style:italic}
-.cv-open{display:grid;gap:2px;padding-bottom:var(--s1)}
-.cv-open .fs-print{margin:var(--s1) 0 2px}
-.cv-open .fs-chip{justify-self:start;font-family:var(--sans);font-size:var(--fs-chip);line-height:1;margin-top:4px}
-.cv-looks{margin:0;font-style:italic;text-align:center;font-size:var(--fs-fill);line-height:var(--lh-ink)}
-.cv-open .fs-msg{margin-left:0}
-.cv-open .fs-msg p,.cv-why{margin:0;font-size:var(--fs-fill);line-height:22px}
-.cv-said{display:grid;grid-template-columns:auto 1fr;gap:var(--s1);align-items:baseline;border-left:3px solid var(--vc);padding-left:var(--s1);font-size:var(--fs-fill);line-height:24px}
-.cv-said small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);color:var(--print)}
-.cv-said span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cv-acts{display:flex;justify-content:space-between;margin:var(--s1) calc(var(--s1) * -1) 0}
-.cv-vrow{display:grid;min-height:calc(var(--lh-ink) * 2);align-items:start;border-bottom:1px solid var(--seam)}
-.cv-vn{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--vc);line-height:var(--lh-ink)}
-.cv-vals{font-size:var(--fs-fill);line-height:var(--lh-ink)}
-@media (prefers-reduced-motion:reduce){.screen .fs-moon b{animation:none}}
-.cv-for{padding-bottom:0;align-items:center}
-.cv-for .fs-print{flex:none;margin:0 2px 0 0}
-.cv-inline .fs-chips{padding:2px 0 6px}
-.screen .fs-sheet-body .fs-print{margin:var(--s1) 0 0}
-.screen .fs-sheet-body .fs-seats{font-family:var(--sans);font-size:var(--fs-chip)}
-</style>
+<link rel="stylesheet" href="walk.css">
 </head>
 <body>
 <div class="wrap">
-<header class="top"><h1>FlowState Be: values and their champions</h1><span class="counter" id="counter"></span>
-  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+<header class="top"><h1>FlowState: Be</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
 </header>
 <nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
 <main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
 <section class="step" id="be" data-name="Be is who I am building">
   <h2>Be is who I am building</h2>
-  <p class="line">A list of values, each marked with the voices that fight for it.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row"><button type="button" class="cv-value"><span>honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-black)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span><span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span><span class="fs-spoke"><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span><span class="fs-spoke"><i style="--vc:var(--v-yellow)"></i><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i><i style="--vc:var(--v-brown)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span><span class="cv-none" aria-label="nobody yet"></span></button></section></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Screen</td><td><code>ui/be/Be.tsx</code> lists <code>held()</code> from the new <code>values</code> table; drag order and Resting stay.</td></tr><tr><td>Marks</td><td>The council list's <code>.fs-spoke</code> rules, one per champion; a dashed one when a value has none.</td></tr><tr><td>Plan</td><td><code>PLAN-VALUES.md</code> sections 2 and 5.</td></tr></table></details>
+  <p class="line">A list of values, each marked with the voices that fight for it. Example data, live.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Screen</td><td><code>src/ui/be/Be.tsx</code> lists <code>held()</code> from <code>src/model/values.ts</code> under <code>CORE</code>; long press drags a row (<code>moveValue</code>), "Resting" shows the ones put down.</td></tr>
+    <tr><td>Marks</td><td><code>parts/SpokeRules</code> draws one rule per champion (<code>be/lines.ts</code> <code>ruleIds</code>); wonder has none, so a dashed one.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/values/src</code>), storage in memory, no network, "today" pinned to 11 / 11. Each step loads it afresh.</td></tr>
+  </table></details>
 </section>
 
+<!-- 2 -->
 <section class="step" id="new" data-name="A new value">
   <h2>A new value is a word, and the one that looks after me</h2>
   <p class="line">Courage, and the safety that stands behind it; every word is mine.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row"><button type="button" class="cv-value"><span>honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-black)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span><span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span><span class="fs-spoke"><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span><span class="fs-spoke"><i style="--vc:var(--v-yellow)"></i><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i><i style="--vc:var(--v-brown)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span><span class="cv-none" aria-label="nobody yet"></span></button></section></div></section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="Value"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Value</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body"><p class="fs-print">Value</p><input class="fs-input" value="courage"><p class="fs-print">Shadow</p><input class="fs-input" value="safety"><p class="fs-print">What it looks like</p><input class="fs-input" placeholder="Living it, in a sentence"><div class="fs-rows"><div class="fs-row"><span>Held</span><small>Resting puts it down</small></div><button type="button" class="fs-row"><span>Delete</span></button></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Sheet</td><td><code>ValueSheet</code> replaces the paradox and goal sheets; edits on a later day keep the old word struck.</td></tr><tr><td>Delete</td><td>Two taps, with a tombstone so an import cannot bring it back (from PR #58).</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>src/ui/be/ValueSheet.tsx</code>: Value, Shadow, What it looks like, Held or Resting; kept on close, no save button.</td></tr>
+    <tr><td>Write</td><td><code>createValue</code>, <code>saveValue</code> (a later day's edit keeps the old words struck), <code>deleteValue</code> in two taps with a tombstone.</td></tr>
+  </table></details>
 </section>
 
+<!-- 3 -->
 <section class="step" id="shadow" data-name="A tap shows its shadow">
   <h2>A tap shows its shadow</h2>
   <p class="line">Honesty opens on discretion, the value that looks after me, and who fights for each.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row open"><button type="button" class="fs-dichotomy" aria-expanded="true"><span class="a">honesty</span><i></i><span class="b cv-shadow">discretion</span></button>
-  <div class="cv-open">
-    <p class="cv-looks">Saying the true thing while it can still help.</p>
-    <p class="fs-print">Fighting for it</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p class="cv-why">I say it to their face, and I stay in the room after.</p></div>
-    <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p class="cv-why">I check it is true before I call it honest.</p></div>
-    <button type="button" class="fs-chip add">+ champion</button>
-    <p class="fs-print">Fighting for discretion</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p class="cv-why">Not every true thing is mine to say tonight.</p></div>
-    
-  </div></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span><span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span><span class="fs-spoke"><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span><span class="fs-spoke"><i style="--vc:var(--v-yellow)"></i><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i><i style="--vc:var(--v-brown)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span><span class="cv-none" aria-label="nobody yet"></span></button></section></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Row</td><td>The list row becomes today's <code>.fs-dichotomy</code>: the word travels left, the shadow is written across the seam.</td></tr><tr><td>Champions</td><td>Each is a voiced line holding one optional sentence, the why.</td></tr><tr><td>Sides</td><td><code>champions: { voiceId, side, why }[]</code> on the value row.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Row</td><td><code>Be.tsx</code>: the word travels left through <code>parts/Turn</code> (<code>be-value</code>), the shadow is written across the seam, and <code>Fold</code> grows the value open.</td></tr>
+    <tr><td>Champions</td><td><code>src/ui/be/Champions.tsx</code> <code>ChampionsOf</code>: each a voiced line holding his why (<code>setWhy</code>).</td></tr>
+    <tr><td>Data</td><td><code>values.champions: { voiceId, side, at, why }[]</code>, schema 6 (<code>src/db/schema.ts</code>).</td></tr>
+  </table></details>
 </section>
 
+<!-- 4 -->
 <section class="step" id="champion" data-name="Anyone can take up a value">
   <h2>Anyone can take up a value</h2>
   <p class="line">Every voice is a chip; a tap puts it on honesty or takes it off.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row open"><button type="button" class="fs-dichotomy" aria-expanded="true"><span class="a">honesty</span><i></i><span class="b cv-shadow">discretion</span></button>
-  <div class="cv-open">
-    <p class="cv-looks">Saying the true thing while it can still help.</p>
-    <p class="fs-print">Fighting for it</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p class="cv-why">I say it to their face, and I stay in the room after.</p></div>
-    <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p class="cv-why">I check it is true before I call it honest.</p></div>
-    <button type="button" class="fs-chip add">+ champion</button>
-    <p class="fs-print">Fighting for discretion</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p class="cv-why">Not every true thing is mine to say tonight.</p></div>
-    
-  </div></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span><span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span><span class="fs-spoke"><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span><span class="fs-spoke"><i style="--vc:var(--v-yellow)"></i><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i><i style="--vc:var(--v-brown)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span><span class="cv-none" aria-label="nobody yet"></span></button></section></div></section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="Who fights for honesty?"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>Who fights for honesty?</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body"><div class="fs-seats"><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-brown)"><i></i>Engineer</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-orange)"><i></i>Explorer</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-yellow)"><i></i>Joker</button></div><p class="fs-print">And for discretion?</p><div class="fs-seats"><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-pink)"><i></i>Sensualist</button><button type="button" class="fs-chip add">more</button></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Model</td><td><code>champion(valueId, voiceId, side)</code> and <code>unchampion</code>; one write to the value row.</td></tr><tr><td>Shadow</td><td>Any voice may fight for a shadow, drawn the same; deep twins are never suggested.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>src/ui/be/ChampionSheet.tsx</code>: "Who fights for honesty?", then "And for discretion?"; a champion with a why lets go on a second tap.</td></tr>
+    <tr><td>Write</td><td><code>champion</code> and <code>unchampion</code> in <code>model/values.ts</code>, one write to the value row, one <code>tick('champion')</code>.</td></tr>
+  </table></details>
 </section>
 
+<!-- 5 -->
 <section class="step" id="champions" data-name="Each voice, and what it fights for">
   <h2>Each voice, and what it fights for</h2>
   <p class="line">The same links from the other side: tap a voice to change its values.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a>Values</a><a aria-current="page">Champions</a></nav><span></span></div><div class="fs-sheetof fs-rules fs-be"><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-black)"><span class="cv-vn">Skeptic</span><span class="cv-vals">honesty, thoughtful</span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-blue)"><span class="cv-vn">Mystic</span><span class="cv-vals">selfless, <i class="cv-shadow">discretion</i></span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-red)"><span class="cv-vn">Warrior</span><span class="cv-vals">honesty, <i class="cv-shadow">reactive</i></span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-green)"><span class="cv-vn">Architect</span><span class="cv-vals">thoughtful, discipline</span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-purple)"><span class="cv-vn">Meaning Maker</span><span class="cv-vals">selfless, <i class="cv-shadow">certainty</i></span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-brown)"><span class="cv-vn">Engineer</span><span class="cv-vals">discipline, <i class="cv-shadow">caution</i></span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-pink)"><span class="cv-vn">Sensualist</span><span class="cv-vals">play, <i class="cv-shadow">rest, selfish</i></span></div></div><div class="cv-vrow"><div class="fs-vcell" style="--vc:var(--v-yellow)"><span class="cv-vn">Joker</span><span class="cv-vals">play</span></div></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Route</td><td><code>#/be/champions</code>, from <code>byVoice()</code>.</td></tr><tr><td>Also</td><td>The voice sheet on the Voices screen gets the same row of value chips.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Route</td><td><code>#/be/champions</code>, <code>Champions</code> in <code>be/Champions.tsx</code> from <code>byVoice()</code>: values in his order, each shadow in italic after its value.</td></tr>
+    <tr><td>Also</td><td>The voice sheet (<code>src/ui/council/VoiceSheet.tsx</code>) carries the same chips under "Fights for".</td></tr>
+  </table></details>
 </section>
 
+<!-- 6 -->
 <section class="step" id="seats" data-name="A council sits around what is at stake">
   <h2>A council sits around what is at stake</h2>
   <p class="line">Tap honesty and its champions take their seats, both sides.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
-    <div class="status"><span>22:10</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules"><p class="fs-quiet">Who sits?</p><div class="fs-seats"><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-green)"><i></i>Architect</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-purple)"><i></i>Meaning Maker</button><button type="button" class="fs-chip add">+ voice</button></div><p class="fs-quiet">For what?</p><div class="fs-seats"><button type="button" class="fs-chip" aria-pressed="true">honesty</button><button type="button" class="fs-chip" aria-pressed="false">selfless</button><button type="button" class="fs-chip" aria-pressed="false">thoughtful</button><button type="button" class="fs-chip" aria-pressed="false">play</button><button type="button" class="fs-chip" aria-pressed="false">discipline</button><button type="button" class="fs-chip" aria-pressed="false">wonder</button></div></div><div class="fs-composer-wrap"><button type="button" class="fs-new">Begin</button></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Seating</td><td><code>newCouncil({ valueId })</code> seats the value's champions, then the shadow's; <code>page.valueIds</code> names it.</td></tr><tr><td>From Be</td><td>"Call a council" under a value opens this screen already seated.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Screen</td><td><code>src/ui/council/Council.tsx</code>: "For what?" under "Who sits?"; <code>aboutValue</code> seats the value's champions, then the shadow's.</td></tr>
+    <tr><td>From Be</td><td>"Call a council" is <code>callCouncil</code>, <code>newCouncil({ valueId })</code> in <code>model/council.ts</code>.</td></tr>
+  </table></details>
 </section>
 
+<!-- 7 -->
 <section class="step" id="for" data-name="Tap a line to say what it was for">
   <h2>Tap a line, and say what it was for</h2>
   <p class="line">Most lines are only talk; the one that stood for honesty gets one tap.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
-    <div class="status"><span>22:14</span><span>Example words</span></div>
-    <div class="fs-app" data-lamp style="--lamp-voice:var(--v-red)"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Councils</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-council"><div class="fs-chat fs-rules"><p class="fs-from"><small>About</small> <a>honesty</a></p><div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p>He asked what I thought. I told him it was fine. It was not fine.</p></div><div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>Was it kindness, or were you saving yourself the evening?</p></div><div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior<span class="fs-sp-role"> · for honesty</span></span><p>The evening. So I owe him the real answer.</p></div></div>
-  <div class="fs-composer-wrap"><div class="fs-replying"><span class="fs-quote" style="--qc:var(--v-red)"><b>Warrior</b> The evening. So I owe him the real answer.</span><button type="button" class="fs-word">Cancel</button></div><div class="fs-chips cv-for" role="group" aria-label="Spoke for"><span class="fs-print">Spoke for</span><button type="button" class="fs-chip" aria-pressed="true">honesty</button><button type="button" class="fs-chip add">+ value</button></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false">Ink</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip add">+ seat</button></div><div class="fs-composer"><textarea rows="1" aria-label="Message" placeholder="Skeptic speaks…" style="--vc:var(--v-black)"></textarea></div></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Tap</td><td>A tap already opens the reply bar; it gains the tapped voice's values as chips. A tap confirms, a second takes it back.</td></tr><tr><td>Line</td><td><code>message.for = { valueId, side }</code>; the label is print beside the speaker, drawn on at the confirm.</td></tr><tr><td>Never before</td><td>Nothing is armed at the composer; a line is spoken first and claimed after, or not at all.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Chips</td><td><code>src/ui/parts/SpokeFor.tsx</code> in the reply bar a tap already opens; one tap confirms with <code>tick('for')</code>, a second takes it back.</td></tr>
+    <tr><td>Label</td><td><code>speakFor</code> writes <code>message.for</code>; <code>parts/Speaker.tsx</code> prints "· for honesty" after the speaker.</td></tr>
+    <tr><td>Never before</td><td><code>speak</code> never takes a label: a line is spoken first and claimed after, or not at all.</td></tr>
+  </table></details>
 </section>
 
+<!-- 8 -->
 <section class="step" id="deep" data-name="The shadow gets a voice too">
   <h2>The shadow gets a voice too</h2>
   <p class="line">Mystic's line was for discretion, and it is marked the same way.</p>
-  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
-    <div class="status"><span>22:16</span><span>Example words</span></div>
-    <div class="fs-app" data-lamp style="--lamp-voice:var(--v-blue)"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Councils</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Council</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-council"><div class="fs-chat fs-rules"><p class="fs-from"><small>About</small> <a>honesty</a></p><div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p>He asked what I thought. I told him it was fine. It was not fine.</p></div><div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p>Was it kindness, or were you saving yourself the evening?</p></div><div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior<span class="fs-sp-role"> · for honesty</span></span><p>The evening. So I owe him the real answer.</p></div><div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic<span class="fs-sp-role"> · for discretion</span></span><p>He asked at the door, with his coat on. Tomorrow, when he can hear it.</p></div></div>
-  <div class="fs-composer-wrap"><div class="fs-replying"><span class="fs-quote" style="--qc:var(--v-blue)"><b>Mystic</b> He asked at the door, with his coat on. Tomorrow, when he can hear it.</span><button type="button" class="fs-word">Cancel</button></div><div class="fs-chips cv-for" role="group" aria-label="Spoke for"><span class="fs-print">Spoke for</span><button type="button" class="fs-chip" aria-pressed="false">selfless</button><button type="button" class="fs-chip" aria-pressed="true">discretion</button><button type="button" class="fs-chip add">+ value</button></div><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false">Ink</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc:var(--v-red)"><i></i>Warrior</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-black)"><i></i>Skeptic</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc:var(--v-blue)"><i></i>Mystic</button><button type="button" class="fs-chip add">+ seat</button></div><div class="fs-composer"><textarea rows="1" aria-label="Message" placeholder="Warrior speaks…" style="--vc:var(--v-red)"></textarea></div></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Chips</td><td>Every value and every shadow the voice fights for; "+ value" takes up a new one on the spot.</td></tr><tr><td>Same drawing</td><td>No doubled rule, no dimmer ink: a shadow is a value.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Chips</td><td>Every value and shadow the voice fights for; "+ value" takes up a new one and confirms in one go.</td></tr>
+    <tr><td>Same drawing</td><td><code>{ valueId, side: 'shadow' }</code>; no doubled rule, no dimmer ink.</td></tr>
+  </table></details>
 </section>
 
+<!-- 9 -->
 <section class="step" id="journal" data-name="The journal does the same">
   <h2>The journal does the same</h2>
   <p class="line">A voiced line on a page, tapped, offers what that voice fights for.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>08:05</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Pages</button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-count">No. <b>4</b></span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col">
-      <p>Slept badly. Still turning over what I said to him at the door.</p>
-      <div class="fs-msg fs-v" style="--vc:var(--v-green)"><span class="fs-sp">Architect</span><p>Write the list first. Then the call.</p></div>
-      <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior<span class="fs-sp-role"> · for honesty</span></span><p>Call him before noon and say the part I left out.</p></div>
-      <div class="cv-inline"><div class="fs-chips cv-for" role="group" aria-label="Spoke for"><span class="fs-print">Spoke for</span><button type="button" class="fs-chip" aria-pressed="true">honesty</button><button type="button" class="fs-chip" aria-pressed="false">reactive</button><button type="button" class="fs-chip add">+ value</button></div></div>
-      <p>Then breakfast.</p>
-    </div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Where</td><td>Under the tapped line, where the margin dot's voice chips step out today (<code>PageView</code>).</td></tr><tr><td>Same call</td><td><code>speakFor(messageId, for)</code>, shared with the council.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Where</td><td><code>src/ui/journal/PageView.tsx</code>: the same <code>SpokeFor</code> row steps out under the tapped line.</td></tr>
+    <tr><td>Same call</td><td><code>speakFor(messageId, for)</code>, shared with the council.</td></tr>
+  </table></details>
 </section>
 
+<!-- 10 -->
 <section class="step" id="said" data-name="The value keeps what was said for it">
   <h2>The value keeps what was said for it</h2>
   <p class="line">Under honesty, the lines spoken for it lead back to their councils.</p>
-  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
-    <div class="status"><span>09:40</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-be-top"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row open"><button type="button" class="fs-dichotomy" aria-expanded="true"><span class="a">honesty</span><i></i><span class="b cv-shadow">discretion</span></button>
-  <div class="cv-open">
-    <p class="cv-looks">Saying the true thing while it can still help.</p>
-    <p class="fs-print">Fighting for it</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><p class="cv-why">I say it to their face, and I stay in the room after.</p></div>
-    <div class="fs-msg fs-v" style="--vc:var(--v-black)"><span class="fs-sp">Skeptic</span><p class="cv-why">I check it is true before I call it honest.</p></div>
-    <button type="button" class="fs-chip add">+ champion</button>
-    <p class="fs-print">Fighting for discretion</p>
-    <div class="fs-msg fs-v" style="--vc:var(--v-blue)"><span class="fs-sp">Mystic</span><p class="cv-why">Not every true thing is mine to say tonight.</p></div>
-    <p class="fs-print">Said for it</p>
-    <a class="cv-said" style="--vc:var(--v-red)"><small>11 / 10</small><span>Then tell him tonight, not in a letter.</span></a>
-    <a class="cv-said" style="--vc:var(--v-black)"><small>11 / 8</small><span>Is it honest, or is it only loud?</span></a>
-    <div class="cv-acts"><button type="button" class="fs-word">Call a council</button><button type="button" class="fs-word">Edit</button></div>
-  </div></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span><span class="fs-spoke"><i style="--vc:var(--v-blue)"></i><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span><span class="fs-spoke"><i style="--vc:var(--v-black)"></i><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span><span class="fs-spoke"><i style="--vc:var(--v-yellow)"></i><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i><i style="--vc:var(--v-brown)"></i></span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span><span class="cv-none" aria-label="nobody yet"></span></button></section></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Read</td><td><code>saidFor(valueId, 5)</code>: newest first, no number anywhere (rule 15).</td></tr><tr><td>Call</td><td>"Call a council" is step 6 with honesty already chosen.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Read</td><td><code>src/ui/be/Said.tsx</code> from <code>saidFor</code>: newest first, five, then "Earlier"; rows from <code>be/saidRows.ts</code>, dated, no number.</td></tr>
+    <tr><td>Call</td><td>"Call a council" opens step 6 with honesty already chosen.</td></tr>
+  </table></details>
 </section>
 
+<!-- 11 -->
 <section class="step" id="still" data-name="In Still, only the words">
   <h2>In Still, only the words</h2>
   <p class="line">The values alone; nothing to open.</p>
-  <div class="phone" data-mock><div class="screen" data-light="still"><div class="island"></div>
-    <div class="status"><span>02:10</span><span>Example words</span></div>
-    <div class="fs-app"><main class="fs-main"><section class="fs-page"><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-be"><p class="cv-core">I determine my core.</p><section class="fs-be-row"><button type="button" class="cv-value"><span>honesty</span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>selfless</span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>thoughtful</span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>play</span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>discipline</span></button></section><section class="fs-be-row"><button type="button" class="cv-value"><span>wonder</span></button></section></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
-  </div></div>
-  <details><summary>How this is built</summary><table><tr><td>Rule 13</td><td>Still shows the held values and nothing of their states.</td></tr></table></details>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td><code>Be.tsx</code> draws the core line and the held words only: no segment, no rules, no shadow, nothing to tap.</td></tr>
+    <tr><td>Rule</td><td>DESIGN.md 13</td></tr>
+  </table></details>
 </section>
 
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
 </main>
 </div>
-<script>
-(function(){
-  var steps=[].slice.call(document.querySelectorAll('.step')),rail=document.getElementById('rail'),counter=document.getElementById('counter'),i=0,GLOBAL='design';
-  steps.forEach(function(s,j){var li=document.createElement('li'),a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(j+1)+'</span><span class="t"></span>';a.querySelector('.t').textContent=s.dataset.name;a.addEventListener('click',function(e){e.preventDefault();go(j);});li.appendChild(a);rail.appendChild(li);
-    var c=document.createElement('div');c.className='ctl';c.innerHTML='<button type="button" data-prev>Previous</button><button type="button" data-next>Next</button>';s.appendChild(c);
-    s.querySelectorAll('.screen').forEach(function(sc){sc.dataset.lightDefault=sc.dataset.light;});});
-  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
-  document.addEventListener('click',function(e){if(e.target.closest('[data-prev]'))go(i-1);if(e.target.closest('[data-next]'))go(i+1);var m=e.target.closest('.screen .fs-moon');if(m){var sc=m.closest('.screen');sc.dataset.light=sc.dataset.light==='still'?(GLOBAL==='design'||GLOBAL==='still'?(sc.dataset.lightDefault==='still'?'night':sc.dataset.lightDefault):GLOBAL):'still';}});
-  document.addEventListener('keydown',function(e){if(e.target.closest&&e.target.closest('input,textarea'))return;if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
-  document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){GLOBAL=b.dataset.light;document.querySelectorAll('.lights [data-light]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});document.querySelectorAll('.screen').forEach(function(s){s.dataset.light=GLOBAL==='design'?s.dataset.lightDefault:GLOBAL;});});});
-  function fromHash(){var h=(location.hash||'').replace('#','');var k=steps.findIndex(function(s){return s.id===h;});go(k>=0?k:0);}
-  window.addEventListener('hashchange',fromHash);fromHash();
-})();
-</script>
+<script src="walk.js"></script>
 </body>
 </html>
