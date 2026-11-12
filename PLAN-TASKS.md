@@ -74,6 +74,7 @@ The sign travels with him: the place a touch lands shows a small sign in print b
 ## 5. The water answers
 
 - **Pool and surge.** R2's maths stands. With the gate part shut, water pools above the sign; a touch done releases a share of it as one surge, then the pool fills again because the reading has not changed.
+- **Calm, as the mountain is** (Tommy, 2026-11-13, after PR #79 calmed the mountain's stream). The surge is not drawn as a front: no bright head, no flare at the sign, no glint, no faster water. On the sign's page the pool thins and the water below runs fuller for a while, at the water's own pace; on the mountain the pool lets go and fills again. "Surge" below means that let-go water.
 - **The gate asks without words.** After a surge its handle goes dashed (R2's stale state) until he sets it or leaves it.
 - **A touch that leaves** (Messages, Calendar, Journal) surges when he comes back to the sign, not when he goes.
 - **On the mountain** the first return to the Flow tab in the same unlock shows the surge run from that sign to the sea, once.

@@ -3,10 +3,13 @@
 //   the band    a wide soft glow laid along the water, as strong as the water running there (above the sign what reaches
 //               it, below it what the gate lets by), so a shut gate visibly darkens everything below it. Drawn once per
 //               strength into its own canvas and laid on with an alpha; the rock's own lit chalk is Plate.tsx's.
-//   the motes   points of light, irregular in size and brightness, glinting as they go, with short trails (fast water a long
-//               dash, slow a bead), by the mountain's maths (model/mountain.ts stretch and pool): above a part-shut gate
-//               they slow and pool. They run into the sign and out of it, brightening as they enter it and carrying its hue
-//               a short way after before they pale.
+//   the motes   points of light, irregular in size and brightness, with short trails (fast water a long dash, slow a
+//               bead), by the mountain's maths (model/mountain.ts stretch and pool): above a part-shut gate they slow
+//               and pool. They run into the sign and out of it, brightening as they enter it and carrying its hue a
+//               short way after before they pale. Calm and continuous, as on the mountain (rule 34, Tommy 2026-11-12
+//               and 2026-11-13): no glints, a narrow range of paces, and a touch done sends no bright head, no flare
+//               and no faster water. The pool above the sign lets its share go and the water below fills, more motes
+//               let by at the water's own pace, each coming up from nothing (calmRush).
 //   the lantern the sign's bloom in its hue, breathing on the app's breath (four seconds in, six out), as far as its gate
 //               is open; shut, it goes out and the sign is a cold outline.
 //   the place   the stream's light doing something there (scenes.ts fx): spindrift, the far sea glinting, the fall's
@@ -25,8 +28,9 @@ import { refill, SHARE } from './surge';
 
 type RGB = [number, number, number];
 
-/** How fast the water runs at full strength, in box units a second. Slower than a finger (rule 30). */
-const BASE = 30;
+/** How fast the water runs at full strength, in box units a second. Slower than a finger (rule 30); the mountain's
+ *  calm pace (mountain/water.ts). */
+const BASE = 24;
 /** The close view is about three times the mountain's scale, so the pool reaches three times as far. */
 const POOL_REACH = POOL_UNITS * 3;
 /** How far the sign's hue is carried down the water, as a share of the course. */
@@ -35,9 +39,19 @@ const MOTES = 56;
 const MAX_STEP = 0.05;
 /** The band's strength is redrawn only when it has moved this much. */
 const BAND_STEP = 0.02;
-/** A surge (PLAN-TASKS.md section 5, T2): how fast its front runs from the sign down the course, in box units a second,
- *  and how long the bright front and the let-go water behind it are. */
-const SURGE_SPEED = 70, SURGE_FRONT = 7, SURGE_BODY = 54;
+/** The let-go water (PLAN-TASKS.md section 5, T2): it runs from the sign down the course at the water's own pace, in box
+ *  units a second; how far ahead of it the fill begins, and how long the fuller water behind it lasts. */
+const SURGE_SPEED = BASE, SURGE_FRONT = 40, SURGE_BODY = 90;
+/** How far past its share a mote must be let by before it is fully lit: it comes up from nothing, never on at once. */
+const LET_BY = 0.1;
+
+/** How much fuller the water runs `d` box units behind where the let-go water has got to (negative: ahead of it), for
+ *  one unit let go. It rises evenly over SURGE_FRONT with no edge and falls away over SURGE_BODY: never a front. */
+export function calmRush(d: number): number {
+  if (d < -SURGE_FRONT) return 0;
+  if (d < 0) { const t = (d + SURGE_FRONT) / SURGE_FRONT; return t * t * (3 - 2 * t); }
+  return Math.exp(-d / SURGE_BODY);
+}
 
 const clamp01 = (a: number) => Math.max(0, Math.min(1, a));
 const rgba = (c: RGB, a: number) => `rgba(${c[0]},${c[1]},${c[2]},${clamp01(a).toFixed(3)})`;
@@ -86,7 +100,7 @@ export function breathAt(ms: number): number {
   return t * t * (3 - 2 * t);
 }
 
-type Mote = { u: number; jitter: number; w: number; k: number; lane: number; tw: number; ph: number; glint: number };
+type Mote = { u: number; jitter: number; w: number; k: number; lane: number; tw: number; ph: number };
 type Bit = { x: number; y: number; vx: number; vy: number; life: number; age: number; r: number };
 
 export type Strength = {
@@ -132,8 +146,8 @@ export class PlateLight {
     this.sample();
     const r = rand(11);
     this.motes = Array.from({ length: MOTES }, (_, k) => ({
-      u: r(), jitter: 0.7 + r() * 0.6, w: 0.5 + Math.pow(r(), 2.2) * 1.9, k: k / MOTES,
-      lane: (r() - 0.5) * 2, tw: 1.5 + r() * 5, ph: r() * 6.3, glint: r() < 0.12 ? 1 : 0,
+      u: r(), jitter: 0.82 + r() * 0.36, w: 0.5 + Math.pow(r(), 2.2) * 1.9, k: k / MOTES,
+      lane: (r() - 0.5) * 2, tw: 1.5 + r() * 5, ph: r() * 6.3,
     }));
   }
 
@@ -221,7 +235,7 @@ export class PlateLight {
     document.removeEventListener('visibilitychange', this.kick);
   }
 
-  /** A touch done (T2): a share of the pool above the sign runs from it down the course as one surge, and the pool
+  /** A touch done (T2): a share of the pool above the sign is let go down the course, calmly (calmRush), and the pool
    *  fills again. Nothing when the water is not running (Reduce Motion, unseen) or in Still. Returns whether it ran. */
   surge(amp: number): boolean {
     // started and moving (not under Reduce Motion, not hidden); a plate just drawn may not yet have been seen by its
@@ -237,17 +251,15 @@ export class PlateLight {
   /** The surges running now, for tests. */
   get surging(): number { return this.rushes.length; }
 
-  /** How much a surge is passing at u: its bright front and the let-go water behind it. */
+  /** How much fuller the water runs at u for what has been let go: more motes let by, nothing brighter or faster. */
   private rush(u: number): number {
     let r = 0;
     for (const s of this.rushes) {
       const front = this.uSign * this.len + (this.t - s.t0) * SURGE_SPEED, at = u * this.len;
       if (at < this.uSign * this.len - 2) continue;
-      const d = front - at;
-      if (d < -SURGE_FRONT * 2) continue;
-      r += s.amp * (d < 0 ? Math.exp(-((d / SURGE_FRONT) ** 2)) : Math.exp(-d / SURGE_BODY));
+      r += s.amp * calmRush(front - at);
     }
-    return Math.min(1.2, r);
+    return Math.min(1, r);
   }
 
   /** True while a frame is asked for. */
@@ -297,7 +309,7 @@ export class PlateLight {
   private paceAt(m: Mote) {
     const st = stretch(this.q(m.u));
     const above = m.u < this.uSign ? (this.uSign - m.u) * this.len : Infinity;
-    return st.pace * (above === Infinity ? 1 + 0.9 * this.rush(m.u) : pool(this.now.gate * this.held, above / (POOL_REACH / POOL_UNITS)));
+    return st.pace * (above === Infinity ? 1 : pool(this.now.gate * this.held, above / (POOL_REACH / POOL_UNITS)));
   }
 
   private step(dt: number) {
@@ -437,7 +449,6 @@ export class PlateLight {
     this.stamp(x, this.glowDot, sx, sy + size * 0.04, size * (0.26 + 0.06 * br), (0.05 + 0.07 * br) * open);
     this.drawWaterLight(x, hue, lit);
     this.drawMotes(x, hue, lit);
-    this.drawRushes(x, hue);
     this.drawFx(x, hue, lit);
     x.globalAlpha = 1;
     x.globalCompositeOperation = 'source-over';
@@ -490,10 +501,12 @@ export class PlateLight {
       const tinted = past > 0 && past < TINT_RUN ? (1 - past / TINT_RUN) * lit : 0;
       const c = mix(this.glow, hue, tinted * 0.85);
       const inSign = Math.hypot(hx - sx, hy - sy) < rin ? 1 : 0;
-      // the ends of the course fade, so the water comes from somewhere and goes on; each mote glints on its own beat
+      // the ends of the course fade, so the water comes from somewhere and goes on; each mote wavers on its own beat
       const edge = Math.min(1, m.u / 0.06, (1 - m.u) / 0.08);
       const twinkle = 0.6 + 0.4 * Math.sin(this.t * m.tw + m.ph);
-      const a = (0.18 + 0.5 * q) * edge * twinkle * (1 - 0.45 * inSign) * (1 + 1.3 * rush);
+      // a mote the let-go water lets by comes up from nothing and goes the same way
+      const letBy = m.k > st.share ? clamp01((st.share + rush - m.k) / LET_BY) : 1;
+      const a = (0.18 + 0.5 * q) * edge * twinkle * (1 - 0.45 * inSign) * letBy;
       x.globalAlpha = 1;
       x.strokeStyle = rgba(c, a * 0.4);
       x.lineWidth = m.w * 0.6;
@@ -502,38 +515,6 @@ export class PlateLight {
       x.globalAlpha = 1;
       x.fillStyle = rgba(mix(c, [255, 255, 255], 0.2), Math.min(1, a * 1.2));
       x.beginPath(); x.arc(hx, hy, m.w * 0.55, 0, Math.PI * 2); x.fill();
-      // now and then a glint: a short cross of light on the water
-      if (m.glint && twinkle > 0.93) {
-        const g = (twinkle - 0.93) / 0.07 * a, l = 2 + m.w * 3;
-        x.strokeStyle = rgba(c, g * 0.7);
-        x.lineWidth = 0.5;
-        x.beginPath(); x.moveTo(hx - l, hy); x.lineTo(hx + l, hy); x.moveTo(hx, hy - l * 0.7); x.lineTo(hx, hy + l * 0.7); x.stroke();
-      }
-    }
-  }
-
-  /** Each surge: the lantern flaring as it lets go, then a bright head running down with the let-go water behind it. */
-  private drawRushes(x: CanvasRenderingContext2D, hue: RGB) {
-    if (!this.rushes.length) return;
-    const [sx, sy] = this.scene.sign, size = this.scene.size;
-    const hueDot = this.hueDot, glowDot = this.glowDot;
-    for (const s of this.rushes) {
-      const age = this.t - s.t0, front = this.uSign + (age * SURGE_SPEED) / this.len;
-      // the sign lets it go: a flare in its hue, gone in about a second
-      const flare = Math.max(0, 1 - age / 1.1);
-      if (flare > 0) this.stamp(x, hueDot, sx, sy, size * (1.1 + 1.1 * (1 - flare)), 0.8 * s.amp * flare);
-      // the body: the let-go water lighting the course behind the front, fading toward the sign
-      for (let k = 0; k <= 10; k++) {
-        const u = front - (k * SURGE_BODY) / 10 / this.len;
-        if (u < this.uSign || u > 1) continue;
-        const [px, py] = this.at(u), f = Math.exp(-k / 4);
-        this.stamp(x, k < 3 ? glowDot : hueDot, px, py, 12 + 10 * f, 0.36 * s.amp * f);
-      }
-      if (front > 1) continue;
-      const [hx, hy] = this.at(front);
-      this.stamp(x, glowDot, hx, hy, 30, 0.7 * s.amp);
-      this.stamp(x, glowDot, hx, hy, 8, s.amp);
-      void hue;
     }
   }
 
