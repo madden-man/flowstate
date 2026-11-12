@@ -142,6 +142,7 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 - The carried sign is printed on the header's top line, before "No.", not on the date's own line, so the date keeps its line on a 375pt phone.
 - ♪ with no account raises the music sheet on the row that connects (Signs beside it); it no longer opens the Poems playlist in Spotify.
 - A question asked from a line still on the page is not printed again under "Asked · Questions"; the link is those words alone.
+- Root's four lanterns hang in two pairs on two heights, the outer one higher, so no word runs into the next word or lantern, and all four stay inside a 375pt screen.
 
 ## 11. Only the iPhone can say
 

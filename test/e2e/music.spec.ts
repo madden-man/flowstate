@@ -181,7 +181,8 @@ test('the ♪ line: the row that connects with no account; connected, a list of 
 
   // ---- Settings ticks the third: its grid appears under ♪
   await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: /^Playlists/ }).click();
+  // Settings' own row: the ♪ sheet just closed may still be leaving, with its Playlists segment on it
+  await page.locator('[data-sheet="Settings"]').getByRole('button', { name: /^Playlists/ }).click();
   await mine.getByRole('checkbox', { name: 'staging' }).click();
   await expect(mine.getByRole('checkbox', { name: 'staging' })).toHaveAttribute('aria-checked', 'true');
   await expect(mine.getByText(/^reading /)).toHaveCount(0);
@@ -246,10 +247,10 @@ test('the ♪ line: the row that connects with no account; connected, a list of 
   await shoot(page, 'album-pages');
 
   expect(errors).toEqual([]);
-  // the ♪ line's first move was the spotify: URI (a navigation the browser hands to the app); covers are
-  // local blob: URLs; everything else that left the origin went to Spotify, mocked
-  expect(outside).toContain(`spotify:playlist:${POEMS}`);
-  expect(outside.filter(u => !u.startsWith(`blob:${baseURL}/`) && !u.startsWith('spotify:playlist:')
+  // ♪ with no account asked nothing of Spotify (no spotify: URI, no web player); covers are local blob: URLs;
+  // everything else that left the origin went to Spotify, mocked
+  expect(outside.filter(u => u.startsWith('spotify:'))).toEqual([]);
+  expect(outside.filter(u => !u.startsWith(`blob:${baseURL}/`)
     && !/^https:\/\/(accounts|api|open)\.spotify\.com\/|^https:\/\/i\.scdn\.co\//.test(u))).toEqual([]);
 });
 
