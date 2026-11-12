@@ -167,6 +167,34 @@ describe('the touches on the plate', () => {
     expect(got).toEqual(['throat/send']);
   });
 
+  it('Send and I will take the caret inside the tap itself (no autofocus: the iPhone raises its keyboard only then)', async () => {
+    await choosePerson({ name: 'Ali', tel: '555 010 4471', text: '' });
+    for (const [chakra, id, label] of [['throat', 'send', 'Your sentence'], ['solar-plexus', 'i-will', 'One thing you will do']] as const) {
+      await draw(chakra);
+      // no act() and nothing awaited: when the click's own dispatch returns, the rule is drawn and holds the caret
+      word(id).click();
+      const rule = root!.querySelector<HTMLInputElement>('.ck-stage input.out-rule');
+      expect(rule, id).not.toBeNull();
+      expect(rule!.getAttribute('aria-label')).toBe(label);
+      expect(document.activeElement, id).toBe(rule);
+      expect(rule!.hasAttribute('autofocus')).toBe(false);
+      await flush();
+      render(null, root!); root!.remove(); root = undefined;
+    }
+  });
+
+  it('Send with no person yet: the tap that closes the person sheet puts the caret back on the rule', async () => {
+    await draw('throat');
+    act(() => word('send').click());
+    await flush();
+    const sheet = root!.querySelector('[data-sheet="One person"]')!;
+    type(sheet.querySelector<HTMLInputElement>('input[aria-label="Who"]')!, 'Ali');
+    (document.activeElement as HTMLElement | null)?.blur();
+    [...sheet.querySelectorAll<HTMLButtonElement>('button')].find(x => x.textContent === 'Done')!.click();
+    expect(document.activeElement).toBe(root!.querySelector('.ck-stage input.out-rule'));
+    await flush();
+  });
+
   it('Call goes to the number; Reach on the Heart and the Root to the person, his calm words in the body', async () => {
     await choosePerson({ name: 'Ali', tel: '555 010 4471', text: 'Hard hour.' });
     await draw('throat');

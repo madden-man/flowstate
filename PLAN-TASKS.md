@@ -52,7 +52,7 @@ Changes this makes to what is built:
 | Calendar | the line and its time | `calshow:` (the walk's helper) |
 | Spotify | the cover tapped | `src/music` |
 
-The sign travels with him: the place a touch lands shows a small sign in print beside the date, and a tap on it comes back (rule 28). The app writes no words of its own anywhere in this.
+The sign travels with him: the place a touch lands shows a small sign in print by the date (on the header's top line, right over it), and a tap on it comes back (rule 28). The app writes no words of its own anywhere in this.
 
 ## 4. Music on every sign
 
@@ -138,9 +138,13 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 - A touch releases 0.6 of what the gate holds (`SHARE`).
 - Grieve's stones show only while Grieve is the active word.
 - The shelf's plus shows only with Spotify connected, and adds albums only.
+- A sign's page has no Settings in its header: the sign's name is there, and the way back takes Settings' place, as on a question page.
+- The carried sign is printed on the header's top line, before "No.", not on the date's own line, so the date keeps its line on a 375pt phone.
+- ♪ with no account raises the music sheet on the row that connects (Signs beside it); it no longer opens the Poems playlist in Spotify.
+- A question asked from a line still on the page is not printed again under "Asked · Questions"; the link is those words alone.
 
 ## 11. Only the iPhone can say
 
 A thumb held on a canvas against Safari's scroll and back swipe; the keyboard over a rule drawn on the plate; `sms:` with a body, `tel:` and `calshow:` from the installed app, and what coming back looks like; print words on dark rock under a thumb; the surge read as relief and not as a reward.
 
-Found walking the whole feature (T6): whether the out-of-app rules (Send, I will) raise the keyboard at all, since they rely on `autoFocus` where the in-place rules call `focus()` inside the tap; the header at 390pt once "Solar plexus chakra" or the sign beside the date is on it (the date reaches the screen's edge in the walkthrough); a long press on a cover against iOS's own image callout; and the time field's wheel for I will.
+Found walking the whole feature (T6) and since fixed in code, still to be seen on the phone: the keyboard rising for every rule a touch draws (the tap itself now draws the rule and puts the caret on it, Send and I will included); the header at 390pt and 375pt with "Solar plexus chakra" or a carried sign on it. Still open: a long press on a cover against iOS's own image callout, and the time field's wheel for I will.

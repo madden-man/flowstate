@@ -115,7 +115,7 @@ test('the journal, offline: two paragraphs, a voice, keep close, ask this, and i
   await hold(page, first);
   await page.getByRole('button', { name: /Ask this/ }).click();
   await expect(page).toHaveURL(/#\/journal$/);
-  const asked = page.locator('.fs-link', { hasText: first });
+  const asked = page.getByRole('link', { name: `Asked · Questions: ${first}` });
   await expect(asked.locator('small')).toHaveText('Asked · Questions');
   await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
   await asked.click();

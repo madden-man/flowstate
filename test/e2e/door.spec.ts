@@ -71,7 +71,11 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await page.reload();
   await expect(signPage).toHaveAttribute('data-chakra', 'root');
 
-  // Settings: no door switch until there is a PIN; the Shortcut row is there either way
+  // Settings: no door switch until there is a PIN; the Shortcut row is there either way. A sign's header has no
+  // Settings (the way back stands in its place), so it is opened from the mountain, one tap back
+  await expect(page.locator('.fs-hdr').getByRole('button', { name: 'Settings' })).toHaveCount(0);
+  await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
+  await expect(page).toHaveURL(/#\/flow$/);
   await page.getByRole('button', { name: 'Settings' }).click();
   const settings = page.locator('[data-sheet="Settings"]');
   await expect(settings.locator('[data-shortcut-row]')).toContainText(`${baseURL}/#/flow/now`);

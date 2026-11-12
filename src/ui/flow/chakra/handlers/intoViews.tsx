@@ -29,7 +29,7 @@ export function IntoRule({ a, label, carry }: { a: TouchAct; label: string; carr
   };
   return (
     <div class="ck-into-rule" data-into={a.touch.id}>
-      <input ref={input} type="text" aria-label={label} value={text} enterKeyHint="go" autocomplete="off" spellcheck
+      <input ref={input} type="text" data-caret="" aria-label={label} value={text} enterKeyHint="go" autocomplete="off" spellcheck
         onInput={e => setText(e.currentTarget.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); void go(); }

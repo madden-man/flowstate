@@ -48,8 +48,9 @@ function Rising({ children }: { children: ComponentChildren }) {
 }
 
 /** The person he chose once, read; with none (or none with a number when need is 'tel') the person sheet rises. Closing
- *  it with no name, or still no number for a call, puts the word back at rest. */
-function usePerson(a: TouchAct, need: 'name' | 'tel') {
+ *  it with no name, or still no number for a call, puts the word back at rest. onChosen runs inside the tap that closes
+ *  the sheet (Send puts the caret back on its rule there, while the gesture still counts). */
+function usePerson(a: TouchAct, need: 'name' | 'tel', onChosen?: () => void) {
   const [person, setPerson] = useState<Person | undefined>();
   const [asking, setAsking] = useState(false);
   const ok = (p?: Person) => !!p?.name.trim() && (need === 'name' || !!telHref(p.tel));
@@ -65,6 +66,7 @@ function usePerson(a: TouchAct, need: 'name' | 'tel') {
   const sheet = (
     <Rising><PersonSheet open={asking} person={person} onClose={p => {
       setAsking(false);
+      if (p.name.trim()) onChosen?.();
       void choosePerson(p).then(kept => {
         const next = kept ?? (p.name.trim() ? p : undefined);
         setPerson(next);
@@ -80,20 +82,22 @@ const Out = ({ href, onGo, children, label }: { href: string; onGo: () => void; 
   <a class="out-go" href={href} aria-label={label} onClick={onGo}>{children}</a>
 );
 
-/** One rule on the plate he writes on. */
-const Rule = ({ value, onInput, label }: { value: string; onInput: (v: string) => void; label: string }) => (
-  <input class="out-rule" value={value} aria-label={label} autocomplete="off" enterkeyhint="done" autoFocus
+/** One rule on the plate he writes on. The caret is put on it by the tap that drew it (data-caret, ../Touches.tsx),
+ *  inside the gesture, as the iPhone's keyboard asks; never by autofocus, which comes after the tap is over. */
+const Rule = ({ value, onInput, label, inputRef }: { value: string; onInput: (v: string) => void; label: string; inputRef?: { current: HTMLInputElement | null } }) => (
+  <input ref={inputRef} class="out-rule" value={value} aria-label={label} autocomplete="off" enterkeyhint="done" data-caret=""
     onInput={e => onInput(e.currentTarget.value)} />
 );
 
 /** Throat, Send: his sentence on the rule, then the person's name opens Messages with it in the body. */
 function SendView(a: TouchAct) {
-  const { person, sheet } = usePerson(a, 'name');
+  const rule = useRef<HTMLInputElement>(null);
+  const { person, sheet } = usePerson(a, 'name', () => rule.current?.focus({ preventScroll: true }));
   const [line, setLine] = useState('');
   const go = useReturn(a);
   return (
     <div class="out-stage" data-out="send">
-      <Rule value={line} onInput={setLine} label="Your sentence" />
+      <Rule value={line} onInput={setLine} label="Your sentence" inputRef={rule} />
       {person && line.trim() && (
         <Out href={smsHref(person.tel, line.trim())} onGo={go} label={`${person.name}: opens Messages, nothing goes until you send it`}>
           {person.name}

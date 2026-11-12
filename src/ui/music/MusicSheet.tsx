@@ -2,7 +2,8 @@
 // list, titled Playlists: a row per chosen playlist, its name in serif and a strip of its first six covers
 // beneath (first-song order, from the kept covers, offline); the one playing carries the small cover beside
 // its name. No counts, in any light. Tap a name and the sheet shows that playlist's grid of square tiles, no
-// titles, every album in first-song order, the word Playlists at the head to go back. A tile plays that
+// titles, every album in first-song order, the word Playlists at the head to go back. With no account the
+// Playlists side is the row that connects (the Settings row), so ♪ never leaves the app. A tile plays that
 // playlist from the album's first song on the phone's Spotify, and it runs on into the next album. A tile
 // below the fold fetches its cover only when it is scrolled near. Works in Still, which never starts or
 // stops anything. How it moves (PLAN-MOTION.md M3) is in ./motion: the drop, the hush, the ring drawn once
@@ -17,8 +18,9 @@ import type { Playlist } from '../../db/schema';
 import { isFresh, type ShelfAlbum } from '../../music/covers';
 import { pagesWithAlbum, type AlbumPage } from '../../model/music';
 import { Cover } from './MusicLine';
-import { albumFor, asked, choosing, musicSegment, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf, type MusicSegment } from './state';
+import { albumFor, asked, choosing, connected, musicSegment, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf, type MusicSegment } from './state';
 import { Signs } from './Signs';
+import { MusicRows } from './MusicRows';
 import { effect } from '@preact/signals';
 import { deal, dealInto, drop, fly, hush, hushOf, takeDeal, unhush, unlight } from './motion';
 
@@ -59,7 +61,8 @@ export function MusicSheet() {
       {reading.value && !signs && <p class="fs-note">{reading.value}</p>}
       {playNote.value && <p class="fs-note" role="status">{playNote.value}</p>}
       {readNote.value && !playNote.value && !signs && <p class="fs-note" role="status">{readNote.value}</p>}
-      {shown ? <Grid key={shown.id} playlist={shown} /> : signs ? <Signs /> : <List list={list} rise={rise.current} />}
+      {shown ? <Grid key={shown.id} playlist={shown} /> : signs ? <Signs />
+        : connected.value ? <List list={list} rise={rise.current} /> : <Unconnected />}
     </Sheet>
   );
 }
@@ -73,6 +76,12 @@ function Segments({ here }: { here: MusicSegment }) {
       <button type="button" aria-current={here === 'playlists' ? 'true' : undefined} onClick={to('playlists')}>Playlists</button>
     </nav>
   );
+}
+
+/** With no account (Spotify is off by default): the Settings row that connects, here where ♪ was tapped, so the tap
+ *  stays in the app. Leaving for Spotify's sign-in is his own tap on that row, as it is in Settings. */
+function Unconnected() {
+  return <div class="fs-music-screen fs-music-connect"><MusicRows /></div>;
 }
 
 function List({ list, rise }: { list: Playlist[]; rise: boolean }) {

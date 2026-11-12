@@ -1,7 +1,7 @@
 // The music tie-in's state for the UI (PLAN.md section 8.1, PLAN-V3.md section 5). Every network call is in
 // src/music; every row goes through the store there and in src/model/music.ts. Off by default: with no account
-// the ♪ line only points the phone at the Poems playlist, and nothing else in the app changes. Connected, ♪
-// opens on the list of chosen playlists, and a name opens its grid of covers.
+// the ♪ sheet offers to connect (it never leaves the app by itself), and nothing else in the app changes. Connected,
+// ♪ opens on the list of chosen playlists, and a name opens its grid of covers.
 import { computed, signal } from '@preact/signals';
 import type { Album, PageMusic, Playlist } from '../../db/schema';
 import { settings, saveSettings, loadSettings } from '../settings';
@@ -16,7 +16,7 @@ import {
   readOne as readOnePlaylist, readChosen, readMine, playlistRows, choosePlaylist, shelf, albumRow, keepCover, coverWhenNear,
   type ReadHooks, type ShelfAlbum,
 } from '../../music/covers';
-import { ApiError, nowPlaying, openPlaylist as openInSpotify, playAlbum, TokenError, redirectUri } from '../../music/spotify';
+import { ApiError, nowPlaying, playAlbum, TokenError, redirectUri } from '../../music/spotify';
 import { noteMusic } from '../../model/music';
 
 /** The Spotify settings, kept in the settings row through saveSettings, so the signal never goes stale. */
@@ -56,7 +56,7 @@ export const asked = signal<string | null>(null);
 /** The step sheet's "+ album" (PLAN-PICKS.md P2): while set, a cover tapped on the ♪ sheet is chosen for the step's On
  *  row instead of played (no Spotify call, no bell), and the sheet goes down. Cleared when the sheet closes. */
 export const choosing = signal<((a: ShelfAlbum) => void) | null>(null);
-/** "+ album": the ♪ sheet rises on its list, to choose a cover from (only offered connected: unconnected, ♪ leaves the app). */
+/** "+ album": the ♪ sheet rises on its list, to choose a cover from (only offered connected: unconnected there is no grid to choose from). */
 export function chooseAlbum(then: (a: ShelfAlbum) => void) {
   tapMusic();
   choosing.value = then;
@@ -263,15 +263,16 @@ export async function disconnectSpotify() {
   outcome.value = null;
 }
 
-/** The ♪ line: with no account, open the Poems playlist in Spotify; connected, the music sheet on its list.
- *  The first ♪ of a session reads the list too (and any chosen playlist whose snapshot has moved), so a
+/** The ♪ line: the music sheet on its list, connected or not. A tap on ♪ never leaves the app: with no account the
+ *  sheet's Playlists side is the Settings row that connects (MusicSheet.tsx), and Signs shows the seven shelves.
+ *  Connected, the first ♪ of a session reads the list too (and any chosen playlist whose snapshot has moved), so a
  *  playlist ticked by name, or changed in Spotify, comes without a trip to Settings. */
 export function tapMusic() {
-  if (!connected.peek()) { openInSpotify(); return; }
   playNote.value = null;
   openPlaylist.value = null;
   openSheet.value = 'music';
   tick('sheet');
+  if (!connected.peek()) return;
   void loadMusic().then(() => { if (!latest.size && !reading.peek() && !paused()) void readPlaylists(); });
 }
 

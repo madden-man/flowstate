@@ -1,5 +1,5 @@
-// The music tie-in (package 7, V7). With no account the ♪ line is a navigation to the Poems playlist,
-// asserted and not followed. Then a Spotify sign-in against mocked Spotify endpoints: the app's own connect
+// The music tie-in (package 7, V7). With no account the ♪ line raises the sheet on the row that connects
+// and the page stays in the app. Then a Spotify sign-in against mocked Spotify endpoints: the app's own connect
 // flow and store write the tokens, /me/playlists lists three owned playlists (and one of someone else's,
 // left out), the Poems playlist is ticked by the first read, and Settings ticks master (ii). ♪ opens on the
 // list of the two, each with its strip of covers; a name opens its grid in first-song order; a tile plays on
@@ -10,7 +10,6 @@ import { test, expect, type Page } from '@playwright/test';
 import { deflateSync } from 'node:zlib';
 
 const POEMS = '0T6Gzc2hN81u3vGC5IJZ9a';
-const PLAYLIST_WEB = `https://open.spotify.com/playlist/${POEMS}`;
 const SHOTS = process.env.SHOTS;
 
 /** A tiny solid PNG, made here, so no image is downloaded from anywhere. */
@@ -103,7 +102,7 @@ async function shoot(page: Page, name: string, target = page.locator('.fs-app'))
   }
 }
 
-test('the ♪ line: a link with no account; connected, a list of playlists, each grid plays on its own, offline from kept covers', async ({ page, context, baseURL }) => {
+test('the ♪ line: the row that connects with no account; connected, a list of playlists, each grid plays on its own, offline from kept covers', async ({ page, context, baseURL }) => {
   const outside: string[] = [];
   const errors: string[] = [];
   context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
@@ -114,13 +113,17 @@ test('the ♪ line: a link with no account; connected, a list of playlists, each
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 
-  // ---- no account: ♪ is a navigation to the Poems playlist, never a fetch. Asserted, not followed.
+  // ---- no account: ♪ raises the sheet on the row that connects; nothing is asked of Spotify and the page stays here
   const web: string[] = [];
   await page.route('https://open.spotify.com/**', route => { web.push(route.request().url()); return route.fulfill({ status: 204 }); });
   await page.getByRole('button', { name: 'Music', exact: true }).click();
-  await expect.poll(() => web).toEqual([PLAYLIST_WEB]);
-  await expect(page.locator('[data-sheet="Playlists"]')).toHaveCount(0);
+  const unconnected = page.locator('[data-sheet="Playlists"]');
+  await expect(unconnected.getByRole('button', { name: /Music\s*Connect Spotify/ })).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(web).toEqual([]);
   await expect(page).toHaveURL(/#\/journal$/);
+  await unconnected.getByRole('button', { name: 'Done' }).click();
+  await expect(unconnected).toHaveCount(0);
 
   // ---- connect against mocked Spotify: the code comes back, the URL is cleaned, Settings shows the account
   let nowPlaying: object | null = null;
