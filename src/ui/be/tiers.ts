@@ -29,6 +29,8 @@ export const rowsOf = (t: Tiers, p: ValuePlace): Read<Value>[] =>
  * it has none, its landing rule; then the Resting word when something rests and its rows when that shelf is open; then
  * the Legacy word and rows the same. Every slot has a key unique across the run, so the list is one flat keyed run and a
  * row that changes place moves instead of being drawn again (B2's drag swaps past a heading as it swaps past a row).
+ * While a row is lifted (B2) there is somewhere to drop everywhere: every tier ends in its landing rule, and both
+ * shelves show open, empty or not, each opening with one.
  */
 export type Slot =
   | { kind: 'heading'; key: string; place: Tier }
@@ -36,19 +38,20 @@ export type Slot =
   | { kind: 'land'; key: string; place: ValuePlace }
   | { kind: 'shelf'; key: string; place: 'resting' | 'legacy'; open: boolean };
 
-export function slots(t: Tiers, open: { resting: boolean; legacy: boolean }): Slot[] {
+export function slots(t: Tiers, open: { resting: boolean; legacy: boolean }, lifting = false): Slot[] {
   const out: Slot[] = [];
   for (const p of TIERS) {
     out.push({ kind: 'heading', key: `heading-${p}`, place: p });
     const rows = rowsOf(t, p);
     for (const value of rows) out.push({ kind: 'row', key: value.id, place: p, value });
-    if (!rows.length) out.push({ kind: 'land', key: `land-${p}`, place: p });
+    if (!rows.length || lifting) out.push({ kind: 'land', key: `land-${p}`, place: p });
   }
   for (const p of ['resting', 'legacy'] as const) {
     const rows = rowsOf(t, p);
-    if (!rows.length) continue;
-    out.push({ kind: 'shelf', key: `shelf-${p}`, place: p, open: open[p] });
-    if (open[p]) for (const value of rows) out.push({ kind: 'row', key: value.id, place: p, value });
+    if (!rows.length && !lifting) continue;
+    out.push({ kind: 'shelf', key: `shelf-${p}`, place: p, open: open[p] || lifting });
+    if (lifting) out.push({ kind: 'land', key: `land-${p}`, place: p });
+    if (open[p] || lifting) for (const value of rows) out.push({ kind: 'row', key: value.id, place: p, value });
   }
   return out;
 }

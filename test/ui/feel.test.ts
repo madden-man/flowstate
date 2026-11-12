@@ -48,6 +48,8 @@ const TICKS: Record<string, string[]> = {
   for: ['src/ui/parts/SpokeFor.tsx'],
   // PLAN-VALUES.md C3: a voice takes up a value or leaves it, from the value, from the voice, or on the voice sheet
   champion: ['src/ui/be/ChampionSheet.tsx'],
+  // PLAN-TIERS.md B2: a lifted value crossing into another place on Be (its landing is drop)
+  tier: ['src/ui/be/Be.tsx'],
 };
 // Rule 21: unlock, settling, keep close, choosing an album, the breath tone while the ring is held (F2),
 // the bell that closes a sit with an end (Meditate, S2), the rising fifth on a swap (PLAN-ENERGIZE.md X3).
@@ -61,6 +63,8 @@ const BELLS: Record<string, string[]> = {
   sitEnd: ['src/ui/flow/Meditate.tsx'],
   // PLAN-ENERGIZE.md X3: the rising fifth on a swap
   swap: ['src/ui/flow/DeckSheet.tsx'],
+  // PLAN-TIERS.md B2: the small bell beside the tier tick, as a lifted value crosses into another place
+  tier: ['src/ui/be/Be.tsx'],
 };
 
 const allowed = (table: Record<string, string[]>, line: string) => {
@@ -80,8 +84,8 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('the listed events that exist so far all fire somewhere', () => {
     const ticks = new Set(calls('tick').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
     const bells = new Set(calls('bell').map(l => l.replace(/^.*\((\w+)\)$/, '$1')));
-    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal', 'for', 'champion']) expect(ticks, t).toContain(t);
-    for (const b of ['unlock', 'settle', 'keep', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap']) expect(bells, b).toContain(b);
+    for (const t of ['unlock', 'tab', 'check', 'drop', 'detent', 'still', 'keep', 'sheet', 'breath', 'album', 'sit', 'swap', 'deal', 'for', 'champion', 'tier']) expect(ticks, t).toContain(t);
+    for (const b of ['unlock', 'settle', 'keep', 'album', 'breathIn', 'breathOut', 'sitEnd', 'swap', 'tier']) expect(bells, b).toContain(b);
   });
   it('the ring is silent: leaving Still neither ticks nor rings', () => {
     const ring = fs.readFileSync('src/ui/parts/Ring.tsx', 'utf8');
