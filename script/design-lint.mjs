@@ -17,6 +17,8 @@ const inUi = f => /(^|\/)src\/ui\//.test(f);
 const isSound = f => /parts\/Sound\.(ts|tsx)$/.test(f);
 const isHaptic = f => /parts\/Haptic\.(ts|tsx)$/.test(f);
 const isMusic = f => /(^|\/)src\/music\//.test(f);
+// Research (PLAN-RESEARCH.md): the second fenced place allowed to reach out, opt-in like the first.
+const isResearch = f => /(^|\/)src\/research\//.test(f);
 
 const rules = [
   { id: 'DL1 colour literal outside tokens.css', skip: isTokens, re: /(#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{3}\b(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab)\(\s*[\d.])/ , where: l => !/^\s*\/\//.test(l) },
@@ -27,7 +29,7 @@ const rules = [
   { id: 'DL7 icon library', re: /\b(lucide|heroicons|font-?awesome|phosphor-icons|material-icons|tabler-icons|ionicons|react-icons)\b/i },
   { id: 'DL18 navigator.vibrate outside parts/Haptic', skip: isHaptic, re: /navigator\.vibrate/ },
   { id: 'DL20 AudioContext outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b/ },
-  { id: 'DL21 fetch outside src/music', only: f => inSrc(f) && !isMusic(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
+  { id: 'DL21 fetch outside src/music and src/research', only: f => inSrc(f) && !isMusic(f) && !isResearch(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
   // DESIGN.md rule 34: the seven are Crown to Root, never their Sanskrit names (in their common spellings), and nothing
   // borrowed from the tradition's drawing or its words for what rises
