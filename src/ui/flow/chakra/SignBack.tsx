@@ -1,5 +1,5 @@
-// The sign beside the date (PLAN-TASKS.md T3, section 3; DESIGN.md rule 28, the way back): on a page a sign's touch
-// carried him to, the header prints that sign small, drawn in print (its outline only, parts/Sign's own paths, no hue,
+// The sign over the date (PLAN-TASKS.md T3, section 3; DESIGN.md rule 28, the way back): on a page a sign's touch
+// carried him to, the header prints that sign small on its top line (before "No.", so the date's line stays short), drawn in print (its outline only, parts/Sign's own paths, no hue,
 // so it is the same in all three lights), and a tap on it goes back to the sign's page, where the touch is done
 // (./carry.ts). A journal page linked to a sign (page.sign) prints it on any later opening too.
 import { useContext } from 'preact/hooks';

@@ -88,14 +88,15 @@ export function Rule({ x, y, w, value, onInput, onEnter, label, word, focus = tr
   const ref = inputRef ?? own;
   useEffect(() => {
     if (!focus) return;
-    // asked inside the tap's own turn where it can be (the iPhone raises its keyboard only then); the rule lies in the
+    // the tap that drew the rule has already put the caret here, inside the gesture (data-caret, ../Touches.tsx: the
+    // iPhone raises its keyboard only then); this is for a rule drawn later (the next stone). The rule lies in the
     // plate's upper part, so the keyboard does not cover it once it has risen
     const el = ref.current;
     el?.focus({ preventScroll: true });
   }, [focus]);
   return (
     <label class={`pl-rule${cls ? ` ${cls}` : ''}`} style={at(x, y, w)}>
-      <input ref={ref} class="pl-input" type="text" value={value} aria-label={label} maxLength={maxLength}
+      <input ref={ref} class="pl-input" type="text" data-caret={focus ? '' : undefined} value={value} aria-label={label} maxLength={maxLength}
         autocomplete="off" autocapitalize={word ? 'none' : 'sentences'} spellcheck={false} enterkeyhint="done"
         onInput={e => { const v = (e.currentTarget as HTMLInputElement).value; onInput(word ? v.replace(/\s+/g, '') : v); }}
         onKeyDown={e => {

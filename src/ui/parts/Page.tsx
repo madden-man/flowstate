@@ -32,7 +32,8 @@ type Props = {
   pages?: 'link' | 'here';
   /** The way back from a section's page, in the place of Pages and Settings (V2: Questions on a question page). */
   back?: { word: string; href: string };
-  /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). */
+  /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). A sign's
+   *  page does not: "Solar plexus chakra" is on its header, so there the way back takes Settings' place. */
   keepSettings?: boolean;
   /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
   count?: string;
@@ -43,7 +44,7 @@ type Props = {
   door?: { ask: (then: 'still' | 'flow') => void };
   /** False while the page is still reading what it draws (M2): a page turn waits for it, a moment at most. */
   drawn?: boolean;
-  /** The sign this page is linked to (page.sign, PLAN-TASKS.md T3): printed beside the date, a tap goes back to it. A
+  /** The sign this page is linked to (page.sign, PLAN-TASKS.md T3): printed over the date, a tap goes back to it. A
    *  page a sign's touch carried him to prints that sign whether or not it is linked (flow/chakra/SignBack.tsx). */
   sign?: string;
   children?: ComponentChildren;
@@ -79,10 +80,15 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, k
         <MusicLine page={music} />
       </div>
       <div class="fs-hdr-r">
-        {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
-        {count && <span class="fs-count">{count}</span>}
-        {label && <span class="fs-hdr-label">{label}</span>}
-        <span><SignBack sign={sign} />Date: <b>{notebookDate(date)}</b></span>
+        {/* the top line: the sign carried here stands before whatever the page prints there, so the date's own line is
+            never longer than "Date: 11 / 12 / 26" and fits a 375pt phone beside the header's words */}
+        <span class="fs-hdr-top">
+          <SignBack sign={sign} />
+          {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
+          {count && <span class="fs-count">{count}</span>}
+          {label && <span class="fs-hdr-label">{label}</span>}
+        </span>
+        <span>Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>
   );

@@ -4,8 +4,12 @@
 // aria-pressed). A tap on the active word puts it back at rest. While a word is active its handler's View, if it has
 // one, is drawn over the plate in .ck-stage (T2's materials).
 // Through the door (section 7) only the touches with door: true are printed, and a touch writes nothing.
+// The caret: a touch that draws a rule to write on (in the place, into the app, out of it) marks its input data-caret,
+// and the tap itself puts the caret there: the View is drawn inside the tap (flushSync) and focus() is called before the
+// handler returns, because the iPhone raises its keyboard only for a focus asked inside the gesture.
 // Still: the words are the plate's print and its line colour, no hue. Reduce Motion: a word lights at once.
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { flushSync } from 'preact/compat';
 import { useLocation } from 'preact-iso';
 import { touchesOf, type Touch } from '../../../model/acts';
 import { chakraOf, type ChakraId } from '../../../model/mountain';
@@ -17,6 +21,7 @@ export function Touches({ chakra, door = false, still = false }: { chakra: Chakr
   const { route } = useLocation();
   const [active, setActive] = useState<string | null>(null);
   const cleanup = useRef<(() => void) | undefined>(undefined);
+  const stage = useRef<HTMLDivElement>(null);
   const all = touchesOf(chakra);
   const shown = door ? all.filter(t => t.door) : all;
   const lead = shown.find(t => t.lead);
@@ -31,7 +36,9 @@ export function Touches({ chakra, door = false, still = false }: { chakra: Chakr
   const tap = (t: Touch) => {
     release();
     if (active === t.id) { setActive(null); return; }
-    setActive(t.id);
+    // drawn now, inside the tap, so the rule is there to take the caret while the gesture still counts
+    flushSync(() => setActive(t.id));
+    stage.current?.querySelector<HTMLElement>('[data-caret]')?.focus({ preventScroll: true });
     cleanup.current = onTouch(chakra, t, ctx);
   };
 
@@ -41,7 +48,7 @@ export function Touches({ chakra, door = false, still = false }: { chakra: Chakr
 
   return (
     <>
-      {View && act && <div class="ck-stage"><View {...act} /></div>}
+      {View && act && <div ref={stage} class="ck-stage"><View {...act} /></div>}
       <div class="ck-touches" role="group" aria-label={chakraOf(chakra).name} data-door={door ? '' : undefined}>
         {shown.map((t, k) => {
           const at = atOf(chakra, t.id, k);

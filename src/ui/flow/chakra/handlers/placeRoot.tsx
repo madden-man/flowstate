@@ -87,8 +87,10 @@ function Breathe({ touch, done }: TouchAct) {
   );
 }
 
-/** The four lanterns, hung in the back rank of firs either side of the stream, in BASICS order, in box units. */
-export const LANTERNS: Readonly<Record<BasicId, [number, number]>> = { ate: [118, 128], slept: [143, 136], water: [251, 136], outside: [276, 124] };
+/** The four lanterns, hung in the back rank of firs either side of the stream, in BASICS order, in box units. Each
+ *  pair stands more than a thumb apart and on two heights, the outer one higher, so no word runs into the next word or
+ *  the next lantern, and all four stay inside a 375pt screen (the box shows from about 75 to 315 there). */
+export const LANTERNS: Readonly<Record<BasicId, [number, number]>> = { ate: [103, 122], slept: [146, 138], water: [246, 138], outside: [289, 122] };
 
 function Lantern({ id, word, lit, onTap }: { id: BasicId; word: string; lit: boolean; onTap: () => void }) {
   const [x, y] = LANTERNS[id];

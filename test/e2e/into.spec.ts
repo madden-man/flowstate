@@ -16,8 +16,9 @@ const open = async (page: Page, hash: string) => {
 const backTo = async (page: Page, chakra: string) => {
   const sign = page.locator(`.fs-hdr-r [data-sign-back="${chakra}"]`);
   await expect(sign).toBeVisible();
-  // beside the date, on its line
-  await expect(page.locator('.fs-hdr-r > span', { has: page.locator(`[data-sign-back="${chakra}"]`) })).toContainText('Date:');
+  // by the date: on the header's top line, right over it, so the date's own line stays short
+  await expect(page.locator('.fs-hdr-r > .fs-hdr-top', { has: page.locator(`[data-sign-back="${chakra}"]`) })).toBeVisible();
+  await expect(page.locator('.fs-hdr-r > span').last()).toContainText('Date:');
   const b = (await sign.boundingBox())!;
   expect(b.width).toBeGreaterThan(0);
   await sign.click();
@@ -42,6 +43,9 @@ test('Ask: the line written on the plate lands on today\'s page, asked, with the
   await expect(page).toHaveURL(/#\/journal$/);
   await expect(page.locator('.fs-msg p', { hasText: 'What am I not seeing?' })).toBeVisible();
   await expect(page.locator('.fs-links a', { hasText: 'Asked · Questions' })).toBeVisible();
+  // the question is printed once: on its line, not again under the link
+  await expect(page.locator('.fs-col').getByText('What am I not seeing?', { exact: true })).toHaveCount(1);
+  await expect(page.locator('.fs-links a')).toHaveText('Asked · Questions');
   // Turn to answer open: the next rule, under the line, in italic, the caret on it
   const answer = page.locator('.fs-msg.fs-wise textarea');
   await expect(answer).toBeFocused();
@@ -55,7 +59,7 @@ test('Ask: the line written on the plate lands on today\'s page, asked, with the
   // the question is under the ?
   await backTo(page, 'third-eye');
   await page.goto('/#/questions');
-  await expect(page.getByText('What am I not seeing?')).toBeVisible();
+  await expect(page.getByRole('link', { name: /What am I not seeing\?/ })).toBeVisible();
   // today's page stays linked to the sign: the sign still prints there
   await page.goto('/#/journal');
   await expect(page.locator('.fs-hdr-r [data-sign-back="third-eye"]')).toBeVisible();

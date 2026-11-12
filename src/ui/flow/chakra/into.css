@@ -1,5 +1,5 @@
 /* Into the app (PLAN-TASKS.md T3): what a touch that goes into the app draws on its sign's plate while its word is
-   active (./handlers/into.tsx), and the sign it carries, printed beside the date on the page it lands (./SignBack.tsx).
+   active (./handlers/into.tsx), and the sign it carries, printed over the date on the page it lands (./SignBack.tsx).
    Every colour is a token: the plate's (R0) on the plate, the page's in the header. */
 
 /* ---- one rule on the plate: his line, written before it is carried (Ask, Bring it, Write from it) ---- */
@@ -59,7 +59,7 @@
 }
 .ck-value:focus-visible { outline: 2px solid var(--glow); outline-offset: -4px; border-radius: var(--s1); }
 
-/* ---- the sign carried, beside the date on the page it lands: drawn in print, a thumb's target round it ---- */
+/* ---- the sign carried, over the date on the page it lands: drawn in print, a thumb's target round it ---- */
 .ck-signback {
   appearance: none; border: 0; background: transparent; cursor: pointer; color: var(--print);
   display: inline-grid; place-items: center; vertical-align: middle;

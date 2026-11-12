@@ -545,6 +545,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const date = page ? new Date(page.createdAt) : new Date();
   const pageLabel = isToday ? "Today's page" : 'This page';
   const written = shown.some(m => m.text.trim());
+  const onPage = new Set(shown.map(m => m.text.trim()));
   const starred = vs.chips.filter(v => v.starred);
   const lastArea = [...blocks].reverse().find(b => b.id === cur || b.id === tailId)?.id;
   let prevAt = page?.createdAt;
@@ -625,12 +626,17 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
         })}
         {!!data?.links.length && (
           <nav class="fs-links" aria-label="Linked pages">
-            {data.links.map(l => (
-              <a key={l.page.id} class="fs-link" href={hrefOf(l.page)}>
-                <small>{linkWords(l.label)}</small>
-                <span>{l.line || notebookDate(new Date(l.page.createdAt))}</span>
-              </a>
-            ))}
+            {data.links.map(l => {
+              // a question asked from a line still on this page is not printed a second time under it: the line is
+              // right there, so the link is its print words alone (reworded on its own page, it shows again)
+              const here = l.label === 'Asked' && !!l.line && onPage.has(l.line.trim());
+              return (
+                <a key={l.page.id} class="fs-link" href={hrefOf(l.page)} aria-label={here ? `${linkWords(l.label)}: ${l.line}` : undefined}>
+                  <small>{linkWords(l.label)}</small>
+                  {!here && <span>{l.line || notebookDate(new Date(l.page.createdAt))}</span>}
+                </a>
+              );
+            })}
           </nav>
         )}
       </div>

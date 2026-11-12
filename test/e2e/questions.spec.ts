@@ -44,7 +44,9 @@ test('ask a line, find it under the ?, write to it, This answers it, and it rest
   await hold(page, asked);
   await expect(page.getByRole('button', { name: 'This answers it' })).toHaveCount(0);
   await page.getByRole('button', { name: /Ask this/ }).click();
-  await expect(page.locator('.fs-link', { hasText: asked }).locator('small')).toHaveText('Asked · Questions');
+  // the question stays on its line; the link under the page is its print words alone, the question printed once
+  await expect(page.getByRole('link', { name: `Asked · Questions: ${asked}` })).toHaveText('Asked · Questions');
+  await expect(page.locator('.fs-col').getByText(asked, { exact: true })).toHaveCount(1);
 
   // the ? tab: the question waits, open, with no state word and no placeholder
   await tabs(page).getByRole('link', { name: 'Questions' }).click();

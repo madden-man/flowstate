@@ -74,7 +74,7 @@ export function FlowRoute({ id, step, chakra }: { id?: string; step?: string; ch
   }, [id, chakra, dataVersion.value]);
   // #/flow/c with no sign is the mountain itself
   if ((chakra !== undefined && !home) || (id === 'c' && chakra === undefined)) return <Redirect to="/flow" />;
-  if (home === undefined) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} keepSettings drawn={false}><div class="fs-sheetof fs-rules" /></Page>;
+  if (home === undefined) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} drawn={false}><div class="fs-sheetof fs-rules" /></Page>;
   // another sign is another page: a hand-off to it opens it afresh
   if (home) return <ChakraPage key={home} chakra={home} focus={chakra !== undefined ? undefined : id} step={step} />;
   return <FlowPage id={id!} step={step} />;
@@ -100,7 +100,7 @@ export function DoorChakraPage({ chakra }: { chakra: string }) {
   const still = light.value === 'still';
   const foot = safetyFoot(chakra, [], false);
   return (
-    <Page label={c.pageName} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={{ ask: askPin }}>
+    <Page label={c.pageName} back={{ word: 'Flow', href: '#/flow' }} door={{ ask: askPin }}>
       <div class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-door="">
         <Plate chakra={chakra} gate={0} above={1}>
           <Touches chakra={chakra} door still={still} />
@@ -145,8 +145,10 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
     return () => { on = false; };
   }, [chakra, version, dataVersion.value]);
 
+  // no Settings on a sign's header: its name is there ("Solar plexus chakra"), so the way back takes Settings' place,
+  // as on a question page; Settings is on the mountain, one tap back
   const back = { word: 'Flow', href: '#/flow' };
-  if (!data) return <Page label={c.pageName} back={back} keepSettings drawn={false}><div class="fs-sheetof fs-rules ck-page" /></Page>;
+  if (!data) return <Page label={c.pageName} back={back} drawn={false}><div class="fs-sheetof fs-rules ck-page" /></Page>;
 
   const { items, homes, readings } = data;
   const still = light.value === 'still';
@@ -213,7 +215,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   const rows = shown && { ...shown, tips: shown.tips.filter(t => !t.wise) };
 
   return (
-    <Page label={c.pageName} back={back} keepSettings>
+    <Page label={c.pageName} back={back}>
       <div class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-saved={writing ? 'false' : 'true'}
         data-front={front?.flow.id} data-showing={showing} data-gating={gateLive !== null ? '' : undefined}>
         <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above}>

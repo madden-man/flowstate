@@ -52,7 +52,7 @@ Changes this makes to what is built:
 | Calendar | the line and its time | `calshow:` (the walk's helper) |
 | Spotify | the cover tapped | `src/music` |
 
-The sign travels with him: the place a touch lands shows a small sign in print beside the date, and a tap on it comes back (rule 28). The app writes no words of its own anywhere in this.
+The sign travels with him: the place a touch lands shows a small sign in print by the date (on the header's top line, right over it), and a tap on it comes back (rule 28). The app writes no words of its own anywhere in this.
 
 ## 4. Music on every sign
 
@@ -143,9 +143,14 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 - No book or art is seeded under any sign.
 - An album with no kept cover is an empty tile with its title on it in print (four lines at most), not a written row and not a blank. The seed carries a Spotify id and no art, and the app fetches nothing without an account, so a starter shows its real cover only once the ♪ grid has kept it (a connection, with the album on a chosen playlist) or it has played from here. The other honest way is to ship the 21 starter covers inside the app (they are in `design/tasks/` for the walkthrough); not done, his call.
 - The title leaves the empty tile in Still and on the ♪ sheet's small rows (no room at a thumb's width), so there the three are told apart only by a screen reader.
-- With no account, a tap on any shelf tile opens that album in Spotify (the app, then the web player), the way the header's ♪ opens the Poems playlist.
+- With no account, a tap on any shelf tile opens that album in Spotify (the app, then the web player). The header's ♪ does not: with no account it raises the music sheet on the row that connects.
 - The shelf remembers how much room it took (rows of covers, written lines: two numbers a sign, in localStorage, no title) so the next first paint holds the same height. A shelf is never shorter than one row of covers, even emptied.
 - A lifted cover or line: an ink ring, the rest of the shelf at 45 percent, the plus's place struck in ink. A lift is put down if Still comes on.
+- A sign's page has no Settings in its header: the sign's name is there, and the way back takes Settings' place, as on a question page.
+- The carried sign is printed on the header's top line, before "No.", not on the date's own line, so the date keeps its line on a 375pt phone.
+- ♪ with no account raises the music sheet on the row that connects (Signs beside it); it no longer opens the Poems playlist in Spotify.
+- A question asked from a line still on the page is not printed again under "Asked · Questions"; the link is those words alone.
+- Root's four lanterns hang in two pairs on two heights, the outer one higher, so no word runs into the next word or lantern, and all four stay inside a 375pt screen.
 
 ## 11. Only the iPhone can say
 
@@ -153,4 +158,4 @@ A thumb held on a canvas against Safari's scroll and back swipe; the keyboard ov
 
 The shelf pass (2026-11-12): whether `spotify:album:` then the web player opens the album from the installed app with no account, and what coming back looks like; whether the title on an empty tile reads at arm's length at 11pt; the ink ring under a thumb that covers most of a 66pt cover.
 
-Found walking the whole feature (T6): whether the out-of-app rules (Send, I will) raise the keyboard at all, since they rely on `autoFocus` where the in-place rules call `focus()` inside the tap; the header at 390pt once "Solar plexus chakra" or the sign beside the date is on it (the date reaches the screen's edge in the walkthrough); a long press on a cover against iOS's own image callout; and the time field's wheel for I will.
+Found walking the whole feature (T6) and since fixed in code, still to be seen on the phone: the keyboard rising for every rule a touch draws (the tap itself now draws the rule and puts the caret on it, Send and I will included); the header at 390pt and 375pt with "Solar plexus chakra" or a carried sign on it. Still open: a long press on a cover against iOS's own image callout, and the time field's wheel for I will.
