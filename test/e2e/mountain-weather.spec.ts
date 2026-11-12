@@ -305,7 +305,7 @@ test('fixes: every sign\'s whole box opens its page; its gate lies wholly under 
   await expect.poll(() => line.evaluate(l => getComputedStyle(l).strokeDasharray)).toBe('none');
 });
 
-test('fixes: a cancelled gate drag puts the plate back exactly, with no surge, no ring and no write', async ({ page }) => {
+test('fixes: a cancelled gate drag puts the plate back exactly, with no surge and no write', async ({ page }) => {
   const plate = await settled(page);
   const rule = page.getByRole('slider', { name: 'Heart gate' });
   const box = (await rule.boundingBox())!;
@@ -320,10 +320,11 @@ test('fixes: a cancelled gate drag puts the plate back exactly, with no surge, n
   await expect(plate).toHaveAttribute('data-gates', '0.000,0.000,0.000,0.000,0.000,0.000,0.000');
   await page.waitForTimeout(400);
   const after = await page.evaluate(() => {
-    const p = (window as unknown as { __mountain: { plate: { water: { surgeAmp: Float32Array; pooled: Float32Array }; rings: { age: number }[] } } }).__mountain.plate;
-    return { surge: Math.max(...p.water.surgeAmp), pooled: Math.max(...p.water.pooled), rings: p.rings.filter(r => r.age >= 0).length };
+    const p = (window as unknown as { __mountain: { plate: { water: { surgeAmp: Float32Array; pooled: Float32Array } } } }).__mountain.plate;
+    return { surge: Math.max(...p.water.surgeAmp), pooled: Math.max(...p.water.pooled) };
   });
-  expect(after).toEqual({ surge: 0, pooled: 0, rings: 0 });
+  // no ring to count: the calm stream (rule 34, PR #79) sends none out
+  expect(after).toEqual({ surge: 0, pooled: 0 });
   await page.mouse.up();
   expect(await readings(page)).toEqual([]);
 });
@@ -361,17 +362,4 @@ test('fixes: a change caught on its way down by a hidden page is drawn arrived o
   // the sea already has what got through, at once
   const q = await page.evaluate(() => Array.from((window as unknown as { __mountain: { plate: { water: { q: Float32Array } } } }).__mountain.plate.water.q));
   expect(q[7]).toBeLessThan(0.3);
-});
-
-test('fixes: a ring going out in its hue does not finish into Still', async ({ page }) => {
-  await settled(page);
-  await page.evaluate(() => (window as unknown as { __mountain: { set: (d: number, g: number[]) => void } }).__mountain.set(0, [0, 0, 0.9, 0, 0, 0, 0]));
-  await page.waitForTimeout(3000);
-  await page.evaluate(() => (window as unknown as { __mountain: { set: (d: number, g: number[]) => void } }).__mountain.set(0, [0, 0, 0, 0, 0, 0, 0]));
-  const rings = () => page.evaluate(() => (window as unknown as { __mountain: { plate: { rings: { age: number }[] } } }).__mountain.plate.rings.filter(r => r.age >= 0).length);
-  await expect.poll(rings, { timeout: 4000 }).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'Still', exact: true }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect.poll(rings, { timeout: 1000 }).toBe(0);
-  await page.getByRole('button', { name: 'Leave Still' }).click();
 });
