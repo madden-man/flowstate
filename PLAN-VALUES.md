@@ -1,6 +1,6 @@
 # FlowState Be: values, shadows and champions
 
-Date: 2026-11-11. Status: built, packages C0 to C6 on `be-values-plan` (C6: the rules, the walkthroughs rebuilt from the real app, dead code out). Reworked the same day on Tommy's correction: "shadow values shouldn't have negative connotations: they're positive voices that are typically based on self preservation." Packages are C0 to C6 (C for champion). Tommy's ask: "make a plan to entirely rework the 'be' section of flow state. rather than having goals within paradoxes, i want the main page to be a list of values that comprise the overall identity i want to build, and only when clicking on that value does its 'shadow' value show (to create a lesser paradox). then, rather than having a graph with goals and all, i want those values to be 'championed' by various council members, and i want it to be really easy to be flexible with it (council members can have more than one value, values can have more than one council member, etc). consider how to make it both fun and useful, so that during council sessions a given voice can say 'i'm fighting for XYZ value'."
+Date: 2026-11-11. Status: built, packages C0 to C6 on `be-values-plan` (C6: the rules, the walkthroughs rebuilt from the real app, dead code out). Superseded in part by PLAN-TIERS.md (built 2026-11-12): the one flat list became the tiers First, Second and Third with the Resting and Legacy shelves, the sheet lost its Held or Resting row, and `moveValue` (held among held, resting among resting) became `placeValue`. Reworked the same day on Tommy's correction: "shadow values shouldn't have negative connotations: they're positive voices that are typically based on self preservation." Packages are C0 to C6 (C for champion). Tommy's ask: "make a plan to entirely rework the 'be' section of flow state. rather than having goals within paradoxes, i want the main page to be a list of values that comprise the overall identity i want to build, and only when clicking on that value does its 'shadow' value show (to create a lesser paradox). then, rather than having a graph with goals and all, i want those values to be 'championed' by various council members, and i want it to be really easy to be flexible with it (council members can have more than one value, values can have more than one council member, etc). consider how to make it both fun and useful, so that during council sessions a given voice can say 'i'm fighting for XYZ value'."
 
 `PLAN.md` stays the architecture and `DESIGN.md` the standard. The walkthrough is `design/values/`: eleven steps, each the real app loaded afresh with its own example data (`npm run walkthrough:values` builds it into `design/values/dist/`).
 
@@ -48,7 +48,7 @@ Only the first two rows are his; the rest are examples for the mocks and are see
 ## 3. The shape (one line per walkthrough step)
 
 1. **Be is who I am building.** The list: "I determine my core.", then the values, each with its champions' colours as short rules; a value nobody fights for has a dashed one.
-2. **A new value is a word, and the one that looks after me.** The value sheet: Value, Shadow, What it looks like; Held or Resting; Delete.
+2. **A new value is a word, and the one that looks after me.** The value sheet: Value, Shadow, What it looks like; Delete (its Held or Resting row left with PLAN-TIERS.md B1).
 3. **A tap shows its shadow.** "honesty | discretion", the looks line, the champions of each as voiced lines.
 4. **Anyone can take up a value.** The "+ champion" sheet: every voice a chip, pressed when it fights for this.
 5. **Each voice, and what it fights for.** Be's second segment, "Champions": the pantheon with each voice's values beside its name in his list order, each value followed by its own shadow (in italic) where the voice fights for both.
@@ -80,7 +80,7 @@ Why this shape, from the reading done for PLAN-SELF.md (2026-11-10, abstract lev
 export type Champion = { voiceId: string; side: 'value' | 'shadow'; at: Millis; why?: string };
 export type Value = {
   id: string; createdAt: Millis; updatedAt: Millis;
-  status: 'held' | 'resting';
+  status: 'held' | 'resting';   // PLAN-TIERS.md adds 'legacy', tier and tierLog
   word: string;            // sealed
   shadow?: string;         // sealed
   looks?: string;          // sealed: what living it looks like
@@ -96,7 +96,7 @@ Page.valueIds?: string[];                                       // a council cal
 
 - **New table `values`** (index `id`), `SCHEMA_VERSION` 6, in `TABLES`, `SPECS` (`valueSpec`, the fixation spec's pattern) and `backup.ts`. A version 5 file imports with none and gets the migration below. The Dexie upgrade writes nothing (it cannot seal).
 - **Champions live on the value row.** One write changes a link, a backup merge is a row merge, and "what does this voice fight for" is a scan of a short list. No join table.
-- **`model/values.ts`**: `held()`, `resting()`, `createValue`, `saveValue` (revisions on a later day, as a line's), `moveValue`, `deleteValue` (two taps; lines keep their words and lose the label), `champion(valueId, voiceId, side)` and `unchampion`, `setWhy`, `fightsFor(voiceId)`, `byVoice()` for the Champions segment, `saidFor(valueId, limit)`, `speakFor(messageId, for | undefined)`, `callCouncil(valueId)`.
+- **`model/values.ts`**: `held()`, `resting()`, `createValue`, `saveValue` (revisions on a later day, as a line's), `moveValue` (superseded by `placeValue`, PLAN-TIERS.md section 4), `deleteValue` (two taps; lines keep their words and lose the label), `champion(valueId, voiceId, side)` and `unchampion`, `setWhy`, `fightsFor(voiceId)`, `byVoice()` for the Champions segment, `saidFor(valueId, limit)`, `speakFor(messageId, for | undefined)`, `callCouncil(valueId)`.
 - **`model/council.ts`**: `speak` is unchanged (a line is never born with a label); `newCouncil` takes `valueId` and seats its champions (value side first, then the shadow's), skipping archived voices.
 - **One-time pass `valuesFromParadoxesOnce`** (marked `'values'` in `settings.cleaned`; needs the journal open, like `seedFixationsOnce`): each paradox becomes one value, word from pole A, shadow from pole B, looks from pole A's aspect, `held` when it was active and `resting` otherwise, order kept. Pole A's old bracket word (the pole overdone, which is not a shadow) and pole B's aspect go into the value's first revision so nothing is lost. A fresh install seeds the same two values and no paradoxes.
 - **`paradoxes`, `items`, `leans` stay**: in the schema, sealed as before, exported and imported by backup, read by nothing. `Page.paradoxIds` stays on old rows.

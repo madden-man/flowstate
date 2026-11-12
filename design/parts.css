@@ -1488,7 +1488,6 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
 .fs-sheetof .fs-value-line { display: flex; justify-content: center; align-items: center; min-height: var(--lh-ink); }
 .fs-value-line .fs-word { position: relative; min-height: var(--lh-ink); }
 .fs-value-line .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
-.fs-sheetof .fs-be-resting { justify-content: flex-start; min-height: calc(var(--lh-ink) * 2); margin: 0 calc(var(--s1) * -1); }
 .fs-sheetof .fs-value-looks { margin: 0; padding-bottom: var(--lh-ink); font-style: italic; text-align: center; font-size: var(--fs-fill); line-height: var(--lh-ink); }
 .fs-value-acts { display: flex; justify-content: space-between; align-items: end; min-height: var(--lh-ink); margin: 0 calc(var(--s1) * -1); }
 .fs-value-acts > .fs-word { position: relative; min-height: var(--lh-ink); }

@@ -21,7 +21,7 @@
   <h2>Be is who I am building</h2>
   <p class="line">A list of values, each marked with the voices that fight for it. Example data, live.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Screen</td><td><code>src/ui/be/Be.tsx</code> lists <code>held()</code> from <code>src/model/values.ts</code> under <code>CORE</code>; long press drags a row (<code>moveValue</code>), "Resting" shows the ones put down.</td></tr>
+    <tr><td>Screen</td><td><code>src/ui/be/Be.tsx</code> lists <code>tiers()</code> from <code>src/model/values.ts</code> under <code>CORE</code>, every value in Second until he sorts them (<code>design/tiers/</code>).</td></tr>
     <tr><td>Marks</td><td><code>parts/SpokeRules</code> draws one rule per champion (<code>be/lines.ts</code> <code>ruleIds</code>); wonder has none, so a dashed one.</td></tr>
     <tr><td>Demo</td><td>The real app, one classic script (<code>design/values/src</code>), storage in memory, no network, "today" pinned to 11 / 11. Each step loads it afresh.</td></tr>
   </table></details>
@@ -32,7 +32,7 @@
   <h2>A new value is a word, and the one that looks after me</h2>
   <p class="line">Courage, and the safety that stands behind it; every word is mine.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Sheet</td><td><code>src/ui/be/ValueSheet.tsx</code>: Value, Shadow, What it looks like, Held or Resting; kept on close, no save button.</td></tr>
+    <tr><td>Sheet</td><td><code>src/ui/be/ValueSheet.tsx</code>: Value, Shadow, What it looks like; kept on close, no save button.</td></tr>
     <tr><td>Write</td><td><code>createValue</code>, <code>saveValue</code> (a later day's edit keeps the old words struck), <code>deleteValue</code> in two taps with a tombstone.</td></tr>
   </table></details>
 </section>

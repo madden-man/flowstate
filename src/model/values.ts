@@ -45,7 +45,6 @@ export async function tiers(): Promise<Tiers> {
 // ---- writing a value ----
 
 export type ValueDraft = { word: string; shadow?: string; looks?: string };
-export type ValueStatus = Value['status'];
 
 export class NoWordError extends Error {
   constructor() { super('A value needs its word'); this.name = 'NoWordError'; }
