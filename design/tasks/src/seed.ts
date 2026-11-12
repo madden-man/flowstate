@@ -4,7 +4,7 @@
 // nothing is kept past the page (design/motion/src/fakes.ts).
 import { moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from '../../../src/db/seed';
 import { choosePerson } from '../../../src/model/person';
-import { champion, createValue, held, moveValue, setWhy } from '../../../src/model/values';
+import { champion, createValue, held, placeValue, setWhy } from '../../../src/model/values';
 import { STARTERS, addPick } from '../../../src/model/acts';
 import { CHAKRA_IDS } from '../../../src/model/mountain';
 import { store } from '../../../src/db/fields';
@@ -26,7 +26,7 @@ export async function seedDemo(): Promise<void> {
   await setWhy(honesty.id, 'v-warrior', 'value', 'I say it to their face, and I stay in the room after.', made + 1);
   await champion(honesty.id, 'v-skeptic', 'value', made + 2);
   const ids = (await held()).map(v => v.id);
-  if (ids[0] !== honesty.id) await moveValue(ids, honesty.id, 0, made + 3);
+  if (ids[0] !== honesty.id) await placeValue(honesty.id, 2, 0, made + 3);
 }
 
 /** Every starter album, kept as the ♪ grid would keep it, its cover the file beside app.html (vite.config.ts's seam). */
