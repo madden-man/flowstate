@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: Be, values in tiers</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: Be in tiers</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="start" data-name="My values start in the middle">
+  <h2>My values start in the middle</h2>
+  <p class="line">Nothing is ranked for me: First and Third wait on dashed rules. Example data, live.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>List</td><td><code>src/ui/be/Be.tsx</code> draws <code>slots()</code> (<code>be/tiers.ts</code>) from <code>tiers()</code> in <code>model/values.ts</code>: heading, rows, a landing rule when empty.</td></tr>
+    <tr><td>Data</td><td>No schema bump, no flag: <code>tier</code> is optional and absent reads as Second; <code>status</code> gains <code>'legacy'</code>.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/tiers/src</code>), storage in memory, no network, "today" pinned to 11 / 12. Each step loads it afresh.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="lift" data-name="Hold one to lift it">
+  <h2>Hold one to lift it</h2>
+  <p class="line">Open values fold, every tier ends in a rule to land on, and Resting and Legacy open.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Lift</td><td><code>useLongPress</code> over <code>--t-hold</code>; the lift empties <code>open</code> at once and <code>slots(t, shelf, true)</code> adds every landing rule.</td></tr>
+    <tr><td>Demo</td><td>Touch pointer events dispatched on the real row, as <code>test/e2e/be-drag.spec.ts</code>; no pointerup, so it stays held.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="cross" data-name="Carry it over a heading">
+  <h2>Carry it over a heading</h2>
+  <p class="line">One tick as it crosses into First, one as it lands.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Geometry</td><td><code>ui/be/drag.ts</code>: <code>collapse</code> and <code>target</code> turn slot rects and the row's top into <code>{ to, index }</code>; a heading is passed as a row is.</td></tr>
+    <tr><td>Touch</td><td><code>tick('tier')</code> and <code>bell('tier')</code> on crossing; <code>placeValue</code> and <code>tick('drop')</code> on release.</td></tr>
+  </table></details>
+</section>
+
+<!-- 4 -->
+<section class="step" id="sorted" data-name="The order they matter in">
+  <h2>The order they matter in</h2>
+  <p class="line">The heading and the size of the word say the tier; nothing is numbered.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sizes</td><td><code>.fs-value-t1</code> to <code>t3</code>: <code>--fs-manifesto</code>, <code>--fs-title</code>, <code>--fs-ink</code>. No new token.</td></tr>
+    <tr><td>Order</td><td>One <code>order</code> sequence across every value, sorted by status, tier, order; <code>held()</code> follows it for councils.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="tap" data-name="Or tap where it belongs">
+  <h2>Or tap where it belongs</h2>
+  <p class="line">Five words on an open value move it without a drag, and say since when.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Words</td><td><code>PLACE_WORDS</code>; a tap is <code>placeValue(id, to)</code> to the foot, travelling through <code>parts/Turn</code>. The keyboard and VoiceOver path.</td></tr>
+    <tr><td>Since</td><td><code>sinceLine</code> from <code>tierLog</code>, one entry a day.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="rest" data-name="Put one down for now">
+  <h2>Put one down for now</h2>
+  <p class="line">On Resting a value waits undated, and comes back to the tier it left.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Place</td><td><code>placeValue(id, 'resting')</code> keeps <code>tier</code>, so <code>returnsTo</code> brings it back there; a drop leaves the shelf open.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="letgo" data-name="Let one go">
+  <h2>Let one go</h2>
+  <p class="line">Carried to the foot, a value lands in Legacy.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Scroll</td><td>Near the list's edges <code>edgeSpeed</code> scrolls it by hand under the row, up to 14px a frame.</td></tr>
+    <tr><td>Place</td><td><code>placeValue(id, 'legacy')</code>; its champions are kept, not drawn, and Legacy is out of every council.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="legacy" data-name="Legacy keeps what I used to hold">
+  <h2>Legacy keeps what I used to hold</h2>
+  <p class="line">Each word with the dates it was mine; hold one to bring it back.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Dates</td><td><code>legacyLine</code> from <code>legacyDates</code>: its first day held to the day it went, from <code>tierLog</code>. Dates only, never a length.</td></tr>
+  </table></details>
+</section>
+
+<!-- 9 -->
+<section class="step" id="still" data-name="In Still, only what comes first">
+  <h2>In Still, only what comes first</h2>
+  <p class="line">The core line and First's words, at one size.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Still</td><td><code>stillValues</code>: First alone, every held word when First is empty; nothing opens or lifts. DESIGN.md rule 13.</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:30</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

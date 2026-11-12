@@ -12,7 +12,7 @@ export type ValueTarget = { valueId?: string; focus?: 'shadow'; n?: number };
 let opened = 0;
 
 export const valueTarget = signal<ValueTarget | null>(null);
-/** Every value, held then resting, as Be last read them: the sheet finds its value here. */
+/** Every value, held (in tier order), resting, then Legacy, as Be last read them: the sheet finds its value here. */
 export const beValues = signal<Read<Value>[]>([]);
 /** Bumped after a write; the tab reads the values again. */
 export const beVersion = signal(0);

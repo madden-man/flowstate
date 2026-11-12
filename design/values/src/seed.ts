@@ -4,7 +4,7 @@
 // discipline | rest, wonder | certainty), their champions and whys. The record step adds two earlier councils on
 // honesty whose lines were confirmed for it (seedSaid), so "Said for it" shows there and nowhere before it. Wonder
 // has no champion on either side, so it carries the dashed rule. No PIN: the journal is open, and nothing is kept past the page (design/motion/src/fakes.ts).
-import { champion, createValue, held, moveValue, setWhy, speakFor } from '../../../src/model/values';
+import { champion, createValue, held, placeValue, setWhy, speakFor } from '../../../src/model/values';
 import { newCouncil, speak } from '../../../src/model/council';
 import type { ValueSide } from '../../../src/db/schema';
 
@@ -56,11 +56,11 @@ export async function seedDemo(): Promise<void> {
       if (why) await setWhy(ids[word], voiceId, side, why, made + k);
     }
   }
-  // his order: each value moved to its place in turn
+  // his order: each value moved to its place in Second in turn (every one of them is there)
   const want = ORDER.map(w => ids[w]);
   for (let to = 0; to < want.length; to++) {
     const now = (await held()).map(v => v.id);
-    if (now[to] !== want[to]) await moveValue(now, want[to], to, made + 100 + to);
+    if (now[to] !== want[to]) await placeValue(want[to], 2, to, made + 100 + to);
   }
 }
 

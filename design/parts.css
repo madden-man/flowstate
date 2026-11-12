@@ -1488,12 +1488,52 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
 .fs-sheetof .fs-value-line { display: flex; justify-content: center; align-items: center; min-height: var(--lh-ink); }
 .fs-value-line .fs-word { position: relative; min-height: var(--lh-ink); }
 .fs-value-line .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
-.fs-sheetof .fs-be-resting { justify-content: flex-start; min-height: calc(var(--lh-ink) * 2); margin: 0 calc(var(--s1) * -1); }
 .fs-sheetof .fs-value-looks { margin: 0; padding-bottom: var(--lh-ink); font-style: italic; text-align: center; font-size: var(--fs-fill); line-height: var(--lh-ink); }
 .fs-value-acts { display: flex; justify-content: space-between; align-items: end; min-height: var(--lh-ink); margin: 0 calc(var(--s1) * -1); }
 .fs-value-acts > .fs-word { position: relative; min-height: var(--lh-ink); }
 .fs-value-acts > .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
 .fs-value-acts > .fs-word:last-child { margin-left: auto; }
+/* ---- Be in tiers (PLAN-TIERS.md B1) ---- */
+/* a tier's heading: the core line's stationery print, in ink, on its own rule, with a blank rule above it, so a heading
+   never sits glued under the core line or the row before it */
+.fs-sheetof .fs-be-tier {
+  margin-bottom: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  margin-top: var(--lh-ink); color: var(--ink); line-height: var(--lh-ink);
+}
+/* the tier is the size of the word, and nothing else says it: First at the manifesto's, Second a title's, Third ink's;
+   a value on a shelf (Resting, Legacy) is the size of Third's */
+.fs-dichotomy.fs-value.fs-value-t1 { font-size: var(--fs-manifesto); }
+.fs-dichotomy.fs-value.fs-value-t2 { font-size: var(--fs-title); }
+.fs-dichotomy.fs-value.fs-value-t3, .fs-dichotomy.fs-value.fs-value-shelf { font-size: var(--fs-ink); }
+/* an empty tier's landing rule: a dashed blank rule where a value may be put (rule 11's mark for something owed) */
+.fs-sheetof .fs-be-land { margin: 0; height: var(--lh-ink); border-bottom: 1px dashed var(--print); box-sizing: border-box; }
+/* B2, the drag: while a row rides, its word eases to the size of the place it rides in (its position follows the finger
+   at once, rule 20); let go, it settles from under the finger into its slot (rule 18's settle) */
+.fs-be-row.lift > .fs-dichotomy.fs-value { transition: font-size var(--t-ui) var(--ease-settle), color var(--t-ui) var(--ease); }
+.fs-values .fs-be-row[data-settling] { transition: transform var(--t-ui) var(--ease-settle); }
+/* the shelves' words: each on its own rule with a blank rule above, as a heading is (never across a rule) */
+.fs-sheetof .fs-be-shelf { justify-content: flex-start; min-height: var(--lh-ink); margin: var(--lh-ink) calc(var(--s1) * -1) 0; }
+/* a Legacy row's dates, in print, where the champions' rules would be */
+.fs-value-dates {
+  flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print);
+  font-style: normal; line-height: var(--lh-ink); white-space: nowrap;
+}
+/* the five words on an open value: one line of pills sitting between two rules, as "+ champion" does (the hit still
+   reaches --hit, .fs-opt::after); when they wrap, each line takes the next rule */
+.fs-sheetof .fs-be-places { padding: 3px 0; margin: var(--lh-ink) 0 0; }
+/* the looks line already ends on a blank rule; with no "since" under them (Resting, Legacy) a blank rule follows */
+.fs-sheetof .fs-value-looks + .fs-be-places { margin-top: 0; }
+.fs-sheetof .fs-be-places:not(:has(+ .fs-be-since)) { margin-bottom: var(--lh-ink); }
+.fs-be-places .fs-opts { row-gap: 6px; }
+.fs-be-places .fs-opt { min-height: 0; height: calc(var(--lh-ink) - 6px); padding: 0 10px; white-space: nowrap; }
+/* "First since 11 / 12 / 26", then a blank rule */
+.fs-sheetof .fs-be-since { margin: 0; line-height: var(--lh-ink); padding-bottom: var(--lh-ink); }
+/* a tap on one of the five words: the open row travels to its new place, the page under it already there (rule 28) */
+html[data-turn="be-place"] .fs-be-row[data-turning] { view-transition-name: fs-value-row; }
+html[data-turn="be-place"]::view-transition { pointer-events: none; }
+html[data-turn="be-place"]::view-transition-group(fs-value-row) { animation-duration: var(--t-page); animation-timing-function: var(--ease-settle); }
+html[data-turn="be-place"]::view-transition-old(root) { display: none; }
+html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 /* the value sheet's earlier versions: struck words, their day in print on the right */
 .fs-value-was { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
 @media (prefers-reduced-motion: reduce) {

@@ -12,20 +12,20 @@ import { tick } from './Haptic';
 import { openSheet } from '../sheets';
 import type { Message, Value, ValueSide, Voice } from '../../db/schema';
 import type { Read } from '../../db/fields';
-import { held, resting, champion, speakFor, type SpokeFor as For } from '../../model/values';
+import { held, resting, legacy, champion, speakFor, type SpokeFor as For } from '../../model/values';
 
-/** Every value, held and resting (a label for a resting value still shows), read through the model. */
+/** Every value, held, resting and Legacy (a label for a value put down or let go still shows), read through the model. */
 export const valueList = signal<Read<Value>[]>([]);
 export async function reloadValues(): Promise<void> {
-  const [h, r] = await Promise.all([held(), resting()]);
-  valueList.value = [...h, ...r];
+  const [h, r, l] = await Promise.all([held(), resting(), legacy()]);
+  valueList.value = [...h, ...r, ...l];
 }
 
 export type ForChip = { valueId: string; side: ValueSide; word: string };
 
 const sides = (v: Pick<Value, 'shadow'>): ValueSide[] => (v.shadow ? ['value', 'shadow'] : ['value']);
 const chipOf = (v: Read<Value>, side: ValueSide): ForChip => ({ valueId: v.id, side, word: (side === 'shadow' ? v.shadow : v.word) ?? '' });
-/** The held values, in the order given (valueList is held() then resting(), so his order). */
+/** The held values, in the order given (valueList is held() in tier order, then resting(), then legacy()). */
 const heldOf = (values: Read<Value>[]) => values.filter(v => v.status === 'held' && !v.locked && v.word);
 const fights = (v: Pick<Value, 'champions'>, voiceId: string, side: ValueSide) => v.champions.some(c => c.voiceId === voiceId && c.side === side);
 
