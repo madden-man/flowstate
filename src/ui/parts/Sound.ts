@@ -5,7 +5,7 @@
 import { settings } from '../settings';
 import type { SitSound } from '../../db/schema';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap' | 'tier';
 
 /** A new AudioContext, woken: null where there is no Web Audio. Only a tap leads here (rule 21). */
 function make(): AudioContext | null {
@@ -96,6 +96,9 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   // a fixation put in a slot (PLAN-ENERGIZE.md section 4, X3): a rising fifth, G then D, the two ends of the breath
   // tone struck as two short soft bells
   swap: a => { strike(a, 196, 0.5, 0.06); strike(a, 294, 0.7, 0.06, 0.11); },
+  // a lifted value crossing into another place on Be (PLAN-TIERS.md section 5, B2): the swap's upper D, struck once,
+  // short and quieter than any other bell, so a row carried past three headings is three small marks, not a peal
+  tier: a => strike(a, 587, 0.3, 0.035),
 };
 
 /** The breath tone has its own switch under Sounds, off by default, and follows it (rule 21). */

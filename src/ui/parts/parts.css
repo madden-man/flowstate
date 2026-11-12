@@ -1508,6 +1508,10 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
 .fs-dichotomy.fs-value.fs-value-t3, .fs-dichotomy.fs-value.fs-value-shelf { font-size: var(--fs-ink); }
 /* an empty tier's landing rule: a dashed blank rule where a value may be put (rule 11's mark for something owed) */
 .fs-sheetof .fs-be-land { margin: 0; height: var(--lh-ink); border-bottom: 1px dashed var(--print); box-sizing: border-box; }
+/* B2, the drag: while a row rides, its word eases to the size of the place it rides in (its position follows the finger
+   at once, rule 20); let go, it settles from under the finger into its slot (rule 18's settle) */
+.fs-be-row.lift > .fs-dichotomy.fs-value { transition: font-size var(--t-ui) var(--ease-settle), color var(--t-ui) var(--ease); }
+.fs-values .fs-be-row[data-settling] { transition: transform var(--t-ui) var(--ease-settle); }
 /* the shelves' words: each on its own rule with a blank rule above, as a heading is (never across a rule) */
 .fs-sheetof .fs-be-shelf { justify-content: flex-start; min-height: var(--lh-ink); margin: var(--lh-ink) calc(var(--s1) * -1) 0; }
 /* a Legacy row's dates, in print, where the champions' rules would be */
