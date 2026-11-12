@@ -77,6 +77,19 @@
 .mt-f-rib { fill: var(--plate-deep); opacity: .7; }
 .mt-f-crag { fill: var(--plate-deep); opacity: .55; }
 .mt-f-cornice { fill: var(--plate-line); opacity: .3; }
+/* the horn's tiers (land.ts TIER_Y): flat facets, each a tone of its own, so the rock has planes; a tier's top, where
+   the next steps out, is the lightest thing on it. Each tier carries a breath of its sign's hue (--th, the lantern's
+   colour by the plate's formula), and none in Still (--plate-state 0, rule 13). */
+.mt-fill[data-tier] { --tint: oklch(var(--plate-voice-l) var(--plate-voice-c) var(--th, 0)); fill: color-mix(in oklab, var(--tone), var(--tint) calc(var(--tk) * var(--plate-state))); }   /* oklab: mixed through oklch a green turns blue on its way to the indigo plate */
+.mt-f-lit-a { --tone: color-mix(in oklch, var(--plate) 88%, var(--plate-line)); --tk: 17%; }
+.mt-f-lit-b { --tone: color-mix(in oklch, var(--plate) 92%, var(--plate-line)); --tk: 15%; }
+.mt-f-lit-c { --tone: color-mix(in oklch, var(--plate) 95%, var(--plate-line)); --tk: 13%; }
+.mt-f-lit-d { --tone: color-mix(in oklch, var(--plate) 98%, var(--plate-line)); --tk: 11%; }
+.mt-f-top-lit { --tone: color-mix(in oklch, var(--plate) 80%, var(--plate-line)); --tk: 26%; }
+.mt-f-top-shade { --tone: color-mix(in oklch, var(--plate-deep) 90%, var(--plate-line)); --tk: 14%; }
+.mt-f-shade-a { --tone: var(--plate-deep); --tk: 4%; }
+.mt-f-shade-b { --tone: color-mix(in oklch, var(--plate-deep) 96%, var(--plate-line)); --tk: 6%; }
+.mt-f-shade-c { --tone: color-mix(in oklch, var(--plate-deep) 60%, var(--plate)); --tk: 7%; }
 
 .mt-pen { fill: none; stroke: var(--plate-line); stroke-width: var(--w); stroke-linecap: round; stroke-linejoin: round; opacity: var(--plate-dim); }
 /* each stroke carries its own weight (--w, the pen's pressure, land.ts); the classes say how far back it is */
@@ -90,15 +103,18 @@
 .mt-p-ridge-far { opacity: calc(var(--plate-dim) * .22); }
 .mt-p-tree { opacity: calc(var(--plate-dim) * .35); }
 .mt-p-hatch { opacity: calc(var(--plate-dim) * .4); }
+/* the folds between a face's facets: barely a line, the tones either side do the work */
+.mt-p-crease { opacity: calc(var(--plate-dim) * .28); }
 
 .mt-snow-lit { fill: var(--plate-line); opacity: .3; }
 .mt-snow-shade { fill: var(--plate-line); opacity: .1; }
 .mt-snow-rim { fill: none; stroke: var(--plate-line); stroke-width: .8; stroke-linejoin: round; opacity: calc(var(--plate-dim) * 1.2); }
 
 /* the channel: as wide as what runs in it (the plate sets the widths), so it still tells it with Reduce Motion on */
-.mt-chan { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; opacity: .2; }
+/* --chan-on: the arrival brings the trace up with the water's light (plate.ts), never past its own opacity */
+.mt-chan { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; opacity: calc(.2 * var(--chan-on, 1)); }
 /* while the water runs, the motes are its body and the channel only a trace under them */
-@media (prefers-reduced-motion: no-preference) { .mt-chan { opacity: .06; } }
+@media (prefers-reduced-motion: no-preference) { .mt-chan { opacity: calc(.06 * var(--chan-on, 1)); } }
 
 /* ---- the things a finger finds ---- */
 .mt-over { pointer-events: none; }
@@ -231,7 +247,7 @@
 .mt-plate[data-arrive="run"] .mt-snow { animation: mt-in calc(var(--t-arrive) * var(--len)) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
 .mt-plate[data-arrive="run"] .mt-snow { animation-name: mt-settle; }
 .mt-plate[data-arrive="run"] .mt-star { animation: mt-prick calc(var(--t-arrive) * .1) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
-/* the channel is drawn by the head as it runs (plate.ts), so the CSS leaves it be */
+/* the channel comes up with the water's light, all of it at once (plate.ts), so the CSS leaves it be */
 .mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .fs-sign { --gate: 1 !important; }
 .mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .mt-name { opacity: 0; }
 .mt-plate[data-arrive="run"] .mt-circle { opacity: 0; }

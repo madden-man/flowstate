@@ -5,10 +5,10 @@ import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { COURSE, STOPS, place, stretchAt, stretches, channelPaths, seaSlots, W, PEAK } from '../../src/ui/parts/cycle/river';
-import { land, snowCap, half, SNOW_Y } from '../../src/ui/flow/mountain/land';
+import { land, snowCap, half, edge, TIER_Y, SNOW_Y } from '../../src/ui/flow/mountain/land';
 import { Water, STRIDE, TINTS } from '../../src/ui/flow/mountain/water';
-import { headAt, seaIn, circlesIn, HEAD_FROM, HEAD_TO } from '../../src/ui/flow/mountain/arrival';
-import { CHAKRA_IDS, reach, spring, stretch } from '../../src/model/mountain';
+import { seaIn, circlesIn, HEAD_FROM, HEAD_TO } from '../../src/ui/flow/mountain/arrival';
+import { CHAKRA_IDS, CHAKRAS, reach, spring, stretch } from '../../src/model/mountain';
 import { MountainPlate, signTravel } from '../../src/ui/flow/Mountain';
 
 describe('the river', () => {
@@ -64,6 +64,23 @@ describe('the land', () => {
     // nothing stands for nothing: no sun, no moon (no full circle in the land)
     expect(marks.some(m => /a\s*[\d.]+\s+[\d.]+\s+0\s+1\s+[01]/.test(m.d))).toBe(false);
   });
+  it('is seven tiers, one a sign: each sign stands on its own tier, above the step under it, in its own hue', () => {
+    expect(TIER_Y).toHaveLength(8);
+    CHAKRA_IDS.forEach((id, i) => {
+      const s = STOPS[id];
+      expect(s.y).toBeGreaterThan(TIER_Y[i]);
+      expect(s.y).toBeLessThan(TIER_Y[i + 1]);
+      expect(s.x).toBeGreaterThan(edge(-1, s.y));
+      expect(s.x).toBeLessThan(edge(1, s.y));
+    });
+    const { marks } = land();
+    const hues = new Set(marks.flatMap(m => (m.kind === 'fill' && m.hue !== undefined ? [m.hue] : [])));
+    expect([...hues].sort()).toEqual(CHAKRAS.map(c => c.hue).sort());
+    // geometric: the horn's faces are ruled, no curve in them
+    for (const m of marks) if (m.kind === 'fill' && m.hue !== undefined) expect(m.d).not.toMatch(/[QqCcAa]/);
+    // a mountain, not a staircase: the flanks widen all the way down
+    for (let y = PEAK.y + 4; y < 390; y += 4) { expect(edge(-1, y + 4)).toBeLessThanOrEqual(edge(-1, y) + 8); expect(edge(1, y + 4)).toBeGreaterThanOrEqual(edge(1, y) - 8); }
+  });
   it('lets the snow come down to any line', () => {
     const hi = snowCap(SNOW_Y), lo = snowCap(SNOW_Y + 50);
     expect(hi.lit).not.toBe(lo.lit);
@@ -105,7 +122,30 @@ describe('the water', () => {
     w.step(0.05);
     expect(Array.from(w.s)).toEqual(s);
   });
-  it('shows nothing past the arrival\'s head', () => {
+  it('is one steady stream: as much light at every moment, no mote brighter than itself, nothing let go runs bright', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0], true);
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0]);
+    for (let i = 0; i < 400; i++) w.step(1 / 60);
+    const out = new Float32Array(w.n * STRIDE);
+    const light = () => { w.draw(out); let sum = 0; for (let i = 0; i < w.n; i++) sum += out[i * STRIDE + 4]; return sum; };
+    const sizes = () => { w.draw(out); return Array.from({ length: w.n }, (_, i) => out[i * STRIDE + 5]); };
+    const size0 = sizes();
+    // the gate opens: the pool is let go, and the stream fills below without a front
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0]);
+    let prev = light();
+    for (let f = 0; f < 300; f++) {
+      w.step(1 / 30);
+      const now = light();
+      expect(Math.abs(now - prev)).toBeLessThan(prev * 0.04);
+      prev = now;
+      let top = 0;
+      for (let i = 0; i < w.n; i++) top = Math.max(top, out[i * STRIDE + 4]);
+      expect(top).toBeLessThanOrEqual(0.9 * 1.9 + 1e-6);
+    }
+    expect(sizes()).toEqual(size0);
+  });
+  it('shows nothing past reveal, where a part of the course is kept dark', () => {
     const w = new Water();
     w.reveal = COURSE.at[2];
     for (let i = 0; i < 200; i++) w.step(0.05);
@@ -114,12 +154,8 @@ describe('the water', () => {
 });
 
 describe('the arrival', () => {
-  it('lets the head go late, runs it once to the end, and only then brings in the sea and the circles', () => {
-    expect(headAt(HEAD_FROM - 0.01)).toBeNull();
-    expect(headAt(HEAD_FROM)).toBe(0);
-    expect(headAt(HEAD_TO)).toBeCloseTo(1);
-    let last = -1;
-    for (let f = HEAD_FROM; f <= HEAD_TO; f += 0.01) { const x = headAt(f)!; expect(x).toBeGreaterThanOrEqual(last); last = x; }
+  it('brings the stream\'s light up late, and only then brings in the sea and the circles', () => {
+    expect(HEAD_FROM).toBeLessThan(HEAD_TO);
     expect(seaIn(0.5)).toBe(0); expect(seaIn(1)).toBeCloseTo(1, 1);
     expect(circlesIn(0.8)).toBe(0); expect(circlesIn(1)).toBeCloseTo(1, 1);
   });
@@ -230,7 +266,6 @@ describe('the water carried down the mountain (R2)', () => {
     const k = Array.from(w.surgeAmp).findIndex(a => a > 0);
     expect(w.surgeFrom[k]).toBeCloseTo(COURSE.at[4]);
     expect(w.pooled[3]).toBeLessThan(0.1);
-    expect(w.rush(w.surgeHead(k))).toBeGreaterThan(0.3);
     run(w, (COURSE.at[5] - COURSE.at[4]) / TRAVEL + 0.1);
     expect(w.reached[4]).toBe(1);   // the solar plexus
     expect(w.reached[2]).toBe(0);   // nothing above the heart

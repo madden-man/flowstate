@@ -6,9 +6,10 @@
 // that the water is shaped by the place it runs through, the same on every day: it quickens down the steep and through
 // the narrows and the fall under the Throat, slows and eddies at the bends, and slows and gathers in the tarn at the
 // Heart and the pool at the Sacral. And it is water, not a conveyor: each mote has a pace of its own, a size and a
-// brightness of its own, wanders across the channel so the motes braid, glints now and then, and the spring lets go
-// in uneven surges that travel down. Every change of the water is eased toward what was set, so nothing flashes; the
-// fastest water is slower than a finger (rule 30).
+// brightness of its own and wanders across the channel so the motes braid. It is one steady stream (Tommy, 2026-11-12:
+// "calmer, and continuous ... it always shows particles in a stream the same way"): no mote glints, the spring does not
+// pulse, and nothing bright runs down from the top. Every change of the water is eased toward what was set, so nothing
+// flashes; the fastest water is slower than a finger (rule 30).
 //
 // Colour is an index, not a colour: a mote below a sign carries that sign's tint, strongest just under it and paling
 // over TINT_RUN units downstream; the plate turns (stop, tint) into a colour read from the tokens.
@@ -17,9 +18,10 @@
 // stretch at once: it travels down at TRAVEL units a second, as water does. Each stretch carries the spring as it was
 // when that water left the snow, through every gate above as each was when the water passed it, so a gate closed sends
 // the dark down the mountain stop by stop and a gate opened sends the water after it the same way. What a closed gate
-// holds back pools above it (pooled, 0 to 1, filling over a few seconds); opened, the pool lets go as a surge, a bright
-// front of the pooled water running down from the sign at the same pace, rekindling each sign as it reaches it. The
-// meter lifted lets the held snow go the same way, from the spring. set(q, b) still sets the stretches directly (Still,
+// holds back pools above it (pooled, 0 to 1, filling over a few seconds); opened, the pool lets go as a surge, which
+// is only kept as a count of where the let-go water has got to (surgeHead, reached): it is not drawn, and the water it
+// passes runs no faster and no brighter. The meter lifted lets the held snow go the same way, from the spring. set(q, b)
+// still sets the stretches directly (Still,
 // where every stretch is the same, and the tests).
 import { pass, pool, spring, stretch, POOL_UNITS } from '../../../model/mountain';
 import { COURSE, place, type Course, type Placed } from '../../parts/cycle/river';
@@ -27,7 +29,7 @@ import { COURSE, place, type Course, type Placed } from '../../parts/cycle/river
 /** How many motes run. */
 export const MOTES = 260;
 /** Units a second at pace 1 and --stream 1. */
-export const BASE = 30;
+export const BASE = 24;
 /** How many steps a tint takes to pale, and over how many units. */
 export const TINTS = 5;
 export const TINT_RUN = 64;
@@ -44,7 +46,7 @@ const FILL = 0.45;
 export const SURGES = 6;
 
 /** What draw() writes per mote: x1 y1 x2 y2 (the head, then the tail's end) alpha size stop tint (stop -1: untinted).
- *  alpha may pass 1 on a glint; size is the glow's radius in box units. */
+ *  alpha may pass 1 above a closing gate; size is the glow's radius in box units. */
 export const STRIDE = 8;
 
 /** The place's own shape along the course, one value a unit: how much faster or slower than the stretch's pace, how
@@ -80,16 +82,17 @@ function shapeOf(c: Course): Shape {
 export class Water {
   readonly n: number;
   /** Per mote: distance along, where across the channel it keeps to, its share threshold, its depth (size and
-   *  brightness), its alpha now, its own pace, and the phases of its wander and its glint. */
+   *  brightness), its alpha now, its own pace, and the phase and beat of its wander. */
   readonly s: Float32Array; readonly u: Float32Array; readonly r: Float32Array; readonly depth: Float32Array; readonly a: Float32Array;
-  private sp: Float32Array; private ph: Float32Array; private fq: Float32Array; private gl: Float32Array;
+  private sp: Float32Array; private ph: Float32Array; private fq: Float32Array;
   /** The water in each of the eight stretches now (eased) and where it is going. */
   readonly q = new Float32Array(8).fill(1); readonly qTo = new Float32Array(8).fill(1);
   /** Each gate now (eased) and where it is going. */
   readonly b = new Float32Array(7); readonly bTo = new Float32Array(7);
   /** --stream: how fast and how full (Day 1, Night .85, Still .4, Reduce Motion 0). */
   k = 1;
-  /** The arrival: no mote shows past this distance along the course (Infinity once the water is let go). */
+  /** No mote shows past this distance along the course. The arrival no longer moves it (the water is there from the
+   *  first frame); it stays for whoever wants a part of the course dark. */
   reveal = Infinity;
   /** Still: no tints, no pools, every stretch the same (rule 13). */
   plain = false;
@@ -118,15 +121,16 @@ export class Water {
     let sd = seed;
     const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
     this.s = new Float32Array(n); this.u = new Float32Array(n); this.r = new Float32Array(n); this.depth = new Float32Array(n); this.a = new Float32Array(n);
-    this.sp = new Float32Array(n); this.ph = new Float32Array(n); this.fq = new Float32Array(n); this.gl = new Float32Array(n);
+    this.sp = new Float32Array(n); this.ph = new Float32Array(n); this.fq = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       this.s[i] = rnd() * course.total;
       this.u[i] = (rnd() + rnd() + rnd()) / 1.5 - 1;
       this.r[i] = rnd();
       // most motes are small and faint, a few are large and bright
       this.depth[i] = Math.pow(rnd(), 2.2);
-      this.sp[i] = 0.62 + 0.8 * rnd();
-      this.ph[i] = rnd() * Math.PI * 2; this.fq[i] = 0.4 + 1.1 * rnd(); this.gl[i] = rnd() * 40;
+      this.sp[i] = 0.82 + 0.36 * rnd();
+      this.ph[i] = rnd() * Math.PI * 2; this.fq[i] = 0.4 + 1.1 * rnd();
+      rnd();   // the draw a mote's glint once took: kept so every mote stays where the seed has always put it
     }
     this.shape = shapeOf(course);
   }
@@ -266,8 +270,6 @@ export class Water {
       pace *= pool(b, above);
       wide += 5 * b * (1 - Math.min(1, above / POOL_UNITS));
     }
-    // a surge runs: what it carries is fast and full
-    if (this.carry && !this.plain) { const r = this.rush(s); pace *= 1 + 0.8 * r; wide *= 1 + 0.5 * r; }
     // past the river mouth the water fans into the sea and slows
     const out = Math.max(0, (s - c.mouth) / (c.total - c.mouth));
     this.fPace = pace * (1 - 0.6 * out); this.fWide = wide + 46 * out;
@@ -279,26 +281,6 @@ export class Water {
       const st = stretch(this.plain ? 1 : this.q[j]);
       this.stPace[j] = st.pace; this.stWidth[j] = st.width; this.stShare[j] = st.share;
     }
-  }
-
-  /** How much a surge is passing at s: the front itself and the pooled water behind it, 0 when there is none. */
-  rush(s: number): number {
-    let r = 0;
-    for (let k = 0; k < SURGES; k++) {
-      const amp = this.surgeAmp[k];
-      if (amp <= 0) continue;
-      const h = this.surgeHead(k), d = h - s;
-      if (s < this.surgeFrom[k] - 4 || d < -6) continue;
-      // brightest at the front, a long body of the let-go water behind it
-      r += amp * (d < 0 ? Math.exp(-((d / 4) ** 2)) : Math.exp(-d / 46));
-    }
-    return Math.min(1.2, r);
-  }
-
-  /** The spring's own unevenness, travelling down: 0.6 to 1.2 at distance s and time t. */
-  private pulse(s: number): number {
-    const t = this.t;
-    return 0.9 + 0.2 * Math.sin(s * 0.043 - t * 1.25) + 0.1 * Math.sin(s * 0.107 - t * 2.1 + 1.3);
   }
 
   step(dt: number) {
@@ -340,10 +322,9 @@ export class Water {
       if (this.s[i] >= total) this.s[i] -= total;
       const s = this.s[i];
       const ends = Math.min(1, s / 14, (total - s) / 10);
-      const rush = this.rush(s);
-      const share = this.stShare[this.stretchOf(s)] * (this.plain ? 1 : this.pulse(s)) + rush;
-      const shown = this.k > 0 && this.r[i] < share && s < this.reveal;
-      const want = shown ? (0.3 + 0.6 * this.depth[i]) * ends * (1 + 0.9 * rush) : 0;
+      // the same share shows at every moment: a steady stream, with no wave of light travelling down it
+      const shown = this.k > 0 && this.r[i] < this.stShare[this.stretchOf(s)] && s < this.reveal;
+      const want = shown ? (0.3 + 0.6 * this.depth[i]) * ends : 0;
       this.a[i] += (want - this.a[i]) * fade;
     }
   }
@@ -369,13 +350,10 @@ export class Water {
       const tail = Math.max(0.2, Math.min(5.5, v * 0.075)) * (s > c.mouth ? 0.3 : 1);
       out[o] = x; out[o + 1] = y;
       out[o + 2] = x - p.tx * tail; out[o + 3] = y - p.ty * tail;
-      // now and then a mote catches and glints
-      const g = Math.sin(t * 1.7 + this.gl[i]);
-      const glint = this.plain ? 1 : 1 + 1.6 * Math.pow(Math.max(0, g), 24);
       // the water backed up above a closing gate gathers its light
       const near = j < 7 && !this.plain ? this.b[j] * (1 - Math.min(1, (c.at[j + 1] - s) / POOL_UNITS)) : 0;
-      out[o + 4] = this.a[i] * glint * (1 + 0.9 * near);
-      out[o + 5] = (2.4 + 4 * this.depth[i]) * (0.8 + 0.2 * glint);
+      out[o + 4] = this.a[i] * (1 + 0.9 * near);
+      out[o + 5] = 2.4 + 4 * this.depth[i];
       // the tint of the last sign passed, paling downstream; none above the crown, none in Still
       const past = j > 0 ? s - c.at[j] : Infinity;
       out[o + 6] = this.plain || j === 0 ? -1 : j - 1;
