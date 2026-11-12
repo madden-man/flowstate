@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "message-type": "work",
+ "message": {
+  "DOI": "10.1016/j.jand.2015.02.018",
+  "type": "journal-article",
+  "title": [
+   "Intermittent Fasting and Human Metabolic Health"
+  ],
+  "container-title": [
+   "Journal of the Academy of Nutrition and Dietetics"
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2015,
+     8
+    ]
+   ]
+  },
+  "published": {
+   "date-parts": [
+    [
+     2015,
+     8
+    ]
+   ]
+  },
+  "URL": "https://doi.org/10.1016/j.jand.2015.02.018"
+ }
+}

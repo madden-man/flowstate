@@ -1,0 +1,52 @@
+{
+ "status": "ok",
+ "message-type": "work",
+ "message": {
+  "DOI": "10.1186/s12986-024-00876-y",
+  "type": "journal-article",
+  "title": [
+   "RETRACTED ARTICLE: An interpretable machine learning model for precise prediction of biomarkers for intermittent fasting pattern"
+  ],
+  "container-title": [
+   "Nutrition &amp; Metabolism"
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2024,
+     12,
+     18
+    ]
+   ]
+  },
+  "published": {
+   "date-parts": [
+    [
+     2024,
+     12,
+     18
+    ]
+   ]
+  },
+  "updated-by": [
+   {
+    "DOI": "10.1186/s12986-026-01218-w",
+    "type": "retraction",
+    "label": "Retraction",
+    "source": "publisher",
+    "updated": {
+     "date-parts": [
+      [
+       2026,
+       10,
+       6
+      ]
+     ],
+     "date-time": "2026-10-06T00:00:00Z",
+     "timestamp": 1791244800000
+    }
+   }
+  ],
+  "URL": "https://doi.org/10.1186/s12986-024-00876-y"
+ }
+}

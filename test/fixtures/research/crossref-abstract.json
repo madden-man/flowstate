@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "message-type": "work",
+ "message": {
+  "DOI": "10.1108/09654280610637201",
+  "type": "journal-article",
+  "title": [
+   "Health‐related effects of creative and expressive writing"
+  ],
+  "container-title": [
+   "Health Education"
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2006,
+     1,
+     1
+    ]
+   ]
+  },
+  "published": {
+   "date-parts": [
+    [
+     2006,
+     1,
+     1
+    ]
+   ]
+  },
+  "abstract": "<jats:sec><jats:title content-type=\"abstract-heading\">Purpose</jats:title><jats:p>The purpose of this paper is to provide an overview of some health‐related effects of creative and expressive writing.</jats:p></jats:sec><jats:sec><jats:title content-type=\"abstract-heading\">Design/methodology/approach</jats:title><jats:p>Reviews some of the main research studies exploring links between expressive writing and aspects of health, including two new experimental studies showing effects of poetry on mood and immune system indices.</jats:p></jats:sec><jats:sec><jats:title content-type=\"abstract-heading\">Findings</jats:title><jats:p>Research studies have involved standard writing tasks and have shown a good range of physiological and behavioural benefits. Example findings include improvements in health and well‐being and enhanced levels of host defences in immune system functioning. Other notable findings include reduced severity of symptoms in arthritis and asthma sufferers. However, writing disclosure may also have negative effects on clients with post‐traumatic stress disorder (PTSD). The cognitive‐behavioural bases of “writing therapy” include the informative function of emotions, self‐regulation, re‐framing, and dealing more effectively with negative feelings.</jats:p></jats:sec><jats:sec><jats:title content-type=\"abstract-heading\">Originality/value</jats:title><jats:p>Provides health professionals with an overview of research into health‐related effects of creative and expressive writing, and may encourage sensitive approaches which include writing therapy. The studies of poetry and immune function report some of the first empirical biological evidence for the poetry‐health link.</jats:p></jats:sec>",
+  "URL": "https://doi.org/10.1108/09654280610637201"
+ }
+}
