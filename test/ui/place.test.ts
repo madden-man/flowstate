@@ -21,6 +21,7 @@ import { marksOf, basicsToday, writeMark } from '../../src/model/acts';
 import { reach, spring, type ChakraId } from '../../src/model/mountain';
 import { still } from '../../src/ui/light';
 import { Water } from '../../src/ui/flow/mountain/water';
+import { calmRush } from '../../src/ui/flow/chakra/water';
 
 const reading = (value: number) => ({ id: 'r', at: Date.now(), of: 'heart' as const, value });
 const readingsWith = (gates: Partial<Record<ChakraId, number>>, d = 0) => async () => ({
@@ -29,6 +30,22 @@ const readingsWith = (gates: Partial<Record<ChakraId, number>>, d = 0) => async 
 });
 
 describe('the surge maths (section 5)', () => {
+  it('on a sign\'s page the let-go water has no front: it comes up evenly, is never more than what was let go, and falls away', () => {
+    // nothing ahead of it, all of it where it has got to, less behind
+    expect(calmRush(-60)).toBe(0);
+    expect(calmRush(0)).toBe(1);
+    expect(calmRush(200)).toBeLessThan(0.15);
+    let top = 0, steepest = 0;
+    for (let d = -60; d < 400; d++) {
+      const a = calmRush(d), b = calmRush(d + 1);
+      top = Math.max(top, a);
+      steepest = Math.max(steepest, Math.abs(b - a));
+    }
+    expect(top).toBe(1);
+    // no edge anywhere: a box unit along never changes it by more than a twentieth
+    expect(steepest).toBeLessThan(0.05);
+  });
+
   it('a gate part shut pools what it holds back; a touch lets SHARE of it go, nothing under the floor', () => {
     expect(pooledAt(0.5, 0.8)).toBeCloseTo(0.4);
     expect(pooledAt(0, 1)).toBe(0);
