@@ -32,6 +32,17 @@ describe('the chips on a line', () => {
     expect(spokeChips(valueList.value, W).map(c => c.word)).toEqual(['selfless', 'selfish']);
   });
 
+  it('follow the tiers: First before Second before Third, whatever order they were made in (B1)', async () => {
+    await champion(THOUGHTFUL, 'v-warrior', 'value', T0);
+    await champion(SELFLESS, 'v-warrior', 'value', T0 + 1);
+    const w = await createValue({ word: 'wonder' }, T0 + 2);
+    await champion(w.id, 'v-warrior', 'value', T0 + 3);
+    await placeValue(w.id, 1, undefined, T0 + 4);
+    await placeValue(SELFLESS, 3, undefined, T0 + 5);
+    await reloadValues();
+    expect(spokeChips(valueList.value, W).map(c => c.word)).toEqual(['wonder', 'thoughtful', 'selfless']);
+  });
+
   it('a value with no shadow offers its word only', async () => {
     await createValue({ word: 'wonder' }, T0);
     await reloadValues();
@@ -53,6 +64,14 @@ describe('the label', () => {
     await placeValue(SELFLESS, 'resting', undefined, T0);
     await reloadValues();
     expect(forWord(valueList.value, { valueId: SELFLESS, side: 'shadow' })).toBe('selfish');
+    // a Legacy value still prints too (B1): reloadValues loads Legacy, and its chips stay off every voice's line
+    await placeValue(THOUGHTFUL, 'legacy', undefined, T0);
+    await champion(THOUGHTFUL, 'v-warrior', 'value', T0);
+    await reloadValues();
+    expect(forWord(valueList.value, { valueId: THOUGHTFUL, side: 'value' })).toBe('thoughtful');
+    expect(forWord(valueList.value, { valueId: THOUGHTFUL, side: 'shadow' })).toBe('reactive');
+    expect(spokeChips(valueList.value, W).map(c => c.word)).toEqual([]);
+    expect(offerChips(valueList.value, 'v-joker').map(c => c.word)).toEqual([]);
     await deleteValue(SELFLESS, T0 + 1);
     await reloadValues();
     expect(forWord(valueList.value, { valueId: SELFLESS, side: 'value' })).toBeUndefined();

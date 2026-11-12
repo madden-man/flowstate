@@ -1,6 +1,6 @@
 // Be as values (PLAN-VALUES.md section 3 steps 1, 2, 3 and 11; C2): the list shows the words and never a shadow; a tap
 // opens a value on its shadow and a second folds it; #/be/:id opens one; a new value needs only its word; an edit on a
-// later day keeps the old word struck; Resting puts one down and brings it back; Delete is two taps; a drag reorders;
+// later day keeps the old word struck; Resting (one of the five words, PLAN-TIERS.md B1) puts one down and brings it back; Delete is two taps; a drag reorders;
 // Still is the words alone and opens nothing. A fresh install seeds selfless | selfish and thoughtful | reactive.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -121,23 +121,23 @@ test('the seeded paradox words a value has no field for are kept struck', async 
 test('Resting puts a value down and brings it back', async ({ page }) => {
   await be(page);
   await row(page, 'thoughtful').locator('.fs-dichotomy').click();
-  await row(page, 'thoughtful').getByRole('button', { name: 'Edit' }).click();
-  await sheet(page).getByRole('group', { name: 'Status' }).getByRole('button', { name: 'Resting' }).click();
-  await done(page);
+  // B1: the five words on the open value, not the sheet, say where it sits
+  await row(page, 'thoughtful').getByRole('group', { name: 'Place' }).getByRole('button', { name: 'Resting' }).click();
+  await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', 'resting');
+  // it lands on Resting's shelf, which opens, still open itself
+  const resting = page.getByRole('button', { name: 'Resting', exact: true }).and(page.locator('.fs-be-shelf button'));
+  await expect(resting).toHaveAttribute('aria-expanded', 'true');
+  await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
+  await resting.click();
   await expect(words(page)).toHaveText(['selfless']);
-  const resting = page.getByRole('button', { name: 'Resting', exact: true });
-  await expect(resting).toHaveAttribute('aria-expanded', 'false');
   await resting.click();
   await expect(words(page)).toHaveText(['selfless', 'thoughtful']);
-  // it was open when it was put down, and is still open under Resting
-  await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
-  await row(page, 'thoughtful').getByRole('button', { name: 'Edit' }).click();
-  await sheet(page).getByRole('group', { name: 'Status' }).getByRole('button', { name: 'Held' }).click();
-  await done(page);
+  await row(page, 'thoughtful').getByRole('group', { name: 'Place' }).getByRole('button', { name: 'Second' }).click();
+  await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', '2');
   await page.reload();
   await cross(page);
   await expect(words(page)).toHaveText(['selfless', 'thoughtful']);
-  await expect(page.getByRole('button', { name: 'Resting', exact: true })).toHaveCount(0);
+  await expect(page.locator('.fs-be-shelf')).toHaveCount(0);
 });
 
 test('Delete is two taps on the same row, and the value is gone after a reload', async ({ page }) => {

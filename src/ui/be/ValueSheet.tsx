@@ -1,7 +1,8 @@
-// The value sheet (PLAN-VALUES.md section 3 step 2, C2): Value, Shadow, What it looks like; Held or Resting; the struck
-// versions (DESIGN.md rule 10); Delete. It replaces the paradox and goal sheets. No save word (rule 6): putting the
-// sheet away keeps what is written, and a value needs only its word; a new one without a word waits as a draft, so
-// closing loses nothing. An edit on a later day keeps the old word and shadow struck (model/values.ts saveValue).
+// The value sheet (PLAN-VALUES.md section 3 step 2, C2): Value, Shadow, What it looks like; the struck versions
+// (DESIGN.md rule 10); Delete. Words only: where a value sits is the five words on the open value (PLAN-TIERS.md
+// B1). It replaces the paradox and goal sheets. No save word (rule 6): putting the sheet away keeps what is written,
+// and a value needs only its word; a new one without a word waits as a draft, so closing loses nothing. An edit on a
+// later day keeps the old word and shadow struck (model/values.ts saveValue).
 // Delete asks once more on the same row and lets go of the ask after four seconds (MessageSheet.tsx's pattern), never
 // a dialog (rule 8).
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -10,15 +11,13 @@ import { Sheet } from '../parts/Sheet';
 import { Strike } from '../parts/Strike';
 import { openSheet } from '../sheets';
 import { shortDate } from '../date';
-import { createValue, deleteValue, placeValue, returnsTo, saveValue, type ValueDraft, type ValueStatus } from '../../model/values';
+import { createValue, deleteValue, saveValue, type ValueDraft } from '../../model/values';
 import { beValues, changed, closeValueSheet, valueTarget } from './state';
 import { struckLines } from './lines';
 
 const empty = (): ValueDraft => ({ word: '', shadow: '', looks: '' });
 /** A new value not yet given its word is kept here, so closing the sheet loses nothing. */
 const newDraft = signal<ValueDraft>(empty());
-
-const STATUSES: { s: ValueStatus; word: string }[] = [{ s: 'held', word: 'Held' }, { s: 'resting', word: 'Resting' }];
 
 export function ValueSheet() {
   const t = valueTarget.value;
@@ -30,7 +29,6 @@ function ValueForm({ open }: { open: boolean }) {
   const t = valueTarget.value;
   const existing = t?.valueId ? beValues.value.find(v => v.id === t.valueId) : undefined;
   const [d, setD] = useState<ValueDraft>(existing ? { word: existing.word, shadow: existing.shadow ?? '', looks: existing.looks ?? '' } : newDraft.value);
-  const [status, setStatus] = useState<ValueStatus>(existing?.status ?? 'held');
   const done = useRef(false);
   const wordField = useRef<HTMLInputElement>(null);
   const shadowField = useRef<HTMLInputElement>(null);
@@ -47,17 +45,13 @@ function ValueForm({ open }: { open: boolean }) {
 
   const ok = !!d.word.trim();
   const dirty = existing
-    ? d.word.trim() !== existing.word || (d.shadow ?? '').trim() !== (existing.shadow ?? '') || (d.looks ?? '').trim() !== (existing.looks ?? '') || status !== existing.status
+    ? d.word.trim() !== existing.word || (d.shadow ?? '').trim() !== (existing.shadow ?? '') || (d.looks ?? '').trim() !== (existing.looks ?? '')
     : true;
 
   const save = async () => {
     if (done.current || !ok) return;
     done.current = true;
-    if (existing) {
-      await saveValue(existing, d);
-      // until B1 takes the Status row away: Held brings it back to the tier it left, at that tier's foot
-      if (status !== existing.status) await placeValue(existing.id, status === 'held' ? returnsTo(existing) : status);
-    }
+    if (existing) await saveValue(existing, d);
     else { await createValue(d); newDraft.value = empty(); }
     changed();
   };
@@ -91,12 +85,6 @@ function ValueForm({ open }: { open: boolean }) {
           <span class="fs-print">What it looks like</span>
           <input class="fs-input" value={d.looks} placeholder="Living it, in a sentence" aria-label="What it looks like" onInput={field('looks')} />
         </label>
-        <div class="fs-row stack">
-          <span class="fs-print">Status</span>
-          <div class="fs-opts" role="group" aria-label="Status">
-            {STATUSES.map(o => <button key={o.s} type="button" class="fs-opt" aria-pressed={status === o.s} onClick={() => setStatus(o.s)}>{o.word}</button>)}
-          </div>
-        </div>
         {struck.length > 0 && (
           <div class="fs-row stack" aria-label="Earlier versions">
             <span class="fs-print">Earlier</span>
