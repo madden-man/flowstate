@@ -5,10 +5,22 @@
 .ck-shelf { --ck-cover: calc(var(--hit) * 1.5); --ck-pitch: calc(var(--lh-ink) * 3); touch-action: pan-y; }
 .ck-shelf-covers.fs-tiles { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s1);
   row-gap: calc(var(--ck-pitch) - var(--ck-cover)); padding: calc((var(--ck-pitch) - var(--ck-cover)) / 2) 0; }
+/* room from first paint: on a sign's page the shelf is never shorter than one row of covers, and before it has been
+   read (.wait) it holds the rows and lines it took last time (SignShelf.tsx roomOf), so the 988 line under it stays put */
+.ck-shelf:not(.small) { min-height: var(--ck-pitch); }
+.ck-shelf.wait { min-height: calc(var(--ck-pitch) * var(--ck-rows, 1) + var(--lh-ink) * var(--ck-lines, 0)); }
+[data-light="still"] .ck-shelf.wait { min-height: calc(var(--ck-pitch) * var(--ck-rows, 1)); }
 .ck-shelf.small { --ck-cover: var(--hit); }
 .ck-shelf.small .ck-shelf-covers.fs-tiles { row-gap: var(--s1); padding: 0; }
 .ck-shelf-cover { width: var(--ck-cover); flex: none; position: relative; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .ck-shelf-cover .fs-tile { border-radius: 3px; }
+/* an album with no kept cover: the tile empty and flat on the page, its title on it in print, cut at four lines */
+.ck-shelf-cover.blank .fs-tile { box-shadow: none; }
+.ck-shelf-name {
+  position: absolute; inset: 0; padding: calc(var(--s1) * .75); overflow: hidden; pointer-events: none;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
+  font-family: var(--sans); font-size: var(--fs-print); line-height: 1.2; color: var(--print); overflow-wrap: anywhere;
+}
 
 /* the plus, and while a thing is lifted the place it held, struck through: off the shelf */
 .ck-shelf-plus, .ck-shelf-off {
@@ -18,7 +30,12 @@
 }
 .ck-shelf.small .ck-shelf-plus { font-size: var(--fs-title); }
 .ck-shelf-off svg { width: 60%; height: 60%; }
-.ck-shelf-off path { fill: none; stroke: var(--print); stroke-width: 1.6; stroke-linecap: round; }
+.ck-shelf-off { border-color: var(--ink); }
+.ck-shelf-off path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round;
+  stroke-dasharray: 1; animation: ck-strike var(--t-draw) var(--ease) backwards; }
+@keyframes ck-strike { from { stroke-dashoffset: 1; } }
+/* the sheet the plus raises (R4): a rule to write a title on, then its kind */
+.ck-shelf-add { display: grid; gap: var(--s2); padding: var(--s1) 0 var(--s2); }
 .ck-shelf-plus:focus-visible, .ck-shelf-off:focus-visible, .ck-shelf-line:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* the lines: his title in ink, its kind word in print, each on its rule */
@@ -28,12 +45,17 @@
 .ck-shelf.small .ck-shelf-line { font-size: var(--fs-chip); line-height: var(--hit); }
 .ck-shelf-line small { color: var(--print); text-transform: uppercase; }
 
-/* lifted (rule 20): 2px up with the tile's shadow, under the finger with no transition; let go off the shelf, it fades */
+/* lifted (rule 20): 2px up, under the finger with no transition, and told apart in every light by more than a shadow
+   (Night's is dark on dark, Still has none): a ring in ink round it, as the playing album's ring is ink, while the
+   rest of the shelf dims the way the ♪ grid hushes (rule 26: there at once, eased away). The place the plus held is
+   struck in ink, drawn like a pen stroke (rule 27). Let go off the shelf, the lifted one fades. */
 .ck-shelf-cover.lift, .ck-shelf-linecell.lift { z-index: 3; transform: translateY(-2px); transition: none; }
-.ck-shelf-cover.lift .fs-tile { box-shadow: var(--shadow-tile); }
-.ck-shelf-linecell.lift { background: var(--page); box-shadow: var(--shadow-tile); }
+.ck-shelf-cover.lift .fs-tile { box-shadow: var(--shadow-tile); outline: 2px solid var(--ink); outline-offset: 2px; }
+.ck-shelf-linecell.lift { background: var(--page); box-shadow: var(--shadow-tile); outline: 2px solid var(--ink); outline-offset: calc(var(--s1) / 2); border-radius: 3px; }
 .ck-shelf-cover.off, .ck-shelf-linecell.off { opacity: .45; }
-.ck-shelf.lifting .ck-shelf-cover:not(.lift), .ck-shelf.lifting .ck-shelf-linecell:not(.lift) { transition: opacity var(--t-ui) var(--ease); }
+.ck-shelf-cover, .ck-shelf-linecell { transition: opacity var(--t-ui) var(--ease); }
+.ck-shelf.lifting .ck-shelf-cover:not(.lift), .ck-shelf.lifting .ck-shelf-linecell:not(.lift) { opacity: .45; transition: none; }
+@media (prefers-reduced-motion: reduce) { .ck-shelf-off path { animation: none; } }
 
 /* the ♪ sheet's Signs segment (ui/music/Signs.tsx): a row a sign, its name on its hue, its shelf beside it */
 .ck-signs { display: grid; gap: var(--s1); padding: var(--s1) 0 var(--s2); }

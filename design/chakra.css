@@ -111,8 +111,8 @@
 .ck-touch[data-lit] .ck-to { color: inherit; }
 
 /* ---- under the plate: the paper foot (gloss, gate, the shelf's slot, the safety line) ---- */
-/* T5's shelf mounts in the slot; empty, it takes no room */
-.ck-shelf:empty { display: none; }
+/* T5's shelf mounts in the slot and holds its room from first paint (SignShelf.css); only a small row's takes none */
+.ck-shelf.small:empty { display: none; }
 /* the 988 line (PLAN-TASKS.md section 2): Heart and Root, every light; the line in print, then Call and Text */
 .ck-safe-line { color: var(--print); line-height: var(--lh-ink); margin: 0; }
 .ck-safe-links { display: flex; gap: var(--s3); margin: 0; }
