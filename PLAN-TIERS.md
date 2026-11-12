@@ -1,6 +1,6 @@
 # FlowState Be: values in tiers (First, Second, Third, Legacy)
 
-Date: 2026-11-12. Status: built 2026-11-12, B0 to B3 (PRs #81, #84, #85 and #B3PR) on `be-tiers-plan`. Packages are B0 to B3 (B for Be). Tommy's answers: "both legacy and resting, hold any number first, dont care on rest". Tommy's ask: "make a plan for how the values in 'be' can be grouped into tiers: first, second, third, and 'legacy' (values i used to hold). it should be easy to drag and drop between these tiers, and consider if there is any other ui/ux enhancement to add as well."
+Date: 2026-11-12. Status: built 2026-11-12, B0 to B3 (PRs #81, #84, #85 and #86) on `be-tiers-plan`. Packages are B0 to B3 (B for Be). Tommy's answers: "both legacy and resting, hold any number first, dont care on rest". Tommy's ask: "make a plan for how the values in 'be' can be grouped into tiers: first, second, third, and 'legacy' (values i used to hold). it should be easy to drag and drop between these tiers, and consider if there is any other ui/ux enhancement to add as well."
 
 `PLAN.md` stays the architecture, `DESIGN.md` the standard, `PLAN-VALUES.md` the Be this builds on. The walkthrough is `design/tiers/index.html`: nine steps. It is built from the real app to section 3, as `design/values/` is (B3: `npm run walkthrough:tiers` into `design/tiers/dist/`); the first hand drawing, with its cap of three and no Resting, is gone.
 
