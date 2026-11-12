@@ -1,0 +1,47 @@
+/* Research (PLAN-RESEARCH.md): what the page adds to parts.css, on tokens only. The page itself is the council's:
+   fs-hdr, fs-chat on fs-rules, fs-msg fs-v lines (the + voice and its deep twin), fs-chips, fs-composer-wrap. */
+
+/* the phone's screen holds the app where the other walkthroughs hold an iframe */
+.frames .fs-app { position: absolute; inset: 0; height: auto; }
+
+/* a line's print (journal, year, kind) sits on its own rule, like a speaker's name */
+.rs-app .fs-sp { line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-app .fs-msg { margin-bottom: var(--lh-ink); }
+.rs-app .fs-msg p { margin: 0; }
+.rs-q { margin: 0 0 var(--lh-ink); font-size: var(--fs-title); line-height: var(--lh-ink); }
+.rs-print { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
+.rs-hush { display: none; }
+.rs-app .fs-chips { align-items: center; }
+.rs-app .fs-chip { font-family: var(--serif); font-size: var(--fs-mark); line-height: 1; padding: 4px 14px; }
+.rs-words { display: flex; justify-content: space-between; padding: 0 var(--s1); }
+.rs-app a.fs-word, .rs-app a.fs-list-row, .rs-app a.fs-tab { text-decoration: none; cursor: pointer; }
+
+/* a title is written in, left to right, as a pen would (rule 27) */
+.rs-in { animation: rs-write var(--t-page) var(--ease) both; }
+@keyframes rs-write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+/* the caret on the blank line */
+.rs-caret::after { content: ""; display: inline-block; width: 1px; height: 1em; margin-left: 2px; vertical-align: -2px; background: var(--ink); animation: rs-blink var(--t-light) steps(2, jump-none) infinite; }
+@keyframes rs-blink { to { opacity: 0; } }
+/* the dot on the chip of the side that is looking breathes (rule 31: with the ring) */
+.rs-app .fs-chip[data-looking] i { animation: rs-breathe var(--t-breath) var(--ease) infinite; }
+@keyframes rs-breathe { 40% { transform: scale(1.8); opacity: .5; } }
+
+/* the paper's page: its own words on the rules */
+.rs-paper p { margin: 0 0 var(--lh-ink); }
+.rs-paper p.rs-q, .rs-paper p.fs-line { margin: 0; }
+
+/* a sketch of the mountain's plate (the real one is ui/flow/Mountain.tsx), for the step that shows the sea */
+.rs-plate { flex: 1; min-height: 0; position: relative; background: linear-gradient(var(--plate-sky), var(--plate)); }
+.rs-plate svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rs-rock { fill: none; stroke: var(--plate-line); stroke-width: 1; opacity: var(--plate-dim); }
+.rs-face { fill: var(--plate-deep); }
+.rs-water { fill: none; stroke: var(--glow); stroke-width: 1.4; stroke-linecap: round; opacity: .8; }
+.rs-ring { fill: none; stroke: var(--glow); stroke-width: 1.2; stroke-linecap: round; }
+.rs-name { fill: var(--plate-print); font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; }
+.rs-go { cursor: pointer; }
+.rs-go .rs-ring { stroke-width: 1.8; }
+.rs-go .rs-name { fill: var(--plate-line); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-in, .rs-caret::after, .rs-app .fs-chip[data-looking] i { animation: none; }
+}
