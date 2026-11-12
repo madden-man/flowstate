@@ -53,6 +53,8 @@ export interface RunSnapshot {
   check?: Trail;
   /** The check's rulings so far: paperId to the side it stands on, or 'neither'. */
   ruled?: Record<string, Side | 'neither'>;
+  /** Every paper a search has returned in this run, by id: the only ids `file` and `rule` will take. */
+  known: Record<string, Paper>;
 }
 
 /** A question asked (the `inquiries` table). `question` is private text and sealed at rest. `runs` is there only
@@ -86,7 +88,9 @@ export type RunEvent =
   /** Every turn, after it is finished: persist this so the run can resume. */
   | { type: 'snapshot'; snapshot: RunSnapshot };
 
-export interface RunResult { state: Exclude<InquiryState, 'running'>; picks: Pick[] }
+/** `why` says what stopped a run that did not finish, for the page's one fixed line: no connection, a key the API
+ *  would not take, a rate or spend limit, he ended it (the signal), or anything else. */
+export interface RunResult { state: Exclude<InquiryState, 'running'>; picks: Pick[]; why?: 'offline' | 'key' | 'limit' | 'ended' | 'error' }
 
 /** The caps the app enforces (PLAN-RESEARCH.md section 4), not the model. */
 export const CAPS = { searches: 8, turns: 12, perSide: 5, results: 8 } as const;
