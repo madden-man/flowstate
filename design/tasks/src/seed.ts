@@ -5,7 +5,7 @@
 import { moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from '../../../src/db/seed';
 import { choosePerson } from '../../../src/model/person';
 import { champion, createValue, held, moveValue, setWhy } from '../../../src/model/values';
-import { STARTERS } from '../../../src/model/acts';
+import { STARTERS, addPick } from '../../../src/model/acts';
 import { CHAKRA_IDS } from '../../../src/model/mountain';
 import { store } from '../../../src/db/fields';
 import { saveSettings } from '../../../src/ui/settings';
@@ -48,4 +48,11 @@ export async function connectMusic(): Promise<void> {
       await store.put('shelves', { playlistId: pl, albumUri: uri, order: k++, firstTrackUri: `spotify:track:${p.albumId}` });
     }
   }
+}
+
+/** Two written lines on the Heart's shelf (Mountain R4), as its plus writes them: a book and a piece of art. Example
+ *  data for the walkthrough only; the app seeds none. */
+export async function writeLines(): Promise<void> {
+  await addPick('heart', { id: 'wk-heart-book', kind: 'book', title: 'The Remains of the Day' });
+  await addPick('heart', { id: 'wk-heart-art', kind: 'art', title: 'Nighthawks' });
 }

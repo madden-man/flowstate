@@ -1,20 +1,31 @@
 // A sign's shelf (PLAN-TASKS.md section 4, T5): under the gate on every sign's page, and on the sign's row in the ♪
-// sheet's Signs segment (ui/music/Signs.tsx). Covers, wordless, then a plus. Self-contained: it reads its own shelf
-// (model/acts.ts), so a parent only gives it the sign and room on the page.
+// sheet's Signs segment (ui/music/Signs.tsx). Covers, wordless, then a plus, and under them his written lines.
+// Self-contained: it reads its own shelf (model/acts.ts), so a parent only gives it the sign and room on the page.
 //
-// A cover is the ♪ grid's own Tile (MusicSheet.tsx), so a tap plays it as a ♪ tile does: on the first chosen playlist
-// that holds it, else as itself, with M3's bell, tick, drop, hush, ring and flight to the ♪. Only a kept cover is a
-// tile; the covers come from the cache the ♪ grid fills, never fetched here (flow/On.tsx keep). An album with no kept
-// cover, and every show, film, game, book and piece of art, is a written line under the covers: its title and its kind
-// word in small print, as the On sheet writes them.
+// An album is the ♪ grid's own Tile (MusicSheet.tsx), so a tap plays it as a ♪ tile does: on the first chosen playlist
+// that holds it, else as itself, with M3's bell, tick, drop, hush, ring and flight to the ♪. Its cover comes from the
+// cache the ♪ grid fills, never fetched here (flow/On.tsx keep), and a kept cover shows whether or not Spotify is
+// connected now. An album with no kept cover (every starter until Spotify has been connected: the seed carries a
+// Spotify id and no art) is the same tile with nothing in it, the ♪ grid's own look for a cover not yet here, with its
+// title written on it in print so the three can be told apart; the title leaves in Still and on the small rows.
+// With no account a tap on a tile opens that album in Spotify (music/spotify.ts openAlbum), since nothing can play it
+// from here.
 //
-// The plus (connected only: unconnected there is no grid to choose from) raises the ♪ sheet on his playlists, and the
-// cover he taps there travels down to the shelf (rule 28) and is added at its end (addPick). A long press lifts a
-// cover or a line 2px (rule 20): it rides under the finger, the others make way, and where it is let go is its place
-// (movePick); let go off the shelf, or on the place the plus held, it is taken off (removePick). A drop ticks (rule
-// 19). Without a drag: a lifted thing let go where it was stays lifted, and a tap on another puts it in that one's
-// place, a tap on the struck place takes it off, a tap on itself, Escape or a touch elsewhere puts it down. Keys:
-// Alt with an arrow moves the focused one along, Delete takes it off.
+// Every show, film, game, book and piece of art (Mountain R4) is a written line under the covers: its title and its
+// kind word in small print, as the On sheet writes them. The plus on a sign's page raises a small sheet: a rule to
+// write a title on, the kind words, Add; connected, "+ album" there raises the ♪ sheet on his playlists, and the cover
+// he taps travels down to the shelf (rule 28) and is added at its end (addPick). On the small rows the plus goes
+// straight to the ♪ sheet, and only connected, as before.
+//
+// A long press lifts a cover or a line 2px (rule 20), ringed in ink while the rest dim: it rides under the finger, the
+// others make way, and where it is let go is its place (movePick); let go off the shelf, or on the place the plus
+// held, it is taken off (removePick). A drop ticks (rule 19). Without a drag: a lifted thing let go where it was stays
+// lifted, and a tap on another puts it in that one's place, a tap on the struck place takes it off, a tap on itself,
+// Escape or a touch elsewhere puts it down. Keys: Alt with an arrow moves the focused one along, Delete takes it off.
+//
+// Room (first paint): the shelf holds its height before it has been read, so what is printed under it (the 988 line)
+// never moves. One row of covers by default, which is every starter shelf; once drawn, how many rows and lines it
+// took is kept per sign in localStorage (two small numbers, no title), and the next first paint holds that much.
 //
 // Still (rule 13): the covers stay, dimmed by the ♪ grid's own rule; the lines, the plus and lifting leave, as the On
 // sheet's lines do. Locked (the door): nothing at all. A locked journal reads every shelf as empty (model/acts.ts),
@@ -23,7 +34,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
-import type { OnPick } from '../../../db/schema';
+import type { OnPick, PickKind } from '../../../db/schema';
 import type { ChakraId } from '../../../model/mountain';
 import { addPick, movePick, removePick, shelf } from '../../../model/acts';
 import { albumUriOf } from '../../../db/seed/picks';
@@ -31,10 +42,11 @@ import { albumPick } from '../../../model/tips';
 import type { ShelfAlbum } from '../../../music/covers';
 import { keep, KIND_WORD, type Kept } from '../On';
 import { Tile, useHush } from '../../music/MusicSheet';
-import { chooseAlbum, connected, playing, shelves } from '../../music/state';
+import { chooseAlbum, connected, playing, shelves, wake } from '../../music/state';
+import { openAlbum } from '../../../music/spotify';
 import { tick } from '../../parts/Haptic';
 import { HOLD_MS } from '../../parts/Hold';
-import { tokenMs } from '../../parts/Sheet';
+import { Sheet, tokenMs } from '../../parts/Sheet';
 import { dataVersion } from '../../sheets';
 import { light } from '../../light';
 import { gateState } from '../../lock/pin';
@@ -46,7 +58,28 @@ export const shelfVersion = signal(0);
 /** How far a finger may wander before a long press is a scroll instead (parts/Hold's slop). */
 const SLOP_PX = 8;
 
-const isCover = (p: OnPick, kept: Kept) => p.kind === 'album' && !!kept.get(albumUriOf(p) ?? '')?.row.cover;
+/** A tile on the shelf: an album Spotify knows. Its cover when one is kept, else the tile with its title on it. */
+const isTile = (p: OnPick) => p.kind === 'album' && !!albumUriOf(p);
+
+/** The room a shelf took the last time it was drawn, per sign: rows of covers and written lines. Two small numbers
+ *  and no word of his, kept outside the journal so the first paint, before any read, can hold the same height. */
+export type Room = { rows: number; lines: number };
+const ROOM_KEY = 'fs-shelf-room';
+const ONE_ROW: Room = { rows: 1, lines: 0 };
+const readRooms = (): Record<string, Room> => {
+  try { const v = JSON.parse(localStorage.getItem(ROOM_KEY) ?? '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; }
+};
+export function roomOf(chakra: ChakraId): Room {
+  const v = readRooms()[chakra];
+  const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.min(40, Math.round(x)) : null);
+  const rows = n(v?.rows), lines = n(v?.lines);
+  return rows === null || lines === null ? ONE_ROW : { rows: Math.max(1, rows), lines };
+}
+export function keepRoom(chakra: ChakraId, room: Room) {
+  const all = readRooms(), had = all[chakra];
+  if (had && had.rows === room.rows && had.lines === room.lines) return;
+  try { localStorage.setItem(ROOM_KEY, JSON.stringify({ ...all, [chakra]: room })); } catch { /* private mode: one row is held */ }
+}
 
 /** Where a lifted thing goes: the index, in the shelf without it, of the place nearest the finger among its own kind.
  *  others are the rest of its kind in order, with their boxes; along says which way the kind runs (covers sideways,
@@ -73,6 +106,11 @@ export function moved(picks: OnPick[], id: string, to: number): OnPick[] {
   out.splice(Math.max(0, Math.min(out.length, to)), 0, p);
   return out;
 }
+
+/** The written kinds the plus offers: flow/On.tsx's LINE_KINDS with the two new ones (R4) first. Written out here, not
+ *  derived, because On.tsx and this file import each other by way of the ♪ sheet (test/ui/sign-shelf.test.ts holds
+ *  the two lists to the same kinds). */
+export const SHELF_KINDS: Exclude<PickKind, 'album'>[] = ['book', 'art', 'show', 'film', 'switch', 'phone'];
 
 type Loaded = { picks: OnPick[]; kept: Kept };
 
@@ -118,6 +156,7 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
   const [lifted, setLifted] = useState<string | null>(null);
   const [off, setOff] = useState(false);
   const lift = useRef<Lift | null>(null);
+  const [adding, setAdding] = useState(false);
   /** A hold just lifted something: the click that ends the press must not play it. */
   const swallow = useRef(false);
   /** A cover chosen on the ♪ sheet, on its way here: where its tile was, to travel from once it is on the shelf. */
@@ -200,10 +239,10 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
       const list = order ?? got?.picks ?? [];
       const me = list.find(p => p.id === l.id);
       if (!me) return;
-      const cover = isCover(me, kept);
+      const cover = isTile(me);
       const rest = list.filter(p => p.id !== l.id);
       const others = rest.flatMap((p, index) => {
-        if (isCover(p, kept) !== cover) return [];
+        if (isTile(p) !== cover) return [];
         const el = cellOf(p.id);
         return el ? [{ index, box: el.getBoundingClientRect() }] : [];
       });
@@ -211,7 +250,7 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
       setOff(gone);
       if (!gone) {
         // after the last of its own kind when it is past them all
-        const lastOfKind = rest.reduce((n, p, i) => (isCover(p, kept) === cover ? i + 1 : n), 0);
+        const lastOfKind = rest.reduce((n, p, i) => (isTile(p) === cover ? i + 1 : n), 0);
         const to = placeAt(others, e.clientX, e.clientY, cover ? 'x' : 'y', lastOfKind);
         const next = moved(list, l.id, to);
         if (next.some((p, i) => p.id !== list[i].id)) { setOrder(next); return; }
@@ -275,12 +314,30 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
     void anim.finished.catch(() => undefined).then(() => { copy.remove(); cell.style.visibility = ''; });
   }, [got]);
 
-  if (locked) return null;
-  if (!got) return <div ref={root} class={`ck-shelf${small ? ' small' : ''}`} aria-hidden="true" />;
+  // Still takes lifting away (rule 13): a thing lifted when the light turns is put down where it was
+  // and the plus's sheet goes down with it, not to rise again when the light comes back
+  useEffect(() => { if (!still) return; if (lift.current) putDown(); setAdding(false); }, [still]);
 
-  const covers = picks.filter(p => isCover(p, kept));
-  const lines = picks.filter(p => !isCover(p, kept));
+  // the room this shelf took, kept for the next first paint (the page's shelf, at rest, by Day or Night)
+  useLayoutEffect(() => {
+    if (!got || small || still || lifted || order) return;
+    const row = root.current?.querySelector('.ck-shelf-covers');
+    const tops = new Set([...(row?.children ?? [])].map(c => (c as HTMLElement).offsetTop));
+    keepRoom(chakra, { rows: Math.max(1, tops.size), lines: got.picks.filter(p => !isTile(p)).length });
+  }, [got, small, still, lifted, order]);
+
+  if (locked) return null;
+  if (!got) {
+    const room = small ? null : roomOf(chakra);
+    return <div ref={root} class={`ck-shelf${small ? ' small' : ' wait'}`} aria-hidden="true"
+      style={room ? { '--ck-rows': room.rows, '--ck-lines': room.lines } : undefined} />;
+  }
+
+  const covers = picks.filter(isTile);
+  const lines = picks.filter(p => !isTile(p));
   const canEdit = !still;
+  // the page's plus is always there to write a line with; the small rows' plus only chooses a cover, so only connected
+  const hasPlus = canEdit && (!small || connected.value);
 
   const startLift = (id: string, x: number, y: number) => {
     if (!canEdit) return;
@@ -324,9 +381,9 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
     if (!step) return;
     e.preventDefault();
     // along its own kind: a cover moves past the next cover, a line past the next line
-    const cover = isCover(list[i], kept);
+    const cover = isTile(list[i]);
     let j = i + step;
-    while (j >= 0 && j < list.length && isCover(list[j], kept) !== cover) j += step;
+    while (j >= 0 && j < list.length && isTile(list[j]) !== cover) j += step;
     if (j < 0 || j >= list.length) return;
     tick('drop');
     setOrder(moved(list, id, j));
@@ -342,44 +399,88 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
     save(() => addPick(chakra, albumPick(a)));
   });
 
+  const add = (kind: Exclude<PickKind, 'album'>, title: string) => {
+    tick('drop');
+    save(() => addPick(chakra, { kind, title }));
+  };
+
   const item = (p: OnPick, child: ComponentChildren, cls: string) => (
     <Lifts key={p.id} id={p.id} cls={cls} lifted={lifted === p.id} off={off && lifted === p.id} canLift={canEdit}
       onLift={startLift} onKey={keys(p.id)}
       onClickCapture={e => {
         if (swallow.current) { swallow.current = false; e.preventDefault(); e.stopPropagation(); return; }
-        if (lift.current) { e.preventDefault(); e.stopPropagation(); tapLifted(p.id); }
+        if (lift.current) { e.preventDefault(); e.stopPropagation(); tapLifted(p.id); return; }
+        // with no account nothing plays from here: the tile opens its album in Spotify
+        if (isTile(p) && !connected.value) { e.preventDefault(); e.stopPropagation(); tick('album'); openAlbum(p.albumId!, wake.open); }
       }}>
       {child}
     </Lifts>
   );
 
   return (
-    <div ref={root} class={`ck-shelf${small ? ' small' : ''}${lifted ? ' lifting' : ''}`} data-shelf={chakra}>
-      {(covers.length > 0 || !!lifted || (connected.value && canEdit)) && <div class={`ck-shelf-covers fs-tiles${hushed ? ' hush' : ''}`} role="group" aria-label="Albums">
-        {covers.map(p => {
-          const uri = albumUriOf(p)!;
-          const k = kept.get(uri)!;
-          return item(p, <Tile playlist={k.playlist} album={k.row} pressed={now === uri} chosen={hushed === uri} row={0} />, 'ck-shelf-cover');
-        })}
-        {lifted ? (
-          <button type="button" class="ck-shelf-off" aria-label="Off the shelf"
-            onClick={() => { if (lift.current) { lift.current.dragging = false; drop(true); } }}>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 15.6 C8 11.6 11.6 8 15.5 4.4" pathLength={1} /></svg>
-          </button>
-        ) : connected.value && canEdit && (
-          <button type="button" class="ck-shelf-plus fs-notstill" onClick={choose}>+</button>
+    <>
+      <div ref={root} class={`ck-shelf${small ? ' small' : ''}${lifted ? ' lifting' : ''}`} data-shelf={chakra}>
+        {(covers.length > 0 || !!lifted || hasPlus) && <div class={`ck-shelf-covers fs-tiles${hushed ? ' hush' : ''}`} role="group" aria-label="Albums">
+          {covers.map(p => {
+            const uri = albumUriOf(p)!;
+            const k = kept.get(uri);
+            // no cover kept: the same tile, empty, playing the album as itself
+            const row: ShelfAlbum = k?.row ?? { albumUri: uri, album: p.title, artist: p.by ?? '', playlistId: '', order: 0, firstTrackUri: '' };
+            return item(p, <>
+              <Tile playlist={k?.playlist ?? { id: '', uri }} album={row} pressed={now === uri} chosen={hushed === uri} row={0} />
+              {!k && !small && <small class="ck-shelf-name fs-notstill" aria-hidden="true">{p.title}</small>}
+            </>, `ck-shelf-cover${k ? '' : ' blank'}`);
+          })}
+          {lifted ? (
+            <button type="button" class="ck-shelf-off" aria-label="Off the shelf"
+              onClick={() => { if (lift.current) { lift.current.dragging = false; drop(true); } }}>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 15.6 C8 11.6 11.6 8 15.5 4.4" pathLength={1} /></svg>
+            </button>
+          ) : hasPlus && (
+            <button type="button" class="ck-shelf-plus fs-notstill" aria-label="Add to the shelf"
+              onClick={small ? choose : () => { tick('sheet'); setAdding(true); }}>+</button>
+          )}
+        </div>}
+        {lines.length > 0 && (
+          <div class="ck-shelf-lines fs-notstill" role="group" aria-label="Lines">
+            {lines.map(p => item(p, (
+              <p class="ck-shelf-line" tabIndex={0}>
+                <span>{p.title}</span> <small class="fs-print">{KIND_WORD[p.kind]}</small>
+              </p>
+            ), 'ck-shelf-linecell'))}
+          </div>
         )}
-      </div>}
-      {lines.length > 0 && (
-        <div class="ck-shelf-lines fs-notstill" role="group" aria-label="Lines">
-          {lines.map(p => item(p, (
-            <p class="ck-shelf-line" tabIndex={0}>
-              <span>{p.title}</span> <small class="fs-print">{KIND_WORD[p.kind]}</small>
-            </p>
-          ), 'ck-shelf-linecell'))}
+      </div>
+      {!small && <AddSheet open={adding && canEdit} onClose={() => setAdding(false)} onAdd={add}
+        onAlbum={connected.value ? () => { setAdding(false); choose(); } : undefined} />}
+    </>
+  );
+}
+
+/** The plus on a sign's page (Mountain R4): a rule to write a title on, its kind among the written kinds, Add. One
+ *  line a rise; connected, "+ album" goes on to the ♪ sheet. Nothing is offered that he did not write (rule 16). */
+function AddSheet({ open, onClose, onAdd, onAlbum }: {
+  open: boolean; onClose: () => void; onAdd: (kind: Exclude<PickKind, 'album'>, title: string) => void; onAlbum?: () => void;
+}) {
+  const [kind, setKind] = useState<Exclude<PickKind, 'album'>>('book');
+  const [title, setTitle] = useState('');
+  // each rise starts clean: nothing written, and Book the kind chosen
+  useEffect(() => { if (open) { setTitle(''); setKind('book'); } }, [open]);
+  const ready = !!title.trim();
+  const go = () => { if (!ready) return; onAdd(kind, title.trim()); onClose(); };
+  return (
+    <Sheet open={open} onClose={onClose} title="On the shelf" action={{ label: 'Add', inert: !ready, onPress: go }}>
+      <div class="ck-shelf-add">
+        <input class="fs-input" value={title} aria-label="A title" placeholder="A title" autocomplete="off" enterkeyhint="done"
+          onInput={e => setTitle(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); go(); } }} />
+        <div class="fs-opts" role="group" aria-label="Kind">
+          {SHELF_KINDS.map(k => (
+            <button key={k} type="button" class="fs-opt" aria-pressed={kind === k} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>
+          ))}
+          {onAlbum && <button type="button" class="fs-chip add" onClick={onAlbum}>+ album</button>}
         </div>
-      )}
-    </div>
+      </div>
+    </Sheet>
   );
 }
 

@@ -34,7 +34,8 @@ const TICKS: Record<string, string[]> = {
   gate: ['src/ui/parts/Gate.tsx'],
   still: ['src/ui/still.ts'],
   keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
-  sheet: ['src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx', 'src/ui/parts/SpokeFor.tsx', 'src/ui/be/ChampionSheet.tsx'],
+  // Mountain R4: the shelf's plus raising its small sheet (SignShelf.tsx)
+  sheet: ['src/ui/flow/chakra/SignShelf.tsx', 'src/ui/parts/Page.tsx', 'src/ui/flow/door.ts', 'src/ui/journal/PageView.tsx', 'src/ui/be/state.ts', 'src/ui/council/Council.tsx', 'src/ui/voices/Voices.tsx', 'src/ui/music/state.ts', 'src/ui/music/MusicLine.tsx', 'src/ui/lock/PinRows.tsx', 'src/ui/flow/NewFlow.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/On.tsx', 'src/ui/parts/SpokeFor.tsx', 'src/ui/be/ChampionSheet.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],

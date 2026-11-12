@@ -2,7 +2,7 @@
 
 For the agent who builds it. Written 2026-11-11 from the planning session with Tommy.
 
-**Built (2026-11-11, on `mountain-plan`, not merged to `main`, not deployed):** R0 (PR #62), R1 (#64), R2 (#65), R3 (#63) and R5 (this walkthrough and the standard). **Not built:** R4, books and art (the On sheet's two kinds and the pick editor), which waits for the walk (branch `walk`) to merge. The walkthrough is `design/mountain/` (the real app; `npm run walkthrough:mountain`), the standard DESIGN.md rule 34.
+**Built (2026-11-11, on `mountain-plan`, not merged to `main`, not deployed):** R0 (PR #62), R1 (#64), R2 (#65), R3 (#63) and R5 (this walkthrough and the standard). **R4, books and art, was built 2026-11-12** on the tasks branch (`tasks-shelf`, a PR against `acts-plan`), where PLAN-TASKS.md section 8 put it: Book and Art are written lines on a sign's shelf, added through the small sheet the shelf's plus raises (`ui/flow/chakra/SignShelf.tsx`) and offered in the step sheet's pick editor (`LINE_KINDS`, `ui/flow/On.tsx`); nothing is seeded and the schema did not move. The walkthrough is `design/mountain/` (the real app; `npm run walkthrough:mountain`), the standard DESIGN.md rule 34.
 
 ## 1. The job
 
@@ -56,7 +56,7 @@ From plan section 10, with pass 5 applied. One PR each, in a worktree of its own
 | R1 | The mountain | `parts/Sign`, `cycle/river.ts` (the uneven course), the land in ink, the sea and its breath, the circles, `ui/flow/Mountain.tsx` in place of the list in `ui/flow/Flow.tsx`, taps with travel (rule 28), Still, night | R0 |
 | R2 | The weather and the gates | the meter with snow and cloud, the gates and emptying signs, writes on release, dashed when stale, ticks, Reduce Motion | R1 |
 | R3 | The stop's page | plan section 6: the large sign, the drawings grouped under it, names and copy gone, the rest list, routes `#/flow/c/:chakra`, hand-offs, the step sheet | R0, beside R1 |
-| R4 | Books and art | the two new kinds where picks are shown, the pick editor | R0 |
+| R4 | Books and art | the two new kinds where picks are shown, the pick editor (built 2026-11-12 on the sign's shelf, PLAN-TASKS.md section 4) | R0 |
 | R5 | Walkthrough and standard | `design/mountain` rebuilt from the real app (as `design/energize` is), DESIGN.md's new rule and the rule 7 amendment, the old flows walkthroughs marked as history | all |
 
 ## 5. Things that will bite
@@ -104,7 +104,7 @@ Gathered from the four package PRs (#62 to #65) and their review rounds. Each is
 
 A question for Tommy, not a regression: the What if drawing's seeded record ("didn't happen, nine in ten", with its faint checks) still shows in Still, as it has since F6; rule 15 hides only his own stamps there. Should "nine in ten" leave in Still as a count?
 
-Still open with no default: which books and art go under which sign (none seeded; R4), and which circles join Meditate and Energize in the sea.
+Still open with no default: which books and art go under which sign (none seeded; R4 is built, so he writes them from a shelf's plus), and which circles join Meditate and Energize in the sea.
 
 ## 8. Only the iPhone can say
 
@@ -114,6 +114,6 @@ None of these was checked on a phone: whether a sideways drag on a gate fights S
 
 - Package PRs target `mountain-plan` (draft PR #60 becomes the build), not `main`. Nothing merges to `main` and nothing deploys until Tommy says so.
 - R0 now also holds `parts/Sign` and the plate tokens, so R1 and R3 run side by side after it. R2 follows R1. R5 is last.
-- `walk` has not merged (it is uncommitted work in `~/dev/flowstate-walk`, another session's). So R3 builds the stop's page as new files beside `FlowPage.tsx` and uses `Tips` through its existing props, touching the walk's files as little as it can; R4's sheet and pick editor wait for the walk. R0 still widens `PickKind`.
+- `walk` has not merged (it is uncommitted work in `~/dev/flowstate-walk`, another session's). So R3 builds the stop's page as new files beside `FlowPage.tsx` and uses `Tips` through its existing props, touching the walk's files as little as it can; R4's sheet and pick editor wait for the walk (since built on the sign's shelf, 2026-11-12, once the tasks plan dropped the walk's card strip). R0 still widens `PickKind`.
 - The values build (`be-values-plan`) took schema 6 and reached `main` first. The mountain's bump is one small block in `schema.ts`, so it was renumbered to 7 in one place when `main` was merged in.
 - Ports for e2e: R0 4260, R1 4261, R2 4262, R3 4263, R5 4265.
