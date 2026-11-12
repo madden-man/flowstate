@@ -30,6 +30,10 @@ import { lastFirst, lastOn, livePicks, setOn, setOnAlbum } from '../../model/tip
 /** The kind word at a line's end, the same small print as a helper's word (rule 7: words, never icons). */
 export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show', film: 'Film', switch: 'Switch', phone: 'Phone', book: 'Book', art: 'Art' };
 
+/** The kinds a written line can be (every kind but an album, which comes from the ♪ grid). Book and Art are Mountain
+ *  R4's two: written lines like the rest, in the step sheet's pick editor and on a sign's shelf. */
+export const LINE_KINDS: Exclude<PickKind, 'album'>[] = ['show', 'film', 'switch', 'phone', 'book', 'art'];
+
 /** The most covers and lines a sheet shows (PLAN-PICKS.md section 2: fewer, not all). */
 const MOST = 3;
 

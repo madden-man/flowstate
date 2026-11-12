@@ -12,7 +12,7 @@ import { writeReading, type ChakraId } from '../../../src/model/mountain';
 import { setBasic } from '../../../src/model/acts';
 import { choosePin, relock } from '../../../src/ui/lock/pin';
 import { markArrived } from '../../../src/ui/flow/mountain/arrival';
-import { connectMusic } from './seed';
+import { connectMusic, writeLines } from './seed';
 
 export type Light = 'day' | 'night' | 'still';
 export type Step =
@@ -72,6 +72,7 @@ export async function setUp(): Promise<void> {
   // slept is already lit this morning; ate and water are lit on the step
   if (step === 'basics') await setBasic('slept', true);
   if (step === 'shelf' || step === 'signs') await connectMusic();
+  if (step === 'shelf') await writeLines();
   if (step === 'door') {
     // a PIN set (few rounds: a demo key), the ring without the PIN on, then locked as the phone relocks
     await choosePin('3569', 1000);

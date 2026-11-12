@@ -178,7 +178,8 @@ test('the ♪ line: a link with no account; connected, a list of playlists, each
 
   // ---- Settings ticks the third: its grid appears under ♪
   await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: /^Playlists/ }).click();
+  // in Settings: the ♪ sheet, still on its way down, has a Playlists word of its own (the Signs segment, T5)
+  await page.locator('[data-sheet="Settings"]').getByRole('button', { name: /^Playlists/ }).click();
   await mine.getByRole('checkbox', { name: 'staging' }).click();
   await expect(mine.getByRole('checkbox', { name: 'staging' })).toHaveAttribute('aria-checked', 'true');
   await expect(mine.getByText(/^reading /)).toHaveCount(0);

@@ -56,8 +56,8 @@ The sign travels with him: the place a touch lands shows a small sign in print b
 
 ## 4. Music on every sign
 
-- **The shelf.** Under the gate on every sign's page: covers, wordless, then a plus. A tap plays. Shows, films, games, books and art follow as written lines when he adds them.
-- **Editable.** The plus opens the ♪ grid and his playlists; the chosen cover travels to the shelf. A long press lifts a cover: drag to reorder, off the shelf to remove.
+- **The shelf.** Under the gate on every sign's page: covers, wordless, then a plus. A tap plays. Shows, films, games, books and art follow as written lines when he adds them. An album whose cover the phone has not kept yet (every starter until Spotify has been connected once) is an empty tile with its title on it, and with no account a tap opens it in Spotify. The shelf holds its height from first paint, so the 988 line under it does not move.
+- **Editable.** The plus raises a small sheet: a rule for a title, its kind (Book, Art, Show, Film, Switch, Phone), Add; with Spotify connected, "+ album" there opens the ♪ grid and his playlists, and the chosen cover travels to the shelf. A long press lifts a cover or a line, ringed in ink while the rest dim: drag to reorder, off the shelf to remove.
 - **Easy to jump to.** The ♪ in the header (on every screen) gains a Signs segment beside Playlists: seven rows, each a sign's name on its hue and its covers. A tap on a cover plays; a tap on the name opens that sign.
 - **Starters.** Three of the albums already seeded in the app per sign, so no shelf opens empty. They are my guess at a fit and his to replace:
 
@@ -98,7 +98,7 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 - **mountain-fixes (#70, merged):** the old drawings are off the sign's page. This plan builds on that page.
 - **PLAN-WEATHER.md (#68, merged, not built):** its stars are kept lines, which is Crown's Kept line; build that once, there or here.
 - **The walk (#61, open):** its card strip is not used. Kept from it: the `calendar` helper and the Call and Text links. Closing #61 is Tommy's call.
-- **Mountain R4 (books and art):** lands on the shelf.
+- **Mountain R4 (books and art):** lands on the shelf. Built 2026-11-12 on `tasks-shelf` (a PR against `acts-plan`): the shelf's plus and its small sheet in `ui/flow/chakra/SignShelf.tsx`, Book and Art in the step sheet's pick editor too; none seeded, no schema change.
 
 ## 9. Packages
 
@@ -137,10 +137,20 @@ The eight crisis flows (Panic, What if, Depress, Fight, Replay, 3 a.m., Shutdown
 - An open gate sends no surge and asks nothing.
 - A touch releases 0.6 of what the gate holds (`SHARE`).
 - Grieve's stones show only while Grieve is the active word.
-- The shelf's plus shows only with Spotify connected, and adds albums only.
+- The shelf's plus is always on a sign's page (not in Still, not through the door) and raises a small sheet titled "On the shelf"; "+ album" is in that sheet, only with Spotify connected. On the ♪ sheet's Signs rows the plus is as it was: connected only, albums only.
+- One written line a rise: Add (or Enter) writes it and the sheet goes down. Book is the kind chosen when it opens; the kinds read Book, Art, Show, Film, Switch, Phone.
+- A written line on a shelf is only read there: a tap does nothing, a long press lifts it, and it is not edited in place (take it off and write it again).
+- No book or art is seeded under any sign.
+- An album with no kept cover is an empty tile with its title on it in print (four lines at most), not a written row and not a blank. The seed carries a Spotify id and no art, and the app fetches nothing without an account, so a starter shows its real cover only once the ♪ grid has kept it (a connection, with the album on a chosen playlist) or it has played from here. The other honest way is to ship the 21 starter covers inside the app (they are in `design/tasks/` for the walkthrough); not done, his call.
+- The title leaves the empty tile in Still and on the ♪ sheet's small rows (no room at a thumb's width), so there the three are told apart only by a screen reader.
+- With no account, a tap on any shelf tile opens that album in Spotify (the app, then the web player), the way the header's ♪ opens the Poems playlist.
+- The shelf remembers how much room it took (rows of covers, written lines: two numbers a sign, in localStorage, no title) so the next first paint holds the same height. A shelf is never shorter than one row of covers, even emptied.
+- A lifted cover or line: an ink ring, the rest of the shelf at 45 percent, the plus's place struck in ink. A lift is put down if Still comes on.
 
 ## 11. Only the iPhone can say
 
 A thumb held on a canvas against Safari's scroll and back swipe; the keyboard over a rule drawn on the plate; `sms:` with a body, `tel:` and `calshow:` from the installed app, and what coming back looks like; print words on dark rock under a thumb; the surge read as relief and not as a reward.
+
+The shelf pass (2026-11-12): whether `spotify:album:` then the web player opens the album from the installed app with no account, and what coming back looks like; whether the title on an empty tile reads at arm's length at 11pt; the ink ring under a thumb that covers most of a 66pt cover.
 
 Found walking the whole feature (T6): whether the out-of-app rules (Send, I will) raise the keyboard at all, since they rely on `autoFocus` where the in-place rules call `focus()` inside the tap; the header at 390pt once "Solar plexus chakra" or the sign beside the date is on it (the date reaches the screen's edge in the walkthrough); a long press on a cover against iOS's own image callout; and the time field's wheel for I will.

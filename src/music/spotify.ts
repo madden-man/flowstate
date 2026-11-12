@@ -317,6 +317,14 @@ export function openPlaylist(go: (href: string) => void = h => location.assign(h
   setTimeout(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') go(PLAYLIST_WEB); }, waitMs);
 }
 
+/** With no account: point the phone at one album (a cover on a sign's shelf), the same two navigations. An id that
+ *  is not Spotify's 22 letters and digits goes nowhere. */
+export function openAlbum(albumId: string, go: (href: string) => void = h => location.assign(h), waitMs = 1200): void {
+  if (!/^[A-Za-z0-9]{22}$/.test(albumId)) return;
+  go(`spotify:album:${albumId}`);
+  setTimeout(() => { if (typeof document === 'undefined' || document.visibilityState === 'visible') go(`https://open.spotify.com/album/${albumId}`); }, waitMs);
+}
+
 /** The signed-in account: its id (whose playlists are its own) and its display name. */
 export async function account(t: Tokens): Promise<{ id: string; name: string }> {
   const r = await api(t, '/me');

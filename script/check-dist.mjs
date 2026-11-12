@@ -18,6 +18,7 @@ const INERT = [
   [/^https:\/\/accounts\.spotify\.com$/, 'src/music: the PKCE sign-in, opt-in'],
   [/^https:\/\/api\.spotify\.com\/v1$/, 'src/music: the Web API, opt-in'],
   [/^https:\/\/open\.spotify\.com\/playlist\/(\$\{[\w$]+\}|0T6Gzc2hN81u3vGC5IJZ9a)$/, 'src/music: the playlist link, a navigation'],
+  [/^https:\/\/open\.spotify\.com\/album\/\$\{[\w$]+\}$/, 'src/music: an album link from a sign\'s shelf with no account (openAlbum), a navigation'],
   // (a minified build may name the id's variable with a $, as $p: still the same template, not a URL)
 ];
 const dir = process.argv[2] || 'dist';
