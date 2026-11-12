@@ -1,11 +1,15 @@
-// Be (PLAN-VALUES.md section 3 steps 1, 2, 3 and 11; C2): who he is building. "Values | Champions" and "New value" at
-// the top, the notebook's line "I determine my core.", then a row per held value: the word, large, and on the right
-// its champions' colours as short rules (a dashed one when nobody fights for it). "Resting" reveals the values put
-// down. Long press a row to lift it and drag it to a new place (V13). A tap opens the value where it stands: the word
-// travels to the left of a seam (rule 28, parts/Turn) and its shadow is written across it, in italic at full ink (a
-// shadow is a value too, never greyed); under it, the looks line, the champions of each side (C3's ChampionsOf), what
-// was said for it (C5's Said) and Edit. #/be/:id opens that one and scrolls to it. In Still (rule 13): the held words
-// alone, nothing to open, nothing to drag. #/be/champions is the second segment (C3's Champions).
+// Be (PLAN-VALUES.md section 3 steps 1, 2, 3 and 11; C2; PLAN-TIERS.md B1): who he is building. "Values | Champions"
+// and "New value" at the top, the notebook's line "I determine my core.", then the tiers: the headings First, Second
+// and Third, each over its rows (the word large, First's the largest, Third's the size of ink; on the right its
+// champions' colours as short rules, a dashed one when nobody fights for it) or, when it has none, a dashed landing
+// rule; then the words Resting and Legacy, each a shelf that opens (a Legacy row carries its dates where the rules
+// would be). Long press a row to lift it and drag it to a new place among its own place's rows (V13; B2 carries it
+// across). A tap opens the value where it stands: the word travels to the left of a seam (rule 28, parts/Turn) and its
+// shadow is written across it, in italic at full ink (a shadow is a value too, never greyed); under it, the looks line,
+// the five words (First, Second, Third, Resting, Legacy: a tap carries it to the foot of that place), "First since
+// 11 / 12 / 26", the champions of each side (C3's ChampionsOf), what was said for it (C5's Said) and Edit. #/be/:id
+// opens that one and scrolls to it. In Still (rule 13): First's words alone (every held word when First is empty),
+// nothing to open, nothing to drag. #/be/champions is the second segment (C3's Champions).
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { Page } from '../parts/Page';
@@ -16,7 +20,7 @@ import { light } from '../light';
 import { useLongPress } from '../council/state';
 import { tick } from '../parts/Haptic';
 import { moves, tokenMs } from '../turns';
-import { CORE, callCouncil, held as readHeld, placeOf, placeValue, resting as readResting } from '../../model/values';
+import { CORE, callCouncil, placeOf, placeValue, tiers as readTiers, type Tiers, type ValuePlace } from '../../model/values';
 import { allVoices } from '../../model/council';
 import type { Value, Voice } from '../../db/schema';
 import type { Read } from '../../db/fields';
@@ -25,9 +29,12 @@ import { ruleIds } from './lines';
 import { ValueSheet } from './ValueSheet';
 import { Champions, ChampionsOf } from './Champions';
 import { Said } from './Said';
+import { PLACE_WORDS, legacyLine, placeKey, placeWord, rowsOf, sinceLine, slots, stillValues, type Slot } from './tiers';
 
 /** The turn that carries a tapped value's word between its list place and its place by the seam (parts.css). */
 const VALUE_TURN = 'be-value';
+/** The turn that carries an open value to the foot of the place one of its five words names (B1). */
+const PLACE_TURN = 'be-place';
 
 /** An open value grows down from its row and folds back up (M2, PLAN-MOTION.md): laid out first at its full size with
  *  none of it showing, then revealed over --t-page. Folding, it is already closed (the row says so at once); it goes
@@ -111,11 +118,11 @@ function ChampionsPage() {
   );
 }
 
-type Data = { held: Read<Value>[]; resting: Read<Value>[]; voices: Read<Voice>[] };
+type Data = Tiers & { voices: Read<Voice>[] };
 
 function Values({ id }: { id?: string }) {
   const [data, setData] = useState<Data | null>(null);
-  const [showResting, setShowResting] = useState(false);
+  const [shelf, setShelf] = useState<{ resting: boolean; legacy: boolean }>({ resting: false, legacy: false });
   const [open, setOpen] = useState<Set<string>>(() => new Set(id ? [id] : []));
   // a tapped value grows; one being closed stays to fold up before it goes
   const [closing, setClosing] = useState<Set<string>>(new Set());
@@ -124,13 +131,17 @@ function Values({ id }: { id?: string }) {
   const scrolledTo = useRef<string | null>(null);
   const still = light.value === 'still';
 
+  /** Reads the list again. The sheet and Spoke for's chips find a value here, Legacy ones too, so a line spoken for a
+   *  value in Legacy keeps its label. */
+  const read = async (live: () => boolean = () => true) => {
+    const [t, voices] = await Promise.all([readTiers(), allVoices()]);
+    if (!live()) return;
+    beValues.value = [...t.first, ...t.second, ...t.third, ...t.resting, ...t.legacy];
+    setData({ ...t, voices });
+  };
   useEffect(() => {
     let live = true;
-    Promise.all([readHeld(), readResting(), allVoices()]).then(([h, r, voices]) => {
-      if (!live) return;
-      beValues.value = [...h, ...r];
-      setData({ held: h, resting: r, voices });
-    });
+    void read(() => live);
     return () => { live = false; };
   }, [beVersion.value, dataVersion.value]);
 
@@ -150,6 +161,31 @@ function Values({ id }: { id?: string }) {
   };
   const folded = (vid: string) => setClosing(prev => { if (!prev.has(vid)) return prev; const n = new Set(prev); n.delete(vid); return n; });
 
+  /** The five words (PLAN-TIERS.md section 5, "No drag"): one tap puts the open value at the foot of that place, and the
+   *  row travels there (rule 28, parts/Turn), still open; a shelf it lands on opens, and the row is brought into view. */
+  const place = (vid: string, to: ValuePlace) => {
+    const row = document.getElementById(`be-${vid}`);
+    for (const other of document.querySelectorAll<HTMLElement>('[data-turning]')) delete other.dataset.turning;
+    if (row) row.dataset.turning = '';
+    const update = async () => {
+      await placeValue(vid, to);
+      if (to === 'resting' || to === 'legacy') setShelf(s => ({ ...s, [to]: true }));
+      await read();
+    };
+    const show = () => {
+      const el = document.getElementById(`be-${vid}`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.top < 0 || r.top > innerHeight - el.offsetHeight / 2) el.scrollIntoView({ block: 'start' });
+    };
+    void turn(PLACE_TURN, update, { settle: show }).finally(() => {
+      if (row) delete row.dataset.turning;
+      // where the browser has no turn, settle never ran
+      show();
+      changed();
+    });
+  };
+
   // the deep link opens its value
   useEffect(() => { if (id) setOpen(prev => (prev.has(id) ? prev : new Set([...prev, id]))); }, [id]);
 
@@ -167,17 +203,21 @@ function Values({ id }: { id?: string }) {
   }, [id, data]);
 
   // ---- the drag (V13): long press lifts a row; it rides under the finger and drops into its new place among the
-  // values of its own kind (held among held, resting among resting) ----
+  // rows of its own place (a tier, Resting or Legacy). B2 carries it across the headings. ----
   const [order, setOrder] = useState<string[] | null>(null);
   const [lifted, setLifted] = useState<string | null>(null);
   const drag = useRef<{ id: string; y: number; dy: number } | null>(null);
   const liveOrder = useRef<string[] | null>(null);
-  const kindOf = (vid: string) => (data?.resting.some(v => v.id === vid) ? data.resting : data?.held ?? []);
+  const placeRows = (vid: string): Read<Value>[] => {
+    if (!data) return [];
+    const p = PLACE_WORDS.find(x => rowsOf(data, x.place).some(v => v.id === vid));
+    return p ? rowsOf(data, p.place) : [];
+  };
   const press = useLongPress<HTMLElement>((el, e) => {
     const vid = el.closest<HTMLElement>('.fs-be-row')?.dataset.row;
     if (!vid) return;
     drag.current = { id: vid, y: (e as PointerEvent).clientY ?? 0, dy: 0 };
-    liveOrder.current = kindOf(vid).map(v => v.id);
+    liveOrder.current = placeRows(vid).map(v => v.id);
     setOrder(liveOrder.current);
     setLifted(vid);
   }, '.fs-dichotomy');
@@ -209,12 +249,11 @@ function Values({ id }: { id?: string }) {
       drag.current = null;
       const el = rowOf(lifted);
       if (el) el.style.transform = '';
-      // until B2 a row stays in its own place (its tier, or Resting); it is set among that place's rows
-      const kind = kindOf(lifted);
-      const row = kind.find(v => v.id === lifted);
-      const same = (ids: string[]) => ids.filter(x => { const v = kind.find(k => k.id === x); return !!v && !!row && placeOf(v) === placeOf(row); });
-      const to = d && liveOrder.current ? same(liveOrder.current).indexOf(d.id) : -1;
-      if (d && row && to >= 0 && to !== same(kind.map(v => v.id)).indexOf(d.id)) {
+      const rows = placeRows(lifted);
+      const row = rows.find(v => v.id === lifted);
+      // the index among the place's rows as they stand without it is its index in the new order (placeValue's)
+      const to = d && liveOrder.current ? liveOrder.current.indexOf(d.id) : -1;
+      if (d && row && to >= 0 && to !== rows.indexOf(row)) {
         await placeValue(d.id, placeOf(row), to);
         tick('drop');
         changed();
@@ -235,11 +274,16 @@ function Values({ id }: { id?: string }) {
     };
   }, [lifted]);
 
-  // while a row is lifted the list shows the order it is being dragged into
+  // while a row is lifted its place shows the order it is being dragged into
   const placed = (vs: Read<Value>[]) => (order ? [...vs].sort((a, b) => (order.indexOf(a.id) + 1 || Infinity) - (order.indexOf(b.id) + 1 || Infinity)) : vs);
-  const heldList = placed(data?.held ?? []);
-  const restingList = placed(data?.resting ?? []);
-  if (id && !showResting && data?.resting.some(v => v.id === id)) setShowResting(true);
+  const shown: Tiers | null = data && {
+    first: placed(data.first), second: placed(data.second), third: placed(data.third), resting: placed(data.resting), legacy: placed(data.legacy),
+  };
+  // a deep link to a value on a shelf opens that shelf
+  if (id && data) {
+    const on = (['resting', 'legacy'] as const).find(p => !shelf[p] && data[p].some(v => v.id === id));
+    if (on) setShelf(s => ({ ...s, [on]: true }));
+  }
   const byId = new Map((data?.voices ?? []).map(v => [v.id, v]));
 
   /** Still: the word alone, nothing to tap. */
@@ -249,15 +293,18 @@ function Values({ id }: { id?: string }) {
     </section>
   );
 
-  const row = (v: Read<Value>) => {
+  const row = (v: Read<Value>, at: ValuePlace) => {
     const vid = v.id;
-    const shown = open.has(vid);
-    const folding = !shown && closing.has(vid);
+    const isOpen = open.has(vid);
+    const folding = !isOpen && closing.has(vid);
     const rules = ruleIds(v, data?.voices ?? []);
     const shadow = v.shadow;
+    const legacy = at === 'legacy';
+    const since = sinceLine(v);
+    const size = typeof at === 'number' ? ` fs-value-t${at}` : ' fs-value-shelf';
     return (
-      <section key={vid} id={`be-${vid}`} class={`fs-be-row${shown ? ' open' : ''}${lifted === vid ? ' lift' : ''}`} data-row={vid}>
-        {shown ? (
+      <section key={vid} id={`be-${vid}`} class={`fs-be-row${isOpen ? ' open' : ''}${lifted === vid ? ' lift' : ''}`} data-row={vid} data-place={placeKey(at)}>
+        {isOpen ? (
           <button type="button" class={`fs-dichotomy fs-value-open${shadow ? '' : ' alone'}${grown.current.has(vid) ? ' written' : ''}`}
             aria-expanded="true" aria-controls={`value-${vid}`} onClick={() => flip(vid)}>
             <span class="a">{v.word}</span>
@@ -265,13 +312,14 @@ function Values({ id }: { id?: string }) {
             {shadow && <span class="b">{shadow}</span>}
           </button>
         ) : (
-          <button type="button" class={`fs-dichotomy fs-value${v.status === 'resting' ? ' resting' : ''}`}
+          <button type="button" class={`fs-dichotomy fs-value${size}${at === 'resting' || legacy ? ' resting' : ''}`}
             aria-expanded="false" aria-controls={`value-${vid}`} onClick={() => flip(vid)}>
             <span class="a">{v.word}</span>
-            {rules.length ? <SpokeRules ids={rules} byId={byId} /> : <span class="fs-spoke-none" aria-label="Nobody yet" />}
+            {legacy ? <span class="fs-value-dates">{legacyLine(v)}</span>
+              : rules.length ? <SpokeRules ids={rules} byId={byId} /> : <span class="fs-spoke-none" aria-label="Nobody yet" />}
           </button>
         )}
-        {(shown || folding) && (
+        {(isOpen || folding) && (
           <Fold grow={grown.current.has(vid)} closing={folding} onFolded={() => folded(vid)}>
             <div id={`value-${vid}`} class="fs-value-body">
               {!shadow && (
@@ -280,13 +328,23 @@ function Values({ id }: { id?: string }) {
                 </p>
               )}
               {v.looks && <p class="fs-value-looks">{v.looks}</p>}
-              {/* C3: the champions of each side */}
-              <ChampionsOf value={v} />
+              {/* B1: the five words, the one it is in pressed; one tap carries it to the foot of another */}
+              <div class="fs-be-places">
+                <div class="fs-opts" role="group" aria-label="Place">
+                  {PLACE_WORDS.map(o => (
+                    <button key={placeKey(o.place)} type="button" class="fs-opt" aria-pressed={o.place === at}
+                      onClick={() => { if (o.place !== at) place(vid, o.place); }}>{o.word}</button>
+                  ))}
+                </div>
+              </div>
+              {since && <p class="fs-print fs-be-since">{since}</p>}
+              {/* C3: the champions of each side; a Legacy value's are kept, not drawn */}
+              {!legacy && <ChampionsOf value={v} />}
               {/* C5: what was said for it */}
               <Said value={v} />
               <div class="fs-value-acts">
-                {/* C5: a new council about this value, its champions seated, on "Who sits?" */}
-                <button type="button" class="fs-word" onClick={() => void callCouncil(vid).then(p => { location.hash = `/council/${p.id}`; })}>Call a council</button>
+                {/* C5: a new council about this value, its champions seated, on "Who sits?"; Legacy is out of the council's way */}
+                {!legacy && <button type="button" class="fs-word" onClick={() => void callCouncil(vid).then(p => { location.hash = `/council/${p.id}`; })}>Call a council</button>}
                 <button type="button" class="fs-word" onClick={() => openValue({ valueId: vid })}>Edit</button>
               </div>
             </div>
@@ -296,19 +354,29 @@ function Values({ id }: { id?: string }) {
     );
   };
 
+  /** One slot of the list (ui/be/tiers.ts slots): a heading, a row, a landing rule, or a shelf's word. */
+  const slot = (s: Slot) => {
+    switch (s.kind) {
+      case 'heading': return <p key={s.key} class="fs-be-tier" data-heading={placeKey(s.place)}>{placeWord(s.place)}</p>;
+      case 'land': return <p key={s.key} class="fs-be-land" data-land={placeKey(s.place)} aria-hidden="true" />;
+      case 'row': return row(s.value, s.place);
+      case 'shelf': return (
+        <p key={s.key} class="fs-value-line fs-be-shelf" data-shelf={s.place}>
+          <button type="button" class="fs-word" aria-expanded={s.open} onClick={() => setShelf(x => ({ ...x, [s.place]: !x[s.place] }))}>{placeWord(s.place)}</button>
+        </p>
+      );
+    }
+  };
+
+  const stillList = shown ? stillValues(shown) : [];
   return (
     <Page label="Be" drawn={data !== null}>
       <BeTop here="values" />
       <div ref={scroller} class="fs-sheetof fs-rules fs-be fs-values" {...(still ? {} : press)}>
         <p class="fs-be-core">{CORE}</p>
-        {data && !heldList.length && <p class="fs-quiet">Nothing held yet.</p>}
-        {still ? heldList.map(stillRow) : heldList.map(row)}
-        {!still && restingList.length > 0 && (
-          <p class="fs-value-line fs-be-resting">
-            <button type="button" class="fs-word" aria-expanded={showResting} onClick={() => setShowResting(!showResting)}>Resting</button>
-          </p>
-        )}
-        {!still && showResting && restingList.map(row)}
+        {still
+          ? <>{data && !stillList.length && <p class="fs-quiet">Nothing held yet.</p>}{stillList.map(stillRow)}</>
+          : shown && slots(shown, shelf).map(slot)}
       </div>
       <ValueSheet />
     </Page>
