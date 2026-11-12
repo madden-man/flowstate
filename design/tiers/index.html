@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState Be: values in tiers</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../parts.css">
+<style>
+/* Page chrome around the phones; the phones themselves run on tokens.css and parts.css unchanged. */
+:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow: walkthrough chrome */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow: walkthrough chrome */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px 16px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
+header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+.lights{margin-left:auto;display:flex;gap:4px;background:var(--rail);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lights button,.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
+.lights button[aria-pressed="true"]{background:var(--fg);color:var(--rail)}
+.lights button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
+nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
+nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
+nav.rail a[aria-current]{background:var(--bg)}
+nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
+@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
+main{min-width:0}
+.step{display:none}
+.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
+.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
+.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
+.ctl{display:flex;gap:10px;justify-content:center}
+.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
+details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
+summary{cursor:pointer;color:var(--fg)}
+details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
+details td:first-child{color:var(--fg);white-space:nowrap}
+details code{font-size:12px}
+details s{color:var(--muted)}
+
+/* ---------- the phone ---------- */
+.phone{width:min(100%,380px);aspect-ratio:390/844;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative;user-select:none;-webkit-user-select:none} /* design-lint: allow: the phone shell */
+.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--page);color:var(--ink);font-family:var(--serif);font-size:var(--fs-ink);line-height:var(--lh-ink);transition:background-color var(--t-light) var(--ease),color var(--t-light) var(--ease)}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow: the phone shell */
+.status{display:flex;justify-content:space-between;padding:15px 28px 0;font-family:var(--sans);font-size:12px;color:var(--print);position:relative}
+.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent;position:relative}
+.screen .fs-moon b{display:none}
+.screen[data-light="still"] .fs-moon i{display:none}
+.screen[data-light="still"] .fs-moon b{display:block;animation:breathe var(--t-breath) var(--ease) infinite}
+@keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
+.screen .fs-hdr-l .fs-word{padding-inline:var(--s1)}
+.screen .fs-sheetof{overflow:hidden}
+/* the ? mark in the bar: a glyph like the header's ♪, so the four words stay */
+.screen .fs-tab-q{font-family:var(--serif);font-size:19px;letter-spacing:0;flex:.6}
+
+/* ---------- v2 pieces that do not exist yet (the proposal) ---------- */
+/* the page is the editor: a paragraph is a block; the one you are on carries a margin dot */
+.v2-para{position:relative}
+.v2-para.cur::before{content:"";position:absolute;left:calc(var(--gutter) * -1 + 7px);top:calc(var(--lh-ink) / 2 - 3px);width:6px;height:6px;border-radius:50%;border:1px solid var(--print)}
+.v2-para.cur.fs-v::before{display:none}
+.v2-caret{display:inline-block;width:1.5px;height:20px;background:var(--ink);vertical-align:-4px;animation:blink calc(var(--t-breath) / 9) steps(1) infinite;margin-left:1px}
+.screen[data-light="still"] .fs-notstill{display:none}
+.screen .fs-be-row{position:relative}
+
+/* ---------- pieces that do not exist yet (PLAN-TIERS.md) ---------- */
+/* a tier's heading: the core line's print, in ink, on its own rule */
+.tr-tier{color:var(--ink)}
+/* the tier is the size of the word: First stays at --fs-manifesto */
+.fs-dichotomy.fs-value.tr-t2{font-size:var(--fs-title)}
+.fs-dichotomy.fs-value.tr-t3{font-size:var(--fs-ink)}
+/* the landing rule: a dashed blank rule where a carried value may be put down (rule 11's mark for something owed) */
+.fs-sheetof .tr-land{height:var(--lh-ink);border-bottom:1px dashed var(--print);box-sizing:border-box}
+/* a Legacy row's dates, where the champions' rules would be */
+.tr-dates{flex:none;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);color:var(--print);font-style:normal}
+/* the four tier words on an open value, and the dated line under them */
+.tr-tiers{display:flex;align-items:center;min-height:calc(var(--lh-ink) * 2)}
+.fs-sheetof .tr-since{line-height:var(--lh-ink)}
+/* the thumb on a lifted row (walkthrough only) */
+.tr-thumb{position:absolute;right:var(--s3);top:50%;width:44px;height:44px;margin-top:-18px;border-radius:50%;background:var(--ink);opacity:.14;pointer-events:none}
+.tr-over{margin-top:calc(var(--lh-ink) * -1)}
+/* the value that stepped down out of First: a drawn tick in the gutter while the thumb is still down */
+.tr-stepped{position:relative}
+.tr-stepped::before{content:"";position:absolute;left:calc(var(--s2) * -1);top:var(--s1);bottom:var(--s1);border-left:1px dashed var(--print)}
+@media (prefers-reduced-motion:reduce){.screen .fs-moon b{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>Be: values in tiers</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+
+<section class="step" id="start" data-name="My values start in the middle">
+  <h2>My values start in the middle</h2>
+  <p class="line">Nothing is ranked for me: First and Third wait empty.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><p class="tr-land fs-notstill"></p><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><p class="tr-land fs-notstill"></p><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="false">Legacy</button></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Data</td><td><code>Value.tier?: 1 | 2 | 3</code>, clear and optional; absent reads as Second. No schema bump (main stays 7).</td></tr><tr><td>Empty tier</td><td>A dashed blank rule, rule 11's mark for something owed.</td></tr><tr><td>Resting</td><td>Reads as Legacy; the stored status stays <code>resting</code>.</td></tr><tr><td>Plan</td><td><code>PLAN-TIERS.md</code> sections 2 and 4.</td></tr></table></details>
+</section>
+
+<section class="step" id="lift" data-name="Hold one to lift it">
+  <h2>Hold one to lift it</h2>
+  <p class="line">Open values fold, and Legacy opens a rule to land on.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:12</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><p class="tr-land fs-notstill"></p><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row lift fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button><span class="tr-thumb"></span></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><p class="tr-land fs-notstill"></p><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="true">Legacy</button></p><p class="tr-land fs-notstill"></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Lift</td><td><code>useLongPress</code>, <code>--t-hold</code>, as today (rule 8).</td></tr><tr><td>New</td><td>Every open value folds before the row rides; the list scrolls under it near the top and bottom edges.</td></tr><tr><td>Package</td><td>B2, <code>ui/be/drag.ts</code>.</td></tr></table></details>
+</section>
+
+<section class="step" id="cross" data-name="Carry it over a heading">
+  <h2>Carry it over a heading</h2>
+  <p class="line">One tick as it crosses, one as it lands.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:13</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row lift"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button><span class="tr-thumb"></span></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><p class="tr-land fs-notstill"></p><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="true">Legacy</button></p><p class="tr-land fs-notstill"></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Model</td><td><code>placeValue(id, to, index)</code>: status, tier, <code>tierLog</code> and <code>order</code> in one <code>store.tx</code>.</td></tr><tr><td>Ticks</td><td>A new <code>tier</code> tick at the heading; <code>drop</code> on landing (rule 19 amended).</td></tr><tr><td>Size</td><td>The word settles to its tier's size over <code>--t-ui</code>.</td></tr></table></details>
+</section>
+
+<section class="step" id="sorted" data-name="The order they matter in">
+  <h2>The order they matter in</h2>
+  <p class="line">The heading and the size of the word say the tier; nothing is numbered.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:40</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t3" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="false">Legacy</button></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Sizes</td><td><code>--fs-manifesto</code>, <code>--fs-title</code>, <code>--fs-ink</code>. No new token.</td></tr><tr><td>Follows</td><td>Champions, "Who sits?" and the Spoke for chips read <code>held()</code>, now in tier order.</td></tr><tr><td>Package</td><td>B1.</td></tr></table></details>
+</section>
+
+<section class="step" id="three" data-name="First holds three">
+  <h2>First holds three</h2>
+  <p class="line">A fourth is never refused: the last one steps down while I am still holding.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night"><div class="island"></div>
+    <div class="status"><span>21:41</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row lift"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button><span class="tr-thumb"></span></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><div class="tr-stepped"><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section></div><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t3" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="true">Legacy</button></p><p class="tr-land fs-notstill"></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Rule</td><td><code>FIRST_HOLDS = 3</code>; Second and Third hold any number.</td></tr><tr><td>Live</td><td>The row that will step down moves while the thumb is down, and moves back if the drag carries on.</td></tr><tr><td>Open</td><td>His call: section 8, question 2.</td></tr></table></details>
+</section>
+
+<section class="step" id="tap" data-name="Or tap where it belongs">
+  <h2>Or tap where it belongs</h2>
+  <p class="line">Four words on an open value move it without a drag.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:20</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row open"><button type="button" class="fs-dichotomy fs-value-open" aria-expanded="true"><span class="a">honesty</span><i aria-hidden="true"></i><span class="b">discretion</span></button>
+<div class="fs-value-body fs-notstill"><p class="fs-value-looks">I say the true thing while it is still small.</p>
+<div class="tr-tiers"><div class="fs-opts" role="group" aria-label="Tier"><button type="button" class="fs-opt" aria-pressed="true">First</button><button type="button" class="fs-opt" aria-pressed="false">Second</button><button type="button" class="fs-opt" aria-pressed="false">Third</button><button type="button" class="fs-opt" aria-pressed="false">Legacy</button></div></div>
+<p class="fs-print tr-since">First since 11 / 12 / 26</p>
+<div class="fs-champs"><div class="fs-champside"><p class="fs-print">Fighting for <i>honesty</i></p><div class="fs-msg fs-v fs-champ" style="--vc:var(--v-red)"><span class="fs-sp">Warrior</span><textarea class="fs-champ-why" rows="1" readonly>Because a kept silence is a debt.</textarea></div></div></div>
+<div class="fs-value-acts"><button type="button" class="fs-word">Call a council</button><button type="button" class="fs-word">Edit</button></div></div></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Travel</td><td>The row goes to the foot of the tapped tier through <code>parts/Turn</code> (rule 28).</td></tr><tr><td>Date</td><td>"First since" is read from <code>tierLog</code>: a date, never a length.</td></tr><tr><td>Sheet</td><td>Edit loses its Status row; it is words and Delete.</td></tr><tr><td>Also</td><td>The keyboard and VoiceOver path.</td></tr></table></details>
+</section>
+
+<section class="step" id="letgo" data-name="Let one go">
+  <h2>Let one go</h2>
+  <p class="line">Carried to the foot, a value lands in Legacy.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:24</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><p class="tr-land fs-notstill"></p><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="true">Legacy</button></p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value resting tr-t3" aria-expanded="false"><span class="a">perfection</span><span class="tr-dates">11 / 7 / 26 to 11 / 9 / 26</span></button></section><section class="fs-be-row lift fs-notstill tr-over"><button type="button" class="fs-dichotomy fs-value tr-t3" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button><span class="tr-thumb"></span></section></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Stored</td><td><code>status: 'resting'</code>, and <code>{ at, to: 'legacy' }</code> on <code>tierLog</code>.</td></tr><tr><td>After</td><td>Legacy stays open, so the row is still in sight; carrying it back is the undo.</td></tr><tr><td>Kept</td><td>Its champions and every line spoken for it.</td></tr></table></details>
+</section>
+
+<section class="step" id="legacy" data-name="Legacy keeps what I used to hold">
+  <h2>Legacy keeps what I used to hold</h2>
+  <p class="line">Each word with the dates it was mine; hold one to bring it back.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day"><div class="island"></div>
+    <div class="status"><span>09:25</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><p class="tr-land fs-notstill"></p><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="true">Legacy</button></p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value resting tr-t3" aria-expanded="false"><span class="a">perfection</span><span class="tr-dates">11 / 7 / 26 to 11 / 9 / 26</span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value resting tr-t3" aria-expanded="false"><span class="a">craft</span><span class="tr-dates">11 / 7 / 26 to 11 / 12 / 26</span></button></section></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Dates</td><td>Where the champions' rules would be; a value with no log shows only when it was made.</td></tr><tr><td>Out of the way</td><td>Not on the Champions segment, "Who sits?" or the Spoke for chips, as Resting is today.</td></tr><tr><td>Package</td><td>B1.</td></tr></table></details>
+</section>
+
+<section class="step" id="still" data-name="In Still, only what comes first">
+  <h2>In Still, only what comes first</h2>
+  <p class="line">The core line and three words.</p>
+  <div class="phone" data-mock><div class="screen" data-light="still"><div class="island"></div>
+    <div class="status"><span>23:05</span><span>Ridge notebook (example data)</span></div>
+    <div class="fs-app"><main class="fs-main"><section class="fs-page">
+      <header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span>Be</span><span>Date: <b>11 / 12 / 26</b></span></div></header>
+      <div class="fs-be-top fs-notstill"><nav class="fs-seg" aria-label="Be"><a aria-current="page">Values</a><a>Champions</a></nav><button type="button" class="fs-word">New value</button></div>
+      <div class="fs-sheetof fs-rules fs-be fs-values"><p class="fs-be-core">I determine my core.</p><p class="fs-be-core tr-tier fs-notstill">First</p><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">honesty</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i><i style="--vc:var(--v-blue)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">courage</span><span class="fs-spoke"><i style="--vc:var(--v-red)"></i></span></button></section><section class="fs-be-row"><button type="button" class="fs-dichotomy fs-value tr-t1" aria-expanded="false"><span class="a">presence</span><span class="fs-spoke"><i style="--vc:var(--v-purple)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Second</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">patience</span><span class="fs-spoke"><i style="--vc:var(--v-green)"></i></span></button></section><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t2" aria-expanded="false"><span class="a">play</span><span class="fs-spoke"><i style="--vc:var(--v-orange)"></i><i style="--vc:var(--v-pink)"></i></span></button></section><p class="fs-be-core tr-tier fs-notstill">Third</p><section class="fs-be-row fs-notstill"><button type="button" class="fs-dichotomy fs-value tr-t3" aria-expanded="false"><span class="a">craft</span><span class="fs-spoke-none" aria-label="Nobody yet"></span></button></section><p class="fs-value-line fs-be-resting fs-notstill"><button type="button" class="fs-word" aria-expanded="false">Legacy</button></p></div>
+    </section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab" aria-current="page">Be</a><a class="fs-tab">Flow</a></nav></div>
+  </div></div>
+  <details><summary>How this is built</summary><table><tr><td>Rule 13</td><td>Amended: First's words alone; every held word, in tier order, when First is empty.</td></tr><tr><td>Hidden</td><td>Headings, sizes below First, Legacy, dates: all states.</td></tr></table></details>
+</section>
+
+</main>
+</div>
+<script>
+(function(){
+  var steps=[].slice.call(document.querySelectorAll('.step')),rail=document.getElementById('rail'),counter=document.getElementById('counter'),i=0,GLOBAL='design';
+  steps.forEach(function(s,j){var li=document.createElement('li'),a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(j+1)+'</span><span class="t"></span>';a.querySelector('.t').textContent=s.dataset.name;a.addEventListener('click',function(e){e.preventDefault();go(j);});li.appendChild(a);rail.appendChild(li);
+    var c=document.createElement('div');c.className='ctl';c.innerHTML='<button type="button" data-prev>Previous</button><button type="button" data-next>Next</button>';s.appendChild(c);
+    s.querySelectorAll('.screen').forEach(function(sc){sc.dataset.lightDefault=sc.dataset.light;});});
+  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+  document.addEventListener('click',function(e){if(e.target.closest('[data-prev]'))go(i-1);if(e.target.closest('[data-next]'))go(i+1);var m=e.target.closest('.screen .fs-moon');if(m){var sc=m.closest('.screen');sc.dataset.light=sc.dataset.light==='still'?(GLOBAL==='design'||GLOBAL==='still'?(sc.dataset.lightDefault==='still'?'night':sc.dataset.lightDefault):GLOBAL):'still';}});
+  document.addEventListener('keydown',function(e){if(e.target.closest&&e.target.closest('input,textarea'))return;if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
+  document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){GLOBAL=b.dataset.light;document.querySelectorAll('.lights [data-light]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});document.querySelectorAll('.screen').forEach(function(s){s.dataset.light=GLOBAL==='design'?s.dataset.lightDefault:GLOBAL;});});});
+  function fromHash(){var h=(location.hash||'').replace('#','');var k=steps.findIndex(function(s){return s.id===h;});go(k>=0?k:0);}
+  window.addEventListener('hashchange',fromHash);fromHash();
+})();
+</script>
+</body>
+</html>
