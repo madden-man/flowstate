@@ -8,7 +8,7 @@ import { store } from '../../src/db/fields';
 import { exportData, importData, parseBackup } from '../../src/db/backup';
 import { archiveVoice, newCouncil, speak } from '../../src/model/council';
 import {
-  held, resting, createValue, saveValue, moveValue, deleteValue, champion, unchampion, setWhy, fightsFor, byVoice,
+  held, resting, createValue, saveValue, placeValue, deleteValue, champion, unchampion, setWhy, fightsFor, byVoice,
   saidFor, speakFor, callCouncil, championsOf, NoWordError,
 } from '../../src/model/values';
 
@@ -28,9 +28,9 @@ describe('the lists', () => {
     expect(honest.looks).toBeUndefined();
     await expect(createValue({ word: '  ' })).rejects.toBeInstanceOf(NoWordError);
     expect((await held()).map(v => v.word)).toEqual(['selfless', 'thoughtful', 'honesty']);
-    await moveValue((await held()).map(v => v.id), honest.id, 0, T0 + 1);
+    await placeValue(honest.id, 2, 0, T0 + 1);
     expect((await held()).map(v => v.word)).toEqual(['honesty', 'selfless', 'thoughtful']);
-    await saveValue({ id: THOUGHTFUL }, { word: 'thoughtful', shadow: 'reactive' }, 'resting', T0 + 2);
+    await placeValue(THOUGHTFUL, 'resting', undefined, T0 + 2);
     expect((await held()).map(v => v.word)).toEqual(['honesty', 'selfless']);
     expect((await resting()).map(v => v.word)).toEqual(['thoughtful']);
   });
@@ -39,15 +39,15 @@ describe('the lists', () => {
 describe('saveValue', () => {
   it('keeps the old word and shadow once per later day; the same day and looks are written over', async () => {
     const v = await createValue({ word: 'patient', shadow: 'urgent' }, T0);
-    await saveValue(v, { word: 'patience', shadow: 'urgent', looks: 'waiting a beat' }, undefined, T0 + 1000);
+    await saveValue(v, { word: 'patience', shadow: 'urgent', looks: 'waiting a beat' }, T0 + 1000);
     expect((await store.get('values', v.id))!.revisions).toEqual([]);
-    await saveValue(v, { word: 'patient', shadow: 'urgency', looks: 'a breath first' }, undefined, T0 + DAY);
-    await saveValue(v, { word: 'patient', shadow: 'urgent', looks: 'a breath first' }, undefined, T0 + DAY + 1);
+    await saveValue(v, { word: 'patient', shadow: 'urgency', looks: 'a breath first' }, T0 + DAY);
+    await saveValue(v, { word: 'patient', shadow: 'urgent', looks: 'a breath first' }, T0 + DAY + 1);
     const after = (await store.get('values', v.id))!;
     expect(after).toMatchObject({ word: 'patient', shadow: 'urgent', looks: 'a breath first', updatedAt: T0 + DAY + 1 });
     expect(after.revisions).toEqual([{ at: T0 + DAY, word: 'patience', shadow: 'urgent' }]);
     // an emptied shadow is taken away
-    await saveValue(v, { word: 'patient', looks: 'a breath first' }, undefined, T0 + DAY + 2);
+    await saveValue(v, { word: 'patient', looks: 'a breath first' }, T0 + DAY + 2);
     expect((await store.get('values', v.id))!.shadow).toBeUndefined();
   });
 
@@ -55,7 +55,7 @@ describe('saveValue', () => {
     await champion(SELFLESS, 'v-warrior', 'value', T0);
     await setWhy(SELFLESS, 'v-warrior', 'value', ' I stand up for the others ', T0);
     const stale = (await store.get('values', SELFLESS))!;
-    await saveValue(stale, { word: 'generous', shadow: 'selfish', looks: stale.looks }, undefined, T0 + DAY);
+    await saveValue(stale, { word: 'generous', shadow: 'selfish', looks: stale.looks }, T0 + DAY);
     const v = (await store.get('values', SELFLESS))!;
     expect(v.word).toBe('generous');
     expect(v.champions).toEqual([{ voiceId: 'v-warrior', side: 'value', at: T0, why: 'I stand up for the others' }]);
@@ -102,7 +102,7 @@ describe('champions', () => {
     await archiveVoice('v-joker', false);
     expect((await fightsFor('v-joker')).map(f => f.side)).toEqual(['shadow']);
     // a resting value is not fought for on the lists
-    await saveValue(v, { word: v.word, shadow: v.shadow, looks: v.looks }, 'resting', T0 + 3);
+    await placeValue(v.id, 'resting', undefined, T0 + 3);
     expect(await fightsFor('v-joker')).toEqual([]);
   });
 });

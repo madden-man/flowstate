@@ -6,7 +6,7 @@ import { ensureSeeded } from '../../src/db/seed';
 import { store } from '../../src/db/fields';
 import type { Value } from '../../src/db/schema';
 import { aboutValue, notAboutValue, newCouncil, seat } from '../../src/model/council';
-import { champion, createValue, saveValue, deleteValue } from '../../src/model/values';
+import { champion, createValue, placeValue, deleteValue } from '../../src/model/values';
 import { spokeChips, offerChips, forWord, spokeLabel, valueList, reloadValues } from '../../src/ui/parts/SpokeFor';
 
 const SELFLESS = 'value-px-selfless-selfish';
@@ -27,7 +27,7 @@ describe('the chips on a line', () => {
     expect(spokeChips(valueList.value, { ...W, archived: true })).toEqual([]);
     expect(offerChips(valueList.value, 'v-warrior').map(c => c.word)).toEqual(['thoughtful']);
     expect(offerChips(valueList.value, 'v-joker').map(c => c.word)).toEqual(['selfless', 'selfish', 'thoughtful', 'reactive']);
-    await saveValue({ id: THOUGHTFUL }, { word: 'thoughtful', shadow: 'reactive' }, 'resting', T0 + 4);
+    await placeValue(THOUGHTFUL, 'resting', undefined, T0 + 4);
     await reloadValues();
     expect(spokeChips(valueList.value, W).map(c => c.word)).toEqual(['selfless', 'selfish']);
   });
@@ -50,7 +50,7 @@ describe('the label', () => {
     expect(spokeLabel({ id: 'm', for: { valueId: 'a', side: 'value' } }, vs)).toEqual({ word: 'honesty', state: undefined });
     expect(spokeLabel({ id: 'm' }, vs)).toBeUndefined();
 
-    await saveValue({ id: SELFLESS }, { word: 'selfless', shadow: 'selfish' }, 'resting', T0);
+    await placeValue(SELFLESS, 'resting', undefined, T0);
     await reloadValues();
     expect(forWord(valueList.value, { valueId: SELFLESS, side: 'shadow' })).toBe('selfish');
     await deleteValue(SELFLESS, T0 + 1);

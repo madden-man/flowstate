@@ -164,8 +164,8 @@ const fixationSpec: Spec<Tables['fixations']> = {
 
 /** A value seals its words (PLAN-VALUES.md section 5): word, shadow, looks, the revisions whole, and each champion's
  *  why, keyed by voice and side so the clear list can be reordered without the whys moving. The clear copy keeps the
- *  shape: ids, status, order, dates, and every champion's voiceId, side and at, so the list draws its champions'
- *  rules before unlock; each revision keeps only its date. */
+ *  shape: ids, status, tier, tierLog, order, dates, and every champion's voiceId, side and at, so the list draws its
+ *  champions' rules and its tiers before unlock (PLAN-TIERS.md section 4); each revision keeps only its date. */
 type VSecret = { word: string; shadow?: string; looks?: string; whys: Record<string, string>; revisions: Tables['values']['revisions'] };
 const whyKey = (c: { voiceId: string; side: string }) => `${c.side}:${c.voiceId}`;
 const valueSpec: Spec<Tables['values']> = {

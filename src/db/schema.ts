@@ -372,11 +372,23 @@ export type Champion = { voiceId: string; side: ValueSide; at: Millis; why?: str
  *  paradox said that the value has no field for: pole A's bracket word (the pole overdone, which is not a shadow) and
  *  pole B's aspect. Sealed with the rest of the revision. */
 export type ValueRevision = { at: Millis; word: string; shadow?: string; fromParadox?: { overdone?: string; shadowLooks?: string } };
+/** A held value's tier (PLAN-TIERS.md section 4): First, Second or Third. Said on screen by a heading and the size of
+ *  the word, never by this number. */
+export type Tier = 1 | 2 | 3;
+/** Where a value sits on Be: one of the three tiers (held), Resting (put down for now) or Legacy (used to hold). */
+export type ValuePlace = Tier | 'resting' | 'legacy';
 /** A value he is building (PLAN-VALUES.md section 5). word, shadow, looks, every champion's why and the revisions are
- *  sealed (fields.ts); ids, status, order, dates and each champion's voiceId, side and at stay clear. */
+ *  sealed (fields.ts); ids, status, tier, tierLog, order, dates and each champion's voiceId, side and at stay clear. */
 export type Value = {
   id: string; createdAt: Millis; updatedAt: Millis;
-  status: 'held' | 'resting';
+  /** PLAN-TIERS.md section 4: 'legacy' is a value he used to hold, kept and dated. Unindexed, so no Dexie version. */
+  status: 'held' | 'resting' | 'legacy';
+  /** PLAN-TIERS.md section 4: absent reads as Second (tierOf). Kept, and ignored, while the value is not held, so it
+   *  comes back to the tier it left. Clear, optional, unindexed. */
+  tier?: Tier;
+  /** PLAN-TIERS.md section 4: where it went and when, for the dated lines only; at most one entry a day, the day's
+   *  last (model/values.ts placeValue). Clear, optional, unindexed. */
+  tierLog?: { at: Millis; to: ValuePlace }[];
   word: string;
   shadow?: string;
   /** What living it looks like. */
@@ -392,6 +404,17 @@ export type Value = {
 /** The one order of the values, as Tommy dragged them: placed ones by order, then by age (as byParadoxOrder). */
 export const byValueOrder = (a: Pick<Value, 'order' | 'createdAt' | 'id'>, b: Pick<Value, 'order' | 'createdAt' | 'id'>) =>
   (a.order ?? Infinity) - (b.order ?? Infinity) || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
+
+/** A value's tier: its own, or Second when it has none (every value from before the tiers). For a value not held it is
+ *  the tier it left, the one it returns to. */
+export const tierOf = (v: Pick<Value, 'tier'>): Tier => v.tier ?? 2;
+/** Where a value sits: its tier while held, else its status. */
+export const placeOf = (v: Pick<Value, 'status' | 'tier'>): ValuePlace => (v.status === 'held' ? tierOf(v) : v.status);
+/** The places in list order: First, Second, Third, then Resting, then Legacy. */
+export const PLACES: readonly ValuePlace[] = [1, 2, 3, 'resting', 'legacy'];
+/** Be's one order (PLAN-TIERS.md section 4): by place (status, then tier while held), then as he dragged them. */
+export const byValuePlace = (a: Pick<Value, 'status' | 'tier' | 'order' | 'createdAt' | 'id'>, b: Pick<Value, 'status' | 'tier' | 'order' | 'createdAt' | 'id'>) =>
+  PLACES.indexOf(placeOf(a)) - PLACES.indexOf(placeOf(b)) || byValueOrder(a, b);
 
 /** The id of the value made from a paradox: fixed, so the pass, an import of an older file and a merge all name the
  *  same row (a value deleted stays on the deleted list under this id). Prefixed, so it never shares a paradox's id. */
