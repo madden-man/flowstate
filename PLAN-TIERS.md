@@ -1,8 +1,8 @@
 # FlowState Be: values in tiers (First, Second, Third, Legacy)
 
-Date: 2026-11-12. Status: decided 2026-11-12, building. Packages are B0 to B3 (B for Be). Tommy's answers: "both legacy and resting, hold any number first, dont care on rest". Tommy's ask: "make a plan for how the values in 'be' can be grouped into tiers: first, second, third, and 'legacy' (values i used to hold). it should be easy to drag and drop between these tiers, and consider if there is any other ui/ux enhancement to add as well."
+Date: 2026-11-12. Status: built 2026-11-12, B0 to B3 (PRs #81, #84, #85 and #B3PR) on `be-tiers-plan`. Packages are B0 to B3 (B for Be). Tommy's answers: "both legacy and resting, hold any number first, dont care on rest". Tommy's ask: "make a plan for how the values in 'be' can be grouped into tiers: first, second, third, and 'legacy' (values i used to hold). it should be easy to drag and drop between these tiers, and consider if there is any other ui/ux enhancement to add as well."
 
-`PLAN.md` stays the architecture, `DESIGN.md` the standard, `PLAN-VALUES.md` the Be this builds on. The walkthrough is `design/tiers/index.html`: nine steps. The committed page is the first hand drawing (it still shows the cap of three and no Resting); B3 rebuilds it from the real app to section 3, as `design/values/` is.
+`PLAN.md` stays the architecture, `DESIGN.md` the standard, `PLAN-VALUES.md` the Be this builds on. The walkthrough is `design/tiers/index.html`: nine steps. It is built from the real app to section 3, as `design/values/` is (B3: `npm run walkthrough:tiers` into `design/tiers/dist/`); the first hand drawing, with its cap of three and no Resting, is gone.
 
 ## 1. What is there today (main eefe2be)
 
@@ -110,3 +110,7 @@ Resting and Legacy both; First holds any number. The other defaults stand: today
 - The `tier` tick against the `drop` tick: two close together may read as one.
 - Five words on one line under an open value on a narrow screen.
 - Three sizes on a narrow screen with a long word and four champions' rules beside it.
+- Whether the `tier` haptic fires mid-drag at all: the switch trick needs a direct tap, and the crossing comes under a held finger.
+- Whether pointer events keep coming while the lifted row moves in the list under the finger (as it crosses a row or a heading the lifted row is moved to its new place in the list, still under the finger).
+- The feel of the hand-driven edge scroll: an 88px band (two `--hit`) at the top and bottom of the list, up to 14px a frame at the edge.
+- The Pull gesture (V6, earlier pages) at the top of the list: whether a lift near the top, or the edge scroll there, ever starts it.

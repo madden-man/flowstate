@@ -402,7 +402,7 @@ export type Value = {
 };
 
 /** The one order of the values, as Tommy dragged them: placed ones by order, then by age (as byParadoxOrder). */
-export const byValueOrder = (a: Pick<Value, 'order' | 'createdAt' | 'id'>, b: Pick<Value, 'order' | 'createdAt' | 'id'>) =>
+const byValueOrder = (a: Pick<Value, 'order' | 'createdAt' | 'id'>, b: Pick<Value, 'order' | 'createdAt' | 'id'>) =>
   (a.order ?? Infinity) - (b.order ?? Infinity) || a.createdAt - b.createdAt || a.id.localeCompare(b.id);
 
 /** A value's tier: its own, or Second when it has none (every value from before the tiers). For a value not held it is
