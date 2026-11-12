@@ -128,7 +128,10 @@ export function parseBackup(text: string): BackupFile {
  *  table comes in empty, above) and its seed flows have no chakra: each gets its sign here, as the Dexie upgrade gives a
  *  stored one (PLAN-MOUNTAIN.md section 8); only that clear field is added, so a sealed row still opens. A file from
  *  before TASKS_VERSION (version 7) has no signs' shelves, marks or days (the tables come in empty, above): each shelf
- *  reads as its starters (model/acts.ts), as on a phone upgraded from version 7. */
+ *  reads as its starters (model/acts.ts), as on a phone upgraded from version 7. A file from before RESEARCH_VERSION
+ *  (version 8) has no inquiries or papers (the tables come in empty, above) and no settings.research: Research sends
+ *  nothing until a key is pasted again (PLAN-RESEARCH.md section 5). A newer file carries the key sealed in its
+ *  settings row, as the Spotify tokens travel; a merge keeps this phone's settings, so its key with them. */
 function migrate(f: BackupFile): BackupFile {
   if (f.schemaVersion < 2) {
     const tables = { ...f.tables };
@@ -144,7 +147,8 @@ function migrate(f: BackupFile): BackupFile {
 }
 
 /** The time a row last changed, for merge: updatedAt, else at, else its newest revision, else createdAt, else an
- *  episode's last touch. */
+ *  episode's last touch, else when a question was asked (a re-asked one carries the new time) or a paper fetched
+ *  (PLAN-RESEARCH.md section 5). */
 export function stamp(row: Record<string, unknown>): number {
   if (typeof row.updatedAt === 'number') return row.updatedAt;
   if (typeof row.at === 'number') return row.at;
@@ -156,6 +160,8 @@ export function stamp(row: Record<string, unknown>): number {
     const marks = [...(row.marks as { at: number }[] | undefined ?? []), ...(row.done as { at: number }[] | undefined ?? [])];
     return Math.max(row.startedAt, typeof row.endedAt === 'number' ? row.endedAt : 0, ...marks.map(m => m.at));
   }
+  if (typeof row.askedAt === 'number') return row.askedAt;
+  if (typeof row.fetchedAt === 'number') return row.fetchedAt;
   return 0;
 }
 

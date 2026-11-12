@@ -3,11 +3,13 @@
 // version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 is PLAN-VALUES.md section 5, the values; version 7
 // (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the readings and flows.chakra, in the block marked "the mountain"
 // below; version 8 (TASKS_VERSION) is PLAN-TASKS.md section 7, the signs' shelves, the marks and the days, in the block
-// marked "the tasks"). UI code never imports this file: it reads and writes
+// marked "the tasks"; version 9 (RESEARCH_VERSION) is PLAN-RESEARCH.md section 5, the questions asked and the papers, in
+// the block marked "the research"). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 import type { ChakraId } from '../model/mountain';
+import type { Inquiry, Paper } from '../research/types';
 
 export { POEMS_ID, POEMS_NAME };
 
@@ -21,8 +23,11 @@ export const MOUNTAIN_VERSION = 7;
 /** The tasks' schema version (PLAN-TASKS.md section 7, T0): the signs' shelves, the marks and the days. Renumbering is
  *  here and only here, as for MOUNTAIN_VERSION. */
 export const TASKS_VERSION = 8;
-/** The newest version: the tasks', until a later one comes. */
-export const SCHEMA_VERSION = TASKS_VERSION;
+/** Research's schema version (PLAN-RESEARCH.md section 5, Q2): the questions asked and the papers. Renumbering is here
+ *  and only here, as for MOUNTAIN_VERSION. Once this is on main, never deploy a dist built from an older tree. */
+export const RESEARCH_VERSION = 9;
+/** The newest version: Research's, until a later one comes. */
+export const SCHEMA_VERSION = RESEARCH_VERSION;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -66,6 +71,10 @@ export type Settings = {
   deleted?: string[];
   /** ticked (V8): the named playlists (music/poems.ts NAMED_IDS) already ticked once, so each is ticked only once. */
   spotify?: { tokens?: SpotifyTokens; connectedAt?: Millis; ticked?: string[] };
+  /** PLAN-RESEARCH.md section 5 (Q2): the Anthropic API key Research asks with, and an optional OpenAlex key. Sealed
+   *  whole with the PIN's key (fields.ts), like the Spotify tokens; absent until he pastes one, and Research sends
+   *  nothing until then. */
+  research?: ResearchKey;
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;
   /** Not in PLAN-FLOWS.md section 5 (F1): the seed flows (db/seed-flows.ts) already written once, by id, so each
@@ -86,6 +95,9 @@ export type Settings = {
   sitThroughSilent?: boolean;
   sealed?: Sealed;
 };
+
+/** Research's keys (PLAN-RESEARCH.md section 4): key is the Anthropic API key; openAlexKey raises OpenAlex's daily budget. */
+export type ResearchKey = { key: string; openAlexKey?: string };
 
 /** A sit's sound (PLAN-MEDITATE.md 3.1): one of the four scapes parts/Sound makes, or Quiet, the circle alone. */
 export type SitSound = 'rain' | 'ocean' | 'forest' | 'bowl' | 'quiet';
@@ -476,15 +488,19 @@ export type Tables = {
   signShelves: SignShelf;
   marks: Mark;
   days: Day;
+  inquiries: Inquiry;
+  papers: Paper;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days', 'inquiries', 'papers'];
 
-/** The tables a version adds after the mountain's (TASKS_VERSION), left out of the older STORES records. */
-type TasksTables = 'signShelves' | 'marks' | 'days';
+/** The tables the tasks' version (TASKS_VERSION) and Research's (RESEARCH_VERSION) add after the mountain's, left out of
+ *  the older STORES records. */
+type ResearchTables = 'inquiries' | 'papers';
+type AfterMountain = 'signShelves' | 'marks' | 'days' | ResearchTables;
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | AfterMountain>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -497,7 +513,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | AfterMountain>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -505,28 +521,28 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' 
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'values' | 'readings' | AfterMountain>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
 };
 
 /** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
-export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
+export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'values' | 'readings' | AfterMountain>, string> = {
   ...STORES_V3,
   sits: 'id, startedAt',
 };
 
 /** Version 5 adds the fixations (PLAN-ENERGIZE.md section 5). The upgrade writes nothing: a name is sealed and an
  *  upgrade cannot seal, so the first three and the deck come from seed.ts seedFixationsOnce once the journal is open. */
-export const STORES_V5: Record<Exclude<TableName, 'values' | 'readings' | TasksTables>, string> = {
+export const STORES_V5: Record<Exclude<TableName, 'values' | 'readings' | AfterMountain>, string> = {
   ...STORES_V4,
   fixations: 'id',
 };
 
 /** Version 6 adds the values (PLAN-VALUES.md section 5). The upgrade writes nothing: a word is sealed and an upgrade
  *  cannot seal, so each paradox becomes a value in seed.ts valuesFromParadoxesOnce once the journal is open. */
-export const STORES_V6: Record<Exclude<TableName, 'readings' | TasksTables>, string> = {
+export const STORES_V6: Record<Exclude<TableName, 'readings' | AfterMountain>, string> = {
   ...STORES_V5,
   values: 'id',
 };
@@ -541,7 +557,7 @@ export const STORES_V6: Record<Exclude<TableName, 'readings' | TasksTables>, str
 export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value: number; sealed?: Sealed };
 
 /** The mountain's version adds the readings, by when and by what they are of. */
-export const STORES_V7: Record<Exclude<TableName, TasksTables>, string> = {
+export const STORES_V7: Record<Exclude<TableName, AfterMountain>, string> = {
   ...STORES_V6,
   readings: 'id, at, [of+at]',
 };
@@ -592,7 +608,7 @@ export type BasicId = 'ate' | 'slept' | 'water' | 'outside';
 export type Day = { id: string; basics: BasicId[]; updatedAt: Millis; sealed?: Sealed };
 
 /** The tasks' version adds the three, each by id; the marks also by when, and by sign and when. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V8: Record<Exclude<TableName, ResearchTables>, string> = {
   ...STORES_V7,
   signShelves: 'id',
   marks: 'id, at, [chakra+at]',
@@ -600,9 +616,27 @@ export const STORES: Record<TableName, string> = {
 };
 
 function tasksVersion(db: Dexie) {
-  db.version(TASKS_VERSION).stores(STORES);
+  db.version(TASKS_VERSION).stores(STORES_V8);
 }
 // ---- the tasks end ----
+
+// ---- the research, version RESEARCH_VERSION (PLAN-RESEARCH.md section 5, Q2): the questions asked and the papers ----
+// Self-contained like the tasks' block: renumbering is RESEARCH_VERSION at the top of this file. openDB calls
+// researchVersion() after tasksVersion(). The upgrade writes nothing: a journal has asked no question yet. The rows'
+// shapes are src/research/types.ts (Inquiry, Paper), the contract the indexes, the agents and the page share.
+
+/** Research's version adds the questions, by id and by when each was asked (the Asked list, newest first), and the
+ *  papers by id: one row a paper however many questions cite it. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V8,
+  inquiries: 'id, askedAt',
+  papers: 'id',
+};
+
+function researchVersion(db: Dexie) {
+  db.version(RESEARCH_VERSION).stores(STORES);
+}
+// ---- the research ends ----
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
 export const poemsPlaylist = (): Playlist => ({
@@ -636,6 +670,8 @@ export type FlowDB = Dexie & {
   signShelves: EntityTable<SignShelf, 'id'>;
   marks: EntityTable<Mark, 'id'>;
   days: EntityTable<Day, 'id'>;
+  inquiries: EntityTable<Inquiry, 'id'>;
+  papers: EntityTable<Paper, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -654,6 +690,7 @@ export function openDB(name = DB_NAME): FlowDB {
   db.version(VALUES_VERSION).stores(STORES_V6);
   mountainVersion(db);
   tasksVersion(db);
+  researchVersion(db);
   return db;
 }
 

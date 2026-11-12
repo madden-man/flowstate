@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// The built app makes no network request after the first load (DESIGN.md rule 22, PLAN.md section 2).
+// The built app makes no network request after the first load except from src/music and src/research, each opt-in
+// (DESIGN.md rule 22, PLAN.md section 2).
 // This scans dist/ for any http(s) URL. A few strings are inert text inside libraries (XML namespaces,
 // links inside error messages that are never fetched); they are listed here by name, with the reason.
 // Anything else fails. The Playwright smoke test proves the runtime half: no request leaves the origin.
@@ -20,6 +21,20 @@ const INERT = [
   [/^https:\/\/open\.spotify\.com\/playlist\/(\$\{[\w$]+\}|0T6Gzc2hN81u3vGC5IJZ9a)$/, 'src/music: the playlist link, a navigation'],
   [/^https:\/\/open\.spotify\.com\/album\/\$\{[\w$]+\}$/, 'src/music: an album link from a sign\'s shelf with no account (openAlbum), a navigation'],
   // (a minified build may name the id's variable with a $, as $p: still the same template, not a URL)
+  // Research (PLAN-RESEARCH.md sections 3 and 4, Q2): src/research is the second place allowed to reach out, opt-in
+  // like Spotify: nothing is sent until a key is pasted in Settings and a question is asked. The API's base URL and the
+  // three index endpoints are its fetches (a query string after one is still that endpoint, the question as search
+  // terms); doi.org and europepmc.org are where a title links, navigations. Each may be a template with its variables
+  // in ${...} (a variable or a field of one, as ${e.doi}), named with a $ when minified, as the Spotify links are.
+  // Nothing imports the SDK or the indexes yet on Q2's branch, so these were written from the plan and Q1's
+  // indexes.ts source, not seen in a build; the SDK's own inert strings (links in its error messages and docs
+  // comments) are listed by name at integration, when a build first carries them.
+  [/^https:\/\/api\.anthropic\.com\/?$/, 'src/research: the Anthropic API (the SDK\'s base URL), opt-in'],
+  [/^https:\/\/www\.ebi\.ac\.uk\/europepmc\/webservices\/rest\/search(\?\S*)?$/, 'src/research: Europe PMC search, opt-in'],
+  [/^https:\/\/api\.openalex\.org\/works(\?\S*)?$/, 'src/research: OpenAlex works, opt-in'],
+  [/^https:\/\/api\.crossref\.org\/works\/?(\$\{[\w$.]+\})?(\?\S*)?$/, 'src/research: Crossref lookup by DOI, opt-in'],
+  [/^https:\/\/doi\.org\/(\$\{[\w$.]+\})?$/, 'src/research: a title\'s link to its paper by DOI, a navigation'],
+  [/^https:\/\/europepmc\.org\/article\/(\$\{[\w$.]+\}\/?)*$/, 'src/research: a title\'s link to its Europe PMC record, a navigation'],
 ];
 const dir = process.argv[2] || 'dist';
 if (!fs.existsSync(dir)) { console.error(`${dir} not found: run npm run build first`); process.exit(2); }

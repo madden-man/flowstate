@@ -25,7 +25,7 @@ Date: 2026-11-07. Status: packages 0 to 8 built, 2026-11-07; the 2026-11-08 revi
 
 ## 2. Principles
 
-- **Local only, and offline first.** No server, no accounts, no analytics, no network after the first load. Every built file, fonts included, is precached by the service worker; fonts are self-hosted so nothing loads from Google at runtime. The app must open and work in airplane mode, and package 0 is not done until that is shown on the phone.
+- **Local only, and offline first.** No server, no accounts, no analytics, no network after the first load. Every built file, fonts included, is precached by the service worker; fonts are self-hosted so nothing loads from Google at runtime. The app must open and work in airplane mode, and package 0 is not done until that is shown on the phone. Research is the second opt-in exception after Spotify (section 8.1): with a key pasted in Settings, a question asked goes to the Anthropic API and the paper indexes straight from the phone, still with no server, and nothing else leaves (`PLAN-RESEARCH.md`).
 - **The data is the product.** Export and import from day one.
 - **Mutable by design.** Principle 3 in the notebook: identities and flow states must stay mutable. Every paradox and voice keeps its revision history; nothing is final and nothing is lost.
 - **No model voices.** The council is you talking to you. There is no setting for this; it is simply not built.
