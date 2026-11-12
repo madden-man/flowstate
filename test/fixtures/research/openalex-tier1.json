@@ -1,0 +1,4341 @@
+{
+ "meta": {
+  "count": 153309,
+  "page": 1,
+  "per_page": 25
+ },
+ "results": [
+  {
+   "id": "https://openalex.org/W2764161243",
+   "doi": "https://doi.org/10.1177/1745691617707315",
+   "title": "Expressive Writing in Psychological Science",
+   "display_name": "Expressive Writing in Psychological Science",
+   "publication_year": 2017,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1177/1745691617707315",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Perspectives on Psychological Science",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "The": [
+     0,
+     45
+    ],
+    "1997": [
+     1
+    ],
+    "Psychological": [
+     2
+    ],
+    "Science": [
+     3
+    ],
+    "paper": [
+     4,
+     66
+    ],
+    "\"Writing": [
+     5
+    ],
+    "About": [
+     6
+    ],
+    "Emotional": [
+     7
+    ],
+    "Experiences": [
+     8
+    ],
+    "as": [
+     9,
+     70,
+     72
+    ],
+    "a": [
+     10,
+     32
+    ],
+    "Therapeutic": [
+     11
+    ],
+    "Process\"": [
+     12
+    ],
+    "summarized": [
+     13
+    ],
+    "the": [
+     14,
+     22,
+     25,
+     51
+    ],
+    "results": [
+     15
+    ],
+    "of": [
+     16,
+     24,
+     34,
+     50
+    ],
+    "several": [
+     17,
+     56
+    ],
+    "expressive": [
+     18,
+     27
+    ],
+    "writing": [
+     19,
+     28
+    ],
+    "studies.": [
+     20
+    ],
+    "Since": [
+     21
+    ],
+    "publication": [
+     23
+    ],
+    "first": [
+     26
+    ],
+    "study": [
+     29
+    ],
+    "in": [
+     30
+    ],
+    "1986,": [
+     31
+    ],
+    "number": [
+     33
+    ],
+    "discoveries": [
+     35
+    ],
+    "had": [
+     36,
+     39
+    ],
+    "emerged": [
+     37
+    ],
+    "that": [
+     38
+    ],
+    "both": [
+     40
+    ],
+    "theoretical": [
+     41
+    ],
+    "and": [
+     42,
+     47
+    ],
+    "clinical": [
+     43
+    ],
+    "implications.": [
+     44
+    ],
+    "scientific": [
+     46
+    ],
+    "personal": [
+     48
+    ],
+    "backstories": [
+     49
+    ],
+    "research": [
+     52
+    ],
+    "are": [
+     53,
+     59
+    ],
+    "discussed.": [
+     54
+    ],
+    "Finally,": [
+     55
+    ],
+    "possible": [
+     57
+    ],
+    "reasons": [
+     58
+    ],
+    "advanced": [
+     60
+    ],
+    "to": [
+     61
+    ],
+    "explain": [
+     62
+    ],
+    "why": [
+     63
+    ],
+    "this": [
+     64
+    ],
+    "particular": [
+     65
+    ],
+    "has": [
+     67
+    ],
+    "been": [
+     68
+    ],
+    "cited": [
+     69
+    ],
+    "much": [
+     71
+    ],
+    "it": [
+     73
+    ],
+    "has.": [
+     74
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W4405540946",
+   "doi": "https://doi.org/10.1186/s12986-024-00876-y",
+   "title": "RETRACTED ARTICLE: An interpretable machine learning model for precise prediction of biomarkers for intermittent fasting pattern",
+   "display_name": "RETRACTED ARTICLE: An interpretable machine learning model for precise prediction of biomarkers for intermittent fasting pattern",
+   "publication_year": 2024,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1186/s12986-024-00876-y",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Nutrition & Metabolism",
+     "type": "journal"
+    }
+   },
+   "is_retracted": true,
+   "abstract_inverted_index": {
+    "Intermittent": [
+     0
+    ],
+    "fasting": [
+     1,
+     29
+    ],
+    "is": [
+     2,
+     117
+    ],
+    "currently": [
+     3
+    ],
+    "a": [
+     4,
+     91,
+     138,
+     145
+    ],
+    "highly": [
+     5
+    ],
+    "sought-after": [
+     6
+    ],
+    "dietary": [
+     7,
+     54,
+     80,
+     125,
+     147
+    ],
+    "pattern.": [
+     8
+    ],
+    "To": [
+     9
+    ],
+    "explore": [
+     10
+    ],
+    "the": [
+     11,
+     50,
+     73,
+     78,
+     96,
+     101,
+     107,
+     118,
+     123,
+     142
+    ],
+    "potential": [
+     12,
+     119
+    ],
+    "biomarkers": [
+     13,
+     51,
+     120
+    ],
+    "of": [
+     14,
+     20,
+     26,
+     103,
+     144
+    ],
+    "intermittent": [
+     15,
+     28
+    ],
+    "fasting,": [
+     16
+    ],
+    "untargeted": [
+     17
+    ],
+    "metabolomics": [
+     18
+    ],
+    "analysis": [
+     19,
+     94,
+     135
+    ],
+    "fecal": [
+     21
+    ],
+    "metabolites": [
+     22
+    ],
+    "in": [
+     23
+    ],
+    "two": [
+     24,
+     53,
+     79,
+     124
+    ],
+    "groups": [
+     25
+    ],
+    "mice,": [
+     27
+    ],
+    "and": [
+     30,
+     62,
+     100,
+     136
+    ],
+    "normal": [
+     31
+    ],
+    "feeding,": [
+     32
+    ],
+    "was": [
+     33,
+     39,
+     72,
+     109
+    ],
+    "conducted": [
+     34
+    ],
+    "using": [
+     35
+    ],
+    "UPLC-HRMS.": [
+     36
+    ],
+    "The": [
+     37
+    ],
+    "data": [
+     38,
+     48
+    ],
+    "further": [
+     40
+    ],
+    "analyzed": [
+     41
+    ],
+    "through": [
+     42
+    ],
+    "interpretable": [
+     43
+    ],
+    "machine": [
+     44,
+     59
+    ],
+    "learning": [
+     45,
+     60
+    ],
+    "(ML)": [
+     46
+    ],
+    "to": [
+     47,
+     89,
+     106,
+     121
+    ],
+    "mine": [
+     49
+    ],
+    "for": [
+     52,
+     76,
+     132,
+     141
+    ],
+    "patterns.": [
+     55,
+     81,
+     126
+    ],
+    "We": [
+     56
+    ],
+    "developed": [
+     57
+    ],
+    "five": [
+     58
+    ],
+    "models": [
+     61
+    ],
+    "results": [
+     63
+    ],
+    "showed": [
+     64
+    ],
+    "that": [
+     65,
+     113
+    ],
+    "under": [
+     66
+    ],
+    "three-fold": [
+     67
+    ],
+    "cross-validation,": [
+     68
+    ],
+    "Random": [
+     69,
+     97
+    ],
+    "Forest": [
+     70,
+     98
+    ],
+    "model": [
+     71,
+     108
+    ],
+    "most": [
+     74
+    ],
+    "suitable": [
+     75
+    ],
+    "distinguishing": [
+     77
+    ],
+    "Finally,": [
+     82
+    ],
+    "Shapely": [
+     83
+    ],
+    "Additive": [
+     84
+    ],
+    "exPlanations": [
+     85
+    ],
+    "(SHAP)": [
+     86
+    ],
+    "were": [
+     87
+    ],
+    "explored": [
+     88
+    ],
+    "perform": [
+     90
+    ],
+    "weighted": [
+     92
+    ],
+    "explanatory": [
+     93
+    ],
+    "on": [
+     95
+    ],
+    "model,": [
+     99
+    ],
+    "contribution": [
+     102
+    ],
+    "each": [
+     104
+    ],
+    "metabolite": [
+     105
+    ],
+    "calculated.": [
+     110
+    ],
+    "Results": [
+     111
+    ],
+    "indicated": [
+     112
+    ],
+    "Ganoderenic": [
+     114
+    ],
+    "Acid": [
+     115
+    ],
+    "C": [
+     116
+    ],
+    "distinguish": [
+     122
+    ],
+    "Our": [
+     127
+    ],
+    "work": [
+     128
+    ],
+    "provides": [
+     129
+    ],
+    "new": [
+     130
+    ],
+    "insights": [
+     131
+    ],
+    "metabolic": [
+     133
+    ],
+    "biomarker": [
+     134
+    ],
+    "lays": [
+     137
+    ],
+    "theoretical": [
+     139
+    ],
+    "foundation": [
+     140
+    ],
+    "selection": [
+     143
+    ],
+    "healthieir": [
+     146
+    ],
+    "lifestyle.": [
+     148
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2071766083",
+   "doi": "https://doi.org/10.1016/j.jand.2015.02.018",
+   "title": "Intermittent Fasting and Human Metabolic Health",
+   "display_name": "Intermittent Fasting and Human Metabolic Health",
+   "publication_year": 2015,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1016/j.jand.2015.02.018",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Journal of the Academy of Nutrition and Dietetics",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": null
+  },
+  {
+   "id": "https://openalex.org/W2901218898",
+   "doi": null,
+   "title": "EXPRESSIVE WRITING IN INDONESIAN CONTEXT",
+   "display_name": "EXPRESSIVE WRITING IN INDONESIAN CONTEXT",
+   "publication_year": 2018,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://ejournal.atmajaya.ac.id/index.php/Manasa/article/view/144",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "MANASA",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "As": [
+     0
+    ],
+    "a": [
+     1,
+     86,
+     122,
+     202
+    ],
+    "developing": [
+     2
+    ],
+    "country,": [
+     3
+    ],
+    "Indonesia": [
+     4
+    ],
+    "still": [
+     5
+    ],
+    "struggles": [
+     6
+    ],
+    "to": [
+     7,
+     32,
+     55,
+     147,
+     164,
+     205,
+     218
+    ],
+    "manage": [
+     8
+    ],
+    "its": [
+     9,
+     29
+    ],
+    "mental": [
+     10,
+     37,
+     58,
+     78,
+     82,
+     102
+    ],
+    "health": [
+     11,
+     38,
+     59,
+     79,
+     83,
+     103
+    ],
+    "issues.": [
+     12
+    ],
+    "In": [
+     13,
+     176,
+     196
+    ],
+    "2014": [
+     14
+    ],
+    "the": [
+     15,
+     19,
+     52,
+     61,
+     71,
+     77,
+     98,
+     108,
+     116,
+     149,
+     152,
+     168,
+     178,
+     182,
+     189,
+     206,
+     219
+    ],
+    "Indonesian": [
+     16,
+     132
+    ],
+    "government": [
+     17
+    ],
+    "passed": [
+     18
+    ],
+    "Mental": [
+     20
+    ],
+    "Health": [
+     21
+    ],
+    "Law": [
+     22
+    ],
+    "after": [
+     23
+    ],
+    "five": [
+     24
+    ],
+    "years": [
+     25
+    ],
+    "of": [
+     26,
+     97,
+     100,
+     128,
+     151,
+     188,
+     192
+    ],
+    "delaying,": [
+     27
+    ],
+    "and": [
+     28,
+     63,
+     73,
+     81,
+     172,
+     214
+    ],
+    "goal": [
+     30
+    ],
+    "is": [
+     31,
+     84,
+     93,
+     211
+    ],
+    "make": [
+     33
+    ],
+    "sure": [
+     34
+    ],
+    "people": [
+     35
+    ],
+    "with": [
+     36,
+     144
+    ],
+    "issues": [
+     39,
+     49
+    ],
+    "will": [
+     40,
+     136,
+     161,
+     184
+    ],
+    "be": [
+     41,
+     162,
+     185,
+     201
+    ],
+    "treated": [
+     42
+    ],
+    "better,": [
+     43
+    ],
+    "but": [
+     44,
+     67
+    ],
+    "there": [
+     45
+    ],
+    "are": [
+     46
+    ],
+    "some": [
+     47,
+     127
+    ],
+    "unresolved": [
+     48
+    ],
+    "such": [
+     50
+    ],
+    "as": [
+     51,
+     121
+    ],
+    "economic": [
+     53
+    ],
+    "barriers": [
+     54
+    ],
+    "gain": [
+     56
+    ],
+    "better": [
+     57
+    ],
+    "care,": [
+     60
+    ],
+    "social": [
+     62
+    ],
+    "political": [
+     64
+    ],
+    "unrest,": [
+     65
+    ],
+    "unique": [
+     66
+    ],
+    "challenging": [
+     68
+    ],
+    "geographic": [
+     69
+    ],
+    "location,": [
+     70
+    ],
+    "stigma": [
+     72
+    ],
+    "improper": [
+     74
+    ],
+    "treatments": [
+     75
+    ],
+    "for": [
+     76
+    ],
+    "patients/clients,": [
+     80
+    ],
+    "not": [
+     85
+    ],
+    "priority": [
+     87
+    ],
+    "yet": [
+     88
+    ],
+    "in": [
+     89,
+     107,
+     131
+    ],
+    "many": [
+     90
+    ],
+    "Indonesians.": [
+     91
+    ],
+    "There": [
+     92
+    ],
+    "also": [
+     94
+    ],
+    "an": [
+     95
+    ],
+    "issue": [
+     96
+    ],
+    "failure": [
+     99
+    ],
+    "reporting": [
+     101
+    ],
+    "related": [
+     104
+    ],
+    "problems,": [
+     105
+    ],
+    "especially": [
+     106
+    ],
+    "early": [
+     109
+    ],
+    "stages": [
+     110
+    ],
+    "when": [
+     111
+    ],
+    "minimum": [
+     112
+    ],
+    "intervention": [
+     113,
+     124,
+     171
+    ],
+    "would": [
+     114
+    ],
+    "alleviate": [
+     115
+    ],
+    "symptoms.": [
+     117
+    ],
+    "Expressive": [
+     118
+    ],
+    "writing": [
+     119,
+     154,
+     170,
+     174,
+     194,
+     199
+    ],
+    "(EW)": [
+     120
+    ],
+    "new": [
+     123
+    ],
+    "could": [
+     125
+    ],
+    "answer": [
+     126,
+     157
+    ],
+    "these": [
+     129
+    ],
+    "circumstances": [
+     130
+    ],
+    "context.": [
+     133
+    ],
+    "This": [
+     134
+    ],
+    "research": [
+     135
+    ],
+    "use": [
+     137
+    ],
+    "controlled": [
+     138
+    ],
+    "field": [
+     139
+    ],
+    "experiment": [
+     140
+    ],
+    "(pre-test": [
+     141
+    ],
+    "post-test": [
+     142
+    ],
+    "design)": [
+     143
+    ],
+    "psychodynamic": [
+     145,
+     179
+    ],
+    "interviewing": [
+     146
+    ],
+    "see": [
+     148
+    ],
+    "effectiveness": [
+     150
+    ],
+    "expressive": [
+     153,
+     169,
+     193,
+     198
+    ],
+    "intervention.": [
+     155,
+     195
+    ],
+    "To": [
+     156
+    ],
+    "experimental": [
+     158
+    ],
+    "hypothesis,": [
+     159
+    ],
+    "t-test": [
+     160
+    ],
+    "conducted": [
+     163
+    ],
+    "evaluate": [
+     165
+    ],
+    "differences": [
+     166
+    ],
+    "between": [
+     167
+    ],
+    "control": [
+     173
+    ],
+    "groups.": [
+     175
+    ],
+    "analyzing": [
+     177
+    ],
+    "interview": [
+     180
+    ],
+    "results,": [
+     181
+    ],
+    "focus": [
+     183
+    ],
+    "on": [
+     186
+    ],
+    "moderators": [
+     187
+    ],
+    "working": [
+     190
+    ],
+    "mechanism": [
+     191
+    ],
+    "conclusion,": [
+     197
+    ],
+    "can": [
+     200
+    ],
+    "valuable": [
+     203
+    ],
+    "addition": [
+     204
+    ],
+    "conventional": [
+     207
+    ],
+    "psychotherapy": [
+     208
+    ],
+    "because": [
+     209
+    ],
+    "it": [
+     210
+    ],
+    "cost": [
+     212
+    ],
+    "effective,": [
+     213
+    ],
+    "places": [
+     215
+    ],
+    "minimal": [
+     216
+    ],
+    "burden": [
+     217
+    ],
+    "clients.": [
+     220
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2149689412",
+   "doi": "https://doi.org/10.1192/apt.11.5.338",
+   "title": "Emotional and physical health benefits of expressive writing",
+   "display_name": "Emotional and physical health benefits of expressive writing",
+   "publication_year": 2005,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1192/apt.11.5.338",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Advances in Psychiatric Treatment",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Writing": [
+     0
+    ],
+    "about": [
+     1,
+     35,
+     61
+    ],
+    "traumatic,": [
+     2
+    ],
+    "stressful": [
+     3
+    ],
+    "or": [
+     4
+    ],
+    "emotional": [
+     5
+    ],
+    "events": [
+     6,
+     37
+    ],
+    "has": [
+     7,
+     79
+    ],
+    "been": [
+     8,
+     80
+    ],
+    "found": [
+     9,
+     81
+    ],
+    "to": [
+     10,
+     33,
+     82
+    ],
+    "result": [
+     11
+    ],
+    "in": [
+     12,
+     14,
+     20,
+     113
+    ],
+    "improvements": [
+     13
+    ],
+    "both": [
+     15
+    ],
+    "physical": [
+     16,
+     52
+    ],
+    "and": [
+     17,
+     22,
+     53,
+     85,
+     112
+    ],
+    "psychological": [
+     18,
+     54
+    ],
+    "health,": [
+     19
+    ],
+    "non-clinical": [
+     21
+    ],
+    "clinical": [
+     23
+    ],
+    "populations.": [
+     24
+    ],
+    "In": [
+     25,
+     94
+    ],
+    "the": [
+     26,
+     70,
+     90
+    ],
+    "expressive": [
+     27,
+     71,
+     99
+    ],
+    "writing": [
+     28,
+     72,
+     100
+    ],
+    "paradigm,": [
+     29,
+     73
+    ],
+    "participants": [
+     30
+    ],
+    "are": [
+     31
+    ],
+    "asked": [
+     32
+    ],
+    "write": [
+     34,
+     60
+    ],
+    "such": [
+     36
+    ],
+    "for": [
+     38,
+     76,
+     108
+    ],
+    "15–20": [
+     39
+    ],
+    "minutes": [
+     40
+    ],
+    "on": [
+     41
+    ],
+    "3–5": [
+     42
+    ],
+    "occasions.": [
+     43
+    ],
+    "Those": [
+     44
+    ],
+    "who": [
+     45,
+     59
+    ],
+    "do": [
+     46
+    ],
+    "so": [
+     47
+    ],
+    "generally": [
+     48
+    ],
+    "have": [
+     49
+    ],
+    "significantly": [
+     50
+    ],
+    "better": [
+     51
+    ],
+    "outcomes": [
+     55
+    ],
+    "compared": [
+     56
+    ],
+    "with": [
+     57
+    ],
+    "those": [
+     58
+    ],
+    "neutral": [
+     62
+    ],
+    "topics.": [
+     63
+    ],
+    "Here": [
+     64
+    ],
+    "we": [
+     65,
+     96
+    ],
+    "present": [
+     66
+    ],
+    "an": [
+     67
+    ],
+    "overview": [
+     68
+    ],
+    "of": [
+     69,
+     110
+    ],
+    "outline": [
+     74
+    ],
+    "populations": [
+     75
+    ],
+    "which": [
+     77
+    ],
+    "it": [
+     78
+    ],
+    "be": [
+     83,
+     102
+    ],
+    "beneficial": [
+     84
+    ],
+    "discuss": [
+     86
+    ],
+    "possible": [
+     87
+    ],
+    "mechanisms": [
+     88
+    ],
+    "underlying": [
+     89
+    ],
+    "observed": [
+     91
+    ],
+    "health": [
+     92
+    ],
+    "benefits.": [
+     93
+    ],
+    "addition,": [
+     95
+    ],
+    "suggest": [
+     97
+    ],
+    "how": [
+     98
+    ],
+    "can": [
+     101
+    ],
+    "used": [
+     103
+    ],
+    "as": [
+     104
+    ],
+    "a": [
+     105
+    ],
+    "therapeutic": [
+     106
+    ],
+    "tool": [
+     107
+    ],
+    "survivors": [
+     109
+    ],
+    "trauma": [
+     111
+    ],
+    "psychiatric": [
+     114
+    ],
+    "settings.": [
+     115
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2135766655",
+   "doi": "https://doi.org/10.1037/xap0000013",
+   "title": "The role of expressive writing in math anxiety.",
+   "display_name": "The role of expressive writing in math anxiety.",
+   "publication_year": 2014,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1037/xap0000013",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Journal of Experimental Psychology Applied",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Math": [
+     0
+    ],
+    "anxiety": [
+     1,
+     16,
+     79
+    ],
+    "is": [
+     2
+    ],
+    "a": [
+     3,
+     54
+    ],
+    "negative": [
+     4
+    ],
+    "affective": [
+     5
+    ],
+    "reaction": [
+     6
+    ],
+    "to": [
+     7,
+     63,
+     82,
+     88,
+     96,
+     109,
+     159,
+     170
+    ],
+    "situations": [
+     8
+    ],
+    "involving": [
+     9
+    ],
+    "math.": [
+     10
+    ],
+    "Previous": [
+     11
+    ],
+    "work": [
+     12
+    ],
+    "demonstrates": [
+     13
+    ],
+    "that": [
+     14,
+     27,
+     59
+    ],
+    "math": [
+     15,
+     20,
+     46,
+     78,
+     91,
+     127,
+     143,
+     171
+    ],
+    "can": [
+     17
+    ],
+    "negatively": [
+     18
+    ],
+    "impact": [
+     19
+    ],
+    "problem": [
+     21
+    ],
+    "solving": [
+     22
+    ],
+    "by": [
+     23
+    ],
+    "creating": [
+     24
+    ],
+    "performance-related": [
+     25
+    ],
+    "worries": [
+     26
+    ],
+    "disrupt": [
+     28
+    ],
+    "the": [
+     29,
+     34,
+     42,
+     45,
+     51,
+     104,
+     115,
+     126,
+     135,
+     154,
+     176
+    ],
+    "working": [
+     30,
+     69
+    ],
+    "memory": [
+     31,
+     70
+    ],
+    "needed": [
+     32
+    ],
+    "for": [
+     33
+    ],
+    "task": [
+     35
+    ],
+    "at": [
+     36
+    ],
+    "hand.": [
+     37
+    ],
+    "By": [
+     38
+    ],
+    "leveraging": [
+     39
+    ],
+    "knowledge": [
+     40
+    ],
+    "about": [
+     41,
+     98,
+     108
+    ],
+    "mechanism": [
+     43
+    ],
+    "underlying": [
+     44
+    ],
+    "anxiety-performance": [
+     47
+    ],
+    "relationship,": [
+     48
+    ],
+    "we": [
+     49
+    ],
+    "tested": [
+     50
+    ],
+    "effectiveness": [
+     52
+    ],
+    "of": [
+     53,
+     156,
+     178
+    ],
+    "short": [
+     55
+    ],
+    "expressive": [
+     56,
+     136
+    ],
+    "writing": [
+     57,
+     112,
+     137,
+     166,
+     174
+    ],
+    "intervention": [
+     58
+    ],
+    "has": [
+     60
+    ],
+    "been": [
+     61
+    ],
+    "shown": [
+     62
+    ],
+    "reduce": [
+     64
+    ],
+    "intrusive": [
+     65
+    ],
+    "thoughts": [
+     66,
+     100
+    ],
+    "and": [
+     67,
+     92,
+     101,
+     147,
+     162
+    ],
+    "improve": [
+     68
+    ],
+    "availability.": [
+     71
+    ],
+    "Students": [
+     72
+    ],
+    "(N": [
+     73
+    ],
+    "=": [
+     74
+    ],
+    "80)": [
+     75
+    ],
+    "varying": [
+     76
+    ],
+    "in": [
+     77,
+     142,
+     164,
+     181
+    ],
+    "were": [
+     80,
+     107
+    ],
+    "asked": [
+     81
+    ],
+    "sit": [
+     83
+    ],
+    "quietly": [
+     84
+    ],
+    "(control": [
+     85
+    ],
+    "group)": [
+     86
+    ],
+    "prior": [
+     87
+    ],
+    "completing": [
+     89
+    ],
+    "difficulty-matched": [
+     90
+    ],
+    "word": [
+     93
+    ],
+    "problems": [
+     94,
+     128
+    ],
+    "or": [
+     95
+    ],
+    "write": [
+     97
+    ],
+    "their": [
+     99,
+     165
+    ],
+    "feelings": [
+     102
+    ],
+    "regarding": [
+     103
+    ],
+    "exam": [
+     105
+    ],
+    "they": [
+     106
+    ],
+    "take": [
+     110
+    ],
+    "(expressive": [
+     111
+    ],
+    "group).": [
+     113
+    ],
+    "For": [
+     114
+    ],
+    "control": [
+     116
+    ],
+    "group,": [
+     117,
+     138
+    ],
+    "high": [
+     118
+    ],
+    "math-anxious": [
+     119,
+     131
+    ],
+    "individuals": [
+     120
+    ],
+    "(HMAs)": [
+     121
+    ],
+    "performed": [
+     122
+    ],
+    "significantly": [
+     123,
+     150
+    ],
+    "worse": [
+     124
+    ],
+    "on": [
+     125
+    ],
+    "than": [
+     129
+    ],
+    "low": [
+     130
+    ],
+    "students": [
+     132,
+     180
+    ],
+    "(LMAs).": [
+     133
+    ],
+    "In": [
+     134
+    ],
+    "however,": [
+     139
+    ],
+    "this": [
+     140
+    ],
+    "difference": [
+     141
+    ],
+    "performance": [
+     144,
+     177
+    ],
+    "across": [
+     145
+    ],
+    "HMAs": [
+     146
+    ],
+    "LMAs": [
+     148
+    ],
+    "was": [
+     149,
+     167
+    ],
+    "reduced.": [
+     151
+    ],
+    "Among": [
+     152
+    ],
+    "HMAs,": [
+     153
+    ],
+    "use": [
+     155
+    ],
+    "words": [
+     157
+    ],
+    "related": [
+     158,
+     169
+    ],
+    "anxiety,": [
+     160
+    ],
+    "cause,": [
+     161
+    ],
+    "insight": [
+     163
+    ],
+    "positively": [
+     168
+    ],
+    "performance.": [
+     172
+    ],
+    "Expressive": [
+     173
+    ],
+    "boosts": [
+     175
+    ],
+    "anxious": [
+     179
+    ],
+    "math-testing": [
+     182
+    ],
+    "situations.": [
+     183
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2000761422",
+   "doi": "https://doi.org/10.1037/0096-3445.130.3.520",
+   "title": "Expressive writing can increase working memory capacity.",
+   "display_name": "Expressive writing can increase working memory capacity.",
+   "publication_year": 2001,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1037/0096-3445.130.3.520",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Journal of Experimental Psychology General",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "The": [
+     0,
+     111
+    ],
+    "effect": [
+     1
+    ],
+    "of": [
+     2,
+     57,
+     117
+    ],
+    "emotional": [
+     3
+    ],
+    "disclosure": [
+     4
+    ],
+    "through": [
+     5
+    ],
+    "expressive": [
+     6,
+     129
+    ],
+    "writing": [
+     7,
+     130
+    ],
+    "on": [
+     8
+    ],
+    "available": [
+     9
+    ],
+    "working": [
+     10,
+     40
+    ],
+    "memory": [
+     11,
+     41
+    ],
+    "(WM)": [
+     12
+    ],
+    "capacity": [
+     13
+    ],
+    "was": [
+     14,
+     62
+    ],
+    "examined": [
+     15
+    ],
+    "in": [
+     16,
+     89,
+     115,
+     121,
+     127
+    ],
+    "2": [
+     17
+    ],
+    "semester-long": [
+     18
+    ],
+    "experiments.": [
+     19
+    ],
+    "In": [
+     20,
+     68
+    ],
+    "the": [
+     21,
+     69
+    ],
+    "first": [
+     22
+    ],
+    "study,": [
+     23,
+     71
+    ],
+    "35": [
+     24
+    ],
+    "freshmen": [
+     25
+    ],
+    "assigned": [
+     26,
+     50
+    ],
+    "to": [
+     27,
+     36,
+     51
+    ],
+    "write": [
+     28
+    ],
+    "about": [
+     29,
+     34,
+     78,
+     97,
+     136
+    ],
+    "their": [
+     30
+    ],
+    "thoughts": [
+     31
+    ],
+    "and": [
+     32,
+     59,
+     87,
+     123,
+     133
+    ],
+    "feelings": [
+     33
+    ],
+    "coming": [
+     35
+    ],
+    "college": [
+     37
+    ],
+    "demonstrated": [
+     38
+    ],
+    "larger": [
+     39
+    ],
+    "gains": [
+     42
+    ],
+    "7": [
+     43
+    ],
+    "weeks": [
+     44
+    ],
+    "later": [
+     45
+    ],
+    "compared": [
+     46,
+     92
+    ],
+    "with": [
+     47,
+     64,
+     93
+    ],
+    "36": [
+     48
+    ],
+    "writers": [
+     49
+    ],
+    "a": [
+     52,
+     79,
+     98,
+     105,
+     118,
+     137
+    ],
+    "trivial": [
+     53,
+     106
+    ],
+    "topic.": [
+     54
+    ],
+    "Increased": [
+     55
+    ],
+    "use": [
+     56
+    ],
+    "cause": [
+     58
+    ],
+    "insight": [
+     60
+    ],
+    "words": [
+     61
+    ],
+    "associated": [
+     63
+    ],
+    "greater": [
+     65,
+     84
+    ],
+    "WM": [
+     66,
+     85,
+     142
+    ],
+    "improvements.": [
+     67
+    ],
+    "second": [
+     70
+    ],
+    "students": [
+     72,
+     94
+    ],
+    "(n": [
+     73,
+     101,
+     108
+    ],
+    "=": [
+     74,
+     102,
+     109
+    ],
+    "34)": [
+     75
+    ],
+    "who": [
+     76,
+     95
+    ],
+    "wrote": [
+     77,
+     96
+    ],
+    "negative": [
+     80
+    ],
+    "personal": [
+     81
+    ],
+    "experience": [
+     82,
+     100
+    ],
+    "enjoyed": [
+     83
+    ],
+    "improvements": [
+     86
+    ],
+    "declines": [
+     88
+    ],
+    "intrusive": [
+     90,
+     132
+    ],
+    "thinking": [
+     91,
+     135
+    ],
+    "positive": [
+     99
+    ],
+    "33)": [
+     103
+    ],
+    "or": [
+     104
+    ],
+    "topic": [
+     107
+    ],
+    "34).": [
+     110
+    ],
+    "results": [
+     112
+    ],
+    "are": [
+     113
+    ],
+    "discussed": [
+     114
+    ],
+    "terms": [
+     116
+    ],
+    "model": [
+     119
+    ],
+    "grounded": [
+     120
+    ],
+    "cognitive": [
+     122
+    ],
+    "social": [
+     124
+    ],
+    "psychological": [
+     125
+    ],
+    "theory": [
+     126
+    ],
+    "which": [
+     128
+    ],
+    "reduces": [
+     131
+    ],
+    "avoidant": [
+     134
+    ],
+    "stressful": [
+     138
+    ],
+    "experience,": [
+     139
+    ],
+    "thus": [
+     140
+    ],
+    "freeing": [
+     141
+    ],
+    "resources.": [
+     143
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W1995718968",
+   "doi": "https://doi.org/10.5465/256708",
+   "title": "EXPRESSIVE WRITING AND COPING WITH JOB LOSS.",
+   "display_name": "EXPRESSIVE WRITING AND COPING WITH JOB LOSS.",
+   "publication_year": 1994,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.5465/256708",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Academy of Management Journal",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "In": [
+     0
+    ],
+    "an": [
+     1
+    ],
+    "experiment": [
+     2
+    ],
+    "with": [
+     3
+    ],
+    "63": [
+     4
+    ],
+    "recently": [
+     5
+    ],
+    "unemployed": [
+     6
+    ],
+    "professionals,": [
+     7
+    ],
+    "those": [
+     8,
+     26
+    ],
+    "assigned": [
+     9
+    ],
+    "to": [
+     10
+    ],
+    "write": [
+     11
+    ],
+    "about": [
+     12
+    ],
+    "the": [
+     13
+    ],
+    "thoughts": [
+     14
+    ],
+    "and": [
+     15
+    ],
+    "emotions": [
+     16
+    ],
+    "surrounding": [
+     17
+    ],
+    "their": [
+     18
+    ],
+    "job": [
+     19
+    ],
+    "loss": [
+     20
+    ],
+    "were": [
+     21
+    ],
+    "reemployed": [
+     22
+    ],
+    "more": [
+     23
+    ],
+    "quickly": [
+     24
+    ],
+    "than": [
+     25
+    ],
+    "who": [
+     27
+    ],
+    "wrote": [
+     28
+    ],
+    "abou...": [
+     29
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2045642783",
+   "doi": "https://doi.org/10.1037/1528-3542.8.2.302",
+   "title": "Expressive writing buffers against maladaptive rumination.",
+   "display_name": "Expressive writing buffers against maladaptive rumination.",
+   "publication_year": 2008,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1037/1528-3542.8.2.302",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Emotion",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "This": [
+     0
+    ],
+    "study": [
+     1
+    ],
+    "examined": [
+     2
+    ],
+    "whether": [
+     3
+    ],
+    "ruminative": [
+     4,
+     17,
+     61,
+     106,
+     140
+    ],
+    "style": [
+     5,
+     18,
+     62,
+     107
+    ],
+    "moderated": [
+     6,
+     63
+    ],
+    "the": [
+     7,
+     23,
+     64,
+     75,
+     92,
+     111
+    ],
+    "effects": [
+     8,
+     65,
+     112
+    ],
+    "of": [
+     9,
+     25,
+     66,
+     91,
+     113,
+     131
+    ],
+    "expressive": [
+     10,
+     37,
+     67,
+     76,
+     114,
+     123
+    ],
+    "writing.": [
+     11
+    ],
+    "Sixty-nine": [
+     12
+    ],
+    "participants": [
+     13
+    ],
+    "were": [
+     14,
+     31,
+     48
+    ],
+    "assessed": [
+     15,
+     49
+    ],
+    "for": [
+     16
+    ],
+    "and": [
+     19,
+     52
+    ],
+    "depression": [
+     20,
+     46,
+     87,
+     117,
+     133
+    ],
+    "symptoms": [
+     21,
+     47,
+     88,
+     134
+    ],
+    "at": [
+     22,
+     89
+    ],
+    "beginning": [
+     24
+    ],
+    "their": [
+     26
+    ],
+    "1st": [
+     27
+    ],
+    "college": [
+     28
+    ],
+    "semester.": [
+     29
+    ],
+    "Participants": [
+     30
+    ],
+    "then": [
+     32
+    ],
+    "randomized": [
+     33
+    ],
+    "to": [
+     34,
+     74,
+     96,
+     142
+    ],
+    "either": [
+     35
+    ],
+    "an": [
+     36
+    ],
+    "writing": [
+     38,
+     42,
+     68,
+     77,
+     115,
+     124
+    ],
+    "or": [
+     39
+    ],
+    "a": [
+     40,
+     59,
+     129,
+     138
+    ],
+    "control": [
+     41
+    ],
+    "condition.": [
+     43
+    ],
+    "Changes": [
+     44
+    ],
+    "in": [
+     45
+    ],
+    "2,": [
+     50
+    ],
+    "4,": [
+     51
+    ],
+    "6": [
+     53
+    ],
+    "months": [
+     54
+    ],
+    "later.": [
+     55
+    ],
+    "Results": [
+     56
+    ],
+    "showed": [
+     57
+    ],
+    "that": [
+     58,
+     70,
+     122
+    ],
+    "brooding": [
+     60,
+     82,
+     100
+    ],
+    "such": [
+     69
+    ],
+    "among": [
+     71,
+     135
+    ],
+    "those": [
+     72,
+     136
+    ],
+    "assigned": [
+     73
+    ],
+    "condition,": [
+     78
+    ],
+    "individuals": [
+     79,
+     97
+    ],
+    "with": [
+     80,
+     98,
+     137
+    ],
+    "greater": [
+     81
+    ],
+    "scores": [
+     83
+    ],
+    "reported": [
+     84
+    ],
+    "significantly": [
+     85
+    ],
+    "fewer": [
+     86
+    ],
+    "all": [
+     90
+    ],
+    "follow-up": [
+     93
+    ],
+    "assessments": [
+     94
+    ],
+    "relative": [
+     95
+    ],
+    "lower": [
+     99
+    ],
+    "scores.": [
+     101
+    ],
+    "In": [
+     102
+    ],
+    "contrast,": [
+     103
+    ],
+    "reflective": [
+     104
+    ],
+    "pondering": [
+     105
+    ],
+    "did": [
+     108
+    ],
+    "not": [
+     109
+    ],
+    "moderate": [
+     110
+    ],
+    "on": [
+     116
+    ],
+    "symptoms.": [
+     118
+    ],
+    "These": [
+     119
+    ],
+    "findings": [
+     120
+    ],
+    "suggest": [
+     121
+    ],
+    "could": [
+     125
+    ],
+    "be": [
+     126
+    ],
+    "used": [
+     127
+    ],
+    "as": [
+     128
+    ],
+    "means": [
+     130
+    ],
+    "reducing": [
+     132
+    ],
+    "maladaptive": [
+     139
+    ],
+    "tendency": [
+     141
+    ],
+    "brood.": [
+     143
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2142720982",
+   "doi": "https://doi.org/10.1002/jclp.20810",
+   "title": "Mindfulness as a moderator in expressive writing",
+   "display_name": "Mindfulness as a moderator in expressive writing",
+   "publication_year": 2011,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1002/jclp.20810",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Journal of Clinical Psychology",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Randomized,": [
+     0
+    ],
+    "controlled": [
+     1
+    ],
+    "studies": [
+     2,
+     18
+    ],
+    "have": [
+     3,
+     19
+    ],
+    "documented": [
+     4
+    ],
+    "positive": [
+     5
+    ],
+    "physical": [
+     6,
+     104
+    ],
+    "and": [
+     7,
+     82,
+     105
+    ],
+    "psychological": [
+     8,
+     106
+    ],
+    "effects": [
+     9,
+     76
+    ],
+    "of": [
+     10,
+     16,
+     48
+    ],
+    "writing": [
+     11,
+     44,
+     64,
+     79
+    ],
+    "about": [
+     12
+    ],
+    "traumatic": [
+     13
+    ],
+    "stress.": [
+     14
+    ],
+    "Some": [
+     15
+    ],
+    "these": [
+     17,
+     83
+    ],
+    "shown": [
+     20
+    ],
+    "that": [
+     21
+    ],
+    "individual": [
+     22
+    ],
+    "differences": [
+     23
+    ],
+    "play": [
+     24
+    ],
+    "an": [
+     25
+    ],
+    "important": [
+     26
+    ],
+    "role,": [
+     27
+    ],
+    "with": [
+     28,
+     89,
+     93,
+     110
+    ],
+    "participants": [
+     29
+    ],
+    "responding": [
+     30
+    ],
+    "differently": [
+     31
+    ],
+    "to": [
+     32,
+     61,
+     99
+    ],
+    "the": [
+     33,
+     41,
+     46
+    ],
+    "intervention": [
+     34
+    ],
+    "based": [
+     35
+    ],
+    "on": [
+     36
+    ],
+    "their": [
+     37
+    ],
+    "personal": [
+     38
+    ],
+    "characteristics.": [
+     39
+    ],
+    "In": [
+     40
+    ],
+    "present": [
+     42
+    ],
+    "expressive": [
+     43,
+     63,
+     78,
+     100
+    ],
+    "experiment,": [
+     45
+    ],
+    "trait": [
+     47
+    ],
+    "mindfulness": [
+     49,
+     95,
+     112
+    ],
+    "was": [
+     50
+    ],
+    "examined": [
+     51
+    ],
+    "as": [
+     52
+    ],
+    "a": [
+     53,
+     69
+    ],
+    "potential": [
+     54
+    ],
+    "moderator.": [
+     55
+    ],
+    "Seventy-six": [
+     56
+    ],
+    "undergraduates": [
+     57
+    ],
+    "were": [
+     58,
+     80,
+     84
+    ],
+    "randomly": [
+     59
+    ],
+    "assigned": [
+     60
+    ],
+    "either": [
+     62
+    ],
+    "(n": [
+     65,
+     72
+    ],
+    "=": [
+     66,
+     73
+    ],
+    "37)": [
+     67
+    ],
+    "or": [
+     68
+    ],
+    "control": [
+     70
+    ],
+    "group": [
+     71
+    ],
+    "39).": [
+     74
+    ],
+    "Main": [
+     75
+    ],
+    "favoring": [
+     77
+    ],
+    "found,": [
+     81
+    ],
+    "qualified": [
+     85
+    ],
+    "by": [
+     86
+    ],
+    "significant": [
+     87
+    ],
+    "interactions": [
+     88
+    ],
+    "mindfulness.": [
+     90
+    ],
+    "Specifically,": [
+     91
+    ],
+    "individuals": [
+     92,
+     109
+    ],
+    "higher": [
+     94
+    ],
+    "scores": [
+     96
+    ],
+    "responded": [
+     97
+    ],
+    "better": [
+     98
+    ],
+    "writing,": [
+     101
+    ],
+    "experiencing": [
+     102
+    ],
+    "greater": [
+     103
+    ],
+    "benefits": [
+     107
+    ],
+    "than": [
+     108
+    ],
+    "lower": [
+     111
+    ],
+    "scores.": [
+     113
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2038333092",
+   "doi": "https://doi.org/10.1037/0022-3514.73.5.1030",
+   "title": "Expressive writing moderates the relation between intrusive thoughts and depressive symptoms.",
+   "display_name": "Expressive writing moderates the relation between intrusive thoughts and depressive symptoms.",
+   "publication_year": 1997,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1037/0022-3514.73.5.1030",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Journal of Personality and Social Psychology",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "The": [
+     0
+    ],
+    "author": [
+     1
+    ],
+    "investigated": [
+     2
+    ],
+    "whether": [
+     3
+    ],
+    "expressive": [
+     4,
+     136
+    ],
+    "writing": [
+     5,
+     90,
+     137
+    ],
+    "enhances": [
+     6
+    ],
+    "emotional": [
+     7
+    ],
+    "adaptation": [
+     8
+    ],
+    "to": [
+     9,
+     25,
+     36,
+     58,
+     119,
+     132
+    ],
+    "a": [
+     10,
+     47,
+     74,
+     78
+    ],
+    "stressful": [
+     11
+    ],
+    "event": [
+     12
+    ],
+    "(graduate": [
+     13
+    ],
+    "entrance": [
+     14
+    ],
+    "exams)": [
+     15
+    ],
+    "by": [
+     16,
+     22
+    ],
+    "reducing": [
+     17
+    ],
+    "event-related": [
+     18
+    ],
+    "intrusive": [
+     19,
+     97,
+     105,
+     111
+    ],
+    "thoughts": [
+     20,
+     40,
+     106,
+     112
+    ],
+    "or": [
+     21
+    ],
+    "desensitizing": [
+     23
+    ],
+    "people": [
+     24
+    ],
+    "such": [
+     26
+    ],
+    "thoughts.": [
+     27
+    ],
+    "Participants": [
+     28,
+     66
+    ],
+    "in": [
+     29,
+     50,
+     67,
+     125,
+     134
+    ],
+    "the": [
+     30,
+     44,
+     64,
+     68,
+     94,
+     102,
+     126,
+     135
+    ],
+    "experimental": [
+     31
+    ],
+    "group,": [
+     32,
+     70
+    ],
+    "who": [
+     33,
+     71
+    ],
+    "were": [
+     34,
+     116,
+     130
+    ],
+    "instructed": [
+     35
+    ],
+    "write": [
+     37
+    ],
+    "their": [
+     38
+    ],
+    "deepest": [
+     39
+    ],
+    "and": [
+     41,
+     129
+    ],
+    "feelings": [
+     42
+    ],
+    "about": [
+     43,
+     73
+    ],
+    "exam,": [
+     45
+    ],
+    "exhibited": [
+     46
+    ],
+    "significant": [
+     48
+    ],
+    "decline": [
+     49
+    ],
+    "depressive": [
+     51,
+     83,
+     108,
+     120
+    ],
+    "symptoms": [
+     52,
+     84,
+     121,
+     133
+    ],
+    "from": [
+     53
+    ],
+    "1": [
+     54,
+     115
+    ],
+    "month": [
+     55
+    ],
+    "(Time": [
+     56,
+     61
+    ],
+    "1)": [
+     57
+    ],
+    "3": [
+     59
+    ],
+    "days": [
+     60
+    ],
+    "2)": [
+     62
+    ],
+    "before": [
+     63
+    ],
+    "exam.": [
+     65
+    ],
+    "control": [
+     69,
+     127
+    ],
+    "wrote": [
+     72
+    ],
+    "trivial": [
+     75
+    ],
+    "topic,": [
+     76
+    ],
+    "maintained": [
+     77
+    ],
+    "relatively": [
+     79
+    ],
+    "high": [
+     80
+    ],
+    "level": [
+     81
+    ],
+    "of": [
+     82,
+     96,
+     104
+    ],
+    "over": [
+     85
+    ],
+    "this": [
+     86
+    ],
+    "same": [
+     87
+    ],
+    "period.": [
+     88
+    ],
+    "Expressive": [
+     89
+    ],
+    "did": [
+     91
+    ],
+    "not": [
+     92
+    ],
+    "affect": [
+     93
+    ],
+    "frequency": [
+     95
+    ],
+    "thoughts,": [
+     98
+    ],
+    "but": [
+     99
+    ],
+    "it": [
+     100
+    ],
+    "moderated": [
+     101
+    ],
+    "impact": [
+     103
+    ],
+    "on": [
+     107
+    ],
+    "symptoms.": [
+     109
+    ],
+    "Specifically,": [
+     110
+    ],
+    "at": [
+     113,
+     122
+    ],
+    "Time": [
+     114,
+     123
+    ],
+    "positively": [
+     117
+    ],
+    "related": [
+     118
+    ],
+    "2": [
+     124
+    ],
+    "group": [
+     128
+    ],
+    "unrelated": [
+     131
+    ],
+    "group.": [
+     138
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2782542613",
+   "doi": "https://doi.org/10.23750/abm.v88i5-s.6877",
+   "title": "Expressive writing. A tool to help health workers. Research project on the benefits of expressive writing.",
+   "display_name": "Expressive writing. A tool to help health workers. Research project on the benefits of expressive writing.",
+   "publication_year": 2017,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://www.mattioli1885journals.com/index.php/actabiomedica/article/view/6877",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Acta bio-medica dell'Ateneo parmense/Acta biomedica",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "BACKGROUND": [
+     0
+    ],
+    "AND": [
+     1
+    ],
+    "AIMS:": [
+     2
+    ],
+    "Numerous": [
+     3
+    ],
+    "studies": [
+     4
+    ],
+    "in": [
+     5,
+     64,
+     68,
+     158,
+     184,
+     196
+    ],
+    "the": [
+     6,
+     21,
+     69,
+     76,
+     137,
+     181,
+     197,
+     222
+    ],
+    "international": [
+     7
+    ],
+    "literature": [
+     8
+    ],
+    "hold": [
+     9
+    ],
+    "that": [
+     10,
+     55,
+     82,
+     85
+    ],
+    "expressive": [
+     11,
+     83,
+     114,
+     138
+    ],
+    "writing": [
+     12,
+     88,
+     115,
+     139,
+     142,
+     200,
+     204
+    ],
+    "is": [
+     13,
+     47,
+     95
+    ],
+    "a": [
+     14,
+     24,
+     96,
+     132,
+     189,
+     206
+    ],
+    "useful": [
+     15,
+     97
+    ],
+    "tool": [
+     16,
+     98
+    ],
+    "to": [
+     17,
+     29,
+     99,
+     109
+    ],
+    "take": [
+     18
+    ],
+    "care": [
+     19,
+     149
+    ],
+    "of": [
+     20,
+     35,
+     128,
+     143,
+     147,
+     153,
+     191,
+     199,
+     226
+    ],
+    "person": [
+     22
+    ],
+    "as": [
+     23,
+     37,
+     39,
+     183
+    ],
+    "whole.": [
+     25
+    ],
+    "It": [
+     26,
+     218
+    ],
+    "gives": [
+     27
+    ],
+    "voice": [
+     28
+    ],
+    "emotions,": [
+     30
+    ],
+    "moods": [
+     31
+    ],
+    "and": [
+     32,
+     41,
+     60,
+     71,
+     92,
+     103,
+     112,
+     124,
+     140,
+     165,
+     170,
+     213,
+     224,
+     232
+    ],
+    "intimate": [
+     33
+    ],
+    "thoughts": [
+     34,
+     59,
+     91
+    ],
+    "patients,": [
+     36
+    ],
+    "well": [
+     38
+    ],
+    "caregivers": [
+     40
+    ],
+    "family": [
+     42
+    ],
+    "members.": [
+     43
+    ],
+    "The": [
+     44
+    ],
+    "reference": [
+     45
+    ],
+    "model": [
+     46
+    ],
+    "based": [
+     48
+    ],
+    "on": [
+     49,
+     89,
+     119,
+     209
+    ],
+    "Pennebaker's": [
+     50,
+     185
+    ],
+    "theory": [
+     51
+    ],
+    "(2004),": [
+     52
+    ],
+    "which": [
+     53
+    ],
+    "posits": [
+     54
+    ],
+    "expressing": [
+     56
+    ],
+    "our": [
+     57
+    ],
+    "deeper": [
+     58,
+     90
+    ],
+    "feelings": [
+     61
+    ],
+    "can": [
+     62,
+     220
+    ],
+    "result": [
+     63
+    ],
+    "significant": [
+     65
+    ],
+    "health": [
+     66,
+     129,
+     148
+    ],
+    "benefits": [
+     67
+    ],
+    "short": [
+     70
+    ],
+    "long": [
+     72
+    ],
+    "term.": [
+     73
+    ],
+    "Studies": [
+     74
+    ],
+    "over": [
+     75
+    ],
+    "past": [
+     77
+    ],
+    "25": [
+     78
+    ],
+    "years": [
+     79
+    ],
+    "have": [
+     80
+    ],
+    "shown": [
+     81
+    ],
+    "writing,": [
+     84
+    ],
+    "is,": [
+     86
+    ],
+    "simple": [
+     87
+    ],
+    "emotional": [
+     93
+    ],
+    "sensations,": [
+     94
+    ],
+    "alleviate": [
+     100
+    ],
+    "both": [
+     101
+    ],
+    "physical": [
+     102
+    ],
+    "psychological": [
+     104
+    ],
+    "symptoms.": [
+     105
+    ],
+    "This": [
+     106
+    ],
+    "research": [
+     107
+    ],
+    "seeks": [
+     108
+    ],
+    "ascertain": [
+     110
+    ],
+    "whether": [
+     111
+    ],
+    "how": [
+     113
+    ],
+    "has": [
+     116,
+     205
+    ],
+    "an": [
+     117,
+     171
+    ],
+    "impact": [
+     118,
+     208
+    ],
+    "work": [
+     120,
+     214
+    ],
+    "satisfaction,": [
+     121
+    ],
+    "coping": [
+     122,
+     211
+    ],
+    "strategies,": [
+     123
+    ],
+    "relational": [
+     125,
+     215
+    ],
+    "communication": [
+     126,
+     216
+    ],
+    "satisfaction": [
+     127
+    ],
+    "practitioners.": [
+     130
+    ],
+    "METHODS:": [
+     131
+    ],
+    "comparison": [
+     133
+    ],
+    "was": [
+     134,
+     188
+    ],
+    "made": [
+     135
+    ],
+    "between": [
+     136
+    ],
+    "neutral": [
+     141
+    ],
+    "two": [
+     144
+    ],
+    "randomized": [
+     145
+    ],
+    "groups": [
+     146
+    ],
+    "professionals.": [
+     150
+    ],
+    "A": [
+     151
+    ],
+    "group": [
+     152
+    ],
+    "66": [
+     154
+    ],
+    "healthcare": [
+     155
+    ],
+    "professionals": [
+     156
+    ],
+    "participated": [
+     157
+    ],
+    "this": [
+     159
+    ],
+    "study.": [
+     160
+    ],
+    "They": [
+     161
+    ],
+    "were": [
+     162
+    ],
+    "evaluated": [
+     163
+    ],
+    "pre-": [
+     164
+    ],
+    "post-intervention": [
+     166
+    ],
+    "using": [
+     167
+    ],
+    "several": [
+     168
+    ],
+    "scales": [
+     169
+    ],
+    "ad": [
+     172
+    ],
+    "hoc": [
+     173
+    ],
+    "questionnaire,": [
+     174
+    ],
+    "with": [
+     175,
+     193
+    ],
+    "one-month": [
+     176
+    ],
+    "follow-up.": [
+     177
+    ],
+    "RESULTS:": [
+     178
+    ],
+    "After": [
+     179
+    ],
+    "analyzing": [
+     180
+    ],
+    "texts,": [
+     182
+    ],
+    "studies,": [
+     186
+    ],
+    "there": [
+     187
+    ],
+    "reduction": [
+     190
+    ],
+    "words": [
+     192
+    ],
+    "negative": [
+     194
+    ],
+    "emotion": [
+     195
+    ],
+    "course": [
+     198
+    ],
+    "sessions.": [
+     201
+    ],
+    "DISCUSSION:": [
+     202
+    ],
+    "Expressive": [
+     203
+    ],
+    "positive": [
+     207
+    ],
+    "adaptive": [
+     210
+    ],
+    "strategies": [
+     212
+    ],
+    "satisfaction.": [
+     217
+    ],
+    "also": [
+     219
+    ],
+    "facilitate": [
+     221
+    ],
+    "clarification": [
+     223
+    ],
+    "solution": [
+     225
+    ],
+    "various": [
+     227
+    ],
+    "problems,": [
+     228
+    ],
+    "increase": [
+     229
+    ],
+    "cognitive": [
+     230
+    ],
+    "abilities,": [
+     231
+    ],
+    "promote": [
+     233
+    ],
+    "social": [
+     234
+    ],
+    "interactions.": [
+     235
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2000497654",
+   "doi": "https://doi.org/10.1080/17437199.2014.882007",
+   "title": "Expressive writing interventions in cancer patients: a systematic review",
+   "display_name": "Expressive writing interventions in cancer patients: a systematic review",
+   "publication_year": 2014,
+   "type": "review",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1080/17437199.2014.882007",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Health Psychology Review",
+     "type": "journal"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Decades": [
+     0
+    ],
+    "of": [
+     1,
+     68,
+     95,
+     148,
+     159
+    ],
+    "research": [
+     2
+    ],
+    "have": [
+     3,
+     49
+    ],
+    "suggested": [
+     4
+    ],
+    "that": [
+     5,
+     123
+    ],
+    "expressive": [
+     6,
+     35,
+     75,
+     107,
+     124,
+     176
+    ],
+    "writing": [
+     7,
+     36,
+     76,
+     108,
+     125,
+     164,
+     177
+    ],
+    "produces": [
+     8
+    ],
+    "physical": [
+     9,
+     114
+    ],
+    "and": [
+     10,
+     28,
+     41,
+     79,
+     112,
+     115,
+     153,
+     157,
+     163
+    ],
+    "psychological": [
+     11,
+     116
+    ],
+    "benefits": [
+     12
+    ],
+    "in": [
+     13,
+     54,
+     73,
+     181
+    ],
+    "controlled": [
+     14
+    ],
+    "laboratory": [
+     15
+    ],
+    "experiments": [
+     16
+    ],
+    "among": [
+     17
+    ],
+    "healthy": [
+     18
+    ],
+    "college": [
+     19
+    ],
+    "students.": [
+     20
+    ],
+    "This": [
+     21
+    ],
+    "work": [
+     22
+    ],
+    "has": [
+     23
+    ],
+    "been": [
+     24,
+     51
+    ],
+    "extended": [
+     25
+    ],
+    "to": [
+     26,
+     146,
+     173
+    ],
+    "clinical": [
+     27
+    ],
+    "medical": [
+     29
+    ],
+    "populations,": [
+     30
+    ],
+    "including": [
+     31
+    ],
+    "cancer": [
+     32,
+     69,
+     182
+    ],
+    "patients.": [
+     33,
+     183
+    ],
+    "Although": [
+     34,
+     92
+    ],
+    "could": [
+     37
+    ],
+    "be": [
+     38,
+     127
+    ],
+    "a": [
+     39
+    ],
+    "promising": [
+     40
+    ],
+    "inexpensive": [
+     42
+    ],
+    "intervention": [
+     43,
+     97,
+     161
+    ],
+    "for": [
+     44,
+     65,
+     83,
+     106
+    ],
+    "this": [
+     45
+    ],
+    "population,": [
+     46
+    ],
+    "the": [
+     47,
+     89,
+     93,
+     96,
+     149,
+     160
+    ],
+    "effects": [
+     48,
+     98,
+     105
+    ],
+    "not": [
+     50
+    ],
+    "systematically": [
+     52
+    ],
+    "examined": [
+     53
+    ],
+    "oncology": [
+     55
+    ],
+    "samples.": [
+     56
+    ],
+    "A": [
+     57
+    ],
+    "systematic": [
+     58
+    ],
+    "review": [
+     59
+    ],
+    "using": [
+     60
+    ],
+    "PRISMA": [
+     61
+    ],
+    "guidelines": [
+     62
+    ],
+    "was": [
+     63
+    ],
+    "conducted": [
+     64
+    ],
+    "experimental": [
+     66
+    ],
+    "trials": [
+     67
+    ],
+    "patients": [
+     70
+    ],
+    "who": [
+     71
+    ],
+    "participated": [
+     72
+    ],
+    "an": [
+     74
+    ],
+    "intervention.": [
+     77
+    ],
+    "PsycINFO": [
+     78
+    ],
+    "PubMed/Medline": [
+     80
+    ],
+    "were": [
+     81,
+     99,
+     102,
+     120,
+     143
+    ],
+    "searched": [
+     82
+    ],
+    "peer-reviewed": [
+     84
+    ],
+    "studies.": [
+     85
+    ],
+    "Thirteen": [
+     86
+    ],
+    "articles": [
+     87
+    ],
+    "met": [
+     88
+    ],
+    "inclusion/exclusion": [
+     90
+    ],
+    "criteria.": [
+     91
+    ],
+    "majority": [
+     94
+    ],
+    "null,": [
+     100
+    ],
+    "there": [
+     101
+    ],
+    "several": [
+     103
+    ],
+    "main": [
+     104
+    ],
+    "on": [
+     109,
+     133
+    ],
+    "sleep,": [
+     110
+    ],
+    "pain,": [
+     111
+    ],
+    "general": [
+     113
+    ],
+    "symptoms.": [
+     117
+    ],
+    "Several": [
+     118
+    ],
+    "moderators": [
+     119
+    ],
+    "identified,": [
+     121
+    ],
+    "suggesting": [
+     122
+    ],
+    "may": [
+     126
+    ],
+    "more": [
+     128
+    ],
+    "or": [
+     129
+    ],
+    "less": [
+     130
+    ],
+    "beneficial": [
+     131
+    ],
+    "based": [
+     132
+    ],
+    "individual": [
+     134
+    ],
+    "characteristics": [
+     135
+    ],
+    "such": [
+     136
+    ],
+    "as": [
+     137
+    ],
+    "social": [
+     138
+    ],
+    "constraints.": [
+     139
+    ],
+    "The": [
+     140
+    ],
+    "reviewed": [
+     141
+    ],
+    "studies": [
+     142,
+     167
+    ],
+    "limited": [
+     144
+    ],
+    "due": [
+     145
+    ],
+    "representativeness": [
+     147
+    ],
+    "samples,": [
+     150
+    ],
+    "performance,": [
+     151
+    ],
+    "detection": [
+     152
+    ],
+    "patient-reported": [
+     154
+    ],
+    "outcomes": [
+     155
+    ],
+    "biases,": [
+     156
+    ],
+    "heterogeneity": [
+     158
+    ],
+    "protocol": [
+     162
+    ],
+    "prompts.": [
+     165
+    ],
+    "Future": [
+     166
+    ],
+    "with": [
+     168
+    ],
+    "rigorous": [
+     169
+    ],
+    "designs": [
+     170
+    ],
+    "are": [
+     171
+    ],
+    "needed": [
+     172
+    ],
+    "determine": [
+     174
+    ],
+    "whether": [
+     175
+    ],
+    "is": [
+     178
+    ],
+    "therapeutically": [
+     179
+    ],
+    "effective": [
+     180
+    ]
+   }
+  }
+ ]
+}

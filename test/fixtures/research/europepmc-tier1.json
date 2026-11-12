@@ -1,0 +1,360 @@
+{
+ "version": "6.9",
+ "hitCount": 30760,
+ "request": {
+  "queryString": "expressive writing"
+ },
+ "resultList": {
+  "result": [
+   {
+    "id": "42853002",
+    "source": "MED",
+    "pmid": "42853002",
+    "doi": "10.1111/famp.70206",
+    "title": "The Effectiveness of Expressive Writing Interventions on the Psychosocial Health of Family Caregivers: A Meta-Analysis.",
+    "pubYear": "2026",
+    "abstractText": "This study aimed to evaluate the effectiveness of expressive writing interventions on the psychosocial health outcomes of family caregivers and to synthesize the available evidence. It was conducted in accordance with the PRISMA 2020 guidelines. Studies published up to May 2025 were searched in PubMed, Web of Science, CENTRAL, SCOPUS, and MEDLINE. The methodological quality of included studies was assessed using the Cochrane Collaboration Risk of Bias Tool 2.0, and standardized mean differences were calculated for depression, anxiety, stress, and caregiver burden. A total of 13 studies met the inclusion criteria and were included in the meta-analysis. The included interventions varied considerably in writing content, session number, writing duration, intervention intervals, and comparator conditions. Most studies were judged to have a high overall risk of bias. Most interventions were short-term, and the observed benefits were not maintained over the long term. The available evidence provides limited support for the broad effectiveness of expressive writing among family caregivers. A small short-term effect was observed for anxiety (SMD = -0.22; p = 0.041). However, no significant effects were found for depression (SMD = -0.17; p = 0.084), stress (SMD = -0.21; p = 0.167), or caregiver burden (SMD = -0.02; p = 0.905). The observed anxiety effect should be interpreted as preliminary evidence rather than definitive evidence of efficacy. Further research is needed to clarify the effects of expressive writing on psychosocial outcomes in family caregivers.",
+    "pubTypeList": {
+     "pubType": [
+      "Meta-Analysis",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Family process"
+     }
+    }
+   },
+   {
+    "id": "43002129",
+    "source": "MED",
+    "pmid": "43002129",
+    "doi": "10.1111/acer.70412",
+    "title": "An Expressive Writing Randomized Controlled Trial for Reducing Drinking in College Students.",
+    "pubYear": "2026",
+    "abstractText": "<h4>Background</h4>This research evaluates expressive writing as a novel, theory-based brief intervention for heavy-drinking college students. This research considers expressive writing as a new paradigm for facilitating changes in drinking which may be equally or more effective and requires fewer resources to disseminate.<h4>Methods</h4>Heavy-drinking college students were randomly assigned to one of six conditions based on a 2 (Alcohol vs. Distress) × 2 (Guilt vs. No-Guilt) + 1 (Neutral Control) + 1 (personalized normative [PNF] feedback) design. Participants completed a remote baseline survey, three weekly in-lab writing (or feedback) sessions, and remote follow-up surveys 1, 3, 6, and 12 months later. Efficacy was evaluated among 476 participants who completed all three writing sessions. Outcomes included typical weekly drinking, typical quantity consumed, peak quantity consumed, and alcohol-related consequences.<h4>Results</h4>Results demonstrated partial support for hypotheses. Participants in the combined Alcohol condition reported fewer negative alcohol-related consequences compared to participants in the Neutral Control condition. Participants in the Alcohol-Guilt condition reported fewer alcohol-related consequences compared to participants in the Neutral Control and Distress-No-Guilt conditions.<h4>Conclusions</h4>This research presents preliminary support for expressive writing as a novel intervention. This theory-based approach does not require any preassessment or programming of personalized feedback and is a less costly and more easily implementable alternative to existing brief alcohol interventions.",
+    "pubTypeList": {
+     "pubType": [
+      "Randomized Controlled Trial",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Alcohol, clinical & experimental research"
+     }
+    }
+   },
+   {
+    "id": "39695671",
+    "source": "MED",
+    "pmid": "39695671",
+    "pmcid": "PMC11658198",
+    "doi": "10.1186/s12986-024-00876-y",
+    "title": "An interpretable machine learning model for precise prediction of biomarkers for intermittent fasting pattern.",
+    "pubYear": "2024",
+    "abstractText": "Intermittent fasting is currently a highly sought-after dietary pattern. To explore the potential biomarkers of intermittent fasting, untargeted metabolomics analysis of fecal metabolites in two groups of mice, intermittent fasting and normal feeding, was conducted using UPLC-HRMS. The data was further analyzed through interpretable machine learning (ML) to data mine the biomarkers for two dietary patterns. We developed five machine learning models and results showed that under three-fold cross-validation, Random Forest model was the most suitable for distinguishing the two dietary patterns. Finally, Shapely Additive exPlanations (SHAP) were explored to perform a weighted explanatory analysis on the Random Forest model, and the contribution of each metabolite to the model was calculated. Results indicated that Ganoderenic Acid C is the potential biomarkers to distinguish the two dietary patterns. Our work provides new insights for metabolic biomarker analysis and lays a theoretical foundation for the selection of a healthieir dietary lifestyle.",
+    "pubTypeList": {
+     "pubType": [
+      "Retracted Publication",
+      "research-article",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2024,
+     "journal": {
+      "title": "Nutrition & metabolism"
+     }
+    }
+   },
+   {
+    "id": "PMC13444288",
+    "source": "PMC",
+    "pmcid": "PMC13444288",
+    "title": "Effects of Positive Expressive Writing on Psychological Well-being: The Role of Locus of Control",
+    "pubTypeList": {
+     "pubType": [
+      "Abstract"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 0,
+     "journal": {
+      "title": "European psychiatry : the journal of the Association of European Psychiatrists"
+     }
+    }
+   },
+   {
+    "id": "41457010",
+    "source": "MED",
+    "pmid": "41457010",
+    "pmcid": "PMC13166317",
+    "doi": "10.1017/s1478951525101260",
+    "title": "Expressive writing interventions in oncology - Reflections on expressive writing interventions in oncology.",
+    "pubYear": "2025",
+    "pubTypeList": {
+     "pubType": [
+      "letter",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2025,
+     "journal": {
+      "title": "Palliative & supportive care"
+     }
+    }
+   },
+   {
+    "id": "PMC13644249",
+    "source": "PMC",
+    "pmcid": "PMC13644249",
+    "title": "Retraction Note: An interpretable machine learning model for precise prediction of biomarkers for intermittent fasting pattern",
+    "pubYear": "2026",
+    "pubTypeList": {
+     "pubType": [
+      "Retraction of Publication"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Nutrition & metabolism"
+     }
+    }
+   },
+   {
+    "id": "42953508",
+    "source": "MED",
+    "pmid": "42953508",
+    "pmcid": "PMC13714643",
+    "doi": "10.17912/micropub.biology.002408",
+    "title": "A simplified intermittent fasting regimen robustly extends &lt;i&gt;C. elegans&lt;/i&gt; lifespan without FUdR or antibiotic confounds.",
+    "pubYear": "2026",
+    "abstractText": "Fasting-based interventions are conserved regulators of aging that extend lifespan across species, including <i>Caenorhabditis elegans</i> . However, existing fasting studies are confounded by FUdR, antibiotics, germline-less mutants, and bacterial killing, which independently affect lifespan. FUdR alters lifespan, pathology, and stress responses, while antibiotics may affect worm physiology. To minimize these confounders, we developed an adult-onset intermittent fasting paradigm devoid of these factors. Wild-type worms subjected to daily fasting periods of 5 h, 6 h, or 18 h until day 10 of adulthood showed 24-57% lifespan extension. This tractable paradigm underscores the importance of limiting pharmacological and microbial conditions in dietary-intervention experiments.",
+    "pubTypeList": {
+     "pubType": [
+      "brief-report",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "microPublication biology"
+     }
+    }
+   },
+   {
+    "id": "28211668",
+    "source": "MED",
+    "pmid": "28211668",
+    "title": "Beta-Propeller Protein-Associated Neurodegeneration",
+    "pubYear": "1993",
+    "abstractText": "<h4>Clinical characteristics</h4>Beta-propeller protein-associated neurodegeneration (BPAN) is typically characterized by early-onset seizures, infantile-onset developmental delay, intellectual disability, absent-to-limited expressive language, motor dysfunction (ataxia), and abnormal behaviors often similar to autism spectrum disorder. Seizure types including generalized (absence, tonic, atonic, tonic-clonic and myoclonic), focal with impaired consciousness, and epileptic spasms, as well as epileptic syndromes (West syndrome and Lennox-Gastaut syndrome) can be seen. With age seizures tend to resolve or become less prominent, whereas cognitive decline and movement disorders (progressive parkinsonism and dystonia) emerge as characteristic findings.<h4>Diagnosis/testing</h4>The diagnosis of BPAN is established by identifying on molecular genetic testing: In females. A heterozygous WDR45 germline pathogenic variant; In males. Either a hemizygous WDR45 pathogenic variant or partial deletion of WDR45. Somatic mosaicism has been reported in rare females (and possibly in 1 male).<h4>Management</h4>Treatment of manifestations: Seizure management, tailored to the individual, may include anti-seizure (ASM), ketogenic diet, and/or vagus nerve stimulation. Developmental delays and intellectual disability are managed in infancy and early childhood with early intervention programs and in school-age children with individual education programs. Consultation with a developmental pediatrician to ensure appropriate services is recommended. Discussion about transition plans including financial, vocation/employment, and medical arrangements should begin at age 12 years. Consider alternative means of communication, such as an Augmentative and Alternative Communication (AAC) program, for individuals who have expressive language difficulties. Motor dysfunction in childhood is managed with physical therapy to maximize mobility and to reduce the risk for later-onset orthopedic complications (e.g., contractures, scoliosis, hip dislocation). Occupational therapy may aid in writing, feeding, grooming, and dressing. For those with feeding difficulties, feeding therapy may be considered. For individuals with social/behavioral difficulties, consider applied behavior analysis (ABA) therapy, medical management strategies in conjunction with a developmental specialist, and pediatric psychiatry consultation to address aggressive or destructive behaviors. In adolescents/adults with parkinsonism, dystonia, and spasticity, the usual pharmacologic agents can be considered with the caveat that these therapies could exacerbate the cognitive deficits that also occur in this age group. Children with abnormal behaviors may qualify for and benefit from interventions used in treatment of autism spectrum disorder. Surveillance: Routine follow up by a neurologist for medication management and interval assessment of ambulation, seizure activity, speech, and evidence of swallowing dysfunction. For those receiving dopaminergic drugs (for parkinsonism), monitor for adverse neuropsychiatric effects and disabling motor fluctuations and dyskinesias. Pregnancy management: Use of ASM during pregnancy for women with a seizure disorder is generally recommended, despite an increased risk for adverse fetal outcome associated with some ASMs. Discussion of the risks and benefits of using a given anti-seizure medication during pregnancy ideally should take place prior to conception. Transitioning to a lower-risk medication may be possible.<h4>Genetic counseling</h4>BPAN is inherited in an X-linked manner; to date, most affected individuals have been female, and the vast majority are simplex cases (i.e., a single occurrence in a family) resulting from a de novo WDR45 pathogenic variant. The exceptions include two familial cases, one with presumed maternal germline mosaicism and one with transmission of a WDR45 pathogenic variant by a phenotypically normal mother who demonstrated significantly skewed X-chromosome inactivation. Females with the typical BPAN phenotype do not reproduce. In rare instances, a female who is mildly affected may reproduce. Affected males do not reproduce. Once the WDR45 pathogenic variant has been identified in an affected family member, prenatal testing for a pregnancy at increased risk and preimplantation genetic testing for BPAN are possible.",
+    "pubTypeList": {
+     "pubType": [
+      "Book",
+      "Review"
+     ]
+    },
+    "bookOrReportDetails": {
+     "publisher": "University of Washington, Seattle, Seattle (WA)",
+     "comprisingTitle": "GeneReviews®",
+     "yearOfPublication": 1993
+    }
+   },
+   {
+    "id": "7623671",
+    "source": "MED",
+    "pmid": "7623671",
+    "title": "Young children's communication and literacy: a qualitative study of language in the inclusive preschool.",
+    "pubYear": "1995",
+    "abstractText": "Interactive and literacy-based language use of young children within the context of an inclusive preschool classroom was explored. An interpretivist framework and qualitative research methods, including participant observation, were used to examine and analyze language in five preschool classes that were composed of children with and without disabilities. Children's language use included spoken, written, signed, and typed. Results showed complex communicative and literacy language use on the part of young children outside conventional adult perspectives. Also, children who used expressive methods other than speech were often left out of the contexts where spoken language was richest and most complex.",
+    "pubTypeList": {
+     "pubType": [
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 1995,
+     "journal": {
+      "title": "Mental retardation"
+     }
+    }
+   },
+   {
+    "id": "42885302",
+    "source": "MED",
+    "pmid": "42885302",
+    "doi": "10.1080/10410236.2026.2749454",
+    "title": "Tracing Dialogical Repositioning in Multi-Perspective Expressive Writing: A Longitudinal Qualitative Case Study.",
+    "pubYear": "2026",
+    "abstractText": "Research on expressive writing has often focused on psychological outcomes, with less attention to how processes of self-reorganization unfold over time. Drawing on dialogical self theory, this study traces dialogical repositioning within a structured multi-perspective writing practice. Using a longitudinal qualitative single-case design, we followed a university student experiencing psychological distress across a six-week writing practice comprising 12 sessions organized around four recurring orientations: emotional disclosure, cognitive reappraisal, gratitude, and future-oriented writing. The data included 12 writing texts, three semi-structured interviews, and 12 brief post-writing reflections. I-positions were traced longitudinally across the writing texts, with interviews and reflections providing complementary accounts of the participant's writing experiences and perceived changes. Results showed a trajectory from an initially distress-dominated, relatively monologic configuration toward a more differentiated dialogical repertoire. Previously dominant positions became increasingly open to reflection and negotiation, while alternative positions and relational voices gained prominence and interacted in more complex ways. Earlier positions did not disappear but were repositioned in relation to emerging reflective, relational, and future-oriented positions. Multi-perspective expressive writing may thus provide opportunities for the articulation, negotiation, and reconfiguration of positions over time. This study conceptualizes expressive writing as a language-mediated dialogical practice and demonstrates the value of longitudinal analysis for tracing processes of narrative self-reorganization.",
+    "pubTypeList": {
+     "pubType": [
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Health communication"
+     }
+    }
+   },
+   {
+    "id": "42784890",
+    "source": "MED",
+    "pmid": "42784890",
+    "doi": "10.1016/j.soncn.2026.152394",
+    "title": "Writing the Unspeakable: Breast Cancer Survivors' Experiences of Expressive Writing as Psychosocial Support.",
+    "pubYear": "2026",
+    "abstractText": "<h4>Objectives</h4>To explore breast cancer survivors' experiences of facilitated expressive writing as psychosocial support in Al-Ahsa, Saudi Arabia, and to understand how writing contributed to emotional processing, identity reconstruction, social reconnection, and meaning-making.<h4>Data sources</h4>A qualitative study informed by reflexive thematic analysis was conducted with 25 breast cancer survivors recruited from oncology and survivorship services at King Faisal University Hospital, Al-Ahsa. Eligible participants had completed active treatment at least 6 months before enrolment and had attended at least three facilitated expressive writing sessions. Semi-structured interviews were conducted between February and April 2025, audio-recorded, transcribed, translated where required, and analyzed using Braun and Clarke's six-phase approach. Trustworthiness was supported through member checking, reflexive journaling, peer debriefing, audit trail documentation, and thick description. Four themes were generated: \"The Page That Does Not Judge,\" which captured writing as a private space for expressing fear, grief, anger, and culturally constrained emotions; \"Reclaiming the Self Beneath the Scar,\" which described reconstruction of body image, femininity, and personal agency after cancer treatment; \"From Isolation to Witness,\" which illustrated how voluntary sharing transformed private distress into relational recognition and social reconnection; and \"Growing Through the Written Word,\" which reflected meaning-making, posttraumatic growth, and spiritual reintegration through Islamic concepts including sabr, tawakkul, shukr, and du'a.<h4>Conclusions</h4>Facilitated expressive writing was experienced by Saudi breast cancer survivors as a culturally acceptable, meaningful, and accessible form of psychosocial support. Participants described writing as facilitating emotional expression, reconstruction of identity after cancer treatment, social reconnection, and spiritually grounded meaning-making during survivorship.<h4>Implications for nursing practice</h4>Oncology nurses may incorporate facilitated expressive writing as an adjunct to survivorship care, particularly for patients who experience difficulty verbalizing cancer-related emotions or psychosocial concerns. Structured writing opportunities, combined with voluntary sharing and culturally sensitive facilitation, may provide a low-cost approach to supporting emotional disclosure, identity reconstruction, relational connection, and spiritual meaning-making among breast cancer survivors.",
+    "pubTypeList": {
+     "pubType": [
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Seminars in oncology nursing"
+     }
+    }
+   },
+   {
+    "id": "42822401",
+    "source": "MED",
+    "pmid": "42822401",
+    "doi": "10.1016/j.actpsy.2026.107843",
+    "title": "Testing pre-task expressive writing as an emotional-offloading strategy in evaluative L2 writing.",
+    "pubYear": "2026",
+    "abstractText": "Choking under pressure occurs when evaluative concerns consume limited cognitive resources and weaken attentional control during demanding tasks such as L2 writing. Pre-task expressive writing (EW) may externalize task-related worries, but its value in evaluative L2 writing remains uncertain. This 2 × 3 factorial study examined intervention type (EW vs. active neutral writing [NW]) and language modality among 207 EFL university students who completed a timed argumentative task after a 20-minute pre-task activity. Open-ended responses formed an embedded qualitative component. Confirmatory analyses found no evidence that writing-anxiety scores differed across measurement occasions by intervention type or language modality. EW also showed no incremental advantage over NW in posttest performance. Although a multivariate intervention type × language modality interaction emerged across four writing dimensions, no dimension-specific effect survived Bonferroni correction. The secondary associational analysis found no conditional indirect association through retrospectively reported cognitive load. Qualitative accounts contextualized these results: only a minority of EW participants reported benefit, whereas linguistic and organizational difficulties remained prominent. Exploratory analyses associated perceived pressure with posttest anxiety and a small increment in explained performance variance. NW-L2 showed the largest descriptive anxiety decrease, but the full-sample three-way interaction was not significant. These findings are hypothesis-generating. Under the conditions examined, brief EW provided no detectable incremental advantage over active NW in skill-specific anxiety or final-text performance.",
+    "pubTypeList": {
+     "pubType": [
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Acta psychologica"
+     }
+    }
+   },
+   {
+    "id": "42949254",
+    "source": "MED",
+    "pmid": "42949254",
+    "doi": "10.1177/13591053261499814",
+    "title": "What do we know about expressive writing interventions in helping professions? A focused bibliometric review.",
+    "pubYear": "2026",
+    "abstractText": "Expressive writing is widely studied as a psychological intervention supporting emotional processing and well-being, but research involving helping professionals remains limited. This bibliometric study traces the development of scientific production in this area and maps its conceptual structure. A Scopus search identified 167 records, of which 20 documents published between 2009 and 2026 were retained after a PRISMA-based screening. The analysis reveals a small, recently expanding field, with continuous annual publication only since 2021 and output concentrated among a few authors, research groups, journals, and countries, particularly Italy. Its conceptual structure centers on emotional processing and psychological and occupational adjustment, linking burnout, compassion fatigue, coping, job satisfaction, and well-being across palliative care, intensive care, and pandemic-related healthcare contexts. Overall, the field remains context-bound and unevenly developed, highlighting the need for stronger methodological consistency, broader professional and cultural representation, and greater attention to organizational conditions, implementation, and cross-context comparability.",
+    "pubTypeList": {
+     "pubType": [
+      "Review",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Journal of health psychology"
+     }
+    }
+   },
+   {
+    "id": "42738975",
+    "source": "MED",
+    "pmid": "42738975",
+    "pmcid": "PMC13567609",
+    "doi": "10.3390/nu18172803",
+    "title": "The Role of Intermittent Fasting in Rheumatoid Arthritis-A Scoping Review.",
+    "pubYear": "2026",
+    "abstractText": "<b>Background</b>: Rheumatoid arthritis (RA) is a chronic autoimmune disease characterized by progressive synovial inflammation, joint destruction, and metabolic abnormalities. In recent years, there has been growing interest in intermittent fasting (IF) as a potential dietary strategy for modulating inflammatory and immunometabolic processes in RA. Preliminary data suggest that IF may lead to reduced joint pain, lower inflammatory markers, improved well-being, and weight loss, but the available evidence is scattered and heterogeneous. The aim of this scoping review was to provide a comprehensive overview of the current state of knowledge regarding the effects of IF on inflammatory, immunological, and metabolic processes in patients with RA. <b>Methods:</b> The review was conducted in accordance with the Joanna Briggs Institute methodology and the PRISMA-ScR guidelines. The databases PubMed, Scopus, Web of Science, EBSCO, the Cochrane Library, and Google Scholar were searched (16 March to 12 April 2026) using the Population-Concept-Context model. Full-text observational and experimental studies, as well as reviews, on intermittent fasting in RA were included in the analysis. <b>Results:</b> Of the 137 publications identified, 9 studies were included in the review, covering populations from Iran, Luxembourg, Tunisia, Mexico, China, and Turkey. The results indicate that IF may lead to improvements in disease activity, quality of life, and selected metabolic parameters. Several studies reported a beneficial effect of IF on markers of oxidative stress and selected pro-inflammatory cytokines, although other analyses did not confirm significant changes in inflammatory biomarkers. Preclinical data have demonstrated strong anti-inflammatory and immunoregulatory effects of IF, including a reduction in pro-inflammatory cytokines and an increase in the Treg population. The heterogeneity of IF protocols, population differences, and small sample sizes limit the ability to interpret the results unequivocally. <b>Conclusions:</b> The available evidence suggests that intermittent fasting may represent a promising, nonpharmacological strategy to support the treatment of RA, particularly in terms of improving immunometabolic parameters and subjective disease symptoms. However, due to methodological limitations and the lack of long-term studies, further well-designed randomized clinical trials are needed to evaluate the efficacy and safety of IF in this population.",
+    "pubTypeList": {
+     "pubType": [
+      "Scoping Review",
+      "review-article",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Nutrients"
+     }
+    }
+   },
+   {
+    "id": "42072957",
+    "source": "MED",
+    "pmid": "42072957",
+    "pmcid": "PMC13116220",
+    "doi": "10.3390/healthcare14081057",
+    "title": "The Use of Expressive Writing in Healthcare Professionals: A Systematic Review of Quantitative Studies.",
+    "pubYear": "2026",
+    "abstractText": "<h4>Background</h4>Healthcare professionals are exposed to high emotional demands, including repeated contact with suffering, death, moral distress, and organizational pressure. These factors are associated with psychological distress, burnout, and secondary traumatic stress. Expressive Writing (EW) has been proposed as a psychological intervention, but evidence of its effectiveness among healthcare professionals remains heterogeneous.<h4>Objectives</h4>To examine the effects of EW on psychological health, psychophysical well-being, and professional satisfaction among healthcare professionals.<h4>Methods</h4>A systematic review was conducted in accordance with the Cochrane Handbook for Systematic Reviews of Interventions and the PRISMA 2020 guidelines. Searches were performed in PubMed, CINAHL, CENRAL, CENTRAL Scopus, Embase, and PsycINFO from database inception to January 2025. Quantitative studies involving healthcare professionals and evaluating structured expressive writing interventions were considered for inclusion, including randomized and non-randomized, controlled and uncontrolled designs. Studies reporting psychological, psychophysical, or work-related outcomes were eligible. Only full-text articles published in English or Italian were considered. The review protocol was registered and archived in the Open Science Framework. Methodological quality was assessed using CASP checklists, the RoB 2 tool, and the Newcastle-Ottawa Scale.<h4>Results</h4>Seven studies published between 2017 and 2023 were included. EW interventions were associated with reductions in psychological distress, particularly perceived stress, depressive symptoms, and post-traumatic stress symptoms. Findings regarding burnout and compassion fatigue were mixed. Organizational and job-related outcomes, such as job satisfaction and organizational commitment, showed limited and heterogeneous improvements. No consistent effects were observed for resilience or social support. Overall, the methodological quality of the included studies was generally good.<h4>Conclusions</h4>EW appears to be a promising, low-cost intervention for reducing psychological distress among healthcare professionals. However, heterogeneity in study designs, intervention protocols, and outcome measures limits the strength of the evidence. Further high-quality, controlled studies using standardized EW protocols are needed.",
+    "pubTypeList": {
+     "pubType": [
+      "review-article",
+      "Review",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Healthcare (Basel, Switzerland)"
+     }
+    }
+   },
+   {
+    "id": "42658633",
+    "source": "MED",
+    "pmid": "42658633",
+    "doi": "10.1037/amp0001639",
+    "title": "Healing from within: A randomized controlled trial of a novel expressive writing intervention among trans and gender expansive adults.",
+    "pubYear": "2026",
+    "abstractText": "Transgender and gender expansive (TGE) populations in the United States experience high rates of mental health disparities. High rates of depressive and anxiety symptoms have been linked to a host of stigma-related stressors and exacerbated by decreased access to competent and affirming formalized health care supports, particularly in the face of legislation aiming to curb access. As a result, intervention strategies that can be made widely available, accessed at no cost, and address these stressors to improve mental health and well-being are needed. This study presents findings from a self-administered online mental health intervention, titled Reflections to (re)Claim an Affirmed Identity to Improve Mental Health (RECLAIM), which used an expressive writing approach to address internalized anti-TGE stigma to reduce depressive and anxiety symptoms and improve perceived community connectedness. In this randomized controlled trial, 115 TGE community adults were assigned to one of three study conditions: two RECLAIM interventions and one expressive writing active control group. Analysis of between-group effects found that all three groups experienced similar levels of improvement in mental health over time, while within-group effects of time by condition demonstrated some notable differences in the overall trajectory of treatment or control effects. Overall, results of this randomized controlled trial provide preliminary empirical support for the efficacy of RECLAIM in reducing depressive and anxiety symptoms and internalized anti-TGE stigma and improving community connectedness. (PsycInfo Database Record (c) 2026 APA, all rights reserved).",
+    "pubTypeList": {
+     "pubType": [
+      "Randomized Controlled Trial",
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "The American psychologist"
+     }
+    }
+   },
+   {
+    "id": "42852269",
+    "source": "MED",
+    "pmid": "42852269",
+    "doi": "10.3389/fnut.2026.1947132",
+    "title": "Intermittent fasting-associated microbiome remodeling and functional modulation by Lacticaseibacillus rhamnosus HN001.",
+    "pubYear": "2026",
+    "abstractText": "<h4>Objective</h4>The gut microbiome is a critical regulator of host metabolism, yet how intermittent fasting (IF) remodels the gut ecosystem independent of dietary composition remains unclear. This study aimed to isolate the effect of feeding rhythm on the gut microbiome and identify specific microbial taxa mediating IF-induced metabolic changes.<h4>Methods</h4>We employed a family-based 'shared meal' model that strictly standardized dietary composition across all participants. Five healthy adults (3 males, 2 females) from a single family participated in a pilot, hypothesis-generating 4-week 16:8 IF intervention with longitudinal fecal sampling for 16S rRNA sequencing and untargeted metabolomics. To functionally test a candidate Lacticaseibacillus-associated mechanism, C57BL/6 J mice were subjected to a 1-week 16:8 IF protocol with or without daily oral supplementation of Lacticaseibacillus rhamnosus HN001. Plasma beta-hydroxybutyrate (betaOHB) and peptide YY (PYY) were measured by ELISA.<h4>Results</h4>IF was associated with body weight loss in humans (2.1 +/- 0.4 kg, 95% CI: 1.3 to 2.9 kg, <i>p</i> < 0.05) without a significant reduction in caloric intake. In the primary paired genus-level DESeq2 analysis accounting for participant identity, no genus remained significant after false-discovery-rate correction, although Lacticaseibacillus showed a directional decrease after IF, consistent in direction with the original exploratory unpaired analysis. Predicted microbial functional and fecal metabolomic changes were consistent with altered microbial energy metabolism. In mice, IF significantly elevated plasma betaOHB (<i>p</i> = 0.0046) and reduced body weight, whereas HN001 supplementation reversed these IF-associated effects under the conditions tested.<h4>Conclusion</h4>In this pilot, hypothesis-generating human cohort, IF was associated with coordinated microbiome and metabolomic remodeling, including a directional Lacticaseibacillus signal that motivated subsequent functional testing. In mice, <i>L. rhamnosus</i> HN001 supplementation reversed IF-associated weight loss and ketosis, supporting the functional plausibility of a Lacticaseibacillus-associated mechanism. The human observations require confirmation in larger, independent cohorts with time-matched non-fasting controls and species-resolved microbiome measurements.",
+    "pubTypeList": {
+     "pubType": [
+      "Journal Article"
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2026,
+     "journal": {
+      "title": "Frontiers in nutrition"
+     }
+    }
+   }
+  ]
+ }
+}
