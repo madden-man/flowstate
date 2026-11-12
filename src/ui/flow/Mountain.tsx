@@ -137,7 +137,8 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
           ? (m.cls === 'snow-slot'
             // the snow is the weather's (R2): it is drawn on the air canvas, down to the meter's line
             ? null
-            : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} style={{ '--at': m.at, '--len': m.len }} />)
+            : <path key={i} class={`mt-fill mt-f-${m.cls}`} d={m.d} data-tier={m.hue === undefined ? undefined : ''}
+                style={m.hue === undefined ? { '--at': m.at, '--len': m.len } : { '--at': m.at, '--len': m.len, '--th': m.hue }} />)
           : <path key={i} class={`mt-pen mt-p-${m.cls}`} d={m.d} pathLength={1} style={{ '--at': m.at, '--len': m.len, '--w': m.w.toFixed(2) }} />))}
         <rect class="mt-vignette" x="-40" y="-200" width={W + 80} height={H + 240} fill="url(#mt-vignette)" />
       </svg>

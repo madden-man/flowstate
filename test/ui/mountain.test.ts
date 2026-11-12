@@ -5,10 +5,10 @@ import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { COURSE, STOPS, place, stretchAt, stretches, channelPaths, seaSlots, W, PEAK } from '../../src/ui/parts/cycle/river';
-import { land, snowCap, half, SNOW_Y } from '../../src/ui/flow/mountain/land';
+import { land, snowCap, half, edge, TIER_Y, SNOW_Y } from '../../src/ui/flow/mountain/land';
 import { Water, STRIDE, TINTS } from '../../src/ui/flow/mountain/water';
 import { seaIn, circlesIn, HEAD_FROM, HEAD_TO } from '../../src/ui/flow/mountain/arrival';
-import { CHAKRA_IDS, reach, spring, stretch } from '../../src/model/mountain';
+import { CHAKRA_IDS, CHAKRAS, reach, spring, stretch } from '../../src/model/mountain';
 import { MountainPlate, signTravel } from '../../src/ui/flow/Mountain';
 
 describe('the river', () => {
@@ -63,6 +63,23 @@ describe('the land', () => {
     for (const s of stars) expect(Math.abs(s.x - PEAK.x)).toBeGreaterThan(half(s.y));
     // nothing stands for nothing: no sun, no moon (no full circle in the land)
     expect(marks.some(m => /a\s*[\d.]+\s+[\d.]+\s+0\s+1\s+[01]/.test(m.d))).toBe(false);
+  });
+  it('is seven tiers, one a sign: each sign stands on its own tier, above the step under it, in its own hue', () => {
+    expect(TIER_Y).toHaveLength(8);
+    CHAKRA_IDS.forEach((id, i) => {
+      const s = STOPS[id];
+      expect(s.y).toBeGreaterThan(TIER_Y[i]);
+      expect(s.y).toBeLessThan(TIER_Y[i + 1]);
+      expect(s.x).toBeGreaterThan(edge(-1, s.y));
+      expect(s.x).toBeLessThan(edge(1, s.y));
+    });
+    const { marks } = land();
+    const hues = new Set(marks.flatMap(m => (m.kind === 'fill' && m.hue !== undefined ? [m.hue] : [])));
+    expect([...hues].sort()).toEqual(CHAKRAS.map(c => c.hue).sort());
+    // geometric: the horn's faces are ruled, no curve in them
+    for (const m of marks) if (m.kind === 'fill' && m.hue !== undefined) expect(m.d).not.toMatch(/[QqCcAa]/);
+    // a mountain, not a staircase: the flanks widen all the way down
+    for (let y = PEAK.y + 4; y < 390; y += 4) { expect(edge(-1, y + 4)).toBeLessThanOrEqual(edge(-1, y) + 8); expect(edge(1, y + 4)).toBeGreaterThanOrEqual(edge(1, y) - 8); }
   });
   it('lets the snow come down to any line', () => {
     const hi = snowCap(SNOW_Y), lo = snowCap(SNOW_Y + 50);
