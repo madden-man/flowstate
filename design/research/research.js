@@ -1,6 +1,6 @@
 // The Research walkthrough's phone (PLAN-RESEARCH.md): a hand mock of the page on the app's own parts.css, alive enough
 // to use. Ask runs the looking, a title opens its abstract, + and − quiet the other side, the words at the foot go where
-// they say. Nothing here calls a model or an index: the papers are data.js, and the sides were sorted by hand.
+// they say, and every title is a link out to the paper at its journal. Nothing here calls a model or an index: the papers are data.js, and the sides were sorted by hand.
 (function () {
   var P = window.RS_PAPERS;
   var PLUS = 'var(--v-blue)', MINUS = 'var(--d-blue)';
@@ -19,6 +19,9 @@
   var host, st = {}, timers = [], go = function () {};
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var sign = function (s) { return s === '+' ? '+' : '−'; };
+  // where a title goes: the paper at its journal, by DOI; with none, the index's own record of it
+  var out = function (p) { return p.doi ? 'https://doi.org/' + p.doi : 'https://europepmc.org/article/MED/' + p.id; };
+  var link = function (p) { return '<a class="rs-link" href="' + esc(out(p)) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a>'; };
 
   function header(left, label) {
     return '<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><b></b></button>' + left +
@@ -34,7 +37,7 @@
     var p = P[id], meta = [p.journal, p.year, p.kind].filter(Boolean).join(' · ');
     var hush = st.filter && st.filter !== side ? ' rs-hush' : '';
     return '<div class="fs-msg fs-v' + (side === '-' ? ' deep' : '') + hush + (fresh ? ' rs-in' : '') + '" style="--vc:' + (side === '+' ? PLUS : MINUS) + '" data-paper="' + id + '">' +
-      '<span class="fs-sp">' + sign(side) + ' · ' + esc(meta) + '</span><p>' + esc(p.title) + '</p></div>';
+      '<span class="fs-sp">' + sign(side) + ' · ' + esc(meta) + '</span><p>' + link(p) + '</p><span class="rs-print rs-abs">Abstract</span></div>';
   }
   function chips(looking) {
     return '<div class="fs-chips">' + ['+', '-'].map(function (s) {
@@ -87,16 +90,16 @@
     paper: function () {
       var p = P[st.paper], meta = [p.journal, p.year, p.kind].filter(Boolean).join(' · ');
       return page(header(word('back', 'Research'), 'Paper') +
-        '<div class="fs-sheetof fs-rules rs-paper"><p class="rs-q">' + esc(p.title) + '</p><span class="rs-print">' + esc(meta) + '</span><p class="fs-line"></p>' +
+        '<div class="fs-sheetof fs-rules rs-paper" style="--vc:' + PLUS + '"><p class="rs-q">' + link(p) + '</p><span class="rs-print">' + esc(meta) + '</span><p class="fs-line"></p>' +
         p.abstract.map(function (s) { return (s[0] ? '<span class="rs-print">' + esc(s[0]) + '</span>' : '') + '<p>' + esc(s[1]) + '</p>'; }).join('') + '</div>' +
-        '<div class="fs-composer-wrap rs-words">' + word('open', 'Open the paper') + word('journal', 'Write about it') + word('council', 'To Council') + '</div>');
+        '<div class="fs-composer-wrap rs-words">' + '<a class="fs-word" href="' + esc(out(p)) + '" target="_blank" rel="noopener">Open the paper</a>' + word('journal', 'Write about it') + word('council', 'To Council') + '</div>');
     },
     journal: function () {
       var p = P[st.paper];
       return '<div class="fs-app rs-app"><div class="fs-main"><div class="fs-page">' +
         header('<a class="fs-word">Pages</a><button type="button" class="fs-word">Settings</button>', 'No. <b>14</b>') +
         '<div class="fs-sheetof fs-rules"><div class="fs-from"><small>From</small><a data-act="back-sides">' + esc(SETS.main.q) + '</a></div>' +
-        '<div class="fs-msg fs-v" style="--vc:' + PLUS + '"><span class="fs-sp">+ · ' + esc(p.journal) + ' · ' + p.year + '</span><p>' + esc(p.title) + '</p></div>' +
+        '<div class="fs-msg fs-v" style="--vc:' + PLUS + '"><span class="fs-sp">+ · ' + esc(p.journal) + ' · ' + p.year + '</span><p>' + link(p) + '</p></div>' +
         '<p class="fs-line"></p><p class="fs-line rs-caret">One study is not all of them, but</p></div></div></div>' + tabs('Journal') + '</div>';
     },
     asked: function () {
@@ -131,6 +134,7 @@
     // To Council and Open the paper go out of this mock: the council and the paper are not drawn here
   }
   function click(e) {
+    if (e.target.closest('a[href]')) return;   // a title is a link out to its journal: the page stays as it is
     var t = e.target.closest('[data-act],[data-side],[data-paper],[data-set]');
     if (!t || !host.contains(t)) return;
     if (t.dataset.act) return act(t.dataset.act);

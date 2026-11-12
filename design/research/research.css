@@ -11,6 +11,11 @@
 .rs-q { margin: 0 0 var(--lh-ink); font-size: var(--fs-title); line-height: var(--lh-ink); }
 .rs-print { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
 .rs-hush { display: none; }
+/* a title is a link to the paper at its journal: ink, underlined in its side's colour, as fs-from's link is underlined */
+.rs-link { color: var(--ink); text-decoration: underline; text-decoration-color: var(--vc, var(--print)); text-decoration-thickness: 1px; text-underline-offset: 4px; cursor: pointer; }
+.rs-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* the word that opens the abstract, on the line's last rule */
+.rs-abs { text-align: right; padding-right: var(--s1); cursor: pointer; text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: 4px; }
 .rs-app .fs-chips { align-items: center; }
 .rs-app .fs-chip { font-family: var(--serif); font-size: var(--fs-mark); line-height: 1; padding: 4px 14px; }
 .rs-words { display: flex; justify-content: space-between; padding: 0 var(--s1); }
