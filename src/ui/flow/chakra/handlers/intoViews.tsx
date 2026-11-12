@@ -44,8 +44,10 @@ export function IntoRule({ a, label, carry }: { a: TouchAct; label: string; carr
   );
 }
 
-/** Where the day's star stands in the plate's sky: inside the middle of it, clear of the touch words at its corners. */
-export const starAt = (s: Pick<Star, 'x' | 'y'>) => ({ left: 0.32 + s.x * 0.36, top: 0.05 + s.y * 0.2 });
+/** Where the day's star stands on the plate: in the middle of it, under the band the two top touch words are printed
+ *  in (Kept line and Core, a thumb tall at .12 to .14) and over Let go's, so his line never runs into a word and no
+ *  word takes the star's tap, wherever the day's star falls. */
+export const starAt = (s: Pick<Star, 'x' | 'y'>) => ({ left: 0.32 + s.x * 0.36, top: 0.22 + s.y * 0.06 });
 
 /** Crown's Kept line: the day's star and his kept line beside it; a tap opens the page it was kept on. With nothing
  *  kept there is no star, and nothing is drawn. */
