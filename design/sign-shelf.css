@@ -17,7 +17,8 @@
 /* an album with no kept cover: the tile empty and flat on the page, its title on it in print, cut at four lines */
 .ck-shelf-cover.blank .fs-tile { box-shadow: none; }
 .ck-shelf-name {
-  position: absolute; inset: 0; padding: calc(var(--s1) * .75); overflow: hidden; pointer-events: none;
+  /* no bottom edge: the box ends with its fourth line, so a fifth never shows in the room under it */
+  position: absolute; inset: 0 0 auto; padding: calc(var(--s1) * .75) calc(var(--s1) * .75) 0; overflow: hidden; pointer-events: none;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
   font-family: var(--sans); font-size: var(--fs-print); line-height: 1.2; color: var(--print); overflow-wrap: anywhere;
 }

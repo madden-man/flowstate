@@ -226,8 +226,10 @@ export function Shelf({ chakra, small = false }: { chakra: ChakraId; small?: boo
     return x < box.left - m || x > box.right + m || y < box.top - m || y > box.bottom + m;
   };
 
-  // the drag: while something is lifted, the finger anywhere moves it
-  useEffect(() => {
+  // the drag: while something is lifted, the finger anywhere moves it. Listening from the commit that lifts it, not
+  // from the paint after: a finger let go inside that frame was never heard, the lift stayed a drag, and the next
+  // touch anywhere else on the page (the moon, say) carried the cover off the shelf
+  useLayoutEffect(() => {
     if (!lifted) return;
     const hold = (e: TouchEvent) => { if (lift.current?.dragging) e.preventDefault(); };
     const move = (e: PointerEvent) => {
