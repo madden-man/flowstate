@@ -1,13 +1,14 @@
 // How it comes together (PLAN-MOUNTAIN.md pass 6, R1): the arrival, once per unlock. Pure timings, as fractions of
-// --t-arrive, shared by the CSS (the pen drawing the land, land.ts's at and len) and the canvas (the head of the first
-// water, the kindling, the sea's first breath, the circles surfacing), so the two are one performance:
+// --t-arrive, shared by the CSS (the pen drawing the land, land.ts's at and len) and the canvas (the water's light
+// coming up, the kindling, the sea's first breath, the circles surfacing), so the two are one performance:
 //
 //   0      the plate is dark; stars prick in
 //   .04    the horn draws itself from the summit down both flanks, the arete behind, the lesser horns and far ranges
 //   .2     the hatching falls in behind, row by row; the gullies, the foot, the cliffs
 //   .4     the snow settles on the cap
-//   .5     the first water is let go from the snow as one bright head; each sign kindles as the head reaches it
-//   .84    it reaches the sea: the sea takes its first breath
+//   .5     the whole stream, already running as it always runs, comes up in light evenly, every sign with it
+//          (Tommy, 2026-11-12: nothing is drawn down from the start; the particles are always one stream)
+//   .84    the stream is at its own light: the sea takes its first breath
 //   .88    the circles surface
 //   1      the steady water
 //
@@ -40,14 +41,6 @@ export const forgetArrival = () => { seen = false; };
 
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 const ease = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
-
-/** Where the head is, 0 at the spring to 1 at the course's end, at arrival time f (0 to 1); null before it is let go.
- *  It leaves slowly from the snow and gathers as it falls. */
-export function headAt(f: number): number | null {
-  if (f < HEAD_FROM) return null;
-  const x = clamp((f - HEAD_FROM) / (HEAD_TO - HEAD_FROM));
-  return x * x * (1.6 - 0.6 * x);
-}
 
 /** The sea's breath and the circles, 0 to 1, as the arrival lets them in. */
 export const seaIn = (f: number) => ease((f - SEA_AT) / 0.12);

@@ -21,8 +21,8 @@
 // stars (Weather.drawAir); it is painted only when the snow or the mist has moved. On the light canvas R2 adds the cap's
 // held snow glowing as much as it holds back, the slow snow, the mist lit from under, each closing gate's pool
 // brightening as the water backs up (the rock round it lit with it) and what it turns back sinking as embers, and the
-// surges: a gate opened (or the meter lifted) lets the pool go as a bright front that runs down, lights the rock as it
-// passes and rekindles each sign it reaches with a ring in its hue and a flare of its lantern.
+// water let go by an opened gate or a lifted meter, which comes down as the stream filling again below, stretch by
+// stretch, with no bright front, no ring and no flare (Tommy, 2026-11-12: the water is one calm, continuous stream).
 //
 // One requestAnimationFrame loop, running only while the plate is on screen, the document visible and the water may
 // move (--stream above zero); it stops on stop(). Nothing is read from layout or style in a frame, and a frame makes
@@ -36,9 +36,8 @@ import { COURSE, H, W, STOPS, SEA_Y, CIRCLE_R, PEAK, SHORE, place, type Placed }
 import { Water, STRIDE, TINTS } from './water';
 import { Weather, capOf, capPaths, SNOW_HEAVY, SNOW_CLEAR, type CapWeather } from './weather';
 import { readPalette, rgb, mix, type Palette, type RGB } from './palette';
-import { headAt, seaIn, circlesIn, snowIn, HEAD_FROM } from './arrival';
+import { seaIn, circlesIn, snowIn, HEAD_FROM, HEAD_TO } from './arrival';
 import { snowFoot, GULLIES, type Land } from './land';
-import { SURGES } from './water';
 
 /** Loops running now, for tests. */
 export const running = { loops: 0 };
@@ -49,13 +48,11 @@ const TAU = Math.PI * 2;
 /** Alpha levels the motes' tails are bucketed into (one path a colour a level). */
 const LEVELS = 3;
 /** The light one stretch throws on the rock: the narrow core and the wide spill, in box units. */
-const CORE_R = 15, WIDE_R = 40, LANTERN_R = 46, HEAD_R = 60, POOL_R = 26;
+const CORE_R = 15, WIDE_R = 40, LANTERN_R = 46, POOL_R = 26;
 /** How long a cancelled gesture's snap waits for the water it puts back (one render, in practice). */
 const SNAP_MS = 250;
 /** The snow is drawn at this many lines down the horn, and nothing of it reaches below SNOW_BOTTOM (box units). */
 const SNOW_LEVELS = 12, SNOW_BOTTOM = 270;
-/** How many rings can be going out at once (the arrival's kindling, a surge's rekindling). */
-const RINGS = 12;
 
 export type PlateParts = {
   host: HTMLElement;
@@ -112,7 +109,6 @@ export class Plate {
   private g: CanvasRenderingContext2D;
   private rock = document.createElement('canvas');
   private scratch = document.createElement('canvas');
-  private headLayer = document.createElement('canvas');
   /** The snow at its heaviest, drawn once: a pale mass with the rock's lines showing dark through it. The air canvas
    *  lays on as much of it as the meter's line takes. */
   private snowTex = document.createElement('canvas');
@@ -145,11 +141,10 @@ export class Plate {
   private state = 1;
   /** The arrival: when it began (performance.now), or null once over; f and the head, as this frame has them. */
   private t0: number | null = null;
-  private f = 1; private headS: number | null = null;
+  private f = 1;
+  /** How far the water's light has come up, 0 to 1 (1 except while the arrival runs). */
+  private lightOn = 1;
   private kindled = new Uint8Array(7);
-  private rings = Array.from({ length: RINGS }, () => ({ i: 0, age: -1 }));
-  /** A lantern rekindled by a surge flares, and goes back to its own light (0 to 1, per sign). */
-  private flare = new Float32Array(7);
   private seaOn = 1; private circlesOn = 1;
   /** A light change: when it began, or null. */
   private fadeT0: number | null = null;
@@ -257,9 +252,10 @@ export class Plate {
   arrive() {
     this.t0 = performance.now();
     this.kindled.fill(0);
-    this.water.reveal = 0;
+    this.lightOn = 0;
+    this.parts.canvas.style.opacity = '0';
+    for (const el of this.parts.channels) if (el) el.style.setProperty('--chan-on', '0');
     this.seaOn = 0; this.circlesOn = 0;
-    for (const r of this.rings) r.age = -1;
     this.weather.airDirty = true;
     this.parts.host.dataset.arrive = 'run';
     this.wake();
@@ -267,12 +263,12 @@ export class Plate {
 
   /** Ends the arrival now (a tap, or it ran out): everything as it is when steady. */
   finish() {
-    this.t0 = null; this.f = 1; this.headS = null;
-    this.water.reveal = Infinity;
+    this.t0 = null; this.f = 1; this.lightOn = 1;
+    this.parts.canvas.style.opacity = '';
     this.seaOn = 1; this.circlesOn = 1;
     for (let i = 0; i < 7; i++) if (!this.kindled[i]) { this.kindled[i] = 1; this.parts.kindle(i); }
     for (const c of this.parts.circles) c.style.opacity = '';
-    for (const el of this.parts.channels) { el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; }
+    for (const el of this.parts.channels) el.style.removeProperty('--chan-on');
     this.parts.host.dataset.arrive = 'done';
     this.answerDirty = true; this.weather.airDirty = true;
     this.parts.arrived();
@@ -320,8 +316,6 @@ export class Plate {
     this.tintStyles = [];
     for (let stop = -1; stop < 7; stop++) for (let t = 0; t < TINTS; t++) this.tintStyles.push(rgb(this.moteColour(stop, t)));
     if (was !== this.state) {
-      // into Still nothing of a state may finish: no ring going out in its hue, no flare
-      if (!this.state) { for (const r of this.rings) r.age = -1; this.flare.fill(0); }
       this.setWater(this.d, this.gates, true);
     }
     this.layersDirty = true; this.answerDirty = true; this.weather.airDirty = true;
@@ -372,55 +366,30 @@ export class Plate {
     if (this.water.easing) this.answerDirty = true;
     this.water.step(dt);
     this.weather.step(dt, this.water.q, this.water.k, this.water.b);
-    for (const r of this.rings) if (r.age >= 0) { r.age += dt; if (r.age > 1.6) r.age = -1; }
-    // a surge has reached a sign: it rekindles, a ring in its hue going out and its lantern flaring
-    const reached = this.water.reached;
-    for (let i = 0; i < 7; i++) {
-      this.flare[i] = Math.max(0, this.flare[i] - dt * 0.7);
-      if (!reached[i]) continue;
-      reached[i] = 0;
-      if (this.state && this.t0 === null) { this.sendRing(i); this.flare[i] = 1; }
-    }
+    // the let-go water reaching a sign is not marked: no ring, no flare (the stream stays the same stream)
+    this.water.reached.fill(0);
     this.paint(now);
     this.raf = requestAnimationFrame(this.frame);
   };
 
   // ---- the arrival's clock ----
 
-  /** Moves the arrival on to now: f (0 to 1, 1 when over) and the head; kindles signs as the head passes them. */
+  /** Moves the arrival on to now: f (0 to 1, 1 when over). The water is not drawn down from the snow: the whole
+   *  stream is there, running as it always runs, and its light comes up evenly over the head's old span (HEAD_FROM to
+   *  HEAD_TO), every sign with it. */
   private arrival(now: number) {
-    if (this.t0 === null) { this.f = 1; this.headS = null; return; }
+    if (this.t0 === null) { this.f = 1; this.lightOn = 1; return; }
     const f = Math.min(1, (now - this.t0) / this.pal.arrive);
-    const h = headAt(f), s = h === null ? null : h * COURSE.total;
-    this.water.reveal = s === null ? 0 : s - 2;
-    if (s !== null) {
-      for (let i = 0; i < 7; i++) {
-        if (!this.kindled[i] && s >= COURSE.at[i + 1]) {
-          this.kindled[i] = 1; this.parts.kindle(i);
-          if (this.state) this.sendRing(i);
-        }
-      }
-    }
-    // the channel is drawn by the head itself, as far as it has run (here, not in the CSS, so the two never part)
-    for (let i = 0; i < 8; i++) {
-      const el = this.parts.channels[i];
-      if (!el) continue;
-      const from = COURSE.at[i], to = i === 7 ? COURSE.mouth : COURSE.at[i + 1];
-      const got = s === null ? 0 : Math.max(0, Math.min(1, (s - from) / (to - from)));
-      el.style.strokeDasharray = '1';
-      el.style.strokeDashoffset = (1 - got).toFixed(3);
-    }
+    const x = Math.max(0, Math.min(1, (f - HEAD_FROM) / (HEAD_TO - HEAD_FROM)));
+    this.lightOn = x * x * (3 - 2 * x);
+    if (f >= HEAD_FROM) for (let i = 0; i < 7; i++) if (!this.kindled[i]) { this.kindled[i] = 1; this.parts.kindle(i); }
+    const on = this.lightOn.toFixed(3);
+    this.parts.canvas.style.opacity = on;
+    for (const el of this.parts.channels) if (el) el.style.setProperty('--chan-on', on);
     this.seaOn = seaIn(f); this.circlesOn = circlesIn(f);
     for (const c of this.parts.circles) c.style.opacity = this.circlesOn < 1 ? this.circlesOn.toFixed(3) : '';
     if (f >= 1) { this.finish(); return; }
-    this.f = f; this.headS = s;
-  }
-
-  /** Sends a ring out from sign i (the oldest going is taken if all are). */
-  private sendRing(i: number) {
-    let r = this.rings[0];
-    for (const x of this.rings) { if (x.age < 0) { r = x; break; } if (x.age > r.age) r = x; }
-    r.i = i; r.age = 0;
+    this.f = f;
   }
 
   // ---- the lit rock, built once ----
@@ -617,7 +586,6 @@ export class Plate {
         for (let s = at - 24; s <= at; s += 4) { place(s, c, this.p); put(this.p.x, this.p.y, POOL_R, 0.35); }
       });
     });
-    this.headLayer.width = Math.ceil(2 * HEAD_R * K); this.headLayer.height = this.headLayer.width;
     // the course's body, a path a stretch
     this.body = [];
     for (let j = 0; j < 8; j++) {
@@ -654,7 +622,6 @@ export class Plate {
     this.arrival(now);
     if (this.layersDirty) this.buildLayers();
     if (this.weather.airDirty || this.t0 !== null) this.paintAir();
-    const head = this.headS;
     const g = this.g, st = this.state, k = this.water.k;
     if (this.answerDirty) this.answer();
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -665,21 +632,10 @@ export class Plate {
     this.toBox(g);
     g.lineCap = 'round'; g.lineJoin = 'round';
 
-    if (st) { this.litRock(g, head); this.snow(g); this.pools(g); this.lanternGlow(g); }
+    if (st) { this.litRock(g); this.snow(g); this.pools(g); this.lanternGlow(g); }
     if (k > 0 || this.t0 !== null) this.motes(g);
     if (st) this.weather.draw(g, this.pal, this.water.q, this.water.b, this.reveal);
     this.sea(g, now);
-    if (head !== null && head < COURSE.total) this.head(g, head, now, 1);
-    if (st && k > 0) this.surges(g, now);
-    // each sign kindling sends a ring out in its hue
-    for (const r of this.rings) {
-      if (r.age < 0) continue;
-      const s = STOPS[CHAKRA_IDS[r.i]], f = r.age / 1.6, rad = 8 + 30 * (1 - Math.pow(1 - f, 2));
-      g.strokeStyle = this.hueStyles[r.i];
-      g.globalAlpha = 0.55 * (1 - f) * (1 - f);
-      g.lineWidth = 0.9 * (1 - f) + 0.2;
-      g.beginPath(); g.arc(s.x, s.y, rad, 0, TAU); g.stroke();
-    }
     // a light change: the old light fades out as the new fades in
     if (this.fadeT0 !== null) {
       const t = (now - this.fadeT0) / this.pal.light;
@@ -699,46 +655,25 @@ export class Plate {
     g.globalCompositeOperation = 'source-over';
   }
 
-  /** Lays the lit rock on: each stretch's layers as bright as its water, each lantern as open as its gate, and while
-   *  the arrival runs only as far as the head has got, with the head lighting what it passes. */
-  private litRock(g: CanvasRenderingContext2D, head: number | null) {
-    const q = this.water.q, b = this.water.b, c = COURSE;
-    const upto = this.t0 === null ? Infinity : head ?? -1;
+  /** Lays the lit rock on: each stretch's layers as bright as its water, each lantern as open as its gate. */
+  private litRock(g: CanvasRenderingContext2D) {
+    const q = this.water.q, b = this.water.b;
     for (const L of this.layers) {
       let a: number;
-      if (L.kind === 'lantern') a = (0.85 * (1 - b[L.j]) * q[L.j] + 0.5 * this.flare[L.j]) * this.kindled[L.j];
+      if (L.kind === 'lantern') a = 0.85 * (1 - b[L.j]) * q[L.j] * this.kindled[L.j];
       else if (L.kind === 'pool') a = 0.75 * this.poolLight(L.j);
       else if (L.kind === 'core') a = 0.5 * Math.pow(q[L.j], 0.8);
       else a = 0.55 * Math.pow(q[L.j], 1.5);
       if (a < 0.01) continue;
-      if (L.kind !== 'lantern' && L.kind !== 'pool' && upto < Infinity) {
-        const from = c.at[L.j], to = L.j === 7 ? c.total : c.at[L.j + 1];
-        if (upto <= from) continue;
-        if (upto < to) {
-          // the stretch the head is in: lit only along the water behind it
-          const R = (L.kind === 'core' ? CORE_R : WIDE_R);
-          g.save();
-          g.beginPath();
-          for (let s = from; s <= upto; s += 6) { place(s, c, this.p); g.moveTo(this.p.x + R, this.p.y); g.arc(this.p.x, this.p.y, R, 0, TAU); }
-          g.clip();
-          g.globalAlpha = a;
-          g.drawImage(L.c, L.x, L.y, L.w, L.h);
-          g.restore();
-          continue;
-        }
-      }
       g.globalAlpha = a;
       g.drawImage(L.c, L.x, L.y, L.w, L.h);
     }
-    // the head lights the rock it passes, brightest where it is
-    if (head !== null && head < c.total) this.headLight(g, head, 0.9);
     // the river's body: a faint thread a stretch, so the course reads even where the motes are few
     g.globalAlpha = 1;
     for (let j = 0; j < 8; j++) {
-      if (upto < Infinity && upto < c.at[j] + 1) break;
       const v = q[j];
       g.strokeStyle = j > 0 && this.kindled[j - 1] ? this.tintStyles[j * TINTS + 2] : this.glowStyle;
-      g.globalAlpha = 0.08 * (0.3 + 0.7 * v) * (upto < Infinity ? 0 : 1);
+      g.globalAlpha = 0.08 * (0.3 + 0.7 * v);
       g.lineWidth = 4.5 * (0.4 + 0.6 * v);
       g.stroke(this.body[j]);
     }
@@ -800,23 +735,10 @@ export class Plate {
     g.globalAlpha = 1;
   }
 
-  /** The surges let go by an opened gate or a lifted meter: a bright front, lighting the rock as it goes. */
-  private surges(g: CanvasRenderingContext2D, now: number) {
-    const w = this.water;
-    for (let k = 0; k < SURGES; k++) {
-      const amp = w.surgeAmp[k];
-      if (amp <= 0) continue;
-      const s = w.surgeHead(k);
-      if (s >= COURSE.total) continue;
-      this.headLight(g, s, 0.75 * Math.min(1, amp * 1.4));
-      this.head(g, s, now, Math.min(1, 0.35 + amp), w.surgeFrom[k]);
-    }
-  }
-
   private lanternGlow(g: CanvasRenderingContext2D) {
     const q = this.water.q, b = this.water.b;
     for (let i = 0; i < 7; i++) {
-      const a = (0.6 * (1 - b[i]) * (0.35 + 0.65 * q[i]) + 0.55 * this.flare[i]) * this.kindled[i];
+      const a = 0.6 * (1 - b[i]) * (0.35 + 0.65 * q[i]) * this.kindled[i];
       if (a < 0.02) continue;
       const s = STOPS[CHAKRA_IDS[i]];
       g.globalAlpha = a;
@@ -866,66 +788,14 @@ export class Plate {
       if (i & 1) { g.globalAlpha = Math.min(1, a) * 0.07; g.drawImage(spr, x - r * 3.6, y - r * 3.6, r * 7.2, r * 7.2); }
       g.globalAlpha = Math.min(1, a);
       g.drawImage(spr, x - r, y - r, 2 * r, 2 * r);
-      // a glint: it flares past its own size for a moment
+      // above a closing gate the gathered light spreads past its own size
       if (a > 1) { g.globalAlpha = Math.min(1, (a - 1) * 0.6); g.drawImage(spr, x - r * 1.7, y - r * 1.7, r * 3.4, r * 3.4); }
     }
     g.globalAlpha = 1;
   }
 
-  /** The rock round a running head, lit by it (a = how bright). */
-  private headLight(g: CanvasRenderingContext2D, s: number, a: number) {
-    place(s, COURSE, this.p);
-    const K = this.scale * this.litK, hl = this.headLayer, hg = hl.getContext('2d')!, x = this.p.x - HEAD_R, y = this.p.y - HEAD_R;
-    hg.globalCompositeOperation = 'copy';
-    hg.drawImage(this.rock, x * K, y * K, 2 * HEAD_R * K, 2 * HEAD_R * K, 0, 0, hl.width, hl.height);
-    hg.globalCompositeOperation = 'destination-in';
-    hg.drawImage(this.disc, 0, 0, hl.width, hl.height);
-    g.globalAlpha = a;
-    g.drawImage(hl, x, y, 2 * HEAD_R, 2 * HEAD_R);
-    g.globalAlpha = 1;
-  }
-
-  /** The first melt let go, or a surge: a bright head with spray thrown round it and a long tail down the course
-   *  behind it, back no further than where it was let go (from). a: how bright. */
-  private head(g: CanvasRenderingContext2D, s: number, now: number, a: number, from = 0) {
-    const p = this.p, tail = 80, steps = 26;
-    let px = 0, py = 0;
-    g.strokeStyle = this.glowStyle;
-    for (let k = 0; k <= steps; k++) {
-      const at = s - (tail * k) / steps;
-      if (at < from) break;
-      place(at, COURSE, p);
-      if (k) {
-        const f = 1 - k / steps;
-        g.globalAlpha = 0.8 * f * f * a;
-        g.lineWidth = 0.5 + 3 * f;
-        g.beginPath(); g.moveTo(px, py); g.lineTo(p.x, p.y); g.stroke();
-      }
-      px = p.x; py = p.y;
-    }
-    place(s, COURSE, p);
-    const spr = this.spr[0];
-    g.globalAlpha = 0.35 * a; g.drawImage(spr, p.x - 22, p.y - 22, 44, 44);
-    g.globalAlpha = a; g.drawImage(spr, p.x - 6, p.y - 6, 12, 12);
-    // spray thrown off the head as it goes, flickering
-    const t = now / 1000;
-    for (let k = 0; k < 14; k++) {
-      const back = (k * 3.7) % 18, sp = Math.sin(t * 7 + k * 2.3), off = Math.sin(t * 3.1 + k * 1.7) * (2 + back * 0.4);
-      place(Math.max(from, s - back), COURSE, p);
-      g.globalAlpha = Math.max(0, 0.55 * a * sp) * (1 - back / 18);
-      const r = 1 + (k % 3) * 0.6;
-      g.drawImage(spr, p.x - p.ty * off - r, p.y + p.tx * off - r, 2 * r, 2 * r);
-    }
-    g.globalAlpha = 1;
-  }
-
-  /** How much of a place at height y the arrival has let in (1 once the head has passed it). */
-  private revealAt(y: number): number {
-    if (this.t0 === null) return 1;
-    if (this.headS === null) return 0;
-    place(this.headS, COURSE, this.p);
-    return this.p.y >= y ? 1 : 0;
-  }
+  /** How much of a place's own light the arrival has let in: the same everywhere, coming up with the water's. */
+  private revealAt(_y: number): number { return this.lightOn; }
 
   /** The breath, 0 breathed out to 1 at the top of the in-breath, eased. */
   private breath(now: number): number {

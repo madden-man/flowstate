@@ -100,7 +100,7 @@ Gathered from the four package PRs (#62 to #65) and their review rounds. Each is
 16. A shut gate's pool fills over about two seconds (0.45 a second), and a surge is what the pool held times how far it was opened. Under Reduce Motion nothing travels, pools or surges: the reading is drawn at once.
 17. Each gate lies wholly under its sign's 44px link, never over it; the Crown's link is lifted over the Throat and the Root's over Energize's circle to make room, the lift given back as padding so the sign stays on its stop. A gate's touch target is 44px tall.
 18. The rest list on a stop's page leaves out rows that mean something only on their own step or with a live episode (Journal, Timer, Person, Predict, Five), as well as near-duplicates.
-19. The arrival's head, the kindling rings, the embers, fireflies and every place's weather are the builders' inventions inside pass 6's list.
+19. The arrival's head, the kindling rings, the embers, fireflies and every place's weather are the builders' inventions inside pass 6's list. (2026-11-12, Tommy: the head, the surge fronts, the rings, the flares, the glints and the spring's pulse are gone; the water is one calm, continuous stream, DESIGN.md rule 34.)
 
 A question for Tommy, not a regression: the What if drawing's seeded record ("didn't happen, nine in ten", with its faint checks) still shows in Still, as it has since F6; rule 15 hides only his own stamps there. Should "nine in ten" leave in Still as a count?
 

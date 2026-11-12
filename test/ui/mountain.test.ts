@@ -7,7 +7,7 @@ import { act } from 'preact/test-utils';
 import { COURSE, STOPS, place, stretchAt, stretches, channelPaths, seaSlots, W, PEAK } from '../../src/ui/parts/cycle/river';
 import { land, snowCap, half, SNOW_Y } from '../../src/ui/flow/mountain/land';
 import { Water, STRIDE, TINTS } from '../../src/ui/flow/mountain/water';
-import { headAt, seaIn, circlesIn, HEAD_FROM, HEAD_TO } from '../../src/ui/flow/mountain/arrival';
+import { seaIn, circlesIn, HEAD_FROM, HEAD_TO } from '../../src/ui/flow/mountain/arrival';
 import { CHAKRA_IDS, reach, spring, stretch } from '../../src/model/mountain';
 import { MountainPlate, signTravel } from '../../src/ui/flow/Mountain';
 
@@ -105,7 +105,30 @@ describe('the water', () => {
     w.step(0.05);
     expect(Array.from(w.s)).toEqual(s);
   });
-  it('shows nothing past the arrival\'s head', () => {
+  it('is one steady stream: as much light at every moment, no mote brighter than itself, nothing let go runs bright', () => {
+    const w = new Water();
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0], true);
+    w.feed(0, [0, 0, 0, 0.8, 0, 0, 0]);
+    for (let i = 0; i < 400; i++) w.step(1 / 60);
+    const out = new Float32Array(w.n * STRIDE);
+    const light = () => { w.draw(out); let sum = 0; for (let i = 0; i < w.n; i++) sum += out[i * STRIDE + 4]; return sum; };
+    const sizes = () => { w.draw(out); return Array.from({ length: w.n }, (_, i) => out[i * STRIDE + 5]); };
+    const size0 = sizes();
+    // the gate opens: the pool is let go, and the stream fills below without a front
+    w.feed(0, [0, 0, 0, 0, 0, 0, 0]);
+    let prev = light();
+    for (let f = 0; f < 300; f++) {
+      w.step(1 / 30);
+      const now = light();
+      expect(Math.abs(now - prev)).toBeLessThan(prev * 0.04);
+      prev = now;
+      let top = 0;
+      for (let i = 0; i < w.n; i++) top = Math.max(top, out[i * STRIDE + 4]);
+      expect(top).toBeLessThanOrEqual(0.9 * 1.9 + 1e-6);
+    }
+    expect(sizes()).toEqual(size0);
+  });
+  it('shows nothing past reveal, where a part of the course is kept dark', () => {
     const w = new Water();
     w.reveal = COURSE.at[2];
     for (let i = 0; i < 200; i++) w.step(0.05);
@@ -114,12 +137,8 @@ describe('the water', () => {
 });
 
 describe('the arrival', () => {
-  it('lets the head go late, runs it once to the end, and only then brings in the sea and the circles', () => {
-    expect(headAt(HEAD_FROM - 0.01)).toBeNull();
-    expect(headAt(HEAD_FROM)).toBe(0);
-    expect(headAt(HEAD_TO)).toBeCloseTo(1);
-    let last = -1;
-    for (let f = HEAD_FROM; f <= HEAD_TO; f += 0.01) { const x = headAt(f)!; expect(x).toBeGreaterThanOrEqual(last); last = x; }
+  it('brings the stream\'s light up late, and only then brings in the sea and the circles', () => {
+    expect(HEAD_FROM).toBeLessThan(HEAD_TO);
     expect(seaIn(0.5)).toBe(0); expect(seaIn(1)).toBeCloseTo(1, 1);
     expect(circlesIn(0.8)).toBe(0); expect(circlesIn(1)).toBeCloseTo(1, 1);
   });
@@ -230,7 +249,6 @@ describe('the water carried down the mountain (R2)', () => {
     const k = Array.from(w.surgeAmp).findIndex(a => a > 0);
     expect(w.surgeFrom[k]).toBeCloseTo(COURSE.at[4]);
     expect(w.pooled[3]).toBeLessThan(0.1);
-    expect(w.rush(w.surgeHead(k))).toBeGreaterThan(0.3);
     run(w, (COURSE.at[5] - COURSE.at[4]) / TRAVEL + 0.1);
     expect(w.reached[4]).toBe(1);   // the solar plexus
     expect(w.reached[2]).toBe(0);   // nothing above the heart

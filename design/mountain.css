@@ -96,9 +96,10 @@
 .mt-snow-rim { fill: none; stroke: var(--plate-line); stroke-width: .8; stroke-linejoin: round; opacity: calc(var(--plate-dim) * 1.2); }
 
 /* the channel: as wide as what runs in it (the plate sets the widths), so it still tells it with Reduce Motion on */
-.mt-chan { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; opacity: .2; }
+/* --chan-on: the arrival brings the trace up with the water's light (plate.ts), never past its own opacity */
+.mt-chan { fill: none; stroke: var(--glow); stroke-linecap: round; stroke-linejoin: round; opacity: calc(.2 * var(--chan-on, 1)); }
 /* while the water runs, the motes are its body and the channel only a trace under them */
-@media (prefers-reduced-motion: no-preference) { .mt-chan { opacity: .06; } }
+@media (prefers-reduced-motion: no-preference) { .mt-chan { opacity: calc(.06 * var(--chan-on, 1)); } }
 
 /* ---- the things a finger finds ---- */
 .mt-over { pointer-events: none; }
@@ -231,7 +232,7 @@
 .mt-plate[data-arrive="run"] .mt-snow { animation: mt-in calc(var(--t-arrive) * var(--len)) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
 .mt-plate[data-arrive="run"] .mt-snow { animation-name: mt-settle; }
 .mt-plate[data-arrive="run"] .mt-star { animation: mt-prick calc(var(--t-arrive) * .1) var(--ease) calc(var(--t-arrive) * var(--at)) both; }
-/* the channel is drawn by the head as it runs (plate.ts), so the CSS leaves it be */
+/* the channel comes up with the water's light, all of it at once (plate.ts), so the CSS leaves it be */
 .mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .fs-sign { --gate: 1 !important; }
 .mt-plate[data-arrive="run"] .mt-stop:not([data-lit]) .mt-name { opacity: 0; }
 .mt-plate[data-arrive="run"] .mt-circle { opacity: 0; }
