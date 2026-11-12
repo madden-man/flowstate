@@ -14,6 +14,7 @@
 // its bloom breathes on the canvas. It carries data-travel mt-sign-<id>, the name R1 gives the small sign on the
 // mountain; ui/turns.ts names both only for the turn, so a tap there travels into this one (rule 28) and back.
 // In Still (rule 13): open, no hue (--ck-tint 0), the line colour only, slow water (--stream .4).
+import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { Sign } from '../../parts/Sign';
@@ -22,6 +23,7 @@ import { chakraOf, type ChakraId } from '../../../model/mountain';
 import { courseOf, H, sceneOf, W, type Layer, type Mark } from './scenes';
 import { rng } from './ink';
 import { PlateLight } from './water';
+import { claim, settle, surge } from './surge';
 
 type Props = {
   chakra: ChakraId;
@@ -29,6 +31,9 @@ type Props = {
   gate: number;
   /** What reaches the sign from above it (model/mountain.ts reach), 0 to 1. */
   above: number;
+  /** Laid over the plate, outside its drawing (PLAN-TASKS.md T1): the touch words, which are buttons, so the drawing
+   *  alone is aria-hidden. */
+  children?: ComponentChildren;
 };
 
 /** Stars, the same each time, fewer and fainter toward the horizon. */
@@ -55,7 +60,7 @@ function Chalk({ m, snow }: { m: Mark; snow: string }) {
   return null;
 }
 
-export function Plate({ chakra, gate, above }: Props) {
+export function Plate({ chakra, gate, above, children }: Props) {
   const c = chakraOf(chakra);
   const scene = sceneOf(chakra);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -84,6 +89,17 @@ export function Plate({ chakra, gate, above }: Props) {
   }, [chakra]);
 
   useEffect(() => { engine.current?.set({ above, gate }); }, [above, gate]);
+
+  // a touch done here lets a share of the pool go (PLAN-TASKS.md section 5, ./surge.ts); leaving the page, the gate
+  // that asked asks no more
+  // a page drawn a moment after the surge was let go (a touch done on coming back) still runs it, once (./surge.ts claim)
+  useEffect(() => {
+    const off = surge.subscribe(s => {
+      const mine = engine.current ? claim(chakra, s) : null;
+      if (mine) engine.current!.surge(mine.amp);
+    });
+    return () => { off(); settle(chakra); };
+  }, [chakra]);
 
   const [sx, sy] = scene.sign;
   const signBox = {
@@ -122,9 +138,9 @@ export function Plate({ chakra, gate, above }: Props) {
   );
 
   return (
-    <div class="ck-plate on-plate" data-chakra={chakra} data-fx={scene.fx} aria-hidden="true" data-arrived={arrived ? '' : undefined}
+    <div class="ck-plate on-plate" data-chakra={chakra} data-fx={scene.fx} data-arrived={arrived ? '' : undefined}
       style={{ '--qa': above.toFixed(3), '--qb': below.toFixed(3), '--open': (1 - gate).toFixed(3), '--sh': String(c.hue) }}>
-      <div class="ck-box">
+      <div class="ck-box" aria-hidden="true">
         <svg class="ck-land" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
           <defs>
             <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">
@@ -187,6 +203,7 @@ export function Plate({ chakra, gate, above }: Props) {
         )}
         <canvas ref={canvas} class="ck-light" />
       </div>
+      {children}
     </div>
   );
 }

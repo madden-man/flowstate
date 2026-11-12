@@ -36,6 +36,7 @@ import { land, SNOW_Y, type Land } from './mountain/land';
 import { Plate } from './mountain/plate';
 import { arrived, markArrived } from './mountain/arrival';
 import type { CapWeather } from './mountain/weather';
+import { SHARE, takeOwed } from './chakra/surge';
 import './mountain/mountain.css';
 
 /** The water as R2's controls have it under the finger, or null for the newest readings. */
@@ -61,6 +62,8 @@ export const signTravel = (id: ChakraId) => `mt-sign-${id}`;
 
 /** How long the arrival must have played before leaving the tab counts as having seen it. */
 const SEEN_AFTER_MS = 1000;
+/** Back on the mountain, how long before a surge owed by a touch (PLAN-TASKS.md section 5) is let go: the page's turn. */
+const OWED_AFTER_MS = 450;
 
 let LAND: Land | null = null;
 const theLand = () => (LAND ??= land());
@@ -148,6 +151,12 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
     // no canvas to draw on (a test's DOM, a browser without 2D canvas): the land and the signs are the whole of it
     if (typeof ResizeObserver === 'undefined' || !canvas.current?.getContext('2d')) { el.dataset.arrive = 'done'; return; }
     const stops = [...el.querySelectorAll<HTMLElement>('.mt-stop')];
+    // a touch done on a sign's page owes the mountain its surge: run once, from that sign to the sea, after the arrival
+    let owedT: ReturnType<typeof setTimeout> | undefined;
+    const runOwed = () => {
+      clearTimeout(owedT);
+      owedT = setTimeout(() => { if (plate.current === p) for (const c of takeOwed()) p.release(CHAKRA_IDS.indexOf(c), SHARE); }, OWED_AFTER_MS);
+    };
     const p = new Plate({
       host: el, canvas: canvas.current!, air: air.current ?? undefined, land: L,
       channels: [...el.querySelectorAll<SVGPathElement>('.mt-chan')],
@@ -155,7 +164,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
       circles: [...el.querySelectorAll<HTMLElement>('.mt-circle')],
       slots,
       kindle: i => { if (stops[i]) stops[i].dataset.lit = ''; },
-      arrived: markArrived,
+      arrived: () => { markArrived(); runOwed(); },
     }, snowline);
     p.setWater(unit(d), gates.map(unit), true);
     if (cap) p.setWeather(cap);
@@ -178,6 +187,7 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
       };
     }
     return () => {
+      clearTimeout(owedT);
       el.removeEventListener('pointerdown', cut, true);
       // left mid-arrival (the tab bar is outside the plate, so no touch cut it): once it has played a while it has been
       // seen, once per unlock. A remount in its first moments (the page's data landing) is not a leaving.

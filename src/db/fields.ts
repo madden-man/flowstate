@@ -6,7 +6,8 @@
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
 //   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
 //   revisions (PLAN-VALUES.md section 5); readings: value, the Depression meter's and each gate's
-//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index).
+//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks; marks: text and
+//   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear).
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -199,6 +200,33 @@ const readingSpec: Spec<Tables['readings']> = {
   give: (clear, secret) => ({ ...clear, value: Number(secret) }),
 };
 
+/** A sign's shelf seals its picks, as a step seals its picks (PLAN-TASKS.md section 4): what he puts on is his. The
+ *  clear copy keeps the sign and the date, with no picks, so nothing locked can be drawn as an empty shelf he chose. */
+const signShelfSpec: Spec<Tables['signShelves']> = {
+  take: row => ({ clear: { ...row, picks: [] }, secret: row.picks }),
+  give: (clear, secret) => ({ ...clear, picks: Array.isArray(secret) ? secret as Tables['signShelves']['picks'] : [] }),
+};
+
+/** A mark seals its words (PLAN-TASKS.md section 7), as the mountain seals its readings: the line and the struck line.
+ *  Its sign, touch and time stay clear for the index. */
+type MkSecret = { text: string; struck?: string };
+const markSpec: Spec<Tables['marks']> = {
+  take: row => {
+    const { struck, ...rest } = row;
+    return { clear: { ...rest, text: '' }, secret: (struck !== undefined ? { text: row.text, struck } : { text: row.text }) satisfies MkSecret };
+  },
+  give: (clear, raw) => {
+    const s = (raw ?? { text: '' }) as MkSecret;
+    return { ...clear, text: String(s.text ?? ''), ...(s.struck !== undefined ? { struck: s.struck } : {}) };
+  },
+};
+
+/** The day's row seals which basics are lit (PLAN-TASKS.md section 7): whether he ate or slept is his alone. */
+const daySpec: Spec<Tables['days']> = {
+  take: row => ({ clear: { ...row, basics: [] }, secret: row.basics }),
+  give: (clear, secret) => ({ ...clear, basics: Array.isArray(secret) ? secret as Tables['days']['basics'] : [] }),
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -212,6 +240,9 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   fixations: fixationSpec,
   values: valueSpec,
   readings: readingSpec,
+  signShelves: signShelfSpec,
+  marks: markSpec,
+  days: daySpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 

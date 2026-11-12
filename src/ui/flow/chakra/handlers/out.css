@@ -1,0 +1,34 @@
+/* Out of the app on the plate (PLAN-TASKS.md T4, handlers/out.tsx): one rule he writes on, a time, and the way out
+   (a name, or Calendar) in the plate's print, lit like a touch word. Every colour is a plate token. The stage sits at
+   the top of the plate, above the stream's words, so the touch words below stay under the thumb. */
+.out-stage {
+  position: absolute; left: var(--gutter); right: var(--gutter); top: var(--s2);
+  display: flex; flex-direction: column; align-items: stretch; gap: var(--s1); pointer-events: auto;
+}
+.out-rule {
+  appearance: none; border: 0; border-radius: 0; background: transparent; margin: 0; padding: 0; width: 100%;
+  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); height: var(--lh-ink);
+  color: var(--plate-line); caret-color: var(--glow);
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 var(--s1) var(--plate), 0 0 2px var(--plate);
+  border-bottom: 1px solid var(--plate-print);
+}
+.out-rule:focus { outline: none; border-bottom-color: var(--glow); }
+.out-row { display: flex; align-items: center; gap: var(--s3); }
+.out-time {
+  appearance: none; border: 0; border-radius: 0; background: transparent; margin: 0; padding: 0;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  height: var(--hit); color: var(--plate-line); color-scheme: dark;
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 2px var(--plate);
+  border-bottom: 1px solid var(--plate-print);
+}
+.out-time:focus { outline: none; border-bottom-color: var(--glow); }
+.out-go {
+  align-self: flex-end; margin-left: auto; display: block; height: var(--hit); line-height: var(--hit);
+  padding: 0 var(--s1); margin-right: calc(var(--s1) * -1); white-space: nowrap; text-decoration: none;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: calc(var(--track-print) * 2.5); text-transform: uppercase;
+  color: var(--glow); -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 0 var(--s1) var(--plate), 0 0 calc(var(--s1) * 2) var(--glow);
+}
+.out-go:focus-visible { outline: 2px solid var(--glow); outline-offset: -4px; border-radius: var(--s1); }
+.out-note { margin: 0; color: var(--plate-print); font-family: var(--sans); font-size: var(--fs-print); line-height: var(--hit); }
+[data-light="still"] .out-go { color: var(--plate-line); text-shadow: 0 0 var(--s1) var(--plate); }

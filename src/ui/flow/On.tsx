@@ -30,6 +30,10 @@ import { lastFirst, lastOn, livePicks, setOn, setOnAlbum } from '../../model/tip
 /** The kind word at a line's end, the same small print as a helper's word (rule 7: words, never icons). */
 export const KIND_WORD: Record<PickKind, string> = { album: 'Album', show: 'Show', film: 'Film', switch: 'Switch', phone: 'Phone', book: 'Book', art: 'Art' };
 
+/** The kinds a written line can be (every kind but an album, which comes from the ♪ grid). Book and Art are Mountain
+ *  R4's two: written lines like the rest, in the step sheet's pick editor and on a sign's shelf. */
+export const LINE_KINDS: Exclude<PickKind, 'album'>[] = ['show', 'film', 'switch', 'phone', 'book', 'art'];
+
 /** The most covers and lines a sheet shows (PLAN-PICKS.md section 2: fewer, not all). */
 const MOST = 3;
 
@@ -40,10 +44,11 @@ export function showOn(felt: boolean) {
   openSheet.value = 'on';
 }
 
-type Kept = Map<string, { row: ShelfAlbum; playlist: { id: string; uri: string } }>;
+export type Kept = Map<string, { row: ShelfAlbum; playlist: { id: string; uri: string } }>;
 
-/** The kept albums of these picks, each as a tile plays it: on the first chosen playlist that holds it, else itself. */
-async function keep(picks: OnPick[]): Promise<Kept> {
+/** The kept albums of these picks, each as a tile plays it: on the first chosen playlist that holds it, else itself.
+ *  A sign's shelf (flow/chakra/SignShelf.tsx, PLAN-TASKS.md T5) draws its covers through it too. */
+export async function keep(picks: OnPick[]): Promise<Kept> {
   const uris = picks.flatMap(p => albumUriOf(p) ?? []);
   const found = await keptAlbums(uris);
   const out: Kept = new Map();

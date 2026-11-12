@@ -23,7 +23,8 @@
     "walkthrough:energize": "node script/build-energize-walkthrough.mjs",
     "walkthrough:mountain": "node script/build-mountain-walkthrough.mjs",
     "walkthrough:values": "node script/build-values-walkthrough.mjs",
-    "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs"
+    "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs",
+    "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

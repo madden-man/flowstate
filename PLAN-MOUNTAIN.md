@@ -1,6 +1,6 @@
 # FlowState: the mountain (the Flow tab as seven chakras on one stream)
 
-Planned 2026-11-11 at Tommy's ask, in six passes the same day. **Pass 6 overrides pass 5 where they disagree, and pass 5 overrides anything older.** The build brief for the agent who builds it is `BUILD-MOUNTAIN.md`. The build began the same evening on this branch (package PRs target `mountain-plan`). R0 to R3 and R5 are built on `mountain-plan` (not on `main`, not deployed); R4 waits for the walk. The walkthrough is `design/mountain/index.html`, the real app (R5); the proposal mock it replaced is in git history.
+Planned 2026-11-11 at Tommy's ask, in six passes the same day. **Pass 6 overrides pass 5 where they disagree, and pass 5 overrides anything older.** The build brief for the agent who builds it is `BUILD-MOUNTAIN.md`. The build began the same evening on this branch (package PRs target `mountain-plan`). R0 to R3 and R5 are built on `mountain-plan` (not on `main`, not deployed). R4 is built (2026-11-12, branch `tasks-shelf` on `acts-plan`, PLAN-TASKS.md section 4): Book and Art are written kinds on a sign's shelf, through the small sheet its plus raises (`ui/flow/chakra/SignShelf.tsx`), and in the step sheet's pick editor (`LINE_KINDS` in `ui/flow/On.tsx`); nothing is seeded. The walkthrough is `design/mountain/index.html`, the real app (R5); the proposal mock it replaced is in git history.
 
 His words, in order:
 
@@ -139,6 +139,8 @@ A flow he makes himself asks which sign it belongs under.
 
 `PickKind` gains `book` and `art`, written lines with their kind word. The On sheet keeps its rule (at most three covers and three lines; Still keeps covers only). No titles are seeded by me: every pick is his (rule 16), written in the step sheet's pick editor (question 6).
 
+Built 2026-11-12 (R4), and it lands on the shelf, as PLAN-TASKS.md section 8 says: the plus on a sign's shelf raises a small sheet (a rule for the title, the kind words with Book and Art first, Add), the line is written under the covers with its kind word, and it is taken off the way a cover is (a long press, then the struck place, or Delete). The step sheet's pick editor offers Book and Art among its kinds too. No schema change: `PickKind` was widened in R0.
+
 ## 8. Data
 
 - New table `readings`: `{ id, at, of, value }`, `of` being `'mountain'` or a chakra id, `value` 0 to 1, written on release, never edited. The newest per `of` is drawn; the history is kept for a later drawing.
@@ -162,16 +164,16 @@ A flow he makes himself asks which sign it belongs under.
 | R1 | The mountain | the night plate, the arrival, `cycle/river.ts`, the land, the sea and its breath, the circles, `ui/flow/Mountain.tsx` in place of the list, taps with travel, Still, night | R0 |
 | R2 | The weather and the gates | the meter with snow and cloud, the gates and emptying signs, writes on release, dashed when stale, ticks, Reduce Motion | R1 |
 | R3 | The chakra page | section 6: the large sign, drawings grouped under it, names and copy gone, the rest list, routes, hand-offs, the step sheet | R0, beside R1 |
-| R4 | Books and art | the On sheet's two kinds, the pick editor | R0 |
+| R4 | Books and art | the two kinds as written lines on a sign's shelf, the shelf's small sheet, the step sheet's pick editor | R0 |
 | R5 | Walkthrough and standard | `design/mountain` rebuilt from the real app, DESIGN.md, the old flows walkthroughs marked as history | all |
 
 Each PR: `npm test`, `PORT=42xx npm run e2e`, both lints, three-light screenshots, review against this file and DESIGN.md.
 
-Status, 2026-11-11: R0 #62, R1 #64, R2 #65 and R3 #63 merged into `mountain-plan`; R5 is its own PR; R4 not built.
+Status, 2026-11-11: R0 #62, R1 #64, R2 #65 and R3 #63 merged into `mountain-plan`; R5 is its own PR. 2026-11-12: R4 built on `tasks-shelf` (a PR against `acts-plan`), on the sign's shelf.
 
 ## 11. Open questions
 
-Built to the defaults. The choices the builders made, for Tommy to overturn, are listed in `BUILD-MOUNTAIN.md` section 7. Still open with no default: which books and art go under which sign (R4, none seeded), and which circles join Meditate and Energize in the sea.
+Built to the defaults. The choices the builders made, for Tommy to overturn, are listed in `BUILD-MOUNTAIN.md` section 7. Still open with no default: which books and art go under which sign (R4 is built and none is seeded; he writes them from a shelf's plus), and which circles join Meditate and Energize in the sea.
 
 ## 12. Only the iPhone can say
 

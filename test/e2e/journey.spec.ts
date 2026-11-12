@@ -71,7 +71,8 @@ test('the journey: threshold to export, offline, across a PIN and a reload', asy
   await page.getByRole('button', { name: /Ask this/ }).click();
   await expect(page).toHaveURL(/#\/journal$/);
   await expect(page.locator('.fs-msg', { hasText: first })).toBeVisible();
-  await page.locator('.fs-link', { hasText: first }).click();
+  // the question is printed once, on its line; the link under the page is its print words alone
+  await page.getByRole('link', { name: `Asked · Questions: ${first}` }).click();
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue(first);
   const answer = page.getByRole('textbox', { name: 'This page' });
   await expect(answer).toBeFocused();

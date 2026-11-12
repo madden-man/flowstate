@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the tasks become the water</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the tasks become the water</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="held" data-name="The water stops where I'm blocked">
+  <h2>The water stops where I'm blocked</h2>
+  <p class="line">My Heart is part shut, so water pools above it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Water</td><td><code>model/mountain.ts</code> (R2): a gate b over water q holds back <code>b × q</code>; <code>mountain/water.ts</code> pools it above the sign.</td></tr>
+    <tr><td>Plan</td><td><code>PLAN-TASKS.md</code> (repo madden-man/flowstate), section 5; DESIGN.md rules 34 and 35.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/tasks/src</code>), storage in memory, no network. Each step loads it afresh with its own gates; here the Heart at .7.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="place" data-name="A sign's page is its place">
+  <h2>A sign's page is its place</h2>
+  <p class="line">The Heart's tarn, four touch words on it, the lead lit.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Words</td><td><code>model/acts.ts TOUCHES</code>: at most four a sign, one <code>lead</code>; placed by <code>chakra/words.ts</code>, drawn by <code>chakra/Touches.tsx</code>.</td></tr>
+    <tr><td>Touch</td><td><code>chakra/touch.ts onTouch</code>: one dispatcher, handlers under <code>chakra/handlers/</code> (place, into, out).</td></tr>
+    <tr><td>Foot</td><td><code>ui/flow/ChakraPage.tsx</code>: gloss, gate, shelf, the 988 line on Heart and Root.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="grieve" data-name="I name who I miss">
+  <h2>I name who I miss</h2>
+  <p class="line">Grieve: the name sinks and stays as a stone.</p>
+</section>
+
+<!-- 4 -->
+<section class="step" id="look-far" data-name="I look further than today">
+  <h2>I look further than today</h2>
+  <p class="line">Look far: a held thumb clears the ranges on the breath.</p>
+</section>
+
+<!-- 5 -->
+<section class="step" id="basics" data-name="I check the basics">
+  <h2>I check the basics</h2>
+  <p class="line">Root's four lanterns in the firs, out at sunrise.</p>
+</section>
+
+<!-- 6 -->
+<section class="step" id="surge" data-name="A touch moves the water">
+  <h2>A touch moves the water</h2>
+  <p class="line">Feel lets the pool go as one surge; the gate asks, dashed.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Surge</td><td><code>chakra/surge.ts answer</code>: <code>SHARE</code> .6 of what the gate holds; never writes the gate; nothing in Still, through the door or under Reduce Motion.</td></tr>
+    <tr><td>Ask</td><td><code>asking</code>: the gate dashed until set or left. Demo: the Sacral at .6.</td></tr>
+  </table></details>
+</section>
+
+<!-- 7 -->
+<section class="step" id="ask" data-name="I ask what I'm not seeing">
+  <h2>I ask what I'm not seeing</h2>
+  <p class="line">Ask lands on today's page, the sign over the date.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Carry</td><td><code>handlers/into.tsx</code>, <code>model/into.ts</code>: Ask this on the line, Turn to answer open (rule 17); <code>page.sign</code> links the page.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="back" data-name="The sign brings me back">
+  <h2>The sign brings me back</h2>
+  <p class="line">A tap on the sign returns, and the water surges then.</p>
+</section>
+
+<!-- 9 -->
+<section class="step" id="stand-on" data-name="I stand on what I hold">
+  <h2>I stand on what I hold</h2>
+  <p class="line">Stand on opens a held value on Be, champions under it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Be</td><td><code>handlers/intoViews.tsx</code> reads <code>model/values.ts held</code>; a tap routes to <code>#/be/:id</code>. Demo: honesty (example data).</td></tr>
+  </table></details>
+</section>
+
+<!-- 10 -->
+<section class="step" id="send" data-name="I send what I swallowed">
+  <h2>I send what I swallowed</h2>
+  <p class="line">Send carries my sentence to Messages, the link their name.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Link</td><td><code>handlers/out.tsx</code>, <code>out-links.ts</code>: <code>sms:</code> with the body; <code>model/person.ts</code> keeps one person for the app. Demo: Ali (example data).</td></tr>
+  </table></details>
+</section>
+
+<!-- 11 -->
+<section class="step" id="i-will" data-name="I say what I will do">
+  <h2>I say what I will do</h2>
+  <p class="line">One thing and a time, then Calendar.</p>
+</section>
+
+<!-- 12 -->
+<section class="step" id="shelf" data-name="Every sign has its music">
+  <h2>Every sign has its music</h2>
+  <p class="line">Covers, then a book and a painting he wrote; a long press lifts one.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Shelf</td><td><code>chakra/SignShelf.tsx</code> on <code>signShelves</code>; starters from <code>acts.ts STARTER_TITLES</code>; the plus raises a sheet that writes a line (Mountain R4: Book, Art), with + album when Spotify is connected.</td></tr>
+  </table></details>
+</section>
+
+<!-- 13 -->
+<section class="step" id="signs" data-name="All seven under ♪">
+  <h2>All seven under ♪</h2>
+  <p class="line">Each sign's covers; a name opens that sign.</p>
+</section>
+
+<!-- 14 -->
+<section class="step" id="door" data-name="Through the door">
+  <h2>Through the door</h2>
+  <p class="line">Without the PIN, only Five and Breathe, and the 988 line.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Door</td><td><code>model/door.ts doorPasses</code>; <code>DoorChakraPage</code> prints touches with <code>door: true</code>. Demo: a PIN set, the ring on, relocked.</td></tr>
+  </table></details>
+</section>
+
+<!-- 15 -->
+<section class="step" id="sea" data-name="The surge reaches the sea">
+  <h2>The surge reaches the sea</h2>
+  <p class="line">Back on Flow, it runs from the Heart to the sea, once.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Owed</td><td><code>surge.ts takeOwed</code>: each sign once, on the first return to Flow; <code>mountain/water.ts</code> runs it.</td></tr>
+  </table></details>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">21:40</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

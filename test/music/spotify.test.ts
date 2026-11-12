@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vi } from 'vitest';
-import { groupAlbums, readMyPlaylists, readPlaylistItems, ApiError, MY_PLAYLISTS_PATH, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playAlbum, pickDevice, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist } from '../../src/music/spotify';
+import { groupAlbums, readMyPlaylists, readPlaylistItems, ApiError, MY_PLAYLISTS_PATH, buildAuthUrl, challengeFor, makeVerifier, playBody, playFromAlbum, playAlbum, pickDevice, PLAYLIST_URI, PLAYLIST_WEB, CLIENT_ID, SCOPES, openPlaylist, openAlbum } from '../../src/music/spotify';
 
 const track = (uri: string, album: string, artist: string, images = [{ url: `${album}-640`, width: 640 }, { url: `${album}-300`, width: 300 }]) => ({
   track: { uri, album: { uri: `spotify:album:${album}`, name: album, images }, artists: [{ name: artist }] },
@@ -171,6 +171,23 @@ describe('with no account', () => {
     vi.stubGlobal('document', { visibilityState: 'hidden' });
     vi.advanceTimersByTime(1200);
     expect(again).toEqual([PLAYLIST_URI]);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('points the phone at one album the same way, and nowhere for an id that is not Spotify\'s', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('document', { visibilityState: 'visible' });
+    const went: string[] = [];
+    openAlbum('1E9iqjfSf5I5hPNfI1DRIh', h => went.push(h), 1200);
+    expect(went).toEqual(['spotify:album:1E9iqjfSf5I5hPNfI1DRIh']);
+    vi.advanceTimersByTime(1200);
+    expect(went).toEqual(['spotify:album:1E9iqjfSf5I5hPNfI1DRIh', 'https://open.spotify.com/album/1E9iqjfSf5I5hPNfI1DRIh']);
+    const none: string[] = [];
+    openAlbum('x/../y', h => none.push(h), 1200);
+    openAlbum('', h => none.push(h), 1200);
+    vi.advanceTimersByTime(1200);
+    expect(none).toEqual([]);
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });

@@ -29,6 +29,12 @@
 .fs-hdr-r { display: grid; gap: 2px; text-align: right; padding-bottom: var(--s1); }
 /* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
 .fs-hdr-r > span { white-space: nowrap; }
+/* the top line ("No. 4", "2 of 3 open", "Heart chakra"), the carried sign before it (flow/chakra/SignBack); with
+   nothing on it, or in Still with only a count that Still hides, it takes no room */
+.fs-hdr-top:not(:has(.fs-count, .fs-hdr-label, .ck-signback)),
+[data-light="still"] .fs-hdr-top:not(:has(.fs-hdr-label, .ck-signback)) { display: none; }
+/* a 375pt phone: Pages and Settings stand a little closer, so the small cover by the ♪ still leaves the date its line */
+@media (max-width: 380px) { .fs-hdr-l > .fs-word:not(.fs-musicword) { padding: 0 calc(var(--s1) * .5); } }
 .fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
 .fs-hdr-r b {
   font-family: var(--serif); font-weight: 400; font-size: var(--fs-fill);
@@ -512,6 +518,13 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   width: var(--hit); height: var(--hit); display: grid; place-items: center;
   -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
 }
+/* in the header the cover stands close to the ♪ (its thumb's target reaches over the empty half of the ♪'s), and it is
+   what gives when the row is full: its target narrows toward the cover's own width, the cover whole, so the date keeps
+   its line and its gutter at 390pt and 375pt */
+.fs-hdr-l { min-width: 0; }
+.fs-hdr-r { flex: none; }
+.fs-hdr-l > * { flex: none; }
+.fs-hdr-l > .fs-mini { flex: 0 1 var(--hit); min-width: var(--s3); margin-left: calc(var(--s1) * -1.5); }
 .fs-mini img, .fs-mini span { display: block; width: var(--s3); height: var(--s3); border-radius: 3px; object-fit: cover; box-shadow: var(--shadow-tile); background: var(--seam); }
 .fs-mini.holding img { transform: translateY(-2px); }
 .fs-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); padding: var(--s1) 0 var(--s2); }

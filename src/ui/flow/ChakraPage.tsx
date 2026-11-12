@@ -6,9 +6,13 @@
 // drawing. A flow in front (Right now, a hand-off, a live episode) shows its step words on one line, .ck-steps; a tap
 // reads that step, or moves the dot there while an episode is live, and Done puts it back at rest. Under the plate the page is paper as before.
 //
+// The place is the page (PLAN-TASKS.md T1): the plate is twelve rules tall with the sign's touch words printed on it
+// (./chakra/Touches.tsx, every tap through ./chakra/touch.ts onTouch), and under it a paper foot: the gloss, the gate,
+// the slot where T5's shelf mounts, the printed lines and, on Heart and Root, the 988 line with Call and Text.
+//
 // The rows: with the dot on a step, or a step word tapped, that step's rows as Tips draws them (his own line, the said
 // paragraph, "Usually", the words under the clock, the wise lines and the note to the next one leave the page; the data
-// keeps them). At rest: one list of up to six (model/chakra-page.ts restRows), ticks there only drawn (walk it once).
+// keeps them). At rest there is no checklist (T1): the touches are what the page offers.
 // Safety stays: the 988 line, the doctor lines, the hand-offs (which read as the sign they land on), and 3 a.m.'s rest
 // line printed on its first step (model/chakra-page.ts safetyLines).
 //
@@ -30,11 +34,15 @@ import { FlowPage } from './FlowPage';
 import { Tips } from './Tips';
 import { PrintLines } from './PrintLines';
 import { followHandOff } from './HandOff';
+import { askPin } from './door';
 import { StepSheet, AddStep, tickSheet } from './StepSheet';
 import { useNow } from './breath';
 import { Plate } from './chakra/Plate';
 import { FromRow } from './chakra/From';
+import { Touches } from './chakra/Touches';
+import { SignShelf } from './chakra/SignShelf';
 import { readGuard } from './chakra/fresh';
+import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
 import { light } from '../light';
 import type { Episode, Flow, Reading, Tip } from '../../db/schema';
@@ -43,7 +51,7 @@ import type { Read } from '../../db/fields';
 import {
   CHAKRA_IDS, chakraOf, isChakraId, isStale, latestReadings, reach, spring, writeReading, type ChakraId,
 } from '../../model/mountain';
-import { chakraPageData, restRows, safetyLines } from '../../model/chakra-page';
+import { chakraPageData, safetyFoot, safetyLines } from '../../model/chakra-page';
 import { currentStepId, flowById, lastEnded, liveEpisode, moveDot, placeOf, stepAt } from '../../model/flows';
 import { isUnnamed } from '../../model/flow-make';
 import './chakra/chakra.css';
@@ -66,10 +74,42 @@ export function FlowRoute({ id, step, chakra }: { id?: string; step?: string; ch
   }, [id, chakra, dataVersion.value]);
   // #/flow/c with no sign is the mountain itself
   if ((chakra !== undefined && !home) || (id === 'c' && chakra === undefined)) return <Redirect to="/flow" />;
-  if (home === undefined) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} keepSettings drawn={false}><div class="fs-sheetof fs-rules" /></Page>;
+  if (home === undefined) return <Page label="Flow" back={{ word: 'Flow', href: '#/flow' }} drawn={false}><div class="fs-sheetof fs-rules" /></Page>;
   // another sign is another page: a hand-off to it opens it afresh
   if (home) return <ChakraPage key={home} chakra={home} focus={chakra !== undefined ? undefined : id} step={step} />;
   return <FlowPage id={id!} step={step} />;
+}
+
+/** The 988 line and its Call and Text (PLAN-TASKS.md section 2), printed on Heart and Root in every light. */
+function SafeLine({ line, links }: { line?: string; links: boolean }) {
+  if (!links) return null;
+  return (
+    <div class="ck-safe">
+      {line && <p class="ck-safe-line">{line}</p>}
+      <p class="ck-safe-links"><a class="ck-safe-link" href="tel:988">Call 988</a><a class="ck-safe-link" href="sms:988">Text 988</a></p>
+    </div>
+  );
+}
+
+/** A sign's page through the door, without the PIN (PLAN-TASKS.md section 7): the place, the gloss, the touches that
+ *  happen in the place and write nothing (door: true), and the 988 line. No gate, no shelf, no flow: what he set and
+ *  what he wrote stay behind the PIN, so the plate is drawn open, as in Still. The way back asks for the PIN. */
+export function DoorChakraPage({ chakra }: { chakra: string }) {
+  if (!isChakraId(chakra)) return <Redirect to="/flow/now" />;
+  const c = chakraOf(chakra);
+  const still = light.value === 'still';
+  const foot = safetyFoot(chakra, [], false);
+  return (
+    <Page label={c.pageName} back={{ word: 'Flow', href: '#/flow' }} door={{ ask: askPin }}>
+      <div class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-door="">
+        <Plate chakra={chakra} gate={0} above={1}>
+          <Touches chakra={chakra} door still={still} />
+        </Plate>
+        <p class="ck-gloss">{c.gloss}</p>
+        <SafeLine line={foot.line} links={foot.links} />
+      </div>
+    </Page>
+  );
 }
 
 type Item = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> };
@@ -105,10 +145,12 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
     return () => { on = false; };
   }, [chakra, version, dataVersion.value]);
 
+  // no Settings on a sign's header: its name is there ("Solar plexus chakra"), so the way back takes Settings' place,
+  // as on a question page; Settings is on the mountain, one tap back
   const back = { word: 'Flow', href: '#/flow' };
-  if (!data) return <Page label={c.pageName} back={back} keepSettings drawn={false}><div class="fs-sheetof fs-rules ck-page" /></Page>;
+  if (!data) return <Page label={c.pageName} back={back} drawn={false}><div class="fs-sheetof fs-rules ck-page" /></Page>;
 
-  const { items, homes, episodes, readings } = data;
+  const { items, homes, readings } = data;
   const still = light.value === 'still';
   const placeNow = (it: Item) => (moved?.flowId === it.flow.id ? moved.to : it.live ? placeOf(it.flow, currentStepId(it.live)) : 0);
   const front = items.find(it => it.flow.id === focus) ?? items.find(it => it.live && placeNow(it) > 0);
@@ -141,6 +183,7 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
   };
   const commitGate = async (v: number) => {
     setGateLive(v);
+    settle(chakra);
     const done = guard.write();
     // locked again under the thumb (LockedError): nothing is written, and the gate goes back to what was kept
     try { await writeReading(chakra, v); } catch { /* the PIN first */ } finally { done(); }
@@ -167,18 +210,20 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
     }
   };
   const sheets = !!front && !front.flow.locked;
-  const rest = restRows(chakra, items.map(it => it.flow), episodes);
-  const lines = safetyLines(items.map(it => it.flow), homes, front && shown ? { flowId: front.flow.id, stepId: shown.id } : undefined);
+  const foot = safetyFoot(chakra, safetyLines(items.map(it => it.flow), homes, front && shown ? { flowId: front.flow.id, stepId: shown.id } : undefined), !!shown);
   // the wise lines leave the page with the copy (section 6); Tips draws everything else as it does today
   const rows = shown && { ...shown, tips: shown.tips.filter(t => !t.wise) };
 
   return (
-    <Page label={c.pageName} back={back} keepSettings>
+    <Page label={c.pageName} back={back}>
       <div class="fs-sheetof fs-rules fs-flowpage ck-page" data-chakra={chakra} data-saved={writing ? 'false' : 'true'}
         data-front={front?.flow.id} data-showing={showing} data-gating={gateLive !== null ? '' : undefined}>
-        <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above} />
+        <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above}>
+          <Touches chakra={chakra} still={still} />
+        </Plate>
         <p class="ck-gloss">{c.gloss}</p>
-        <Gate value={gate} hue={c.hue} label={c.name} stale={!!stored && isStale(stored, now)}
+        {/* a surge makes the gate ask afresh (./chakra/surge.ts): drawn anew, so a touch before it does not hide the dash */}
+        <Gate key={asks(chakra) ? 'asks' : 'rests'} value={gate} hue={c.hue} label={c.name} stale={(!!stored && isStale(stored, now)) || asks(chakra)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
         {live && <FromRow live={live} homes={homes} page={{ chakra, order: items.map(x => x.flow.id), front: front!.flow.id }} />}
         {front && !front.flow.locked && (
@@ -190,20 +235,20 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
             {live && <button type="button" class="ck-step ck-done" onClick={() => void move(front, [], 0)}>Done</button>}
           </nav>
         )}
-        {front && rows ? (
+        {/* the checklist is gone at rest (PLAN-TASKS.md T1): rows only for a flow in front, as mountain-fixes built it */}
+        {front && rows && (
           <section class="fl-step-page ck-rows" aria-label={rows.name}>
             {!front.flow.locked && (
               <Tips key={`${front.flow.id}-${rows.id}`} step={rows} flowId={front.flow.id} flowTips={front.flow.steps.flatMap(s => s.tips)}
                 live={live} still={still} now={now} onChanged={() => setVersion(v => v + 1)} />
             )}
           </section>
-        ) : (
-          <section class="fl-step-page ck-rows" aria-label="At rest">
-            <Tips key={rest.id} step={rest} flowTips={[]} still={still} now={now} onChanged={() => setVersion(v => v + 1)} />
-          </section>
         )}
-        <PrintLines step={{ tips: lines }}
+        {/* the sign's music shelf (PLAN-TASKS.md T5): renders nothing while locked */}
+        <SignShelf chakra={chakra} />
+        <PrintLines step={{ tips: foot.lines }}
           onHandOff={shown ? t => void handOff(t, shown.id) : undefined} />
+        <SafeLine line={foot.line} links={foot.links} />
         {shown && sheets && !live && (
           <p class="fl-edit fs-notstill"><button type="button" class="fs-word" onClick={() => { tickSheet(); setEditing(true); }}>Edit</button></p>
         )}

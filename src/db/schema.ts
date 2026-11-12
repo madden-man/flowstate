@@ -2,7 +2,8 @@
 // version 3 is PLAN-FLOWS.md section 5, the flows and their episodes; version 4 is PLAN-MEDITATE.md section 5, the sits;
 // version 5 is PLAN-ENERGIZE.md section 5, the fixations; version 6 is PLAN-VALUES.md section 5, the values; version 7
 // (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the readings and flows.chakra, in the block marked "the mountain"
-// below). UI code never imports this file: it reads and writes
+// below; version 8 (TASKS_VERSION) is PLAN-TASKS.md section 7, the signs' shelves, the marks and the days, in the block
+// marked "the tasks"). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
@@ -17,8 +18,11 @@ export const VALUES_VERSION = 6;
  *  spread in the "mountain" block below is now STORES_V6, the values'). Everything else reads it: SCHEMA_VERSION, the
  *  Dexie version in that block, backup.ts migrate, and the tests. */
 export const MOUNTAIN_VERSION = 7;
-/** The newest version: the mountain's, until a later one comes. */
-export const SCHEMA_VERSION = MOUNTAIN_VERSION;
+/** The tasks' schema version (PLAN-TASKS.md section 7, T0): the signs' shelves, the marks and the days. Renumbering is
+ *  here and only here, as for MOUNTAIN_VERSION. */
+export const TASKS_VERSION = 8;
+/** The newest version: the tasks', until a later one comes. */
+export const SCHEMA_VERSION = TASKS_VERSION;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -143,6 +147,9 @@ export type Page = {
   /** PLAN-MEDITATE.md section 5 (S2): the sit this page was written after ("Write it down" on the page after a sit).
    *  Optional and unindexed, like flow; an id, clear. */
   sit?: { sitId: string };
+  /** PLAN-TASKS.md T3: the sign a touch carried him here from (Ask, Write from it, Letter, Bring it), so the page
+   *  prints that sign beside its date and a tap goes back to it. Optional and unindexed, like sit; an id, clear. */
+  sign?: { chakra: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
@@ -466,12 +473,18 @@ export type Tables = {
   fixations: Fixation;
   values: Value;
   readings: Reading;
+  signShelves: SignShelf;
+  marks: Mark;
+  days: Day;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days'];
+
+/** The tables a version adds after the mountain's (TASKS_VERSION), left out of the older STORES records. */
+type TasksTables = 'signShelves' | 'marks' | 'days';
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
-export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
+export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
   settings: 'id',
   voices: 'id',
   pages: 'id, createdAt, state, kind, *tags, *paradoxIds',
@@ -484,7 +497,7 @@ export const STORES_V1: Record<Exclude<TableName, 'playlists' | 'shelves' | 'flo
 };
 
 /** Version 2 adds the playlists and one shelf per playlist (PLAN-V3.md 5.1). */
-export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
+export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
   ...STORES_V1,
   playlists: 'id, order',
   shelves: '[playlistId+albumUri], playlistId',
@@ -492,28 +505,28 @@ export const STORES_V2: Record<Exclude<TableName, 'flows' | 'episodes' | 'sits' 
 
 /** Version 3 adds the flows and their episodes (PLAN-FLOWS.md section 5). The seed flows are written by
  *  seed.ts seedFlowsOnce, not here: an upgrade cannot seal (WebCrypto cannot run inside an IndexedDB transaction). */
-export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'values' | 'readings'>, string> = {
+export const STORES_V3: Record<Exclude<TableName, 'sits' | 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
   ...STORES_V2,
   flows: 'id, order',
   episodes: 'id, [flowId+startedAt]',
 };
 
 /** Version 4 adds the sits (PLAN-MEDITATE.md section 5). The upgrade writes nothing: a journal has sat no sits yet. */
-export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'values' | 'readings'>, string> = {
+export const STORES_V4: Record<Exclude<TableName, 'fixations' | 'values' | 'readings' | TasksTables>, string> = {
   ...STORES_V3,
   sits: 'id, startedAt',
 };
 
 /** Version 5 adds the fixations (PLAN-ENERGIZE.md section 5). The upgrade writes nothing: a name is sealed and an
  *  upgrade cannot seal, so the first three and the deck come from seed.ts seedFixationsOnce once the journal is open. */
-export const STORES_V5: Record<Exclude<TableName, 'values' | 'readings'>, string> = {
+export const STORES_V5: Record<Exclude<TableName, 'values' | 'readings' | TasksTables>, string> = {
   ...STORES_V4,
   fixations: 'id',
 };
 
 /** Version 6 adds the values (PLAN-VALUES.md section 5). The upgrade writes nothing: a word is sealed and an upgrade
  *  cannot seal, so each paradox becomes a value in seed.ts valuesFromParadoxesOnce once the journal is open. */
-export const STORES_V6: Record<Exclude<TableName, 'readings'>, string> = {
+export const STORES_V6: Record<Exclude<TableName, 'readings' | TasksTables>, string> = {
   ...STORES_V5,
   values: 'id',
 };
@@ -528,7 +541,7 @@ export const STORES_V6: Record<Exclude<TableName, 'readings'>, string> = {
 export type Reading = { id: string; at: Millis; of: 'mountain' | ChakraId; value: number; sealed?: Sealed };
 
 /** The mountain's version adds the readings, by when and by what they are of. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V7: Record<Exclude<TableName, TasksTables>, string> = {
   ...STORES_V6,
   readings: 'id, at, [of+at]',
 };
@@ -547,12 +560,49 @@ export function withSeedChakra<T extends { id: string; chakra?: ChakraId }>(row:
 }
 
 function mountainVersion(db: Dexie) {
-  db.version(MOUNTAIN_VERSION).stores(STORES).upgrade(tx => tx.table<Flow, string>('flows').toCollection().modify(f => {
+  db.version(MOUNTAIN_VERSION).stores(STORES_V7).upgrade(tx => tx.table<Flow, string>('flows').toCollection().modify(f => {
     const chakra = SEED_CHAKRAS[f.id];
     if (chakra && f.chakra === undefined) f.chakra = chakra;
   }));
 }
 // ---- the mountain ends ----
+
+// ---- the tasks, version TASKS_VERSION (PLAN-TASKS.md section 7, T0): the signs' shelves, the marks and the days ----
+// Self-contained like the mountain's block: renumbering is TASKS_VERSION at the top of this file. openDB calls
+// tasksVersion() after mountainVersion(). The upgrade writes nothing: every row from version 7 stays as it was, a shelf
+// with no row reads as its starters (model/acts.ts), and a journal has written no marks and lit no basics yet.
+
+/** A sign's shelf (PLAN-TASKS.md section 4): what plays under that sign, in his order. id is the sign. Named signShelves,
+ *  not the plan's shelves, because shelves is already the playlists' table (V7). picks are sealed like a step's picks
+ *  (fields.ts); the id and updatedAt stay clear. No row means the sign's starters; a row with no picks is a shelf he
+ *  emptied, and stays empty. */
+export type SignShelf = { id: ChakraId; picks: OnPick[]; updatedAt: Millis; sealed?: Sealed };
+
+/** What he writes on the water (PLAN-TASKS.md section 7): one line at one touch of one sign, never edited. text is the
+ *  line; struck (not in the plan's list) is the second line a touch strikes, Reword's verdict beside its deed. text and
+ *  struck are sealed; chakra, touch and at stay clear for the [chakra+at] index. Crown's Let go never writes one. */
+export type Mark = { id: string; chakra: ChakraId; touch: string; text: string; struck?: string; at: Millis; sealed?: Sealed };
+
+/** Root's four basics (PLAN-TASKS.md section 2). */
+export type BasicId = 'ate' | 'slept' | 'water' | 'outside';
+
+/** The day's row (PLAN-TASKS.md section 7). id is the day's key, "YYYY-MM-DD" of the sunrise it began at, so a day runs
+ *  sunrise to sunrise and the basics are gone at the next one. basics are the lanterns lit, sealed; id and updatedAt
+ *  stay clear. Earlier days' rows are taken away when today's is written: nothing here is ever totalled. */
+export type Day = { id: string; basics: BasicId[]; updatedAt: Millis; sealed?: Sealed };
+
+/** The tasks' version adds the three, each by id; the marks also by when, and by sign and when. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V7,
+  signShelves: 'id',
+  marks: 'id, at, [chakra+at]',
+  days: 'id',
+};
+
+function tasksVersion(db: Dexie) {
+  db.version(TASKS_VERSION).stores(STORES);
+}
+// ---- the tasks end ----
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
 export const poemsPlaylist = (): Playlist => ({
@@ -583,6 +633,9 @@ export type FlowDB = Dexie & {
   fixations: EntityTable<Fixation, 'id'>;
   values: EntityTable<Value, 'id'>;
   readings: EntityTable<Reading, 'id'>;
+  signShelves: EntityTable<SignShelf, 'id'>;
+  marks: EntityTable<Mark, 'id'>;
+  days: EntityTable<Day, 'id'>;
 };
 
 export function openDB(name = DB_NAME): FlowDB {
@@ -600,6 +653,7 @@ export function openDB(name = DB_NAME): FlowDB {
   db.version(5).stores(STORES_V5);
   db.version(VALUES_VERSION).stores(STORES_V6);
   mountainVersion(db);
+  tasksVersion(db);
   return db;
 }
 

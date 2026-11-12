@@ -19,7 +19,7 @@ import { useHold } from '../parts/Hold';
 import { tick } from '../parts/Haptic';
 import { shortDate } from '../date';
 import { HELPER_WORD } from './Tips';
-import { KIND_WORD } from './On';
+import { KIND_WORD, LINE_KINDS } from './On';
 import { chooseAlbum, connected } from '../music/state';
 import { PersonSheet } from './Person';
 import { EarlierNotes } from './Notes';
@@ -53,8 +53,6 @@ export function AddStep({ flow, onSaved }: { flow: Read<Flow>; onSaved: () => vo
  *  what the text says; prediction (F6) is the What if worry written as a prediction, one rule on the episode; Sit
  *  (PLAN-MEDITATE.md S3) opens Meditate and is ticked by a sit of a minute or more. */
 export const HELPERS: TipHelper[] = ['still', 'music', 'ring', 'five', 'journal', 'timer', 'person', 'prediction', 'sit', 'on'];
-/** The kinds a written line can be (P2): an album comes only from the ♪ grid. */
-const LINE_KINDS: Exclude<PickKind, 'album'>[] = ['show', 'film', 'switch', 'phone'];
 
 /** step: the step to edit; none to add one (first: it names the flow's unnamed step). */
 type Props = { flow: Read<Flow>; step?: Step; first?: boolean; open: boolean; onClose: () => void; onSaved: () => void };
