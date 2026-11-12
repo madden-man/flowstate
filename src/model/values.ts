@@ -3,7 +3,7 @@
 // live on the value row. A line is confirmed as spoken for a value after it is spoken (speakFor), never before.
 // Every read and write goes through store: words and whys are sealed, so a change to them is a read then a sealed
 // rewrite in store.unit; ids, order and labels are clear, so those changes run in store.tx. Nothing here writes a word.
-import { byValueOrder, type Message, type PageKind, type Value, type ValueSide, type Voice } from '../db/schema';
+import { byValuePlace, placeOf, PLACES, tierOf, type Message, type Millis, type PageKind, type Tier, type Value, type ValuePlace, type ValueSide, type Voice } from '../db/schema';
 import { store, tombstone, type Read } from '../db/fields';
 import { allVoices, chipVoices, championsOf, newCouncil } from './council';
 import { MANIFESTO } from '../db/seed';
@@ -11,7 +11,8 @@ import { MANIFESTO } from '../db/seed';
 export { championsOf };
 /** The notebook's line over Be's list, "I determine my core." (C2), so the UI reads it here, not from db/seed. */
 export const CORE = MANIFESTO[0];
-export type { ValueSide };
+export type { ValueSide, Tier, ValuePlace };
+export { tierOf, placeOf };
 
 const tidy = (s?: string) => (s ?? '').trim();
 const dayKey = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
@@ -19,14 +20,26 @@ const strip = <T>(row: T): T => { const copy = { ...(row as Record<string, unkno
 
 // ---- the lists ----
 
-/** The values he holds, in his order: Be's list. */
-export async function held(): Promise<Read<Value>[]> {
-  return (await store.all('values')).filter(v => v.status === 'held').sort(byValueOrder);
-}
+const by = (status: Value['status']) => async (): Promise<Read<Value>[]> =>
+  (await store.all('values')).filter(v => v.status === status).sort(byValuePlace);
 
-/** The values put down for now, in the same order: under Resting. */
-export async function resting(): Promise<Read<Value>[]> {
-  return (await store.all('values')).filter(v => v.status === 'resting').sort(byValueOrder);
+/** The values he holds, First, then Second, then Third, each in his order (PLAN-TIERS.md section 4): so Champions,
+ *  "Who sits?" and the Spoke for chips follow the tiers without knowing about them. */
+export const held = by('held');
+
+/** The values put down for now, in his order: under Resting. */
+export const resting = by('resting');
+
+/** The values he used to hold, in his order: under Legacy (PLAN-TIERS.md section 2). */
+export const legacy = by('legacy');
+
+export type Tiers = { first: Read<Value>[]; second: Read<Value>[]; third: Read<Value>[]; resting: Read<Value>[]; legacy: Read<Value>[] };
+
+/** Be's list in one read: each tier, Resting and Legacy, each in his order. */
+export async function tiers(): Promise<Tiers> {
+  const all = (await store.all('values')).sort(byValuePlace);
+  const at = (p: ValuePlace) => all.filter(v => placeOf(v) === p);
+  return { first: at(1), second: at(2), third: at(3), resting: at('resting'), legacy: at('legacy') };
 }
 
 // ---- writing a value ----
@@ -38,11 +51,12 @@ export class NoWordError extends Error {
   constructor() { super('A value needs its word'); this.name = 'NoWordError'; }
 }
 
-/** A new value, held, after the placed ones (it has no order until dragged). Its shadow and looks may wait. */
+/** A new value, held at the foot of Second (PLAN-TIERS.md section 2): after the placed ones, as it has no order until
+ *  placed. Its shadow and looks may wait. */
 export async function createValue(d: ValueDraft, now = Date.now()): Promise<Value> {
   const word = tidy(d.word);
   if (!word) throw new NoWordError();
-  const v: Value = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, status: 'held', word, champions: [], revisions: [] };
+  const v: Value = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, status: 'held', tier: 2, word, champions: [], revisions: [] };
   const shadow = tidy(d.shadow), looks = tidy(d.looks);
   if (shadow) v.shadow = shadow;
   if (looks) v.looks = looks;
@@ -51,12 +65,12 @@ export async function createValue(d: ValueDraft, now = Date.now()): Promise<Valu
 }
 
 /**
- * Saves the value sheet: the word, the shadow, what living it looks like, and the status. A change to the word or the
- * shadow on a later day than the value was made keeps the old pair as a revision (shown struck, rule 10), once per day
- * of editing, as a line's text is kept (model/pages.ts revise); looks is written over. The champions and their whys
+ * Saves the value sheet: the word, the shadow and what living it looks like (where it sits is placeValue's). A change
+ * to the word or the shadow on a later day than the value was made keeps the old pair as a revision (shown struck,
+ * rule 10), once per day of editing, as a line's text is kept (model/pages.ts revise); looks is written over. The champions and their whys
  * are the stored row's, read in the same unit, so a why set since the sheet opened is kept.
  */
-export function saveValue(value: Pick<Value, 'id'>, d: ValueDraft, status?: ValueStatus, now = Date.now()): Promise<Value> {
+export function saveValue(value: Pick<Value, 'id'>, d: ValueDraft, now = Date.now()): Promise<Value> {
   const word = tidy(d.word);
   if (!word) return Promise.reject(new NoWordError());
   return store.unit(async u => {
@@ -64,13 +78,13 @@ export function saveValue(value: Pick<Value, 'id'>, d: ValueDraft, status?: Valu
     if (!v) throw new Error('No such value');
     const shadow = tidy(d.shadow) || undefined, looks = tidy(d.looks) || undefined;
     const words = word !== v.word || (shadow ?? '') !== (v.shadow ?? '');
-    const same = !words && (looks ?? '') === (v.looks ?? '') && (status ?? v.status) === v.status;
+    const same = !words && (looks ?? '') === (v.looks ?? '');
     if (same) return strip(v);
     let revisions = v.revisions;
     if (words && dayKey(v.createdAt) !== dayKey(now) && !revisions.some(r => dayKey(r.at) === dayKey(now))) {
       revisions = [...revisions, { at: now, word: v.word, ...(v.shadow ? { shadow: v.shadow } : {}) }];
     }
-    const next: Value = strip({ ...v, word, revisions, status: status ?? v.status, updatedAt: now });
+    const next: Value = strip({ ...v, word, revisions, updatedAt: now });
     if (shadow) next.shadow = shadow; else delete next.shadow;
     if (looks) next.looks = looks; else delete next.looks;
     await u.put('values', next);
@@ -78,24 +92,73 @@ export function saveValue(value: Pick<Value, 'id'>, d: ValueDraft, status?: Valu
   });
 }
 
-/** A value dragged to place `to` among `ids` (the list as shown). Every value shown is placed in the new order; the
- *  rest keep their places after them. Only rows whose place moved are written (order is clear). */
-export function moveValue(ids: string[], id: string, to: number, now = Date.now()): Promise<void> {
-  const from = ids.indexOf(id);
-  if (from < 0) return Promise.resolve();
-  const next = [...ids];
-  next.splice(from, 1);
-  next.splice(Math.max(0, Math.min(next.length, to)), 0, id);
+// ---- placing a value (PLAN-TIERS.md section 4) ----
+
+/** The tier a value not held comes back to by the tap path: the one it left (Second for one from before the tiers). */
+export const returnsTo = (v: Pick<Value, 'tier'>): Tier => tierOf(v);
+
+type Log = NonNullable<Value['tierLog']>;
+
+/** The log with one more move, one entry a day: a move on the same day as the last entry takes its place, and a move
+ *  that ends the day where the day before ended leaves no entry for the day. An empty log first gets where the value
+ *  was at its making, so the dated lines need nothing else (that entry folds away when it was made today). */
+export function logged(log: Log | undefined, from: ValuePlace, createdAt: Millis, to: ValuePlace, now: Millis): Log {
+  let out: Log = log?.length ? [...log] : [{ at: createdAt, to: from }];
+  if (dayKey(out[out.length - 1].at) === dayKey(now)) out = out.slice(0, -1);
+  if (out.length && out[out.length - 1].to === to) return out;
+  return [...out, { at: now, to }];
+}
+
+/**
+ * Puts a value in a place: a tier, Resting or Legacy, at index within that place's rows as they stand without it
+ * (omitted, or past the end, is the foot). One transaction over clear fields only, so a sealed row is never rewritten:
+ * status and tier, a line on tierLog when its place changed, and order renumbered as one sequence across every value,
+ * written only on the rows whose number moved. A value going to Resting or Legacy keeps its tier, so the tap path
+ * brings it back to the tier it left (returnsTo). No tier has a cap, and nothing else steps down.
+ */
+export function placeValue(id: string, to: ValuePlace, index?: number, now = Date.now()): Promise<void> {
   return store.tx(['values'], async tb => {
-    const all = (await tb('values').toArray()).sort(byValueOrder);
-    const rest = all.filter(v => !next.includes(v.id)).map(v => v.id);
-    const rows = new Map(all.map(v => [v.id, v]));
-    const order = [...next, ...rest];
+    const all = (await tb('values').toArray()).sort(byValuePlace);
+    const v = all.find(x => x.id === id);
+    if (!v) throw new Error('No such value');
+    const from = placeOf(v);
+    const others = all.filter(x => x.id !== id);
+    const order: Value[] = [];
+    for (const p of PLACES) {
+      const rows = others.filter(x => placeOf(x) === p);
+      if (p === to) rows.splice(Math.max(0, Math.min(rows.length, index ?? rows.length)), 0, v);
+      order.push(...rows);
+    }
     for (let i = 0; i < order.length; i++) {
-      const v = rows.get(order[i]);
-      if (v && v.order !== i) await tb('values').update(v.id, { order: i, updatedAt: now });
+      const x = order[i];
+      if (x.id === id) {
+        const change: Partial<Value> = { order: i, updatedAt: now };
+        if (typeof to === 'number') { change.status = 'held'; change.tier = to; } else change.status = to;
+        if (from !== to) change.tierLog = logged(v.tierLog, from, v.createdAt, to, now);
+        if (from !== to || x.order !== i) await tb('values').update(id, change);
+      } else if (x.order !== i) await tb('values').update(x.id, { order: i, updatedAt: now });
     }
   });
+}
+
+// ---- the dated lines (PLAN-TIERS.md section 4): dates only, never a length or a count ----
+
+/** The first of the run of entries at the log's end that all say `p`, or undefined when the last entry is elsewhere. */
+const enteredAt = (log: Log | undefined, p: ValuePlace): Millis | undefined => {
+  let at: Millis | undefined;
+  for (let i = (log?.length ?? 0) - 1; i >= 0 && log![i].to === p; i--) at = log![i].at;
+  return at;
+};
+
+/** When a held value came into the tier it is in ("First since 11 / 12 / 26"): its making, when the log has nothing. */
+export const tierSince = (v: Pick<Value, 'status' | 'tier' | 'tierLog' | 'createdAt'>): Millis => enteredAt(v.tierLog, placeOf(v)) ?? v.createdAt;
+
+/** A Legacy value's dates ("11 / 7 / 26 to 11 / 12 / 26"): from its first day held (its making, when the log never
+ *  shows it held) to the day it went to Legacy; time resting is not marked. With no log there is no end. */
+export function legacyDates(v: Pick<Value, 'tierLog' | 'createdAt'>): { from: Millis; to?: Millis } {
+  const from = v.tierLog?.find(e => typeof e.to === 'number')?.at ?? v.createdAt;
+  const to = enteredAt(v.tierLog, 'legacy');
+  return to === undefined ? { from } : { from, to };
 }
 
 /**

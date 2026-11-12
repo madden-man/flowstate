@@ -16,7 +16,7 @@ import { light } from '../light';
 import { useLongPress } from '../council/state';
 import { tick } from '../parts/Haptic';
 import { moves, tokenMs } from '../turns';
-import { CORE, callCouncil, held as readHeld, moveValue, resting as readResting } from '../../model/values';
+import { CORE, callCouncil, held as readHeld, placeOf, placeValue, resting as readResting } from '../../model/values';
 import { allVoices } from '../../model/council';
 import type { Value, Voice } from '../../db/schema';
 import type { Read } from '../../db/fields';
@@ -209,10 +209,13 @@ function Values({ id }: { id?: string }) {
       drag.current = null;
       const el = rowOf(lifted);
       if (el) el.style.transform = '';
-      const ids = kindOf(lifted).map(v => v.id);
-      const to = d && liveOrder.current ? liveOrder.current.indexOf(d.id) : -1;
-      if (d && to >= 0 && to !== ids.indexOf(d.id)) {
-        await moveValue(ids, d.id, to);
+      // until B2 a row stays in its own place (its tier, or Resting); it is set among that place's rows
+      const kind = kindOf(lifted);
+      const row = kind.find(v => v.id === lifted);
+      const same = (ids: string[]) => ids.filter(x => { const v = kind.find(k => k.id === x); return !!v && !!row && placeOf(v) === placeOf(row); });
+      const to = d && liveOrder.current ? same(liveOrder.current).indexOf(d.id) : -1;
+      if (d && row && to >= 0 && to !== same(kind.map(v => v.id)).indexOf(d.id)) {
+        await placeValue(d.id, placeOf(row), to);
         tick('drop');
         changed();
       }

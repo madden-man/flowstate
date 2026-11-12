@@ -10,7 +10,7 @@ import { Sheet } from '../parts/Sheet';
 import { Strike } from '../parts/Strike';
 import { openSheet } from '../sheets';
 import { shortDate } from '../date';
-import { createValue, deleteValue, saveValue, type ValueDraft, type ValueStatus } from '../../model/values';
+import { createValue, deleteValue, placeValue, returnsTo, saveValue, type ValueDraft, type ValueStatus } from '../../model/values';
 import { beValues, changed, closeValueSheet, valueTarget } from './state';
 import { struckLines } from './lines';
 
@@ -53,7 +53,11 @@ function ValueForm({ open }: { open: boolean }) {
   const save = async () => {
     if (done.current || !ok) return;
     done.current = true;
-    if (existing) await saveValue(existing, d, status);
+    if (existing) {
+      await saveValue(existing, d);
+      // until B1 takes the Status row away: Held brings it back to the tier it left, at that tier's foot
+      if (status !== existing.status) await placeValue(existing.id, status === 'held' ? returnsTo(existing) : status);
+    }
     else { await createValue(d); newDraft.value = empty(); }
     changed();
   };
