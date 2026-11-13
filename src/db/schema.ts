@@ -162,6 +162,9 @@ export type Page = {
   /** PLAN-TASKS.md T3: the sign a touch carried him here from (Ask, Write from it, Letter, Bring it), so the page
    *  prints that sign beside its date and a tap goes back to it. Optional and unindexed, like sit; an id, clear. */
   sign?: { chakra: string };
+  /** PLAN-RESEARCH.md section 2 (Q4): the question a paper was carried here from (Write about it, To Council), so the
+   *  page prints "From" and the question, and a tap goes back to it. Optional and unindexed, like sit; an id, clear. */
+  research?: { inquiryId: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */
@@ -190,6 +193,10 @@ export type Message = {
   /** PLAN-VALUES.md section 5 (C1): the value (or its shadow) this line was confirmed as spoken for, after it was spoken
    *  (model/values.ts speakFor); a line is never created with one. Ids, clear like voiceId. */
   for?: { valueId: string; side: ValueSide };
+  /** PLAN-RESEARCH.md section 2 (Q4): a paper's title carried to a journal or council page (Write about it, To Council).
+   *  The line is the paper's, never his: drawn in its side's voice with the voice rule, its title a link to the paper.
+   *  text holds the title as the index gave it (sealed like every line); the ids are clear, like the paper itself. */
+  paper?: { paperId: string; side: 'for' | 'against' };
   sealed?: Sealed;
 };
 

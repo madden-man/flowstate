@@ -22,9 +22,10 @@ const field = (label: string) => [...root.querySelectorAll('label')].find(l => l
 const word = (text: string) => [...root.querySelectorAll('button')].find(b => b.textContent === text)!;
 const paste = async (input: HTMLInputElement, value: string) => {
   await act(() => { input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); });
-  await act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
   await settle();
 };
+/** Pastes into a field and presses Save (inert, and saving nothing, until the Research key is written). */
+const save = async () => { await act(() => { word('Save').click(); }); await settle(); };
 const draw = async () => {
   openSheet.value = 'settings';
   await act(() => { render(h(SettingsSheet, {}), root); });
@@ -53,8 +54,10 @@ describe('the Research key row (Q2)', () => {
   it('a pasted key is saved and shown only by its last four, never whole; the settings signal carries it', async () => {
     await draw();
     await paste(field('OpenAlex key'), 'openalex-abc-7788');
+    await save();
     expect(await researchKey()).toBeUndefined(); // nothing saved without the Anthropic key
     await paste(field('Research key'), `  ${KEY} `);
+    await save();
     expect(await researchKey()).toEqual({ key: KEY, openAlexKey: 'openalex-abc-7788' });
     expect(root.querySelector('[data-research-last]')!.textContent).toBe('Ends in Q2x9');
     expect(root.querySelector('[data-openalex-last]')!.textContent).toBe('Ends in 7788');
@@ -70,6 +73,7 @@ describe('the Research key row (Q2)', () => {
     await act(() => { word('Replace').click(); });
     expect(field('Research key').value).toBe('');
     await paste(field('Research key'), 'sk-ant-new-key-ZZ11');
+    await save();
     expect(await researchKey()).toEqual({ key: 'sk-ant-new-key-ZZ11', openAlexKey: 'openalex-abc-7788' });
     expect(root.querySelector('[data-research-last]')!.textContent).toBe('Ends in ZZ11');
     await act(() => { word('Remove the key').click(); });

@@ -68,6 +68,10 @@ export interface Inquiry {
   picks: Pick[];
   runs?: RunSnapshot;
   earlier?: { askedAt: number; picks: Pick[] }[];
+  /** What stopped a run that did not finish (RunResult's why), so the page prints its one fixed line on a later
+   *  opening too. A run cut off by the connection stays 'running', its runs kept, and carries 'offline' until it goes
+   *  on (Q4). */
+  why?: RunResult['why'];
 }
 
 // ---- the indexes (Q1: src/research/indexes.ts exports `search: Search` and `lookup`) ----

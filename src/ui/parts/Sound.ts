@@ -5,7 +5,7 @@
 import { settings } from '../settings';
 import type { SitSound } from '../../db/schema';
 
-export type BellName = 'unlock' | 'settle' | 'keep' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap' | 'tier';
+export type BellName = 'unlock' | 'settle' | 'keep' | 'album' | 'breathIn' | 'breathOut' | 'sitEnd' | 'swap' | 'tier' | 'found';
 
 /** A new AudioContext, woken: null where there is no Web Audio. Only a tap leads here (rule 21). */
 function make(): AudioContext | null {
@@ -99,7 +99,15 @@ const BELLS: Record<BellName, (a: AudioContext) => void> = {
   // a lifted value crossing into another place on Be (PLAN-TIERS.md section 5, B2): the swap's upper D, struck once,
   // short and quieter than any other bell, so a row carried past three headings is three small marks, not a peal
   tier: a => strike(a, 587, 0.3, 0.035),
+  // a Research run ending (PLAN-RESEARCH.md section 2, DESIGN.md rule 21): the soft bell, keep close's own
+  found: a => strike(a, 988, 0.9, 0.07),
 };
+
+/** Wakes the bells' context inside a tap, with no sound, for a bell that will ring later without one: Ask on Research,
+ *  whose soft bell comes when the run ends (the iPhone lets a context start only inside a gesture). Follows Sounds. */
+export function wakeBells(): void {
+  if (settings.value.sounds) ctx();
+}
 
 /** The breath tone has its own switch under Sounds, off by default, and follows it (rule 21). */
 const BREATH: BellName[] = ['breathIn', 'breathOut'];

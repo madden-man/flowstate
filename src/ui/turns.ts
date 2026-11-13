@@ -39,14 +39,21 @@ const parts = (p: string) => p.split('/').filter(Boolean);
 
 /** How deep a path sits in its section: the section's own page 0, the list of Pages 1, any one page 2. */
 function depth(p: string): number {
-  const [section, a] = parts(p);
+  const [section, a, b, c] = parts(p);
   if (!a) return 0;
+  // Research (PLAN-RESEARCH.md Q4): the blank page, Asked, a question, a paper's page, each a step deeper
+  if (section === 'flow' && a === 'research') return !b ? 2 : b === 'asked' ? 2.5 : c ? 4 : 3;
   return section === 'journal' && a === 'pages' ? 1 : 2;
 }
 
 /** A flow's page and the same flow at a step are one page (the dot moved): the first two parts say which; a sign's page
  *  (#/flow/c/:chakra) is three parts deep, so two signs' pages are two pages (R3 review). */
-const pageOf = (p: string) => { const ps = parts(p); return ps.slice(0, ps[0] === 'flow' && ps[1] === 'c' ? 3 : 2).join('/'); };
+const pageOf = (p: string) => {
+  const ps = parts(p);
+  // Research's pages are each a page of their own: the question, Asked and a paper are turned to (Q4)
+  if (ps[0] === 'flow' && ps[1] === 'research') return ps.join('/');
+  return ps.slice(0, ps[0] === 'flow' && ps[1] === 'c' ? 3 : 2).join('/');
+};
 
 /** Which turn goes from one path to another, or none. */
 export function kindOf(from: string, to: string): TurnKind | null {
@@ -185,6 +192,7 @@ function takeBackPaper() {
 //   a sign       mt-sign-<chakra>  the sign on the plate, and the large sign on its page (R3 marks it data-travel)
 //   Meditate     md-circle         the circle afloat, and the Meditate page's circle
 //   Energize     fs-drawing        the circle afloat, and the drawing on its flow page
+//   Research     rs-name           the word under the circle afloat, and the same word on its page's header (Q4)
 //   his own      fs-drawing        a flow he made with no sign yet: its row's small drawing, and the drawing on its page
 
 let named: HTMLElement[] = [];
@@ -208,6 +216,7 @@ function travelName(p: string): string | undefined {
   if (section !== 'flow' || !a) return undefined;
   if (a === 'c' && b) return `mt-sign-${b}`;
   if (a === 'meditate') return 'md-circle';
+  if (a === 'research') return 'rs-name';
   if (a === 'now') return undefined;
   return 'fs-drawing';
 }

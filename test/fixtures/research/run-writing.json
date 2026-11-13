@@ -1,0 +1,268 @@
+{
+ "about": "A recorded Research run (PLAN-RESEARCH.md Q4): no key, no network. indexes maps '<index> <tier>' to the saved index response served for any search of that index and tier; turns holds each conversation's replies in order (for, against, check), each { stop_reason, content } as the Messages API returns it. Text and thinking blocks are in every turn on purpose: they must never reach the page. A conversation past its last turn answers end_turn.",
+ "question": "Does expressive writing help mental health?",
+ "indexes": {
+  "europepmc 1": "europepmc-tier1.json",
+  "europepmc 2": "europepmc-tier2.json",
+  "openalex 1": "openalex-tier1.json",
+  "openalex 2": "openalex-tier2.json"
+ },
+ "turns": {
+  "for": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "f1",
+      "name": "search",
+      "input": {
+       "query": "expressive writing mental health meta-analysis",
+       "index": "europepmc",
+       "tier": 1
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "f2",
+      "name": "file",
+      "input": {
+       "id": "doi:10.1111/famp.70206"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "f3",
+      "name": "file",
+      "input": {
+       "id": "doi:10.1177/13591053261499814"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "f4",
+      "name": "search",
+      "input": {
+       "query": "expressive writing rumination",
+       "index": "openalex",
+       "tier": 1
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "f5",
+      "name": "file",
+      "input": {
+       "id": "doi:10.1037/1528-3542.8.2.302"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ],
+  "against": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "a1",
+      "name": "search",
+      "input": {
+       "query": "expressive writing no effect anxiety",
+       "index": "europepmc",
+       "tier": 1
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "a2",
+      "name": "file",
+      "input": {
+       "id": "doi:10.1016/j.actpsy.2026.107843"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "a3",
+      "name": "file",
+      "input": {
+       "id": "doi:10.1111/acer.70412"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ],
+  "check": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "c1",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.1111/famp.70206",
+       "side": "for"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "c2",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.1177/13591053261499814",
+       "side": "for"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "c3",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.1037/1528-3542.8.2.302",
+       "side": "for"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "c4",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.1016/j.actpsy.2026.107843",
+       "side": "against"
+      }
+     },
+     {
+      "type": "tool_use",
+      "id": "c5",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.1111/acer.70412",
+       "side": "neither"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ]
+ }
+}

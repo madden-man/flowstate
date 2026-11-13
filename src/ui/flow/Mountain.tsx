@@ -15,7 +15,8 @@
 //
 // Travel (rule 28, through ui/turns.ts): every thing that goes somewhere carries data-travel, the view-transition
 // name it travels under, and its link says where. A sign is mt-sign-<chakra> (R3 names its large sign the same), the
-// Meditate circle md-circle (the Meditate page's circle), Energize's circle fs-drawing (the drawing on its page).
+// Meditate circle md-circle (the Meditate page's circle), Energize's circle fs-drawing (the drawing on its page),
+// Research's name rs-name (the word Research on its page's header, PLAN-RESEARCH.md Q4).
 //
 // Still (rule 13): the plate, the line, open signs without hue, names, slow water in the line colour, and nothing
 // that shows a state; the plate reads that from --plate-state, never from the light (rule 2).
@@ -44,10 +45,13 @@ export const waterLive = signal<{ d: number; gates: number[] } | null>(null);
 /** The cap's weather, for R2 to drive from the meter (snowline in box units, flakes and cloud 0 to 1). */
 export const capLive = signal<Partial<CapWeather> | null>(null);
 
-/** The sea's circles, in order (PLAN-MOUNTAIN.md section 8: kept here until there is a third). */
-export const SEA_CIRCLES: readonly { name: string; href: string; travel: string; arc?: boolean; flow?: string }[] = [
+/** The sea's circles, in order (PLAN-MOUNTAIN.md section 8). Research (PLAN-RESEARCH.md section 2, Q4) is the third:
+ *  the plain circle with one line down the middle, two sides; what travels from it is its name (named, below), to the
+ *  same word on its page's header. */
+export const SEA_CIRCLES: readonly { name: string; href: string; travel: string; arc?: boolean; split?: boolean; named?: boolean; flow?: string }[] = [
   { name: 'Meditate', href: '#/flow/meditate', travel: 'md-circle' },
   { name: 'Energize', href: `#/flow/${FIXATION_FLOW}`, travel: 'fs-drawing', arc: true, flow: FIXATION_FLOW },
+  { name: 'Research', href: '#/flow/research', travel: 'rs-name', split: true, named: true },
 ];
 
 /** How far each sign's link box is lifted above its stop so its gate fits wholly under it (R2): the Crown sits close
@@ -260,12 +264,13 @@ export function MountainPlate({ d, gates, live, cap, liveFlows, controls }: Prop
         {SEA_CIRCLES.map((c, i) => (
           <a key={c.name} class="mt-circle" href={c.href} style={{ '--x': slots[i], '--y': SEA_Y }}
             data-live={c.flow && liveFlows?.has(c.flow) ? 'true' : undefined}>
-            <svg class="mt-ring" data-travel={c.travel} viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
+            <svg class="mt-ring" data-travel={c.named ? undefined : c.travel} viewBox="-20 -20 40 40" aria-hidden="true" focusable="false">
               <circle r={CIRCLE_R} />
               {c.arc && <path d="M-10 5 C-5 4 -4 -7 0 -7 C4 -7 5 4 10 5" />}
+              {c.split && <path d={`M0 ${-CIRCLE_R} V${CIRCLE_R}`} />}
             </svg>
             {c.flow && liveFlows?.has(c.flow) && <i class="mt-dot" aria-hidden="true"><i class="mt-halo" /></i>}
-            <span class="mt-name">{c.name}</span>
+            <span class="mt-name" data-travel={c.named ? c.travel : undefined}>{c.name}</span>
           </a>
         ))}
       </div>

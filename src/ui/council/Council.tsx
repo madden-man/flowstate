@@ -33,6 +33,7 @@ import { VoiceSheet } from './VoiceSheet';
 import { hrefOf } from '../journal/href';
 import { MessageSheet } from './MessageSheet';
 import { SpokeFor, SpokeForSheet, valueList, reloadValues, spokeLabel } from '../parts/SpokeFor';
+import { PaperLine } from '../flow/PaperLine';
 
 const vcOf = (v: Voice): JSX.CSSProperties => ({ '--vc': voiceColour(v.colour, v.shade) } as JSX.CSSProperties);
 const isStill = () => light.value === 'still';
@@ -230,6 +231,8 @@ function Line({ m, voice, run, quoted, press, onTap, editing, onEdited }: {
   const quote = quoted && (
     <span class="fs-quote" style={quoted.vc ? ({ '--qc': quoted.vc } as JSX.CSSProperties) : undefined}><b>{quoted.who}</b> {quoted.text}</span>
   );
+  // a paper's title carried from Research (PLAN-RESEARCH.md Q4): the paper's own line, a link, never edited or replied to
+  if (m.paper) return <PaperLine m={m} />;
   const body = <>{quote}{editing ? <EditLine m={m} onDone={t => onEdited?.(t)} /> : m.text.split('\n').map((l, i) => <p key={i}>{l || ' '}</p>)}</>;
   if (editing) {
     press = {};
@@ -259,7 +262,8 @@ function Links({ data, values = false }: { data: CouncilData; values?: boolean }
     <>
       {named.map(v => <p key={v!.id} class="fs-from"><small>About</small> <a href={`#/be/${v!.id}`}>{v!.word}</a></p>)}
       {about && (
-        <p class="fs-from"><small>About</small> {src ? <a href={hrefOf(src)}>{about}</a> : <a>{about}</a>}</p>
+        <p class="fs-from"><small>About</small> {src ? <a href={hrefOf(src)}>{about}</a>
+          : data.page.research ? <a href={`#/flow/research/${data.page.research.inquiryId}`}>{about}</a> : <a>{about}</a>}</p>
       )}
       {(about ? rest : data.linked).map((l, i) => (
         <p key={l.id} class="fs-from"><small>{!about && i === 0 ? 'From' : 'Linked'}</small> <a href={hrefOf(l)}>{l.label}</a></p>

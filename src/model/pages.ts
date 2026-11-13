@@ -121,14 +121,16 @@ export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Pag
 }
 
 /** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2), page.sit
- *  (the page after a sit, PLAN-MEDITATE.md S2) or page.sign (a sign's touch, PLAN-TASKS.md T3). A day with no page yet gets an empty one (nothing written: it stays off
+ *  (the page after a sit, PLAN-MEDITATE.md S2), page.sign (a sign's touch, PLAN-TASKS.md T3) or page.research (a paper
+ *  carried from a question, PLAN-RESEARCH.md Q4). A day with no page yet gets an empty one (nothing written: it stays off
  *  every list until a word is, like any fresh page). Not stored: the caller writes it with the row it links, both ways. */
-export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'>, now = Date.now()): Promise<Read<Page>> {
+export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'> | Pick<Page, 'research'>, now = Date.now()): Promise<Read<Page>> {
   const t = await today(new Date(now));
   return t.page ? { ...t.page, ...link, updatedAt: now } : newPage('entry', now, link);
 }
 
-export type Draft = { text: string; voiceId?: string; replyTo?: string; wise?: boolean };
+/** paper: a paper's title carried here (PLAN-RESEARCH.md Q4); set only when the line is made, never by an edit. */
+export type Draft = { text: string; voiceId?: string; replyTo?: string; wise?: boolean; paper?: Message['paper'] };
 export type Line = { page: Read<Page>; message?: Read<Message>; messages: Read<Message>[] };
 
 /** A line's text before an edit on a later day than it was written: kept once per day of editing, with
@@ -180,6 +182,7 @@ export async function writeLine(
     ...(existing ?? { id: messageId ?? crypto.randomUUID(), pageId: p.id, at, kept: false }),
     text: draft.text, voiceId: draft.voiceId, replyTo: draft.replyTo, wise: draft.wise || undefined, updatedAt: now,
     ...(revisions ? { revisions } : {}),
+    ...(draft.paper && !existing ? { paper: draft.paper } : {}),
   };
   const messages = existing
     ? before.map(m => (m.id === message.id ? message : m))
