@@ -325,7 +325,8 @@ describe('Research: a paper and the carries', () => {
     expect(t.page!.research).toEqual({ inquiryId: id });
     const ms = await messagesOf(t.page!.id);
     expect(ms.at(-1)!.paper).toEqual({ paperId: 'doi:10.1016/j.actpsy.2026.107843', side: 'against' });
-    await until(() => !!$('.rs-carried') && !!$('.rs-from a'));
+    // the carried line's print and link come from the kept paper, read as the line is drawn
+    await until(() => !!$('.rs-carried a.rs-link') && !!$('.rs-from a'));
     expect($('.rs-from a')!.textContent).toBe(run.question);
     expect($('.rs-from a')!.getAttribute('href')).toBe(`#/flow/research/${id}`);
     const carried = $('.rs-carried')!;
