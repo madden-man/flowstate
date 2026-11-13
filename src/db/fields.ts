@@ -1,13 +1,16 @@
 // The one typed door to the database (PLAN.md section 7). Every secret text field is written and read
 // here, so no UI code ever touches a stored string:
 //   messages.text (and its revisions' text), items.text, leans.note, paradoxes.*.aspect and middle.scenario (revisions too),
-//   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens,
+//   pages.title (a question is Tommy's own text; decided at review of PR #1), settings.spotify.tokens, settings.research
+//   (the Anthropic and OpenAlex keys, PLAN-RESEARCH.md section 5, Q2),
 //   flows: name, line, restLine, every step's name, line, said, usual, usualShort, tips (text, short, person), picks and onLine, the revisions'
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
 //   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
 //   revisions (PLAN-VALUES.md section 5); readings: value, the Depression meter's and each gate's
 //   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks; marks: text and
-//   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear).
+//   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear); inquiries: question
+//   and runs whole (the agents' messages carry the question; PLAN-RESEARCH.md section 5, Q2; ids, state, picks and dates
+//   stay clear). papers are not sealed: a paper's words are an index's public record, not his.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
@@ -85,14 +88,26 @@ const paradoxSpec: Spec<Tables['paradoxes']> = {
   },
 };
 
+/** The settings row seals the Spotify tokens and Research's keys (PLAN-RESEARCH.md section 5). With no research key the
+ *  secret is the tokens alone (or null), as it always was, so a row sealed before Research reads unchanged; with one
+ *  it is `{ s, research }`, told apart by its research field (a tokens object never has one). The clear copy keeps no
+ *  research field at all, so a locked journal shows no key and no sign of one. */
+type Tokens = NonNullable<Settings['spotify']>['tokens'];
+type SSecret = Tokens | null | { s: Tokens | null; research: NonNullable<Settings['research']> };
 const settingsSpec: Spec<Settings> = {
   take: row => {
-    const { spotify, ...rest } = row;
+    const { spotify, research, ...rest } = row;
     const clear: Settings = spotify ? { ...rest, spotify: { connectedAt: spotify.connectedAt } } : { ...rest };
-    return { clear, secret: spotify?.tokens ?? null };
+    const tokens = spotify?.tokens ?? null;
+    return { clear, secret: (research ? { s: tokens, research } : tokens) satisfies SSecret };
   },
-  give: (clear, secret) =>
-    secret ? { ...clear, spotify: { ...clear.spotify, tokens: secret as NonNullable<Settings['spotify']>['tokens'] } } : clear,
+  give: (clear, raw) => {
+    const s = (raw ?? null) as SSecret;
+    const both = s && typeof s === 'object' && 'research' in s ? s : null;
+    const tokens = both ? both.s : (s as Tokens | null);
+    const out: Settings = tokens ? { ...clear, spotify: { ...clear.spotify, tokens } } : clear;
+    return both ? { ...out, research: both.research } : out;
+  },
 };
 
 const pageSpec: Spec<Tables['pages']> = {
@@ -227,6 +242,21 @@ const daySpec: Spec<Tables['days']> = {
   give: (clear, secret) => ({ ...clear, basics: Array.isArray(secret) ? secret as Tables['days']['basics'] : [] }),
 };
 
+/** A question asked seals its question and its runs whole (PLAN-RESEARCH.md section 5): the question is his own text,
+ *  and every agent's messages carry it. The clear copy keeps the id, when it was asked, the state, the picks (paper ids
+ *  and sides) and the earlier picks, so the Asked list can be ordered before unlock with nothing of his on it. */
+type QSecret = { question: string; runs?: Tables['inquiries']['runs'] };
+const inquirySpec: Spec<Tables['inquiries']> = {
+  take: row => {
+    const { runs, ...rest } = row;
+    return { clear: { ...rest, question: '' }, secret: (runs !== undefined ? { question: row.question, runs } : { question: row.question }) satisfies QSecret };
+  },
+  give: (clear, raw) => {
+    const s = (raw ?? { question: '' }) as QSecret;
+    return { ...clear, question: String(s.question ?? ''), ...(s.runs !== undefined ? { runs: s.runs } : {}) };
+  },
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -243,6 +273,7 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   signShelves: signShelfSpec,
   marks: markSpec,
   days: daySpec,
+  inquiries: inquirySpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 
