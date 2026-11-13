@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FlowState: Research</title>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="parts.css">
 <link rel="stylesheet" href="walk.css">
-<link rel="stylesheet" href="research.css">
 </head>
 <body>
 <div class="wrap">
@@ -18,111 +16,127 @@
 <main id="main">
   <div class="text" id="text">
 
+<!-- 1 -->
 <section class="step" id="sea" data-name="Research floats in the sea">
   <h2>Research floats in the sea</h2>
-  <p class="line">A third circle beside Meditate and Energize; tap it.</p>
+  <p class="line">A third circle beside Meditate and Energize. Example data, live.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Circle</td><td><code>SEA_CIRCLES</code> in <code>ui/flow/Mountain.tsx</code> gains Research at <code>#/flow/research</code>; <code>seaSlots(3)</code> already spaces three.</td></tr>
-    <tr><td>Mock</td><td>The plate here is a sketch; every other screen is on the app's own <code>parts.css</code>.</td></tr>
-    <tr><td>Plan</td><td><code>PLAN-RESEARCH.md</code> (repo madden-man/flowstate), packages Q0 to Q6.</td></tr>
+    <tr><td>Circle</td><td><code>SEA_CIRCLES</code> in <code>ui/flow/Mountain.tsx</code>, to <code>#/flow/research</code>; its name travels (<code>rs-name</code>).</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/research/src</code>), storage in memory, no network, "today" pinned to 11 / 13. Each step loads it afresh.</td></tr>
+    <tr><td>Plan</td><td><code>PLAN-RESEARCH.md</code>, packages Q0 to Q6.</td></tr>
   </table></details>
 </section>
 
-<section class="step" id="ask" data-name="I write the question">
-  <h2>I write the question</h2>
-  <p class="line">A blank page, the caret ready; yes and no are the sides.</p>
+<!-- 2 -->
+<section class="step" id="nokey" data-name="No key, and where it goes">
+  <h2>No key, and where it goes</h2>
+  <p class="line">Nothing is sent; the act under my thumb is Settings.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Leaves</td><td>Only the question: to the Anthropic API and, as search terms, to Europe PMC and OpenAlex. No journal page is ever sent.</td></tr>
     <tr><td>Fence</td><td><code>src/research/</code> is the second place allowed to fetch (DESIGN.md rule 22, lint DL21), opt-in like Spotify.</td></tr>
   </table></details>
 </section>
 
-<section class="step" id="look" data-name="Two voices go looking">
-  <h2>Two voices go looking</h2>
-  <p class="line">Each title is written in as it is found.</p>
+<!-- 3 -->
+<section class="step" id="key" data-name="The key is pasted once">
+  <h2>The key is pasted once</h2>
+  <p class="line">Sealed with the PIN; Save or Return keeps it.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Agents</td><td>Two <code>claude-opus-5-5</code> loops at once, one for yes, one for no; a third call rules every filed abstract cold.</td></tr>
-    <tr><td>Tools</td><td><code>search</code> (the app queries the indexes), <code>file({ id, side })</code>. An id the app did not fetch is refused.</td></tr>
-    <tr><td>Words</td><td>No model text is read or shown: the agents return ids, the page prints the index's record.</td></tr>
+    <tr><td>Key</td><td><code>saveResearchKey</code> in <code>research/store.ts</code>, <code>settings.research</code> through <code>db/fields.ts</code>, as the Spotify tokens.</td></tr>
   </table></details>
 </section>
 
+<!-- 4 -->
+<section class="step" id="ask" data-name="I write the question">
+  <h2>I write the question</h2>
+  <p class="line">A blank page, the caret ready; yes and no are the sides.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Leaves</td><td>Only the question: to the Anthropic API and, as search terms, to Europe PMC and OpenAlex.</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="look" data-name="Two voices go looking">
+  <h2>Two voices go looking</h2>
+  <p class="line">Each title is written in as it is found, then the check lifts one.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Agents</td><td>Two <code>claude-opus-5-5</code> loops, one a side; a third call rules every filed abstract cold (<code>research/agents.ts</code>).</td></tr>
+    <tr><td>Demo</td><td><code>setRunDeps</code> plays <code>test/fixtures/research/run-writing.json</code>; the indexes' own code reads the saved responses.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
 <section class="step" id="sides" data-name="Both sides, in the papers' own titles">
   <h2>Both sides, in the papers' own titles</h2>
   <p class="line">Every title is a link to the paper at its journal.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Link</td><td>The title goes out to the paper's DOI (with none, the index's record); + is a light voice, − its deep twin.</td></tr>
-    <tr><td>Page</td><td>A council page: <code>fs-chat</code> on <code>fs-rules</code>, each paper an <code>fs-msg fs-v</code> line (rules 3 and 9).</td></tr>
-    <tr><td>Peer review</td><td>Decided by the index record (a journal article, not retracted), never by the model.</td></tr>
-    <tr><td>Data</td><td>Real Europe PMC records, word for word; the sides here were sorted by hand.</td></tr>
+    <tr><td>Words</td><td>No model text is shown: the agents hand back ids, the page prints the index's record (rule 36).</td></tr>
+    <tr><td>Peer review</td><td>Decided by the index record, never by the model.</td></tr>
   </table></details>
 </section>
 
+<!-- 7 -->
 <section class="step" id="one" data-name="I can hear one side alone">
   <h2>I can hear one side alone</h2>
   <p class="line">A tap on + or − quiets the other.</p>
 </section>
 
+<!-- 8 -->
 <section class="step" id="paper" data-name="Abstract opens the abstract">
   <h2>Abstract opens the abstract</h2>
   <p class="line">The paper's own words, on the page's rules.</p>
-  <details><summary>How this is built</summary><table>
-    <tr><td>Text</td><td>The abstract as the index holds it; section heads become print, nothing is reworded or cut.</td></tr>
-  </table></details>
 </section>
 
-<section class="step" id="carry" data-name="I take it to the journal">
+<!-- 9 -->
+<section class="step" id="write" data-name="I take it to the journal">
   <h2>I take it to the journal</h2>
-  <p class="line">Write about it: today's page, the title carried with me.</p>
+  <p class="line">Write about it: today's page, the title carried in its side's voice.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Carry</td><td><code>model/into.ts</code>, as a sign's touch carries into Journal and Council; the page keeps <code>page.research</code>.</td></tr>
+    <tr><td>Carry</td><td><code>writeAboutPaper</code> in <code>model/into.ts</code>; the page keeps <code>page.research</code>, so From goes back.</td></tr>
   </table></details>
 </section>
 
-<section class="step" id="empty" data-name="A side with nothing says so">
-  <h2>A side with nothing says so</h2>
-  <p class="line">Sides are never padded to match.</p>
+<!-- 10 -->
+<section class="step" id="council" data-name="Or to the Council">
+  <h2>Or to the Council</h2>
+  <p class="line">The question as its title, the paper as its first line.</p>
 </section>
 
+<!-- 11 -->
 <section class="step" id="lower" data-name="A lower source is marked">
   <h2>A lower source is marked</h2>
-  <p class="line">A preprint speaks only where its side has no journal paper.</p>
+  <p class="line">A side with nothing says so; a preprint speaks only where there is no journal paper.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Tiers</td><td>1 journal papers; 2 preprints, conference papers, theses, reports; 3 web pages (title and site only).</td></tr>
+    <tr><td>Demo</td><td><code>test/fixtures/research/run-lower.json</code>.</td></tr>
   </table></details>
 </section>
 
+<!-- 12 -->
 <section class="step" id="asked" data-name="Earlier questions stay">
   <h2>Earlier questions stay</h2>
   <p class="line">Asked lists them, readable in airplane mode.</p>
-  <details><summary>How this is built</summary><table>
-    <tr><td>Tables</td><td><code>inquiries</code> (the question sealed) and <code>papers</code>, schema version 9.</td></tr>
-  </table></details>
 </section>
 
+<!-- 13 -->
+<section class="step" id="again" data-name="I can ask again">
+  <h2>I can ask again</h2>
+  <p class="line">The old lines stay struck while the new ones come in.</p>
+</section>
+
+<!-- 14 -->
 <section class="step" id="still" data-name="In Still, the titles alone">
   <h2>In Still, the titles alone</h2>
   <p class="line">No wash, no hue, nothing running.</p>
 </section>
 
-<section class="step" id="key" data-name="The key is pasted once">
-  <h2>The key is pasted once</h2>
-  <p class="line">In Settings, sealed with the PIN; no server holds it.</p>
-  <details><summary>How this is built</summary><table>
-    <tr><td>Key</td><td><code>settings.research.key</code> through <code>db/fields.ts</code>, as the Spotify tokens; a workspace key with a spend limit.</td></tr>
-  </table></details>
-</section>
-
   </div>
   <div class="phone" data-mock><div class="screen"><div class="island"></div>
-    <div class="status"><span id="clock">21:40</span><span>Example data</span></div>
+    <div class="status"><span id="clock">9:10</span><span>FlowState</span></div>
     <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
   </div></div>
   <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
 </main>
 </div>
-<script src="data.js"></script>
-<script src="research.js"></script>
 <script src="walk.js"></script>
 </body>
 </html>

@@ -1,14 +1,49 @@
-// The Research walkthrough (PLAN-RESEARCH.md): the rail, the counter, Previous and Next, the arrow keys, #step deep
-// links and the relight control, as design/tasks/walk.js has them. The phone is research.js, drawn here, not an iframe.
+// The Research walkthrough (PLAN-RESEARCH.md Q6): the rail, the counter, Previous and Next, the arrow keys, #step deep links and the relight
+// control, as design/energize/walk.js has them. Every step loads the real app afresh (app.html?step=<id>), so it starts
+// from that step's own state: the new load sits under the shown one until it says it has drawn, then takes its place
+// and is told to make the step's taps (design/research/src/driver.ts). Nothing here draws the app.
 (function () {
   var steps = [].slice.call(document.querySelectorAll('.step'));
   var rail = document.getElementById('rail'), counter = document.getElementById('counter');
-  var screen = document.querySelector('.screen'), clock = document.getElementById('clock');
-  var DESIGNED = { sea: 'night', ask: 'day', look: 'night', sides: 'day', one: 'day', paper: 'day', carry: 'day', empty: 'day', lower: 'night', asked: 'day', still: 'still', key: 'day' };
-  var TIME = { sea: '21:40', ask: '9:12', look: '21:41', sides: '9:14', one: '9:14', paper: '9:15', carry: '9:18', empty: '9:30', lower: '21:50', asked: '9:31', still: '0:20', key: '9:10' };
-  var i = 0, LIGHT = 'design';
+  var frames = document.getElementById('frames'), screen = document.querySelector('.screen'), nolive = document.getElementById('nolive');
+  var clock = document.getElementById('clock');
+  var DESIGNED = { sea: 'night', nokey: 'day', key: 'day', ask: 'day', look: 'night', sides: 'day', one: 'day', paper: 'day', write: 'day', council: 'day', lower: 'night', asked: 'day', again: 'day', still: 'still' };
+  // the phone's clock at each step: the morning of 11 / 13, the night before for the lower question, Still after midnight
+  var TIME = { sea: '21:40', nokey: '9:10', key: '9:11', ask: '9:12', look: '21:41', sides: '9:14', one: '9:14', paper: '9:15', write: '9:16', council: '9:18', lower: '21:50', asked: '9:31', again: '9:32', still: '0:20' };
+  var i = 0, LIGHT = 'design', n = 0, shown = null, pending = null, everReady = false, late = 0;
 
-  function relight() { screen.dataset.light = LIGHT === 'design' ? DESIGNED[steps[i].id] : LIGHT; }
+  function lightOf(id) { return LIGHT === 'design' ? DESIGNED[id] : LIGHT; }
+  function post(f, msg) { msg.fs = true; try { f.contentWindow.postMessage(msg, '*'); } catch (e) { /* gone */ } }
+
+  // a fresh load of the app for step id, under the one shown
+  function load(id) {
+    n++;
+    if (pending) pending.remove();
+    var f = document.createElement('iframe');
+    f.className = 'next';
+    f.title = 'FlowState, running live';
+    f.dataset.n = String(n);
+    f.dataset.step = id;
+    f.src = 'app.html?step=' + id + '&light=' + lightOf(id) + '&n=' + n;
+    frames.appendChild(f);
+    pending = f;
+    screen.dataset.light = lightOf(id);
+    clock.textContent = TIME[id] || '9:41';
+    clearTimeout(late);
+    late = setTimeout(function () { if (!everReady) { screen.classList.add('down'); nolive.hidden = false; } }, 4000);
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || !d.fs || !d.ready || !pending || e.source !== pending.contentWindow || d.n !== pending.dataset.n) return;
+    if (shown) shown.remove();
+    shown = pending; pending = null;
+    shown.classList.remove('next');
+    shown.id = 'app';
+    everReady = true;
+    screen.classList.remove('down'); nolive.hidden = true;
+    post(shown, { act: true });
+  });
 
   steps.forEach(function (s, j) {
     var li = document.createElement('li'), a = document.createElement('a');
@@ -25,13 +60,8 @@
     [].slice.call(rail.querySelectorAll('a')).forEach(function (a, j) { if (j === i) a.setAttribute('aria-current', 'step'); else a.removeAttribute('aria-current'); });
     counter.textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
     try { history.replaceState(null, '', '#' + steps[i].id); } catch (e) { /* a sandboxed page may refuse; the step still shows */ }
-    clock.textContent = TIME[steps[i].id] || '9:41';
-    relight();
-    window.RS.show(steps[i].id);
+    load(steps[i].id);
   }
-  function goId(id) { var k = steps.findIndex(function (s) { return s.id === id; }); if (k >= 0) go(k); }
-
-  window.RS.mount(document.getElementById('frames'), goId);
 
   document.addEventListener('click', function (e) {
     if (e.target.closest('[data-prev]')) go(i - 1);
@@ -42,11 +72,15 @@
     if (e.key === 'ArrowRight') go(i + 1);
     if (e.key === 'ArrowLeft') go(i - 1);
   });
+  // relighting keeps the step where it is: the shown app is relit in place (a load still coming is lit as it loads)
   document.querySelectorAll('.lights [data-light]').forEach(function (b) {
     b.addEventListener('click', function () {
       LIGHT = b.dataset.light;
       document.querySelectorAll('.lights [data-light]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
-      relight();
+      var id = steps[i].id;
+      screen.dataset.light = lightOf(id);
+      if (pending) load(id);
+      else if (shown) post(shown, { light: LIGHT });
     });
   });
 
