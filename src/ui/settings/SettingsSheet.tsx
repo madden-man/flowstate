@@ -169,7 +169,7 @@ function StorageRow() {
 /** The key's last four, the only part of it ever drawn once it is saved. */
 const lastFour = (k: string) => `Ends in ${k.slice(-4)}`;
 
-/** Research (PLAN-RESEARCH.md section 4, Q2): paste the Anthropic key, and an optional OpenAlex key; saved, the row shows
+/** Research (PLAN-RESEARCH.md section 4, Q2): paste the Anthropic key, and an optional OpenAlex key, then Save; saved, the row shows
  *  the last four of each and two words, Replace and Remove the key. Sealed with the PIN through Research's own store module, which
  *  writes the stored settings row; the signal is reloaded after, so a later saveSettings keeps the key. Locked, there is
  *  no key to read and the row is not drawn at all. Nothing is sent from here: a key only lets a question be asked. */
@@ -197,7 +197,8 @@ function ResearchRow() {
     await loadSettings();
     setSaved(null); setEditing(false);
   };
-  const enter = (e: KeyboardEvent) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); };
+  // Saved by the word Save or Return, never by the field's own change event: that fired mid-word and kept a key of one letter.
+  const enter = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); void commit(); } };
   const note = <span class="fs-note">Kept on this phone, sealed with the PIN. A question leaves the phone; nothing else does.</span>;
   if (saved && !editing) {
     return (
@@ -218,15 +219,18 @@ function ResearchRow() {
         <span>Research key</span>
         <input class="fs-input" type="password" value={draft} placeholder="Paste the key" autocomplete="off" spellcheck={false} enterKeyHint="done"
           onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setDraft(e.currentTarget.value)}
-          onChange={() => void commit()} onKeyDown={enter} />
+          onKeyDown={enter} />
       </label>
       <label class="fs-row stack">
         <span>OpenAlex key</span>
         <input class="fs-input" type="password" value={alexDraft} placeholder={saved?.openAlexKey ? lastFour(saved.openAlexKey) : 'Optional'} autocomplete="off" spellcheck={false} enterKeyHint="done"
           onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setAlexDraft(e.currentTarget.value)}
-          onChange={() => void commit()} onKeyDown={enter} />
+          onKeyDown={enter} />
       </label>
-      {editing && <button type="button" class="fs-word" onClick={() => { setDraft(''); setAlexDraft(''); setEditing(false); }}>Keep the old one</button>}
+      <span class="fs-musicacct">
+        <button type="button" class={`fs-word${draft.trim() ? '' : ' inert'}`} aria-disabled={draft.trim() ? undefined : 'true'} data-research-save onClick={() => void commit()}>Save</button>
+        {editing && <button type="button" class="fs-word" onClick={() => { setDraft(''); setAlexDraft(''); setEditing(false); }}>Keep the old one</button>}
+      </span>
       {note}
     </div>
   );

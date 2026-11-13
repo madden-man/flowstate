@@ -70,21 +70,15 @@ test('Research: the circle, no key, a key, a run written in, a paper, the carry,
   const sheet = page.locator('[data-sheet="Settings"]');
   await expect(sheet).toBeVisible();
   await expect(sheet.locator('[data-research]').getByText('Research key')).toBeVisible();
+  // the key typed into the row a letter at a time (it once saved itself after the first letter), then Save
+  const keyField = sheet.locator('[data-research] input').first();
+  await keyField.click();
+  await page.keyboard.type('sk-ant-recorded-0000');
+  await sheet.locator('[data-research-save]').click();
+  await expect(sheet.locator('[data-research-last]')).toHaveText('Ends in 0000');
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(sheet).toHaveCount(0);
   expect(outside).toEqual([]);
-  // the key, as the row keeps it with no PIN on (plain, db/fields.ts): written straight to the row, then the app opened
-  // again. Pasting it through the row is Q2's DOM test; in headless Chromium the row's field loses focus after a
-  // keystroke or two on every page, so it is not driven here (seen on #/journal too; noted for Q2, not changed here).
-  await page.evaluate(() => new Promise<void>((resolve, reject) => {
-    const o = indexedDB.open('flowstate');
-    o.onerror = () => reject(o.error);
-    o.onsuccess = () => {
-      const st = o.result.transaction('settings', 'readwrite').objectStore('settings');
-      const g = st.get('app');
-      g.onsuccess = () => { const put = st.put({ ...g.result, research: { key: 'sk-ant-recorded-0000' } }); put.onsuccess = () => { o.result.close(); resolve(); }; };
-    };
-  }));
   await page.reload();
   await page.locator('.fs-page').first().waitFor();
   expect(outside).toEqual([]);
