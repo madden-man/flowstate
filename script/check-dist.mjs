@@ -33,6 +33,11 @@ const INERT = [
   [/^https:\/\/api\.crossref\.org\/works\/?(\$\{[\w$.]+\})?(\?\S*)?$/, 'src/research: Crossref lookup by DOI, opt-in'],
   [/^https:\/\/doi\.org\/(\$\{[\w$.]+\})?$/, 'src/research: a title\'s link to its paper by DOI, a navigation'],
   [/^https:\/\/europepmc\.org\/article\/(\$\{[\w$.]+\}\/?)*$/, 'src/research: a title\'s link to its Europe PMC record, a navigation'],
+  // The Research walkthrough (design/research/dist, Q6) carries one recorded OpenAlex record, cut from
+  // test/fixtures/research/openalex-tier1.json at build time: its work id (data, never fetched) and its DOI in URL form
+  // (read into the title's link, a navigation). Only that build carries them; each is listed by name.
+  [/^https:\/\/openalex\.org\/W2045642783$/, 'design/research: a recorded OpenAlex work id, never fetched'],
+  [/^https:\/\/doi\.org\/10\.1037\/1528-3542\.8\.2\.302$/, 'design/research: a recorded DOI, a title\'s link, a navigation'],
   // The SDK's own inert strings (@anthropic-ai/sdk, loaded by src/research/client.ts in its own chunk, Q4): links inside
   // the text of its errors and console warnings, never fetched. Seen in the build, each by name.
   [/^https:\/\/docs\.expo\.dev\/versions\/latest\/sdk\/expo\/#expofetch-api$/, '@anthropic-ai/sdk: text of a React Native error'],

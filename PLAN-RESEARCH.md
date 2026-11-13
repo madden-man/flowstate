@@ -2,7 +2,7 @@
 
 Date: 2026-11-13. Status: planned, not built. Packages are Q0 to Q6 (Q for question). Tommy's ask: "make a plan to create a new 'research' flow (next to meditate and energize) which lets me ask a question, and opus agents will find peer reviewed articles on both sides of the argument (+ / -). this should be hooked up to anthropic api, but only titles and abstracts of the peer reviewed journals should show. where no peer reviewed journals can be found relevant to the question, lower level sources are fine."
 
-`PLAN.md` stays the architecture, `PLAN-MOUNTAIN.md` the Flow tab, `PLAN-MEDITATE.md` the shape this copies (a circle in the sea with a page of its own, not a flow with steps). The walkthrough is `design/research/index.html`: twelve steps round one phone that can be used (Ask runs the looking, a title opens its abstract, + and − quiet a side), a hand mock on the app's own `parts.css`, its papers real Europe PMC records word for word, sorted into sides by hand.
+`PLAN.md` stays the architecture, `PLAN-MOUNTAIN.md` the Flow tab, `PLAN-MEDITATE.md` the shape this copies (a circle in the sea with a page of its own, not a flow with steps). The walkthrough is `design/research/index.html` (Q6, `npm run walkthrough:research`): fourteen steps round one phone running the real app on the two recorded runs in `test/fixtures/research/`, with no key and no network.
 
 ## 1. What this breaks, and what it keeps
 
