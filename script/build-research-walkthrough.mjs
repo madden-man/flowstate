@@ -27,3 +27,11 @@ if (fs.existsSync(lint)) run(process.execPath, [lint, path.join(out, 'index.html
 else console.log('artifact-lint not found at ~/.claude/hooks: skipped');
 run(process.execPath, [path.join(root, 'script/check-dist.mjs'), out]);
 console.log(`built ${path.relative(root, out)}/: ${fs.readdirSync(out).join(', ')}`);
+
+// The SDK carries a raw U+FFFD inside a template literal (its replacement for a lone surrogate). The artifact host
+// refuses a file with that character in it, so it is written as its escape: the same string when the script runs.
+{
+  const js = path.join(out, 'app.js');
+  const text = fs.readFileSync(js, 'utf8');
+  if (text.includes('�')) fs.writeFileSync(js, text.replaceAll('�', '\\uFFFD'));
+}
