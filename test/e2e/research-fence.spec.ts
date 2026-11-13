@@ -17,6 +17,10 @@ test('with no research key, every tab and Settings stay on the origin', async ({
   }
   await page.goto('/#/flow/meditate');
   await page.goto('/#/flow/energize');
+  // Research itself with no key (Q4): the page says where the key goes, and nothing is sent
+  await page.goto('/#/flow/research');
+  await expect(page.locator('[data-print="key"]')).toHaveText('The key goes in Settings.');
+  await page.goto('/#/flow/research/asked');
   await page.goto('/#/journal');
 
   await page.getByRole('button', { name: 'Settings' }).click();

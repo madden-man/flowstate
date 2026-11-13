@@ -41,7 +41,7 @@ test('mountain: seven named signs down the plate, each a link that is a thumb wi
   expect(Math.abs(h / lh - Math.round(h / lh))).toBeLessThan(0.02);
   // the circles
   const circles = plate.locator('a.mt-circle');
-  await expect(circles).toHaveText(['Meditate', 'Energize']);
+  await expect(circles).toHaveText(['Meditate', 'Energize', 'Research']);
   for (const c of await circles.all()) expect((await c.boundingBox())!.width).toBeGreaterThanOrEqual(44);
   // no number on the plate (rule 15)
   expect(/\d/.test(await plate.innerText())).toBe(false);

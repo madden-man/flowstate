@@ -26,15 +26,19 @@ const INERT = [
   // three index endpoints are its fetches (a query string after one is still that endpoint, the question as search
   // terms); doi.org and europepmc.org are where a title links, navigations. Each may be a template with its variables
   // in ${...} (a variable or a field of one, as ${e.doi}), named with a $ when minified, as the Spotify links are.
-  // Nothing imports the SDK or the indexes yet on Q2's branch, so these were written from the plan and Q1's
-  // indexes.ts source, not seen in a build; the SDK's own inert strings (links in its error messages and docs
-  // comments) are listed by name at integration, when a build first carries them.
+  // Written at Q2 from the plan and Q1's source; Q4's page is the first build to carry them, and they match it.
   [/^https:\/\/api\.anthropic\.com\/?$/, 'src/research: the Anthropic API (the SDK\'s base URL), opt-in'],
   [/^https:\/\/www\.ebi\.ac\.uk\/europepmc\/webservices\/rest\/search(\?\S*)?$/, 'src/research: Europe PMC search, opt-in'],
   [/^https:\/\/api\.openalex\.org\/works(\?\S*)?$/, 'src/research: OpenAlex works, opt-in'],
   [/^https:\/\/api\.crossref\.org\/works\/?(\$\{[\w$.]+\})?(\?\S*)?$/, 'src/research: Crossref lookup by DOI, opt-in'],
   [/^https:\/\/doi\.org\/(\$\{[\w$.]+\})?$/, 'src/research: a title\'s link to its paper by DOI, a navigation'],
   [/^https:\/\/europepmc\.org\/article\/(\$\{[\w$.]+\}\/?)*$/, 'src/research: a title\'s link to its Europe PMC record, a navigation'],
+  // The SDK's own inert strings (@anthropic-ai/sdk, loaded by src/research/client.ts in its own chunk, Q4): links inside
+  // the text of its errors and console warnings, never fetched. Seen in the build, each by name.
+  [/^https:\/\/docs\.expo\.dev\/versions\/latest\/sdk\/expo\/#expofetch-api$/, '@anthropic-ai/sdk: text of a React Native error'],
+  [/^https:\/\/docs\.anthropic\.com\/en\/docs\/resources\/model-deprecations$/, '@anthropic-ai/sdk: text of a deprecation warning'],
+  [/^https:\/\/platform\.claude\.com\/docs\/en\/build-with-claude\/adaptive-thinking$/, '@anthropic-ai/sdk: text of a thinking-config warning'],
+  [/^https:\/\/platform\.claude\.com\/docs\/en\/cli-sdks-libraries\/sdks\/typescript#(streaming-responses|long-requests)$/, '@anthropic-ai/sdk: text of a long-request error'],
 ];
 const dir = process.argv[2] || 'dist';
 if (!fs.existsSync(dir)) { console.error(`${dir} not found: run npm run build first`); process.exit(2); }
