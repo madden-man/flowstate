@@ -178,7 +178,7 @@ describe('the plate, with no canvas', () => {
     expect(stops[3].dataset.live).toBe('true');
     expect(stops[3].querySelector('.mt-dot')).not.toBeNull();
     expect(stops[0].querySelector('.mt-dot')).toBeNull();
-    expect([...root.querySelectorAll('a.mt-circle')].map(a => a.getAttribute('href'))).toEqual(['#/flow/meditate', '#/flow/energize']);
+    expect([...root.querySelectorAll('a.mt-circle')].map(a => a.getAttribute('href'))).toEqual(['#/flow/meditate', '#/flow/energize', '#/flow/research']);
     // no ride open: no dot on the sea
     expect(root.querySelector('a.mt-circle .mt-dot')).toBeNull();
     act(() => { render(h(MountainPlate, { d: 0.4, gates: [0, 0, 0, 0, 0.7, 0, 0], liveFlows: new Set(['energize']) }), root); });

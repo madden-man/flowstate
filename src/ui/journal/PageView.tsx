@@ -33,6 +33,7 @@ import { voiceColour } from '../voice';
 import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import { JournalLink } from '../flow/JournalLink';
+import { PaperLine, ResearchFrom } from '../flow/PaperLine';
 import { pageCarry, type PageCarry } from '../flow/chakra/carry';
 import {
   today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
@@ -397,10 +398,13 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     const el = e.currentTarget;
     const list = blockRef.current;
     const i = list.findIndex(x => x.id === bid);
+    // a paper's line (Q4) is never written on, so Backspace goes past it to his own line above
+    const above = list.slice(0, Math.max(0, i)).reverse().find(x => !x.m?.paper);
     if (e.key === 'Backspace' && !el.value && el.selectionStart === 0 && i > 0) {
       e.preventDefault();
+      if (!above) return;
       holdKeyboard();
-      moveTo(list[i - 1].id, 'end');
+      moveTo(above.id, 'end');
       return;
     }
     if (e.key !== 'Enter' || e.shiftKey) return;
@@ -585,8 +589,12 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
         {page?.flow && <JournalLink episodeId={page.flow.episodeId} />}
         {/* S2: a page written after a sit links back to it the same way (page.sit) */}
         {page?.sit && <JournalLink sitId={page.sit.sitId} />}
+        {/* Q4: a page a paper was carried to prints the question it came from, and a tap goes back (page.research) */}
+        {page?.research && <ResearchFrom inquiryId={page.research.inquiryId} />}
         {data && blocks.map(b => {
           const m = b.m;
+          // a paper's title carried from Research (PLAN-RESEARCH.md Q4): the paper's line, not his, so not written on
+          if (m?.paper) return <div key={b.id} class="fs-block"><PaperLine m={m} /></div>;
           const dated = m && prevAt !== undefined && dayKey(m.at) !== dayKey(prevAt) ? new Date(m.at) : undefined;
           if (m) prevAt = m.at;
           const vid = b.id in voiceOf ? voiceOf[b.id] : m?.voiceId;

@@ -32,6 +32,11 @@ type Props = {
   pages?: 'link' | 'here';
   /** The way back from a section's page, in the place of Pages and Settings (V2: Questions on a question page). */
   back?: { word: string; href: string };
+  /** A second word after the way back (PLAN-RESEARCH.md Q4: Asked, where the Journal has Pages); gone in Still, as
+   *  Pages is, since Still has no page list. here marks it current. */
+  also?: { word: string; href: string; here?: boolean };
+  /** The view-transition name the header's label travels under (rule 28: Research's word from the sea, Q4). */
+  travel?: string;
   /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). A sign's
    *  page does not: "Solar plexus chakra" is on its header, so there the way back takes Settings' place. */
   keepSettings?: boolean;
@@ -50,7 +55,7 @@ type Props = {
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, keepSettings, count, door, sign }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, also, travel, keepSettings, count, door, sign }: Omit<Props, 'children'>) {
   if (door) return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -74,6 +79,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, k
           <a class="fs-word fs-notstill" href="#/journal/pages" aria-current={pages === 'here' ? 'page' : undefined}>Pages</a>
         )}
         {back && <a class="fs-word" href={back.href}>{back.word}</a>}
+        {also && <a class="fs-word fs-notstill" href={also.href} aria-current={also.here ? 'page' : undefined}>{also.word}</a>}
         {/* the way back takes Settings' place as well (V2, as the proposal draws it), so "2 of 3 open" and the
             date keep one line on a 375pt phone; Settings is one tap away on every other page */}
         {(!back || keepSettings) && <button type="button" class="fs-word" onClick={() => { openSheet.value = 'settings'; tick('sheet'); }}>Settings</button>}
@@ -86,7 +92,7 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, k
           <SignBack sign={sign} />
           {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
           {count && <span class="fs-count">{count}</span>}
-          {label && <span class="fs-hdr-label">{label}</span>}
+          {label && <span class="fs-hdr-label" data-travel={travel}>{label}</span>}
         </span>
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>

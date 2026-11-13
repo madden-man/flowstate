@@ -1,0 +1,66 @@
+/* Research (PLAN-RESEARCH.md section 2, Q4): what the page adds to parts.css, on tokens only. The page itself is the
+   council's: fs-hdr, fs-chat on fs-rules, fs-msg fs-v lines (the + voice and its deep twin), the chips and fs-new under
+   the thumb in fs-composer-wrap; a paper's page is a journal page (fs-sheetof on fs-rules). The approved mock is
+   design/research/research.css; this is it on the app's own parts. */
+
+/* the question at the title size, as a question page's is (fs-q); on the blank page it is the field itself */
+.rs-q { margin: 0 0 var(--lh-ink); font-size: var(--fs-title); line-height: var(--lh-ink); }
+.rs-page textarea.rs-q {
+  display: block; width: 100%; padding: 0; border: 0; resize: none; outline: none; background: transparent; overflow: hidden;
+  font-family: inherit; color: var(--ink); caret-color: var(--ink); min-height: var(--lh-ink);
+}
+.rs-page textarea.rs-q::placeholder { color: var(--print); font-style: italic; }
+/* the app's fixed print: "This question leaves the phone.", a stopped run's line, a section head */
+.rs-print { display: block; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
+.rs-print .fs-word { font: inherit; letter-spacing: inherit; text-transform: inherit; }
+
+/* a line: its print (the sign, journal, year, kind) on its own rule, the title in ink on the next, Abstract on the last */
+.rs-page .fs-msg, .rs-carried { margin-bottom: var(--lh-ink); }
+.rs-page .fs-msg p, .rs-carried p { margin: 0; }
+.rs-sp { line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* + and − are glyphs in the serif, a size up, like the ? and the ♪ (rule 36, rule 7) */
+.rs-sign { font-family: var(--serif); font-size: var(--fs-mark); letter-spacing: 0; text-transform: none; line-height: 1; }
+/* a title is a link to the paper at its journal: ink, underlined in its side's colour */
+.rs-link { color: var(--ink); text-decoration: underline; text-decoration-color: var(--vc, var(--print)); text-decoration-thickness: 1px; text-underline-offset: 4px; cursor: pointer; }
+.rs-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* the word that opens the abstract, on the line's last rule */
+.rs-abs { text-align: right; padding-right: var(--s1); cursor: pointer; text-decoration: underline; text-decoration-color: var(--seam); text-underline-offset: 4px; }
+.rs-hush { display: none; }
+
+/* the chips under the page: + and −, the dot breathing only while its side is looking (rule 31), still after */
+.rs-page .fs-chips { align-items: center; }
+.rs-page .fs-chip.rs-side { font-family: var(--serif); font-size: var(--fs-mark); line-height: 1; padding: 4px 14px; min-height: var(--hit); }
+.rs-page .fs-chip.rs-side[data-looking] i { animation: rs-breathe var(--t-breath) var(--ease) infinite; }
+@keyframes rs-breathe { 40% { transform: scale(1.8); opacity: .5; } }
+.rs-page .fs-chips .fs-word { margin-left: auto; }
+
+/* a title is written in, left to right, as a pen would (rule 27); a lifted one goes over --t-ui */
+.rs-in { animation: rs-write var(--t-page) var(--ease) both; }
+@keyframes rs-write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.rs-lifting { animation: rs-lift var(--t-ui) var(--ease) both; }
+@keyframes rs-lift { to { opacity: 0; } }
+
+/* an earlier asking, kept struck (rule 10) until he lifts it */
+.rs-earlier .fs-struck { color: var(--print); }
+.rs-earlier .rs-line { margin-bottom: 0; cursor: default; }
+
+/* a paper's page: its own words on the rules, its three words at the foot */
+.rs-paper p { margin: 0 0 var(--lh-ink); }
+.rs-paper p.rs-q, .rs-paper p.fs-line { margin: 0; }
+.rs-paper p.fs-line { min-height: var(--lh-ink); }
+.rs-words { display: flex; justify-content: space-between; padding: 0 var(--gutter); }
+.rs-words .fs-word { min-height: var(--hit); display: inline-flex; align-items: center; }
+a.fs-word { text-decoration: none; }
+
+/* the side's voice (PaperLine sideStyle): a line, a carried line, a paper's page, a chip */
+.fs-v.rs-line, .fs-v.rs-carried, .rs-paper, .fs-chip.rs-side { --vc: var(--rs-side, var(--ink)); }
+
+/* Still (rule 13): the question and the titles, no wash and no hue, the dots still, nothing running. A line carried to a
+   journal or council page keeps its voice, as every voice's line does there. */
+[data-light="still"] .rs-page .fs-v.rs-line, [data-light="still"] .rs-paper, [data-light="still"] .rs-page .fs-chip.rs-side { --vc: var(--print); }
+[data-light="still"] .rs-page .fs-chip.rs-side i { animation: none; background: var(--print); }
+[data-light="still"] .rs-page .rs-sp { color: var(--print); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-in, .rs-lifting, .rs-page .fs-chip.rs-side[data-looking] i { animation: none; }
+}
