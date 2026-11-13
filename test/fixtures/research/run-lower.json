@@ -1,0 +1,145 @@
+{
+ "about": "A recorded Research run (PLAN-RESEARCH.md Q4): no key, no network. indexes maps '<index> <tier>' to the saved index response served for any search of that index and tier; turns holds each conversation's replies in order (for, against, check), each { stop_reason, content } as the Messages API returns it. Text and thinking blocks are in every turn on purpose: they must never reach the page. A conversation past its last turn answers end_turn.",
+ "question": "Does writing about a loss lower grief?",
+ "indexes": {
+  "europepmc 1": "europepmc-tier1.json",
+  "europepmc 2": "europepmc-tier2.json",
+  "openalex 1": "openalex-tier1.json",
+  "openalex 2": "openalex-tier2.json"
+ },
+ "turns": {
+  "for": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "f1",
+      "name": "search",
+      "input": {
+       "query": "grief writing",
+       "index": "europepmc",
+       "tier": 1
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ],
+  "against": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "a1",
+      "name": "search",
+      "input": {
+       "query": "grief writing trial",
+       "index": "europepmc",
+       "tier": 2
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "a2",
+      "name": "file",
+      "input": {
+       "id": "doi:10.21203/rs.3.rs-9258774/v1"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ],
+  "check": [
+   {
+    "stop_reason": "tool_use",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "MODEL-THINKING-NEVER-SHOWN",
+      "signature": "sig-recorded"
+     },
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     },
+     {
+      "type": "tool_use",
+      "id": "c1",
+      "name": "rule",
+      "input": {
+       "id": "doi:10.21203/rs.3.rs-9258774/v1",
+       "side": "against"
+      }
+     }
+    ]
+   },
+   {
+    "stop_reason": "end_turn",
+    "content": [
+     {
+      "type": "text",
+      "text": "MODEL-TEXT-NEVER-SHOWN",
+      "citations": null
+     }
+    ]
+   }
+  ]
+ }
+}

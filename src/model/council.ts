@@ -161,7 +161,7 @@ export const toggleSeat = async (pageId: string, voiceId: string, now = Date.now
 // ---------------------------------------------------------------- messages
 
 /** A line spoken on a page: by a voice, or plain ink when voiceId is undefined. */
-export async function speak(pageId: string, text: string, opts: { voiceId?: string; replyTo?: string; now?: number } = {}): Promise<Message> {
+export async function speak(pageId: string, text: string, opts: { voiceId?: string; replyTo?: string; now?: number; paper?: Message['paper'] } = {}): Promise<Message> {
   const now = opts.now ?? Date.now();
   const page = await store.get('pages', pageId);
   if (!page) throw new Error('No such page');
@@ -171,6 +171,8 @@ export async function speak(pageId: string, text: string, opts: { voiceId?: stri
   const message: Message = { id: uid(), pageId, at, updatedAt: now, text, kept: false };
   if (opts.voiceId) message.voiceId = opts.voiceId;
   if (opts.replyTo) message.replyTo = opts.replyTo;
+  // a paper's title carried from Research (PLAN-RESEARCH.md Q4): the line is the paper's, in its side's voice
+  if (opts.paper) message.paper = opts.paper;
   await store.many({ pages: [{ ...page, updatedAt: now }], messages: [message] });
   return message;
 }

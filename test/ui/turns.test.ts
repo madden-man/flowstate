@@ -31,4 +31,14 @@ describe('kindOf', () => {
     expect(kindOf('/flow', '/flow/c/root')).toBe('open');
     expect(kindOf('/flow/c/root', '/flow')).toBe('close');
   });
+  it('turns through Research\'s pages, each a step deeper: the blank page, Asked, a question, a paper (Q4)', () => {
+    expect(kindOf('/flow', '/flow/research')).toBe('open');
+    expect(kindOf('/flow/research', '/flow/research/q1')).toBe('open');
+    expect(kindOf('/flow/research', '/flow/research/asked')).toBe('open');
+    expect(kindOf('/flow/research/asked', '/flow/research/q1')).toBe('open');
+    expect(kindOf('/flow/research/q1', '/flow/research/q1/doi%3A10.1%2Fx')).toBe('open');
+    expect(kindOf('/flow/research/q1/doi%3A10.1%2Fx', '/flow/research/q1')).toBe('close');
+    expect(kindOf('/flow/research/q1', '/flow')).toBe('close');
+    expect(kindOf('/flow/research/q1', '/journal')).toBe('tab-left');
+  });
 });

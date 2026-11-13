@@ -10,6 +10,6 @@
 3. **Tokens only.** Colours, fonts, sizes, durations come from `src/ui/tokens.css` (copied unchanged from `design/tokens.css`). A new token needs a comment naming the screen that needed it.
 4. **Every screen works in all three lights** (`data-light="day|night|still"`) and is reviewed in all three with the walkthrough's relight control. Still hides counts, states and deep twins; check that your screen does too.
 5. **Every package PR adds or updates its steps in `design/walkthrough.html`**, built from the real components, one screen per step, one sentence per step (the artifact rule in `~/.claude/CLAUDE.md`).
-6. **No network** outside `src/music/`. No model-written text anywhere. No streaks, badges, confetti or counts on tabs. No modal dialogs; sheets rise. No icon libraries.
+6. **No network** outside `src/music/` and `src/research/`. No model-written text anywhere. No streaks, badges, confetti or counts on tabs. No modal dialogs; sheets rise. No icon libraries.
 7. **Sound through `parts/Sound`, haptics through `parts/Haptic`**, nothing else; never uninvited.
 8. **No em dashes** in anything written for Tommy (docs, UI copy, PR bodies).

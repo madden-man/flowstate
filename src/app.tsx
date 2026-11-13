@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step, #/flow/c/:chakra (R3: a stop's page; a flow under a sign opens it). The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step, #/flow/c/:chakra (R3: a stop's page; a flow under a sign opens it). The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -15,6 +15,7 @@ import { FlowRoute, DoorChakraPage } from './ui/flow/ChakraPage';
 import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
+import { ResearchAsk, ResearchAsked, ResearchInquiry, ResearchPaper } from './ui/flow/Research';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
@@ -128,6 +129,12 @@ function Frame() {
           <Route path="/flow/now" component={Now} />
           <Route path="/flow/meditate" component={Meditate} />
           <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
+          {/* Research (PLAN-RESEARCH.md section 5, Q4): the blank page, Asked, a question, a paper's page; before
+              /flow/:id and /flow/:id/:step, so no flow is ever called "research" */}
+          <Route path="/flow/research" component={ResearchAsk} />
+          <Route path="/flow/research/asked" component={ResearchAsked} />
+          <Route path="/flow/research/:id" component={ResearchInquiry} />
+          <Route path="/flow/research/:id/:paper" component={ResearchPaper} />
           {/* a stop's page (PLAN-MOUNTAIN.md R3), before /flow/:id/:step so "c" is never read as a flow; one component for
               all three, so a dot moved on a stop's page keeps the page (ui/flow/ChakraPage.tsx FlowRoute) */}
           <Route path="/flow/c/:chakra" component={FlowRoute} />

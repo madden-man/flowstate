@@ -24,12 +24,14 @@
     "walkthrough:mountain": "node script/build-mountain-walkthrough.mjs",
     "walkthrough:values": "node script/build-values-walkthrough.mjs",
     "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs",
-    "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs"
+    "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
+    "walkthrough:research": "node script/build-research-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@preact/signals": "^2.11.4",
     "dexie": "^4.4.7",
     "preact": "^10.29.8",

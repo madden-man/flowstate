@@ -1,0 +1,1648 @@
+{
+ "meta": {
+  "count": 111219,
+  "page": 1,
+  "per_page": 25
+ },
+ "results": [
+  {
+   "id": "https://openalex.org/W7118634757",
+   "doi": "https://doi.org/10.5281/zenodo.18157121",
+   "title": "Is intermittent fasting healthy?",
+   "display_name": "Is intermittent fasting healthy?",
+   "publication_year": 2026,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.5281/zenodo.18157121",
+    "version": null,
+    "source": {
+     "display_name": "Zenodo (CERN European Organization for Nuclear Research)",
+     "type": "repository"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Intermittent": [
+     0
+    ],
+    "fasting": [
+     1
+    ],
+    "is": [
+     2
+    ],
+    "linked": [
+     3
+    ],
+    "with": [
+     4
+    ],
+    "weight": [
+     5
+    ],
+    "loss": [
+     6
+    ],
+    "and": [
+     7,
+     25
+    ],
+    "improved": [
+     8
+    ],
+    "cardiometabolic": [
+     9
+    ],
+    "indices.": [
+     10
+    ],
+    "However,": [
+     11
+    ],
+    "further": [
+     12
+    ],
+    "well-structured": [
+     13
+    ],
+    "long-term": [
+     14
+    ],
+    "studies": [
+     15
+    ],
+    "are": [
+     16
+    ],
+    "essential": [
+     17
+    ],
+    "to": [
+     18
+    ],
+    "fully": [
+     19
+    ],
+    "assess": [
+     20
+    ],
+    "its": [
+     21
+    ],
+    "broader": [
+     22
+    ],
+    "health": [
+     23
+    ],
+    "impacts": [
+     24
+    ],
+    "safety.": [
+     26
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W2890679433",
+   "doi": "https://doi.org/10.22038/jnfh.2018.30667.1111",
+   "title": "Health Benefits of Islamic Intermittent Fasting",
+   "display_name": "Health Benefits of Islamic Intermittent Fasting",
+   "publication_year": 2017,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://doaj.org/article/6dfc782a3b6f4660a1f5cef74f276bda",
+    "version": "submittedVersion",
+    "source": {
+     "display_name": "DOAJ (DOAJ: Directory of Open Access Journals)",
+     "type": "repository"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Background": [
+     0
+    ],
+    "&": [
+     1
+    ],
+    "Objective:": [
+     2
+    ],
+    "Islamic": [
+     3,
+     63,
+     94,
+     106,
+     143,
+     184
+    ],
+    "fasting": [
+     4,
+     47,
+     107,
+     113,
+     120,
+     125,
+     144
+    ],
+    "is": [
+     5,
+     116,
+     126
+    ],
+    "observed": [
+     6
+    ],
+    "by": [
+     7
+    ],
+    "millions": [
+     8
+    ],
+    "of": [
+     9,
+     18,
+     24,
+     62,
+     86,
+     137,
+     142,
+     149,
+     164
+    ],
+    "Muslims": [
+     10,
+     29,
+     45
+    ],
+    "across": [
+     11
+    ],
+    "the": [
+     12,
+     15,
+     25,
+     60,
+     138
+    ],
+    "world": [
+     13
+    ],
+    "during": [
+     14
+    ],
+    "holy": [
+     16
+    ],
+    "month": [
+     17
+    ],
+    "Ramadan": [
+     19,
+     103,
+     182
+    ],
+    "and": [
+     20,
+     33,
+     42,
+     65,
+     83,
+     102,
+     121,
+     157,
+     172,
+     177
+    ],
+    "other": [
+     21
+    ],
+    "specific": [
+     22
+    ],
+    "days": [
+     23
+    ],
+    "lunar": [
+     26
+    ],
+    "year.": [
+     27
+    ],
+    "Fasting": [
+     28
+    ],
+    "abstain": [
+     30
+    ],
+    "from": [
+     31,
+     35
+    ],
+    "eating": [
+     32
+    ],
+    "drinking": [
+     34
+    ],
+    "dawn": [
+     36
+    ],
+    "until": [
+     37
+    ],
+    "sunset.": [
+     38
+    ],
+    "Depending": [
+     39
+    ],
+    "on": [
+     40
+    ],
+    "season": [
+     41
+    ],
+    "geographical": [
+     43
+    ],
+    "location,": [
+     44
+    ],
+    "maintain": [
+     46
+    ],
+    "for": [
+     48
+    ],
+    "approximately": [
+     49
+    ],
+    "13-18": [
+     50
+    ],
+    "hours": [
+     51
+    ],
+    "per": [
+     52
+    ],
+    "day.": [
+     53
+    ],
+    "The": [
+     54
+    ],
+    "present": [
+     55
+    ],
+    "study": [
+     56
+    ],
+    "aimed": [
+     57
+    ],
+    "to": [
+     58,
+     118,
+     133
+    ],
+    "review": [
+     59,
+     69
+    ],
+    "benefits": [
+     61,
+     141
+    ],
+    "fasting.Materials": [
+     64
+    ],
+    "Methods:": [
+     66
+    ],
+    "This": [
+     67
+    ],
+    "literature": [
+     68
+    ],
+    "was": [
+     70
+    ],
+    "conducted": [
+     71
+    ],
+    "via": [
+     72
+    ],
+    "searching": [
+     73
+    ],
+    "in": [
+     74
+    ],
+    "databases": [
+     75
+    ],
+    "like": [
+     76,
+     91
+    ],
+    "Medline,": [
+     77
+    ],
+    "PubMed,": [
+     78
+    ],
+    "PMC,": [
+     79
+    ],
+    "Google": [
+     80
+    ],
+    "Scholar,": [
+     81
+    ],
+    "ScienceDirect,": [
+     82
+    ],
+    "reference": [
+     84
+    ],
+    "lists": [
+     85
+    ],
+    "relevant": [
+     87
+    ],
+    "articles": [
+     88
+    ],
+    "using": [
+     89
+    ],
+    "keywords": [
+     90
+    ],
+    "health": [
+     92,
+     130,
+     140
+    ],
+    "benefits,": [
+     93
+    ],
+    "fasting,": [
+     95,
+     97,
+     99
+    ],
+    "intermittent": [
+     96,
+     104,
+     112
+    ],
+    "alternate-day": [
+     98,
+     119
+    ],
+    "time-restricted": [
+     100,
+     122
+    ],
+    "feeding,": [
+     101
+    ],
+    "fasting.Results:": [
+     105
+    ],
+    "could": [
+     108
+    ],
+    "be": [
+     109
+    ],
+    "considered": [
+     110
+    ],
+    "as": [
+     111,
+     114
+    ],
+    "it": [
+     115
+    ],
+    "similar": [
+     117
+    ],
+    "feeding.": [
+     123
+    ],
+    "Intermittent": [
+     124,
+     186
+    ],
+    "associated": [
+     127
+    ],
+    "with": [
+     128
+    ],
+    "numerous": [
+     129
+    ],
+    "benefits.Conclusion:": [
+     131
+    ],
+    "According": [
+     132
+    ],
+    "this": [
+     134
+    ],
+    "review,": [
+     135
+    ],
+    "some": [
+     136
+    ],
+    "main": [
+     139
+    ],
+    "include": [
+     145
+    ],
+    "weight": [
+     146
+    ],
+    "loss,": [
+     147
+    ],
+    "attenuation": [
+     148
+    ],
+    "metabolic": [
+     150
+    ],
+    "markers": [
+     151
+    ],
+    "(e.g.,": [
+     152,
+     167
+    ],
+    "insulin": [
+     153
+    ],
+    "resistance,": [
+     154
+    ],
+    "blood": [
+     155,
+     158
+    ],
+    "glucose,": [
+     156
+    ],
+    "pressure),": [
+     159
+    ],
+    "improved": [
+     160
+    ],
+    "lipid": [
+     161
+    ],
+    "profile,": [
+     162
+    ],
+    "prevention": [
+     163
+    ],
+    "chronic": [
+     165
+    ],
+    "problems": [
+     166
+    ],
+    "obesity,": [
+     168
+    ],
+    "diabetes,": [
+     169
+    ],
+    "cardiovascular": [
+     170
+    ],
+    "diseases,": [
+     171
+    ],
+    "cancer),": [
+     173
+    ],
+    "protection": [
+     174
+    ],
+    "against": [
+     175
+    ],
+    "neurodegeneration,": [
+     176
+    ],
+    "diminished": [
+     178
+    ],
+    "inflammation.Keywords:": [
+     179
+    ],
+    "Health": [
+     180
+    ],
+    "Benefits,": [
+     181
+    ],
+    "Fasting,": [
+     183,
+     185,
+     187,
+     189
+    ],
+    "Alternate-day": [
+     188
+    ],
+    "Time-restricted": [
+     190
+    ],
+    "Feeding": [
+     191
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W3021544097",
+   "doi": null,
+   "title": "A Literature Review On Intermittent Fasting",
+   "display_name": "A Literature Review On Intermittent Fasting",
+   "publication_year": 2020,
+   "type": "article",
+   "primary_location": {
+    "landing_page_url": "https://digitalcommons.liberty.edu/honors/999",
+    "version": "submittedVersion",
+    "source": {
+     "display_name": "Digital Commons (Liberty University)",
+     "type": "repository"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "Intermittent": [
+     0
+    ],
+    "fasting": [
+     1
+    ],
+    "has": [
+     2,
+     17,
+     30,
+     46
+    ],
+    "been": [
+     3,
+     77
+    ],
+    "instructed": [
+     4
+    ],
+    "in": [
+     5,
+     49,
+     55,
+     79
+    ],
+    "the": [
+     6,
+     19,
+     61
+    ],
+    "Bible": [
+     7
+    ],
+    "as": [
+     8,
+     52,
+     54
+    ],
+    "an": [
+     9
+    ],
+    "implied": [
+     10
+    ],
+    "part": [
+     11
+    ],
+    "of": [
+     12,
+     22,
+     35,
+     60,
+     63
+    ],
+    "daily": [
+     13
+    ],
+    "living.": [
+     14
+    ],
+    "This": [
+     15
+    ],
+    "paper": [
+     16
+    ],
+    "reviewed": [
+     18
+    ],
+    "physical": [
+     20
+    ],
+    "benefits": [
+     21,
+     75
+    ],
+    "intermittent": [
+     23
+    ],
+    "fasting.": [
+     24
+    ],
+    "In": [
+     25,
+     41
+    ],
+    "healthy": [
+     26
+    ],
+    "test": [
+     27,
+     43
+    ],
+    "subjects,": [
+     28,
+     44
+    ],
+    "it": [
+     29,
+     45
+    ],
+    "led": [
+     31
+    ],
+    "to": [
+     32
+    ],
+    "higher": [
+     33
+    ],
+    "levels": [
+     34
+    ],
+    "autophagy,": [
+     36
+    ],
+    "gut": [
+     37
+    ],
+    "health,": [
+     38
+    ],
+    "and": [
+     39,
+     67
+    ],
+    "lifespan.": [
+     40
+    ],
+    "non-healthy": [
+     42
+    ],
+    "proven": [
+     47
+    ],
+    "beneficial": [
+     48
+    ],
+    "cancer": [
+     50
+    ],
+    "treatment,": [
+     51
+    ],
+    "well": [
+     53
+    ],
+    "protection": [
+     56
+    ],
+    "against": [
+     57
+    ],
+    "and/or": [
+     58
+    ],
+    "attenuation": [
+     59
+    ],
+    "effects": [
+     62
+    ],
+    "neurodegeneration,": [
+     64
+    ],
+    "metabolic": [
+     65
+    ],
+    "disorders,": [
+     66
+    ],
+    "cardiovascular": [
+     68
+    ],
+    "diseases.": [
+     69
+    ],
+    "The": [
+     70
+    ],
+    "possible": [
+     71
+    ],
+    "mechanisms": [
+     72
+    ],
+    "underlying": [
+     73
+    ],
+    "these": [
+     74
+    ],
+    "have": [
+     76
+    ],
+    "discussed": [
+     78
+    ],
+    "this": [
+     80
+    ],
+    "review.": [
+     81
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W4415358496",
+   "doi": "https://doi.org/10.5772/intechopen.1010918",
+   "title": "Intermittent Fasting in Geriatric Nutrition",
+   "display_name": "Intermittent Fasting in Geriatric Nutrition",
+   "publication_year": 2025,
+   "type": "book-chapter",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.5772/intechopen.1010918",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "IntechOpen eBooks",
+     "type": "ebook platform"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "The": [
+     0
+    ],
+    "importance": [
+     1
+    ],
+    "of": [
+     2,
+     23,
+     39,
+     103,
+     120,
+     125,
+     179,
+     206
+    ],
+    "nutrition": [
+     3
+    ],
+    "for": [
+     4
+    ],
+    "a": [
+     5,
+     37,
+     79,
+     96
+    ],
+    "healthy": [
+     6
+    ],
+    "and": [
+     7,
+     27,
+     44,
+     70,
+     94,
+     122,
+     135,
+     156,
+     160,
+     176,
+     213,
+     216
+    ],
+    "long": [
+     8
+    ],
+    "life": [
+     9
+    ],
+    "is": [
+     10,
+     164
+    ],
+    "indisputable.": [
+     11
+    ],
+    "People’s": [
+     12
+    ],
+    "nutritional": [
+     13,
+     20
+    ],
+    "routines": [
+     14,
+     31,
+     109
+    ],
+    "are": [
+     15,
+     36
+    ],
+    "as": [
+     16,
+     18,
+     117
+    ],
+    "important": [
+     17,
+     144
+    ],
+    "their": [
+     19,
+     136
+    ],
+    "content.": [
+     21
+    ],
+    "Instead": [
+     22
+    ],
+    "eating": [
+     24,
+     30,
+     40,
+     112
+    ],
+    "at": [
+     25
+    ],
+    "fixed": [
+     26
+    ],
+    "unstable": [
+     28
+    ],
+    "hours,": [
+     29,
+     130
+    ],
+    "limited": [
+     32
+    ],
+    "to": [
+     33,
+     113,
+     149,
+     197
+    ],
+    "certain": [
+     34
+    ],
+    "hours": [
+     35,
+     119,
+     124
+    ],
+    "way": [
+     38
+    ],
+    "that": [
+     41,
+     99,
+     110
+    ],
+    "suits": [
+     42
+    ],
+    "metabolism": [
+     43,
+     224
+    ],
+    "the": [
+     45,
+     83,
+     101,
+     133,
+     150,
+     174,
+     183,
+     195,
+     204,
+     219
+    ],
+    "circadian": [
+     46
+    ],
+    "rhythm.": [
+     47
+    ],
+    "Intermittent": [
+     48,
+     106
+    ],
+    "fasting,": [
+     49,
+     208
+    ],
+    "whose": [
+     50
+    ],
+    "many": [
+     51
+    ],
+    "benefits": [
+     52
+    ],
+    "have": [
+     53
+    ],
+    "been": [
+     54
+    ],
+    "proven": [
+     55
+    ],
+    "by": [
+     56,
+     73,
+     86,
+     173,
+     191
+    ],
+    "studies,": [
+     57
+    ],
+    "triggers": [
+     58
+    ],
+    "autophagy,": [
+     59
+    ],
+    "which": [
+     60,
+     209
+    ],
+    "detoxifies": [
+     61
+    ],
+    "damaged": [
+     62
+    ],
+    "organelles": [
+     63
+    ],
+    "in": [
+     64,
+     153,
+     158,
+     211
+    ],
+    "cells.": [
+     65
+    ],
+    "It": [
+     66,
+     77,
+     91,
+     185
+    ],
+    "reduces": [
+     67,
+     92
+    ],
+    "insulin": [
+     68,
+     75
+    ],
+    "resistance": [
+     69
+    ],
+    "metabolic": [
+     71
+    ],
+    "syndrome": [
+     72
+    ],
+    "increasing": [
+     74,
+     87
+    ],
+    "sensitivity.": [
+     76
+    ],
+    "has": [
+     78,
+     95
+    ],
+    "positive": [
+     80
+    ],
+    "effect": [
+     81,
+     98
+    ],
+    "on": [
+     82,
+     132,
+     182,
+     222
+    ],
+    "lipid": [
+     84
+    ],
+    "profile": [
+     85
+    ],
+    "fatty": [
+     88
+    ],
+    "acid": [
+     89
+    ],
+    "oxidation.": [
+     90
+    ],
+    "inflammation": [
+     93
+    ],
+    "neuroprotective": [
+     97
+    ],
+    "lowers": [
+     100
+    ],
+    "risk": [
+     102
+    ],
+    "neurodegenerative": [
+     104
+    ],
+    "diseases.": [
+     105
+    ],
+    "fasting": [
+     107,
+     121,
+     181
+    ],
+    "creates": [
+     108
+    ],
+    "restrict": [
+     111
+    ],
+    "varying": [
+     114
+    ],
+    "intervals,": [
+     115
+    ],
+    "such": [
+     116
+    ],
+    "12": [
+     118,
+     123
+    ],
+    "eating,": [
+     126
+    ],
+    "or": [
+     127
+    ],
+    "14–10,": [
+     128
+    ],
+    "16–8": [
+     129
+    ],
+    "depending": [
+     131
+    ],
+    "person": [
+     134
+    ],
+    "health": [
+     137
+    ],
+    "condition.": [
+     138
+    ],
+    "Cellular": [
+     139
+    ],
+    "detoxification": [
+     140
+    ],
+    "becomes": [
+     141
+    ],
+    "even": [
+     142
+    ],
+    "more": [
+     143
+    ],
+    "with": [
+     145,
+     194
+    ],
+    "intermittent": [
+     146,
+     180,
+     207
+    ],
+    "feeding": [
+     147
+    ],
+    "due": [
+     148
+    ],
+    "significant": [
+     151
+    ],
+    "decrease": [
+     152
+    ],
+    "cellular": [
+     154
+    ],
+    "production": [
+     155
+    ],
+    "repair": [
+     157
+    ],
+    "adults": [
+     159
+    ],
+    "geriatric": [
+     161,
+     220
+    ],
+    "individuals.": [
+     162
+    ],
+    "Aging": [
+     163
+    ],
+    "inevitable;": [
+     165
+    ],
+    "however,": [
+     166
+    ],
+    "this": [
+     167,
+     202
+    ],
+    "process": [
+     168
+    ],
+    "can": [
+     169
+    ],
+    "be": [
+     170,
+     226
+    ],
+    "slowed": [
+     171
+    ],
+    "down": [
+     172
+    ],
+    "biochemical": [
+     175
+    ],
+    "visible": [
+     177
+    ],
+    "effects": [
+     178,
+     205
+    ],
+    "body.": [
+     184
+    ],
+    "helps": [
+     186
+    ],
+    "cells": [
+     187
+    ],
+    "stay": [
+     188
+    ],
+    "biologically": [
+     189
+    ],
+    "young": [
+     190,
+     212
+    ],
+    "providing": [
+     192
+    ],
+    "them": [
+     193
+    ],
+    "opportunity": [
+     196
+    ],
+    "renew": [
+     198
+    ],
+    "themselves": [
+     199
+    ],
+    "regularly.": [
+     200
+    ],
+    "In": [
+     201
+    ],
+    "chapter,": [
+     203
+    ],
+    "begins": [
+     210
+    ],
+    "adult": [
+     214
+    ],
+    "ages": [
+     215
+    ],
+    "continues": [
+     217
+    ],
+    "into": [
+     218
+    ],
+    "period,": [
+     221
+    ],
+    "body": [
+     223
+    ],
+    "will": [
+     225
+    ],
+    "examined.": [
+     227
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W7128332315",
+   "doi": null,
+   "title": "health benefits of the intermittent fasting",
+   "display_name": "health benefits of the intermittent fasting",
+   "publication_year": 2022,
+   "type": "dissertation",
+   "primary_location": {
+    "landing_page_url": "http://www.nusl.cz/ntk/nusl-519317",
+    "version": "submittedVersion",
+    "source": {
+     "display_name": "Digital Repository (National Repository of Grey Literature)",
+     "type": "repository"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": {
+    "This": [
+     0
+    ],
+    "bachelor": [
+     1,
+     45
+    ],
+    "thesis": [
+     2,
+     17,
+     46,
+     57,
+     71
+    ],
+    "focuses": [
+     3,
+     47
+    ],
+    "on": [
+     4,
+     13,
+     33,
+     40,
+     48
+    ],
+    "the": [
+     5,
+     37,
+     56,
+     61,
+     70,
+     82,
+     96,
+     105
+    ],
+    "issue": [
+     6
+    ],
+    "of": [
+     7,
+     27,
+     55,
+     69,
+     109
+    ],
+    "intermittent": [
+     8,
+     28,
+     87
+    ],
+    "fasting": [
+     9,
+     29,
+     88
+    ],
+    "and": [
+     10,
+     30,
+     39,
+     78,
+     107
+    ],
+    "its": [
+     11
+    ],
+    "impact": [
+     12
+    ],
+    "human": [
+     14
+    ],
+    "health.": [
+     15
+    ],
+    "The": [
+     16,
+     52,
+     67,
+     84
+    ],
+    "is": [
+     18,
+     58
+    ],
+    "conceived": [
+     19
+    ],
+    "as": [
+     20,
+     89,
+     114
+    ],
+    "literary": [
+     21
+    ],
+    "research.": [
+     22
+    ],
+    "It": [
+     23,
+     102
+    ],
+    "presents": [
+     24,
+     86
+    ],
+    "various": [
+     25,
+     100
+    ],
+    "forms": [
+     26
+    ],
+    "their": [
+     31
+    ],
+    "influence": [
+     32
+    ],
+    "physiological": [
+     34
+    ],
+    "processes": [
+     35
+    ],
+    "in": [
+     36,
+     63
+    ],
+    "body": [
+     38
+    ],
+    "specific": [
+     41
+    ],
+    "diseases.": [
+     42,
+     101
+    ],
+    "Furthermore,": [
+     43
+    ],
+    "this": [
+     44
+    ],
+    "negative": [
+     49
+    ],
+    "side": [
+     50
+    ],
+    "effects.": [
+     51
+    ],
+    "main": [
+     53
+    ],
+    "aim": [
+     54
+    ],
+    "to": [
+     59,
+     93,
+     98
+    ],
+    "present": [
+     60
+    ],
+    "findings": [
+     62
+    ],
+    "a": [
+     64,
+     115
+    ],
+    "comprehensive": [
+     65
+    ],
+    "form.": [
+     66
+    ],
+    "content": [
+     68
+    ],
+    "emerges": [
+     72
+    ],
+    "mainly": [
+     73
+    ],
+    "from": [
+     74
+    ],
+    "foreign": [
+     75
+    ],
+    "literature,": [
+     76
+    ],
+    "articles": [
+     77
+    ],
+    "studies": [
+     79
+    ],
+    "dealing": [
+     80
+    ],
+    "with": [
+     81,
+     95
+    ],
+    "issue.": [
+     83
+    ],
+    "work": [
+     85
+    ],
+    "an": [
+     90
+    ],
+    "alternative": [
+     91
+    ],
+    "approach": [
+     92
+    ],
+    "eating": [
+     94,
+     111
+    ],
+    "potential": [
+     97
+    ],
+    "cure": [
+     99
+    ],
+    "also": [
+     103
+    ],
+    "discusses": [
+     104
+    ],
+    "advantages": [
+     106
+    ],
+    "disadvantages": [
+     108
+    ],
+    "other": [
+     110
+    ],
+    "styles,": [
+     112
+    ],
+    "such": [
+     113
+    ],
+    "caloric": [
+     116
+    ],
+    "restriction": [
+     117
+    ],
+    "diet.": [
+     118
+    ]
+   }
+  },
+  {
+   "id": "https://openalex.org/W4241029879",
+   "doi": "https://doi.org/10.1016/b978-0-12-801238-3.62133-5",
+   "title": "Intermittent Fasting",
+   "display_name": "Intermittent Fasting",
+   "publication_year": 2018,
+   "type": "book-chapter",
+   "primary_location": {
+    "landing_page_url": "https://doi.org/10.1016/b978-0-12-801238-3.62133-5",
+    "version": "publishedVersion",
+    "source": {
+     "display_name": "Elsevier eBooks",
+     "type": "ebook platform"
+    }
+   },
+   "is_retracted": false,
+   "abstract_inverted_index": null
+  }
+ ]
+}

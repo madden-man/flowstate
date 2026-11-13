@@ -21,7 +21,8 @@ export function doorPasses(path: string, doorOn: boolean): boolean {
   const c = /^\/flow\/c\/([^/]+)$/.exec(p);
   if (c) return isChakraId(c[1]);
   const m = /^\/flow\/([^/]+)\/(\d+)$/.exec(p);
-  return !!m && m[1] !== 'now' && m[1] !== 'meditate' && Number(m[2]) >= 1;
+  // Research (PLAN-RESEARCH.md section 2) is never let through: its key and its questions are sealed under the PIN
+  return !!m && m[1] !== 'now' && m[1] !== 'meditate' && m[1] !== 'research' && Number(m[2]) >= 1;
 }
 
 const blank = (st: Step): Step => ({ id: st.id, name: '', tips: [], spanMin: st.spanMin, peak: st.peak });
