@@ -28,7 +28,7 @@ const runs = (): RunSnapshot => ({
   known: {},
 });
 const inquiry = (id: string, askedAt: number, extra: Partial<Inquiry> = {}): Inquiry => ({
-  id, askedAt, question: QUESTION, state: 'done', picks: [{ paperId: 'doi:10.1136/bcr-2018-225007', side: 'for', tier: 1 }], ...extra,
+  id, askedAt, question: QUESTION, state: 'done', picks: [{ paperId: 'doi:10.1136/bcr-2018-225007', side: 'for', tier: 1, seq: 0 }], ...extra,
 });
 const pin = async () => {
   const salt = randomSalt();
