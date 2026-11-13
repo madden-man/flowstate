@@ -4,7 +4,8 @@
 import { describe, it, expect } from 'vitest';
 import type { BetaMessage, MessageCreateParamsNonStreaming } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { runInquiry, CHECKER_PROMPT, FILE_CAP, MODEL, searcherPrompt, type MessagesPort } from '../../src/research/agents';
-import { CAPS, type Paper, type RunEvent, type RunSnapshot, type SearchArgs, type Side } from '../../src/research/types';
+import { IndexError } from '../../src/research/indexes';
+import { CAPS, type Paper, type Pick, type RunEvent, type RunSnapshot, type SearchArgs, type Side } from '../../src/research/types';
 
 type Key = Side | 'check';
 type Block = Record<string, unknown>;
@@ -71,6 +72,9 @@ const resultsAfter = (sent: MessageCreateParamsNonStreaming[], n: number) => {
 };
 const filed = (events: RunEvent[]) => events.filter(e => e.type === 'filed').map(e => (e as Extract<RunEvent, { type: 'filed' }>).pick);
 const ruled = (events: RunEvent[]) => events.filter(e => e.type === 'ruled');
+/** Picks without their seq, where the test is about sides, not the order two concurrent loops happened to commit in. */
+const nos = (ps: Pick[]) => ps.map(({ paperId, side, tier }) => ({ paperId, side, tier }));
+const noSeq = <T extends { picks: Pick[] }>(r: T) => ({ ...r, picks: nos(r.picks) });
 
 describe('runInquiry: the request', () => {
   it('sends Opus 5.5 at high effort with the fallback beta, top level caching, strict tools and nothing forced', async () => {
@@ -139,7 +143,7 @@ describe('runInquiry: searching and filing', () => {
       ],
       check: [reply([text('SECRET-TEXT three'), tu('rule', { id: 'a', side: 'for', why: 'SECRET-FIELD' })])],
     });
-    expect(filed(events)).toEqual([{ paperId: 'a', side: 'for', tier: 1 }]);
+    expect(filed(events)).toEqual([{ paperId: 'a', side: 'for', tier: 1, seq: 0 }]);
     const out = JSON.stringify({ result, events: events.map(e => e.type === 'snapshot' ? { ...e.snapshot, for: 0, against: 0, check: 0 } : e) });
     for (const s of secret) expect(out).not.toContain(s);
     // the filed paper is the index's record, whole
@@ -185,7 +189,7 @@ describe('runInquiry: searching and filing', () => {
   });
 
   it('turns an IndexError into an error result, not a crash', async () => {
-    const search = async () => { throw Object.assign(new Error('down'), { name: 'IndexError', kind: 'offline' }); };
+    const search = async () => { throw new IndexError('offline', 'europepmc'); };
     const { sent, result } = await run({ for: [reply([tu('search', { query: 'q:a', index: 'europepmc', tier: 1 }, 'e1')])] }, { search: search as never });
     expect(resultsAfter(sent.for, 1)[0]).toMatchObject({ tool_use_id: 'e1', is_error: true });
     expect(resultsAfter(sent.for, 1)[0].content).toMatch(/index did not answer/);
@@ -245,6 +249,23 @@ describe('runInquiry: searching and filing', () => {
     expect(resultsAfter(sent.for, 1).map(x => [x.tool_use_id, !!x.is_error])).toEqual([['w', false], ['c', true]]);
   });
 
+  it('numbers picks across both sides in the order they were filed', async () => {
+    // against files y only after for has filed x; for files z only after against has filed y
+    let xFiled!: () => void, yFiled!: () => void;
+    const afterX = new Promise<void>(r => { xFiled = r; });
+    const afterY = new Promise<void>(r => { yFiled = r; });
+    const { events, result } = await run({
+      for: [...findAndFile(['x']), async () => { await afterY; return reply([tu('search', { query: 'q:z', index: 'europepmc', tier: 1 })]); }, reply([tu('file', { id: 'z' })])],
+      against: [async () => { await afterX; return reply([tu('search', { query: 'q:y', index: 'europepmc', tier: 1 })]); }, reply([tu('file', { id: 'y' })])],
+    }, { onEvent: e => { if (e.type === 'filed') (e.pick.paperId === 'x' ? xFiled : yFiled)(); } });
+    expect(filed(events)).toEqual([
+      { paperId: 'x', side: 'for', tier: 1, seq: 0 },
+      { paperId: 'y', side: 'against', tier: 1, seq: 1 },
+      { paperId: 'z', side: 'for', tier: 1, seq: 2 },
+    ]);
+    expect(result.picks).toEqual(filed(events));
+  });
+
   it('emits looking on and off for each side', async () => {
     const { events } = await run({});
     const looks = events.filter(e => e.type === 'looking');
@@ -268,7 +289,7 @@ describe('runInquiry: the check', () => {
       check: [reply([tu('rule', { id: 'shared', side: 'for' }), tu('rule', { id: 'b', side: 'for' })])],
     });
     expect(ruled(events)).toEqual([{ type: 'ruled', paperId: 'shared', to: 'for' }]);
-    expect(result.picks).toEqual([{ paperId: 'shared', side: 'for', tier: 1 }, { paperId: 'b', side: 'for', tier: 1 }]);
+    expect(nos(result.picks)).toEqual([{ paperId: 'shared', side: 'for', tier: 1 }, { paperId: 'b', side: 'for', tier: 1 }]);
     const first = sent.check[0].messages[0].content as string;
     expect(first).toContain('The question: Does walking help sleep?');
     expect(first).not.toMatch(/\bfor\b|against|\+|−/);
@@ -283,7 +304,21 @@ describe('runInquiry: the check', () => {
       check: [reply([tu('rule', { id: 'a', side: 'neither' })]), reply([tu('rule', { id: 'b', side: 'against' }), tu('rule', { id: 'c', side: 'for' })])],
     });
     expect(ruled(events)).toEqual([{ type: 'ruled', paperId: 'a', to: 'neither' }, { type: 'ruled', paperId: 'b', to: 'against' }]);
-    expect(result.picks).toEqual([{ paperId: 'b', side: 'against', tier: 1 }, { paperId: 'c', side: 'for', tier: 1 }]);
+    expect(nos(result.picks)).toEqual([{ paperId: 'b', side: 'against', tier: 1 }, { paperId: 'c', side: 'for', tier: 1 }]);
+  });
+
+  it('emits checking on and off around the check, after both sides stop looking', async () => {
+    const { events } = await run({ for: findAndFile(['a']) });
+    const order = events.filter(e => e.type === 'looking' || e.type === 'checking').map(e => JSON.stringify(e));
+    const on = order.indexOf(JSON.stringify({ type: 'checking', on: true }));
+    expect(on).toBe(4);
+    expect(order[5]).toBe(JSON.stringify({ type: 'checking', on: false }));
+    expect(order).toHaveLength(6);
+  });
+
+  it('emits no checking when nothing was filed', async () => {
+    const { events } = await run({});
+    expect(events.some(e => e.type === 'checking')).toBe(false);
   });
 
   it('refuses a ruling on a paper not filed', async () => {
@@ -292,7 +327,7 @@ describe('runInquiry: the check', () => {
       check: [reply([tu('rule', { id: 'z', side: 'for' }, 'r1')])],
     });
     expect(resultsAfter(sent.check, 1)[0]).toMatchObject({ tool_use_id: 'r1', is_error: true });
-    expect(result.picks).toEqual([{ paperId: 'a', side: 'for', tier: 1 }]);
+    expect(nos(result.picks)).toEqual([{ paperId: 'a', side: 'for', tier: 1 }]);
   });
 
   it('keeps five a side, the earliest filed, and lifts the rest', async () => {
@@ -301,15 +336,15 @@ describe('runInquiry: the check', () => {
     expect(result.picks.filter(p => p.side === 'for').map(p => p.paperId)).toEqual(['f0', 'f1', 'f2', 'f3', 'f4']);
     expect(result.picks.filter(p => p.side === 'against').map(p => p.paperId)).toEqual(['g0', 'g1']);
     expect(ruled(events)).toEqual([{ type: 'ruled', paperId: 'f5', to: 'neither' }, { type: 'ruled', paperId: 'f6', to: 'neither' }]);
-    // the sides interleave as they were found
-    expect(result.picks.slice(0, 4).map(p => p.paperId)).toEqual(['f0', 'g0', 'f1', 'g1']);
+    // in found order
+    expect(result.picks.map(p => p.seq)).toEqual([...result.picks.map(p => p.seq)].sort((a, b) => a - b));
   });
 
   it('keeps a lower tier off a side that has a journal paper', async () => {
     const { result } = await run({
       for: [...findAndFile(['pre'], 2), reply([tu('search', { query: 'q:j', index: 'europepmc', tier: 1 })]), reply([tu('file', { id: 'j' })])],
     });
-    expect(result.picks).toEqual([{ paperId: 'j', side: 'for', tier: 1 }]);
+    expect(nos(result.picks)).toEqual([{ paperId: 'j', side: 'for', tier: 1 }]);
   });
 });
 
@@ -324,7 +359,7 @@ describe('runInquiry: how a run ends', () => {
   it('is done, not no-sides, when only one agent says so', async () => {
     const { result } = await run({ for: [reply([tu('not_a_side_question', {})])], against: findAndFile(['a']) });
     expect(result.state).toBe('done');
-    expect(result.picks).toEqual([{ paperId: 'a', side: 'against', tier: 1 }]);
+    expect(nos(result.picks)).toEqual([{ paperId: 'a', side: 'against', tier: 1 }]);
   });
 
   it('is refused when a reply stops on refusal, and the other side stops too', async () => {
@@ -341,7 +376,7 @@ describe('runInquiry: how a run ends', () => {
 
   it('is refused when the check refuses, keeping the picks', async () => {
     const { result } = await run({ for: findAndFile(['a']), check: [reply([], 'refusal')] });
-    expect(result).toEqual({ state: 'refused', picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
+    expect(noSeq(result)).toEqual({ state: 'refused', picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
   });
 
   const cases: [string, object, string][] = [
@@ -359,7 +394,7 @@ describe('runInquiry: how a run ends', () => {
     it(`stops with why ${why} on ${label}, keeping what was filed`, async () => {
       const boom = () => { throw Object.assign(new Error(label), shape); };
       const { result, last } = await run({ for: [...findAndFile(['a']), boom] });
-      expect(result).toEqual({ state: 'stopped', why, picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
+      expect(noSeq(result)).toEqual({ state: 'stopped', why, picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
       expect(last.for.turns).toBe(2);
       expect(last.for.done).toBe(false);
     });
@@ -372,7 +407,7 @@ describe('runInquiry: how a run ends', () => {
       setTimeout(() => ctl.abort(), 0);
     });
     const { result, last } = await run({ for: [...findAndFile(['a']), hang] }, { signal: ctl.signal });
-    expect(result).toEqual({ state: 'stopped', why: 'ended', picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
+    expect(noSeq(result)).toEqual({ state: 'stopped', why: 'ended', picks: [{ paperId: 'a', side: 'for', tier: 1 }] });
     expect(last.for.turns).toBe(2);
   });
 
@@ -380,7 +415,7 @@ describe('runInquiry: how a run ends', () => {
     const ctl = new AbortController();
     ctl.abort();
     const { result, sent } = await run({}, { signal: ctl.signal });
-    expect(result).toEqual({ state: 'stopped', why: 'ended', picks: [] });
+    expect(noSeq(result)).toEqual({ state: 'stopped', why: 'ended', picks: [] });
     expect(sent.for.length + sent.against.length).toBe(0);
   });
 });
@@ -422,7 +457,9 @@ describe('runInquiry: resume', () => {
     expect(again.events.filter(e => e.type === 'looking').map(e => (e as { side: Side }).side)).toEqual(['for', 'for']);
     expect(again.last.for.turns).toBe(7);
     expect(again.last.for.searches).toBe(3);
-    expect(again.result).toEqual({ state: 'done', picks: [{ paperId: 'a', side: 'for', tier: 1 }, { paperId: 'b', side: 'for', tier: 1 }, { paperId: 'c', side: 'for', tier: 1 }] });
+    // the run-wide counter carries on from the snapshot: c is the third pick of the run, not the first of the resume
+    expect(again.result).toEqual({ state: 'done', picks: [{ paperId: 'a', side: 'for', tier: 1, seq: 0 }, { paperId: 'b', side: 'for', tier: 1, seq: 1 }, { paperId: 'c', side: 'for', tier: 1, seq: 2 }] });
+    expect(filed(again.events)[0].seq).toBe(2);
     // the caller's snapshot is not changed under it
     expect(stored.for.turns).toBe(4);
   });
@@ -432,12 +469,13 @@ describe('runInquiry: resume', () => {
     const check = [reply([tu('rule', { id: 'a', side: 'neither' })]), () => { ctl.abort(); return reply([tu('rule', { id: 'b', side: 'against' })]); }];
     const first = await run({ for: findAndFile(['a', 'b']), check }, { signal: ctl.signal });
     expect(first.result.state).toBe('stopped');
-    expect(first.result.picks).toEqual([{ paperId: 'b', side: 'for', tier: 1 }]);
+    expect(nos(first.result.picks)).toEqual([{ paperId: 'b', side: 'for', tier: 1 }]);
     const again = await run({ check: [reply([tu('rule', { id: 'b', side: 'against' })])] }, { resume: first.last });
     expect(again.sent.for).toHaveLength(0);
     expect(again.sent.check).toHaveLength(2);
     expect(again.sent.check[0].messages).toHaveLength(3);
     expect(ruled(again.events)).toEqual([{ type: 'ruled', paperId: 'b', to: 'against' }]);
-    expect(again.result.picks).toEqual([{ paperId: 'b', side: 'against', tier: 1 }]);
+    expect(again.events.filter(e => e.type === 'checking')).toEqual([{ type: 'checking', on: true }, { type: 'checking', on: false }]);
+    expect(nos(again.result.picks)).toEqual([{ paperId: 'b', side: 'against', tier: 1 }]);
   });
 });

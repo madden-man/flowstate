@@ -13,6 +13,7 @@ import type {
   MessageCreateParamsNonStreaming,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import type { MessagesPort } from './client';
+import { IndexError } from './indexes';
 import {
   CAPS, type Paper, type Pick, type RunEvent, type RunResult, type RunSnapshot, type Search, type SearchArgs,
   type Side, type Trail,
@@ -165,9 +166,6 @@ function complete(c: BetaToolUseBlock): boolean {
   return c.name === 'not_a_side_question' && isRecord(c.input);
 }
 
-/** Q1's IndexError, by shape (it cannot be imported until Q1 lands): the index did not answer. */
-const isIndexError = (e: unknown): e is { kind?: string } => isRecord(e) && e.name === 'IndexError';
-
 /** The SDK's errors by name and status, most specific first (shared/error-codes.md). Duck-typed so this file needs
  *  no SDK runtime; the SDK sets each class's name explicitly, so minifying does not lose it. */
 function whyOf(e: unknown): Why {
@@ -191,6 +189,9 @@ const saidNoSides = (t: Trail) => t.messages.some(m =>
 
 export async function runInquiry(question: string, deps: RunDeps, resume?: RunSnapshot): Promise<RunResult> {
   const snap: RunSnapshot = resume ? plain(resume) : { for: newTrail(), against: newTrail(), known: {} };
+  // Section 2's found order across both sides: one run-wide counter, derived from the picks already filed (so a
+  // resumed run carries on from its snapshot with nothing extra stored), taken as each filed event goes out.
+  let seq = 1 + Math.max(-1, ...snap.for.filed.map(p => p.seq), ...snap.against.filed.map(p => p.seq));
   // One controller for every request and search in the run: his signal ends it, and so does a refusal or failure
   // in either loop, so the other does not keep spending.
   const ctl = new AbortController();
@@ -243,14 +244,15 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
   const searcher = (side: Side) => async (calls: BetaToolUseBlock[], cut: BetaToolUseBlock[]): Promise<Handled> => {
     const trail = snap[side];
     let searches = trail.searches;
-    const filed = [...trail.filed];
-    const fresh: Pick[] = [];
+    // papers filed this turn, in call order; they become Picks (and take their seq) only when the turn is finished
+    const fresh: Paper[] = [];
+    const filed = () => [...trail.filed, ...fresh];
     const found: Paper[] = [];
     let end = false;
     const slots: Promise<BetaToolResultBlockParam>[] = calls.map(async c => {
       if (c.name === 'search') {
         const args = searchArgs(c.input)!;
-        if (args.tier === 2 && filed.some(p => p.tier === 1)) {
+        if (args.tier === 2 && filed().some(p => p.tier === 1)) {
           return err(c.id, 'Tier 2 is refused while your side has a journal paper filed. Search tier 1, or finish.');
         }
         if (searches >= CAPS.searches) return err(c.id, 'No searches are left. File what you have, then stop.');
@@ -260,8 +262,9 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
           found.push(...papers);
           return ok(c.id, JSON.stringify(papers.map(forModel)));
         } catch (e) {
-          if (!ctl.signal.aborted && isIndexError(e)) {
-            return err(c.id, `The index did not answer (${String(e.kind ?? 'http')}). Try again, or try the other index.`);
+          // Q1's IndexError: the index did not answer, which the model hears as a failed search, not a crash
+          if (!ctl.signal.aborted && e instanceof IndexError) {
+            return err(c.id, `The index did not answer (${e.kind}). Try again, or try the other index.`);
           }
           throw e;
         }
@@ -270,10 +273,9 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
         const id = idArg(c.input)!;
         if (!has(snap.known, id)) return err(c.id, 'That id is not one a search returned in this run. File only ids a search gave you.');
         const paper = snap.known[id];
-        if (filed.some(p => p.paperId === paper.id)) return ok(c.id, 'Already filed.');
-        if (filed.length >= FILE_CAP) return err(c.id, 'Your side has filed as many as it may. Stop now.');
-        const pick: Pick = { paperId: paper.id, side, tier: paper.tier };
-        filed.push(pick); fresh.push(pick);
+        if (trail.filed.some(p => p.paperId === paper.id) || fresh.includes(paper)) return ok(c.id, 'Already filed.');
+        if (filed().length >= FILE_CAP) return err(c.id, 'Your side has filed as many as it may. Stop now.');
+        fresh.push(paper);
         return ok(c.id, 'Filed.');
       }
       if (c.name === 'not_a_side_question') { end = true; return ok(c.id, 'Noted. Your search is over.'); }
@@ -285,14 +287,17 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
       apply: () => {
         trail.searches = searches;
         for (const p of found) snap.known[p.id] = p;
-        trail.filed = filed;
-        return fresh.map(pick => ({ type: 'filed', pick, paper: snap.known[pick.paperId] }) as RunEvent);
+        return fresh.map((paper): RunEvent => {
+          const pick: Pick = { paperId: paper.id, side, tier: paper.tier, seq: seq++ };
+          trail.filed = [...trail.filed, pick];
+          return { type: 'filed', pick, paper };
+        });
       },
     };
   };
 
   /** Every distinct filed id, earliest first; the check sees them sorted by id so the order says nothing. */
-  const filedIds = () => [...new Set(rankOrder(snap).map(e => e.paperId))];
+  const filedIds = () => [...new Set(inOrder(snap).map(e => e.paperId))];
 
   async function look(side: Side) {
     const trail = snap[side];
@@ -307,7 +312,7 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
 
   async function check() {
     const ids = filedIds();
-    if (!ids.length) return;
+    if (!ids.length || snap.check?.done) return;
     snap.ruled ??= {};
     snap.check ??= newTrail();
     const allowed = new Set(ids);
@@ -315,32 +320,37 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
       const papers = [...ids].sort().map(id => ({ id, title: snap.known[id].title, abstract: snap.known[id].abstract }));
       return `The question: ${question}\n\nThe papers:\n${JSON.stringify(papers)}`;
     };
-    await converse(snap.check, CHECKER_PROMPT, CHECKER_TOOLS, first, async (calls, cut) => {
-      const rulings: [string, Side | 'neither'][] = [];
-      const results = calls.map(c => {
-        if (c.name !== 'rule') return err(c.id, 'There is no such tool.');
-        const r = ruleArgs(c.input)!;
-        if (!allowed.has(r.id)) return err(c.id, 'That id is not one of the papers listed.');
-        rulings.push([r.id, r.side]);
-        return ok(c.id, 'Ruled.');
+    emit({ type: 'checking', on: true });
+    try {
+      await converse(snap.check, CHECKER_PROMPT, CHECKER_TOOLS, first, async (calls, cut) => {
+        const rulings: [string, Side | 'neither'][] = [];
+        const results = calls.map(c => {
+          if (c.name !== 'rule') return err(c.id, 'There is no such tool.');
+          const r = ruleArgs(c.input)!;
+          if (!allowed.has(r.id)) return err(c.id, 'That id is not one of the papers listed.');
+          rulings.push([r.id, r.side]);
+          return ok(c.id, 'Ruled.');
+        });
+        return {
+          results: [...results, ...cut.map(c => err(c.id, 'This call was cut off before it was whole. Make it again.'))],
+          end: false,
+          apply: () => {
+            const events: RunEvent[] = [];
+            for (const [id, to] of rulings) {
+              // where the line stands now: its last ruling, or where it was filed
+              const prior = snap.ruled![id];
+              const was = prior === undefined ? (['for', 'against'] as const).filter(s => filedBy(snap[s], id)) : prior === 'neither' ? [] : [prior];
+              snap.ruled![id] = to;
+              const now = to === 'neither' ? [] : [to];
+              if (was.length !== now.length || was.some((s, i) => s !== now[i])) events.push({ type: 'ruled', paperId: id, to });
+            }
+            return events;
+          },
+        };
       });
-      return {
-        results: [...results, ...cut.map(c => err(c.id, 'This call was cut off before it was whole. Make it again.'))],
-        end: false,
-        apply: () => {
-          const events: RunEvent[] = [];
-          for (const [id, to] of rulings) {
-            // where the line stands now: its last ruling, or where it was filed
-            const prior = snap.ruled![id];
-            const was = prior === undefined ? (['for', 'against'] as const).filter(s => filedBy(snap[s], id)) : prior === 'neither' ? [] : [prior];
-            snap.ruled![id] = to;
-            const now = to === 'neither' ? [] : [to];
-            if (was.length !== now.length || was.some((s, i) => s !== now[i])) events.push({ type: 'ruled', paperId: id, to });
-          }
-          return events;
-        },
-      };
-    });
+    } finally {
+      emit({ type: 'checking', on: false });
+    }
   }
 
   try {
@@ -367,20 +377,14 @@ export async function runInquiry(question: string, deps: RunDeps, resume?: RunSn
 
 // ---- settling the sides ----
 
-type Ranked = Pick & { rank: number };
-
-/** Every pick with its place in the filing: the two sides interleaved, so they answer each other down the page. */
-function rankOrder(snap: RunSnapshot): Ranked[] {
-  const out: Ranked[] = [];
-  (['for', 'against'] as const).forEach((side, k) => snap[side].filed.forEach((p, i) => out.push({ ...p, rank: i * 2 + k })));
-  return out.sort((a, b) => a.rank - b.rank);
-}
+/** Every pick on both sides in the order it was filed (section 2: the lines stay in the order they were found). */
+const inOrder = (snap: RunSnapshot): Pick[] => [...snap.for.filed, ...snap.against.filed].sort((a, b) => a.seq - b.seq);
 
 /** The picks as the check left them: a ruled paper stands where it was ruled (or is gone, for neither), one the
  *  check never ruled stays where it was filed. */
-function settle(snap: RunSnapshot): Ranked[] {
-  const ranked = rankOrder(snap);
-  const out: Ranked[] = [];
+function settle(snap: RunSnapshot): Pick[] {
+  const ranked = inOrder(snap);
+  const out: Pick[] = [];
   const seen = new Set<string>();
   for (const p of ranked) {
     const r = snap.ruled?.[p.paperId];
@@ -389,11 +393,11 @@ function settle(snap: RunSnapshot): Ranked[] {
     seen.add(p.paperId);
     out.push({ ...p, side: r });
   }
-  return out.map(({ paperId, side, tier, rank }) => ({ paperId, side, tier, rank }));
+  return out.map(bare);
 }
 
-function trim(picks: Ranked[]): Pick[] {
-  const keep = new Set<Ranked>();
+function trim(picks: Pick[]): Pick[] {
+  const keep = new Set<Pick>();
   for (const side of ['for', 'against'] as const) {
     const mine = picks.filter(p => p.side === side);
     const journal = mine.some(p => p.tier === 1);
@@ -402,4 +406,4 @@ function trim(picks: Ranked[]): Pick[] {
   return picks.filter(p => keep.has(p)).map(bare);
 }
 
-const bare = ({ paperId, side, tier }: Pick): Pick => ({ paperId, side, tier });
+const bare = ({ paperId, side, tier, seq }: Pick): Pick => ({ paperId, side, tier, seq });
