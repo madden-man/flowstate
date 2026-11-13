@@ -1,0 +1,76 @@
+{
+ "version": "6.9",
+ "hitCount": 4,
+ "resultList": {
+  "result": [
+   {
+    "id": "PPR1363575",
+    "source": "PPR",
+    "doi": "10.31234/osf.io/gve7w",
+    "title": "Linguistic Markers of Self-Representation Reflect Daily Emotional Experiences in an Expressive Writing Study",
+    "pubYear": "2026",
+    "abstractText": "<p>The words people use provide important insights into their emotional experiences. Several measures for tracking emotions through language have been developed, including sentiment (i.e., the positivity and negativity of language) and I-usage (first-person singular pronoun use, thought to reflect negative self-focus). However, emerging research using large language model embedding techniques has quantified not just if people use “I” but how they use it, yielding a measure of self-representation (i.e., how strongly people see themselves as “good” and “able” rather than “bad” and “unable”). This measure tracks mental health outcomes in psychotherapy. Given that emotions and emotion regulation are intimately connected to how we view ourselves, linguistic self-representations may also offer a means for assessing emotional experiences. Here, we examined the associations between participants’ linguistic self-representations and daily emotional experiences in a 14-day expressive writing study (N = 53). Within-person associations showed that on days when participants’ self-representation embedding scores were closer to “good” or “able,” they reported more positive and less negative emotions. At the between-person level, people with self-representations overall closer to “good” experienced lower negative emotional reactivity to expressive writing. These findings suggest that linguistic markers of self-representation hold promise as a tool for assessing emotional experiences, extending prior work linking it to mental health. Translations of these findings could contribute to earlier identification of changes in emotional functioning and provide new ways of assessing metrics of mental health through everyday language.</p>",
+    "pubTypeList": {
+     "pubType": [
+      "Preprint"
+     ]
+    },
+    "bookOrReportDetails": {
+     "publisher": "PsyArXiv",
+     "yearOfPublication": 2026
+    }
+   },
+   {
+    "id": "PPR1363576",
+    "source": "PPR",
+    "doi": "10.31234/osf.io/gve7w_v1",
+    "title": "Linguistic Markers of Self-Representation Reflect Daily Emotional Experiences in an Expressive Writing Study",
+    "pubYear": "2026",
+    "abstractText": "<p>The words people use provide important insights into their emotional experiences. Several measures for tracking emotions through language have been developed, including sentiment (i.e., the positivity and negativity of language) and I-usage (first-person singular pronoun use, thought to reflect negative self-focus). However, emerging research using large language model embedding techniques has quantified not just if people use “I” but how they use it, yielding a measure of self-representation (i.e., how strongly people see themselves as “good” and “able” rather than “bad” and “unable”). This measure tracks mental health outcomes in psychotherapy. Given that emotions and emotion regulation are intimately connected to how we view ourselves, linguistic self-representations may also offer a means for assessing emotional experiences. Here, we examined the associations between participants’ linguistic self-representations and daily emotional experiences in a 14-day expressive writing study (N = 53). Within-person associations showed that on days when participants’ self-representation embedding scores were closer to “good” or “able,” they reported more positive and less negative emotions. At the between-person level, people with self-representations overall closer to “good” experienced lower negative emotional reactivity to expressive writing. These findings suggest that linguistic markers of self-representation hold promise as a tool for assessing emotional experiences, extending prior work linking it to mental health. Translations of these findings could contribute to earlier identification of changes in emotional functioning and provide new ways of assessing metrics of mental health through everyday language.</p>",
+    "pubTypeList": {
+     "pubType": [
+      "Preprint"
+     ]
+    },
+    "bookOrReportDetails": {
+     "publisher": "PsyArXiv",
+     "yearOfPublication": 2026
+    }
+   },
+   {
+    "id": "PPR1188176",
+    "source": "PPR",
+    "doi": "10.21203/rs.3.rs-9258774/v1",
+    "title": "Restoring the Self to Treat Grief: A Randomized Controlled Trial of Online Expressive Writing for Bereaved Chinese Adults",
+    "pubYear": "2026",
+    "abstractText": "<title>Abstract</title>  <p>  Background  Disruption and restoration of the self are central to bereavement adjustment, yet previous interventions rarely address self-disruption directly. This study examined whether an online expressive writing intervention targeting self-disruption could alleviate grief symptoms in bereaved adults. Methods  In a two-arm randomized controlled trial, 66 bereaved participants were randomly assigned to an intervention group (  <italic>n</italic>   = 35) or a waitlist control group (  <italic>n</italic>   = 31). The intervention consisted of six sessions (one psychoeducational session and five structured expressive writing sessions) over three weeks, focusing on four aspects of self-disruption, namely: Loss of Self-Direction, Self-Derailment, Self-Devaluation, and Disconnection of Relational-Self. Grief severity was assessed using the PG-13-R at baseline and post-intervention, with a six-month follow-up for the intervention group. Results  Compared with the waitlist control group, the intervention group showed a significantly greater reduction in grief severity (Cohen’s  <italic>d</italic>   = − 0.93). The improvement remained stable at the six-month follow-up. Conclusion  Online expressive writing targeting the self-disruption of the bereaved adults may provide an effective, low-cost, and scalable intervention for grief. Trial registration  This trial was retrospectively registered with the Chinese Clinical Trial Registry (Registration Number ChiCTR2600120661, Date 18.03.2026)  </p>",
+    "pubTypeList": {
+     "pubType": [
+      "Preprint"
+     ]
+    },
+    "bookOrReportDetails": {
+     "publisher": "Research Square",
+     "yearOfPublication": 2026
+    }
+   },
+   {
+    "id": "PPR1153154",
+    "source": "PPR",
+    "doi": "10.21203/rs.3.rs-8677719/v1",
+    "title": "Captivation of state university: The impact of expressive writing therapy on students' academic stress and emotions",
+    "pubYear": "2026",
+    "abstractText": "<title>Abstract</title>  <p>The objective of this study was to implement expressive writing therapy for a group of students who were preparing for state university entrance exams, given the competitive nature of these exams. The hypothesis was that this therapy would increase positive emotions and reduce negative emotions and academic stress. A pre-test and post-test design with a control group was conducted with a sample of fifty students, who were divided equally into two groups. The treatment was administered in accordance with Pennebaker's systematic approach, and was conducted online over a period of six days. The findings of this study offer substantial evidence to suggest that expressive writing therapy does not effectively mitigate student stress. Nevertheless, the efficacy of expressive writing therapy in enhancing positive emotions and mitigating negative emotions has been demonstrated. In the control group, negative affect and despondency levels exhibited a significant increase. Conversely, within the male treatment group, there was a decline in positive affect and an increase in negative affect. No significant alterations were detected in the female treatment group. In the male control group, only negative affect demonstrated significant alterations, while in the female control group, only workload exhibited significant changes.</p>",
+    "pubTypeList": {
+     "pubType": [
+      "Preprint"
+     ]
+    },
+    "bookOrReportDetails": {
+     "publisher": "Research Square",
+     "yearOfPublication": 2026
+    }
+   }
+  ]
+ }
+}

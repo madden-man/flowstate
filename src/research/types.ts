@@ -29,8 +29,9 @@ export interface Paper {
   fetchedAt: number;
 }
 
-/** A paper filed on a side. */
-export interface Pick { paperId: string; side: Side; tier: Tier }
+/** A paper filed on a side. `seq` is the order in which picks were filed across both sides in this run, counting
+ *  from 0, kept across resume: the page writes the lines in this order, so the two sides answer each other. */
+export interface Pick { paperId: string; side: Side; tier: Tier; seq: number }
 
 /** running: the agents are looking (or were, when the phone locked); done; stopped: he ended it or it failed (what
  *  was filed is kept); no-sides: the question has no yes and no; refused: the API declined the whole chain. */
@@ -81,6 +82,8 @@ export type Search = (args: SearchArgs, opts?: SearchOpts) => Promise<Paper[]>;
 export type RunEvent =
   /** A side has begun or stopped looking (the chip's dot breathes while it is on). */
   | { type: 'looking'; side: Side; on: boolean }
+  /** The check has begun or ended reading the filed papers. */
+  | { type: 'checking'; on: boolean }
   /** A paper was filed: write its title in. */
   | { type: 'filed'; pick: Pick; paper: Paper }
   /** The check ruled a filed paper neither, or moved it: lift the line (and, when `to` is set, write it on that side). */

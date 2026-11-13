@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "message-type": "work",
+ "message": {
+  "DOI": "10.3390/nu14030631",
+  "type": "journal-article",
+  "title": [
+   "Intermittent Fasting and Metabolic Health"
+  ],
+  "container-title": [
+   "Nutrients"
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2022,
+     1,
+     31
+    ]
+   ]
+  },
+  "published": {
+   "date-parts": [
+    [
+     2022,
+     1,
+     31
+    ]
+   ]
+  },
+  "abstract": "<jats:p>Given the ongoing strain that the obesity epidemic has placed on public health outcomes, new and effective approaches to weight control are needed. One approach to improving weight and metabolic outcomes is intermittent fasting, which consists of multiple different timing schedules for temporary food avoidance, including alternate-day fasting, other similar full-day fasting patterns, and time-restricted feeding (where the day’s food is consumed over a 6-h period, allowing for 18 h of fasting). These feeding schedules have favorable metabolic effects by intermittently inducing the metabolism of fatty acids to ketones. The regimens overall lead to a decrease in weight and have been linked to improvements in dyslipidemia and blood pressure. While more research is needed on longer-term outcomes and this approach should be avoided in particular health conditions, intermittent fasting should be considered as an option for individuals who have a pattern of unhealthy weight gain using standard eating patterns.</jats:p>",
+  "URL": "https://doi.org/10.3390/nu14030631"
+ }
+}
