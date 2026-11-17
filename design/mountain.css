@@ -176,6 +176,7 @@
   position: absolute; inset: 0; touch-action: pan-y; cursor: grab; outline: none;
   -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
 }
+.mt-meter-rule > * { pointer-events: none; }
 .mt-meter-rule[aria-disabled="true"] { cursor: default; opacity: .5; }
 .mt-meter-rule:focus-visible { outline: 1px solid var(--plate-line); outline-offset: -2px; border-radius: var(--s1); }
 .mt-meter-ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
