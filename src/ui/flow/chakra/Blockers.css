@@ -4,8 +4,13 @@
 .bk-word-head { margin: 0; height: var(--lh-ink); }
 /* a row is exactly two rules and draws no border of its own: the page's rules are its lines (rule 5) */
 .bk .bk-row.fs-row { border-top: 0; height: calc(var(--lh-ink) * 2); min-height: 0; overflow: hidden; }
-/* the step words: whole words on one line, as many as fit; a word that would be cut wraps to a line that is not shown */
-.bk .bk-words { display: flex; flex-wrap: wrap; height: var(--lh-ink); overflow: hidden; text-overflow: clip; white-space: normal; }
+/* the step words: whole words on one line, as many as fit; a word that would be cut wraps to a line that is not shown.
+   The line is the rule's own height (as .bk-now's is): at the print's tighter line two lines fit one rule, and the
+   second showed ("· UNDER THE SKIN"). */
+.bk .bk-words {
+  display: flex; flex-wrap: wrap; align-content: flex-start; height: var(--lh-ink); line-height: var(--lh-ink);
+  overflow: hidden; text-overflow: clip; white-space: normal;
+}
 .bk-word { white-space: pre; flex: none; }
 /* a running blocker: the step he is on, in ink, where its step words were */
 .bk-now {
