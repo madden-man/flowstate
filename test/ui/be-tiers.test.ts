@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Value } from '../../src/db/schema';
 import type { Tiers } from '../../src/model/values';
-import { PLACE_WORDS, legacyLine, placeWord, sinceLine, slots, stillValues } from '../../src/ui/be/tiers';
+import { PLACE_WORDS, isFolded, legacyLine, placeWord, sinceLine, slots, stillValues } from '../../src/ui/be/tiers';
 
 const D = (m: number, d: number) => new Date(2026, m - 1, d, 9).getTime();
 const v = (id: string, over: Partial<Value> = {}): Value =>
@@ -32,6 +32,20 @@ describe('the slots', () => {
     const t = T({ first: [v('a')], second: [v('b')], third: [v('c')], resting: [v('r')], legacy: [v('l')] });
     const keys = slots(t, { resting: true, legacy: true }).map(s => s.key);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('the kept fold (PLAN-FOLDS.md G0)', () => {
+  it('absent: the three tiers open, Resting and Legacy folded', () => {
+    const all = (f: Parameters<typeof isFolded>[0]) => PLACE_WORDS.map(p => isFolded(f, p.place));
+    expect(all(undefined)).toEqual([false, false, false, true, true]);
+    expect(all({})).toEqual([false, false, false, true, true]);
+  });
+
+  it('what he chose wins, place by place, and the rest stay at the default', () => {
+    expect(PLACE_WORDS.map(p => isFolded({ '1': true, legacy: false }, p.place))).toEqual([true, false, false, true, false]);
+    expect(isFolded({ resting: false }, 'resting')).toBe(false);
+    expect(isFolded({ '3': true }, 3)).toBe(true);
   });
 });
 

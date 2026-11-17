@@ -1,0 +1,58 @@
+/* PROPOSED (PLAN-FOLDS.md): Be's five places drawn as one thing. This sheet sits over the real app's stylesheet
+   (app.css, built from src) in the proposal mock, and is what package G1 moves into src/ui/parts/parts.css.
+   A place (First, Second, Third, Resting, Legacy) is a heading that folds: its word in print, then, open, a pen stroke
+   out to the page's edge, or, folded, its values' words on the same rule. The stroke's weight says the place. */
+
+/* the one new token: First's word, a size over the manifesto's (Be, the First tier). Moves to tokens.css in G1. */
+:root, [data-light] { --fs-first: 28px; }
+
+/* ---- a place's heading ---- */
+.fs-sheetof .fs-be-head { margin: var(--lh-ink) 0 0; height: var(--lh-ink); min-height: 0; box-sizing: border-box; }
+/* folded places sit on consecutive rules, so five folded places are five lines */
+.fs-sheetof .fs-be-head.folded + .fs-be-head.folded { margin-top: 0; }
+.fs-be-head > button {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; color: var(--ink);
+  display: flex; align-items: center; gap: var(--s1); width: 100%; min-width: 0; height: 100%; position: relative; text-align: left;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink);
+  -webkit-user-select: none; user-select: none;
+}
+/* the hit reaches a thumb's height */
+.fs-be-head > button::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+/* the five words keep one width, so every stroke and every run starts on the same line down the page */
+.fs-be-head .w { flex: none; width: calc(var(--s4) + var(--s3)); }
+.fs-be-head[data-place="resting"] .w, .fs-be-head[data-place="legacy"] .w { color: var(--print); }
+
+/* open: the stroke, drawn out from the word as a pen would (rule 27) */
+.fs-be-head .stroke { flex: 1; height: 0; border-top: 1px solid var(--ink); transform-origin: left center; }
+.fs-be-head.drawn .stroke { animation: fs-be-stroke var(--t-draw) var(--ease) both; }
+.fs-be-head[data-place="1"] .stroke { border-top-width: 3px; }
+.fs-be-head[data-place="2"] .stroke { border-top-width: 2px; }
+.fs-be-head[data-place="3"] .stroke { border-top-width: 1px; }
+.fs-be-head[data-place="resting"] .stroke { border-top: 1px dashed var(--print); }
+.fs-be-head[data-place="legacy"] .stroke { border-top: 1px dotted var(--print); }
+@keyframes fs-be-stroke { from { transform: scaleX(0); } }
+
+/* folded: the place's words on its one rule, in ink, cut with an ellipsis (rule 5's dense index); never a count */
+.fs-be-head .run {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--serif); font-size: var(--fs-ink); letter-spacing: 0; text-transform: none; color: var(--ink);
+}
+.fs-be-head.drawn .run { animation: fs-be-run var(--t-draw) var(--ease) both; }
+.fs-be-head[data-place="resting"] .run, .fs-be-head[data-place="legacy"] .run { color: var(--print); }
+.fs-be-head .run .dot { color: var(--print); padding: 0 .45em; }
+.fs-be-head .run .riding { font-style: italic; }
+@keyframes fs-be-run { from { clip-path: inset(0 100% 0 0); } }
+
+/* while a value is lifted a folded place is its own landing rule */
+.fs-sheetof .fs-be-head.land { border-bottom: 1px dashed var(--print); }
+
+/* ---- the rows: the size and the room fall with the place ---- */
+.fs-dichotomy.fs-value.fs-value-t1 { font-size: var(--fs-first); }
+/* Third and the shelves are one rule a value, as a dense index is */
+.fs-dichotomy.fs-value.fs-value-t3, .fs-dichotomy.fs-value.fs-value-shelf { min-height: var(--lh-ink); }
+/* the lifted row, riding in a folded place: it is under the finger only, and goes into the run when let go */
+.fs-be-row.lift.infold > .fs-dichotomy.fs-value { font-size: var(--fs-ink); min-height: var(--lh-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-be-head.drawn .stroke, .fs-be-head.drawn .run { animation: none; }
+}

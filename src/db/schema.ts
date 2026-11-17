@@ -93,8 +93,15 @@ export type Settings = {
   sitMinutes?: SitMinutes;
   /** PLAN-MEDITATE.md section 5 (S1): a sit's sound is media and plays with the ringer switch off ('playback'); absent is on. */
   sitThroughSilent?: boolean;
+  /** PLAN-FOLDS.md section 4 (G0): which of Be's five places are folded to their one line, by place key. Clear, like the
+   *  rest of settings, and optional, so it needs no Dexie version. An absent key, or the whole field absent, is the
+   *  default: the three tiers open, Resting and Legacy folded (ui/be/tiers.ts isFolded). */
+  beFolded?: Partial<Record<BePlaceKey, boolean>>;
   sealed?: Sealed;
 };
+
+/** A Be place as settings and the DOM name it (ui/be/tiers.ts placeKey): the three tiers, then the two shelves. */
+export type BePlaceKey = '1' | '2' | '3' | 'resting' | 'legacy';
 
 /** Research's keys (PLAN-RESEARCH.md section 4): key is the Anthropic API key; openAlexKey raises OpenAlex's daily budget. */
 export type ResearchKey = { key: string; openAlexKey?: string };

@@ -2,7 +2,7 @@
 // words of the five places, the run of slots the list is drawn from (heading, rows, landing rule, for each tier; then
 // the Resting and Legacy shelves), the two dated lines, and what Still shows. No number, rank or count is ever made
 // here (rule 15): the tier is said by its heading and the size of the word.
-import type { Value } from '../../db/schema';
+import type { BePlaceKey, Settings, Value } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import { legacyDates, placeOf, tierSince, type Tier, type Tiers, type ValuePlace } from '../../model/values';
 import { notebookDate } from '../date';
@@ -19,6 +19,15 @@ export const placeWord = (p: ValuePlace) => PLACE_WORDS.find(x => x.place === p)
 export const placeKey = (p: ValuePlace) => String(p);
 
 export const TIERS: readonly Tier[] = [1, 2, 3];
+
+/** Folded by default (PLAN-FOLDS.md section 2.5): Resting and Legacy start folded, the three tiers open. */
+const FOLDED_BY_DEFAULT: Record<BePlaceKey, boolean> = { '1': false, '2': false, '3': false, resting: true, legacy: true };
+
+/** Whether a place is folded, from settings.beFolded (G0): what he last chose for it, else the default. */
+export const isFolded = (kept: Settings['beFolded'], p: ValuePlace | BePlaceKey): boolean => {
+  const k = placeKey(p as ValuePlace) as BePlaceKey;
+  return kept?.[k] ?? FOLDED_BY_DEFAULT[k];
+};
 
 /** The rows of a place, from the tiers read. */
 export const rowsOf = (t: Tiers, p: ValuePlace): Read<Value>[] =>
