@@ -5,6 +5,7 @@ import { exportData, importData, parseBackup, BackupError, NeedsPinError, stamp,
 import { ensureSeeded, seedFixationsOnce, defaultSettings } from '../../src/db/seed';
 import { store, setKey, lock, unlock, init, keyState, LockedError, tombstone } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
+import { isFolded } from '../../src/ui/be/tiers';
 
 let db: FlowDB;
 beforeEach(async () => { db = await freshDB(); });
@@ -178,6 +179,24 @@ describe('round trip', () => {
     expect(await fourth.days.toArray()).toEqual([day]);
   });
 
+  it('a sign\'s line rides with its shelf row both ways, plain and sealed (PLAN-SIGN-LINES.md L1)', async () => {
+    const shelfRow = { id: 'root' as const, picks: [], updatedAt: 1000, line: 'You want to be safe. Grandpa kept the lights on.' };
+    await store.put('signShelves', shelfRow);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    expect(await other.signShelves.toArray()).toEqual([shelfRow]);
+    await init(db);
+    await ensureSeeded(7);
+    const salt = randomSalt();
+    await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
+    const sealed = await roundTrip(db);
+    expect(JSON.stringify(sealed.tables.signShelves)).not.toMatch(/Grandpa/);
+    const fourth = await freshDB();
+    await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
+    expect(await fourth.signShelves.toArray()).toEqual([shelfRow]);
+  });
+
   it('a merge brings a sign\'s questions with its shelf when the file\'s row is newer, and keeps this phone\'s when not (2026-11-17)', async () => {
     const pick = { id: 'pk1', kind: 'film' as const, title: 'Elf' };
     await store.bulkPut('signShelves', [
@@ -346,6 +365,31 @@ describe('round trip', () => {
     file.tables.settings = [];
     await importData(file, 'replace', db);
     expect((await db.settings.get('app'))!.seededAt).toBe(5);
+  });
+});
+
+describe('the kept folds on Be (PLAN-FOLDS.md G0)', () => {
+  it('settings.beFolded goes out in the file and comes back in a replace import', async () => {
+    await ensureSeeded(5);
+    await store.put('settings', { ...(await db.settings.get('app'))!, beFolded: { '2': true, legacy: false } });
+    const file = await roundTrip(db);
+    expect((file.tables.settings[0] as { beFolded?: unknown }).beFolded).toEqual({ '2': true, legacy: false });
+    const other = await freshDB();
+    await importData(file, 'replace', other);
+    const s = (await other.settings.get('app'))!;
+    expect(s.beFolded).toEqual({ '2': true, legacy: false });
+    expect([1, 2, 3, 'resting', 'legacy'].map(p => isFolded(s.beFolded, p as 1))).toEqual([false, true, false, true, false]);
+  });
+
+  it('a file from before the folds (no beFolded) imports as the default: the tiers open, the shelves folded', async () => {
+    await ensureSeeded(5);
+    await store.put('settings', { ...(await db.settings.get('app'))!, beFolded: { '1': true, resting: false } });
+    const file = await roundTrip(db);
+    delete (file.tables.settings[0] as { beFolded?: unknown }).beFolded;
+    await importData(file, 'replace', db);
+    const s = (await db.settings.get('app'))!;
+    expect(s.beFolded).toBeUndefined();
+    expect([1, 2, 3, 'resting', 'legacy'].map(p => isFolded(s.beFolded, p as 1))).toEqual([false, false, false, true, true]);
   });
 });
 

@@ -1,15 +1,16 @@
-// The tiers walkthrough (PLAN-TIERS.md B3): the rail, the counter, Previous and Next, the arrow keys, #step deep links and the relight
+// The Be walkthroughs' shell (PLAN-TIERS.md B3; PLAN-FOLDS.md G3 serves this same file beside design/folds): the rail, the counter, Previous and Next, the arrow keys, #step deep links and the relight
 // control, as design/energize/walk.js has them. Every step loads the real app afresh (app.html?step=<id>), so it starts
 // from that step's own state: the new load sits under the shown one until it says it has drawn, then takes its place
-// and is told to make the step's taps (design/tiers/src/driver.ts). Nothing here draws the app.
+// and is told to make the step's taps (design/tiers/src/driver.ts, design/folds/src/driver.ts). Each step's section names its
+// light as designed and the phone's clock (data-light, data-time). Nothing here draws the app.
 (function () {
   var steps = [].slice.call(document.querySelectorAll('.step'));
   var rail = document.getElementById('rail'), counter = document.getElementById('counter');
   var frames = document.getElementById('frames'), screen = document.querySelector('.screen'), nolive = document.getElementById('nolive');
   var clock = document.getElementById('clock');
-  var DESIGNED = { start: 'day', lift: 'day', cross: 'day', sorted: 'day', tap: 'day', rest: 'day', letgo: 'day', legacy: 'day', still: 'still' };
-  // the phone's clock at each step: the morning of 11 / 12, the day the tiers came in, and Still that night
-  var TIME = { start: '9:30', lift: '9:31', cross: '9:31', sorted: '9:34', tap: '9:35', rest: '9:37', letgo: '9:38', legacy: '9:40', still: '23:10' };
+  // each step's light as designed and the phone's clock, from its section (data-light, data-time)
+  var DESIGNED = {}, TIME = {};
+  steps.forEach(function (s) { DESIGNED[s.id] = s.dataset.light || 'day'; TIME[s.id] = s.dataset.time || '9:41'; });
   var i = 0, LIGHT = 'design', n = 0, shown = null, pending = null, everReady = false, late = 0;
 
   function lightOf(id) { return LIGHT === 'design' ? DESIGNED[id] : LIGHT; }

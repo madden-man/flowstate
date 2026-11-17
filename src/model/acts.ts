@@ -5,14 +5,17 @@
 //   TOUCHES, touchesOf(chakra), touchOf(chakra, id), leadOf(chakra)  the touches of section 2, at most four a sign
 //   STARTERS, shelf(chakra), addPick(chakra, pick), movePick(chakra, id, to), removePick(chakra, id)   section 4
 //   STARTER_ASKS, asksOf(chakra), setAsk(chakra, i, text)        the three questions under the shelf (2026-11-17)
+//   STARTER_DECK, starterAskId(chakra, i), deckOf(chakra), resolveAsk(chakra, id, on), setDeck(chakra, texts)
+//                                                                 the deck the three are drawn from (PLAN-BLOCKERS.md, K0)
+//   lineOf(chakra), setLine(chakra, text)                          the sign's italic line (PLAN-SIGN-LINES.md, L1)
 //   writeMark(chakra, touch, text, { struck, at }), marksOf(chakra, touch?), stones()                     section 7
 //   BASICS, dayOf(t, place), basicsToday(now), setBasic(basic, lit, now)                                  section 7
 // A touch says where it lands and what it carries (section 3); the page that acts on it is T2 to T4's. Everything he
 // writes is sealed under the PIN (fields.ts); a locked journal reads as empty here, like the mountain's readings.
-import type { BasicId, Mark, Millis, OnPick, Place } from '../db/schema';
+import type { BasicId, DeckAsk, Mark, Millis, OnPick, Place, SignShelf } from '../db/schema';
 import { keyState, store } from '../db/fields';
 import { PICKS, pickId } from '../db/seed/picks';
-import { CHAKRA_IDS, isChakraId, type ChakraId } from './mountain';
+import { CHAKRA_IDS, chakraOf, isChakraId, type ChakraId } from './mountain';
 import { dayKey } from './pages';
 import { oneLine } from './into';
 import { sunTimes } from './sun';
@@ -173,10 +176,15 @@ async function changeShelf(chakra: ChakraId, change: (picks: OnPick[]) => OnPick
     const row = await u.get('signShelves', chakra);
     const picks = change(row ? [...row.picks] : STARTERS[chakra].map(p => ({ ...p })));
     // the row's questions go on as they were (they share the row, and its seal)
-    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(row?.asks ? { asks: row.asks } : {}) });
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...kept(row) });
     return picks;
   });
 }
+
+/** The words a shelf row carries besides its picks (asks, deck, and the sign's line, L1), so a write to one part of the
+ *  row keeps the rest as it was. */
+const kept = (row: Pick<SignShelf, 'asks' | 'deck' | 'line'> | undefined): Pick<SignShelf, 'asks' | 'deck' | 'line'> =>
+  ({ ...(row?.asks ? { asks: row.asks } : {}), ...(row?.deck ? { deck: row.deck } : {}), ...(row?.line ? { line: row.line } : {}) });
 
 /** Puts a pick at the end of the shelf. An album already on it (by albumId) or a pick with the same id is not added
  *  twice. A pick with no id gets one. Returns the shelf. */
@@ -220,16 +228,29 @@ export const STARTER_ASKS: Readonly<Record<ChakraId, readonly [string, string, s
   root: ['What is true right here, in this room?', 'What do you need in the next hour?', 'What has held before when it felt like this?'],
 };
 
+// ---- the question that always shows (PLAN-SIGN-LINES.md section 5, L2) ----
+// One a sign, first in its questions: a small thing to do with the body or the room, then a question whose answer is in
+// front of him. Fixed print, the same on every phone: not stored, not sealed (so the door can print it), never in the
+// deck or its sheet, never resolved, never on the ? tab. The plan's drafts, verbatim; changing one is a code change.
+
+/** The sign's grounding question. Frozen: nothing at run time rewrites it. */
+export const GROUND_ASKS: Readonly<Record<ChakraId, string>> = Object.freeze({
+  crown: 'Breathe out slower than you breathed in. What can you set down for that long?',
+  'third-eye': 'Look at the farthest thing you can see. What is actually in front of you?',
+  throat: 'Say it once, out loud, to the room. What is the sentence?',
+  heart: 'Hand on your chest for three breaths. What is it holding?',
+  'solar-plexus': 'Stand up and drop your shoulders. What can your hands finish in ten minutes?',
+  sacral: 'Find where the feeling sits. Does it move when you breathe into it?',
+  root: 'Feel your feet on the floor. What are five things you can see?',
+});
+
 /** The three as read: his own at each place he rewrote (row.asks[i] not empty), the starter at the rest. */
 const asksFrom = (chakra: ChakraId, asks?: string[]): string[] => STARTER_ASKS[chakra].map((s, i) => asks?.[i] || s);
 
-/** The sign's three questions, in order: his own where he has rewritten them, else the starters. A locked journal gives []. */
+/** The sign's three questions, in order: the first three open questions of its deck (deckOf), so his own where he has
+ *  rewritten them, else the starters. With every question resolved, fewer. A locked journal gives []. */
 export async function asksOf(chakra: ChakraId): Promise<string[]> {
-  needSign(chakra);
-  if (keyState() === 'locked') return [];
-  const row = await store.get('signShelves', chakra);
-  if (row?.locked) return [];
-  return asksFrom(chakra, row?.asks);
+  return (await deckOf(chakra)).open.slice(0, 3).map(q => q.text);
 }
 
 /** Rewrites question i (0 to 2). Text is made one line and trimmed; an empty text puts the starter back. Refuses while locked. Returns the three.
@@ -240,14 +261,167 @@ export async function setAsk(chakra: ChakraId, i: number, text: string, now: Mil
   needSign(chakra);
   if (!Number.isInteger(i) || i < 0 || i > 2) throw new Error(`No question ${String(i)}`);
   const line = oneLine(text);
-  return store.unit(async u => {
+  const out = await store.unit(async u => {
     const row = await u.get('signShelves', chakra);
+    // a stored deck is the questions now (PLAN-BLOCKERS.md section 5): the open one at place i is rewritten there
+    if (row?.deck) return { deck: row.deck };
     const asks = [0, 1, 2].map(k => row?.asks?.[k] ?? '');
     asks[i] = line === STARTER_ASKS[chakra][i] ? '' : line;
     const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
-    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(asks.some(Boolean) ? { asks } : {}) });
-    return asksFrom(chakra, asks);
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(asks.some(Boolean) ? { asks } : {}), ...(row?.line ? { line: row.line } : {}) });
+    return { asks: asksFrom(chakra, asks) };
   });
+  if (out.asks) return out.asks;
+  const texts = splitDeck(out.deck).open.map(q => q.text);
+  if (i < texts.length) texts[i] = line;
+  else if (line) texts.push(line);
+  await setDeck(chakra, texts, now);
+  return asksOf(chakra);
+}
+
+// ---- the sign's line: what it is for, in italic under its pair (PLAN-SIGN-LINES.md sections 2, 3 and 7, L1) ----
+// The starter is CHAKRAS line (model/mountain.ts), fixed print in the code; his rewrite is kept on the sign's shelf
+// row (SignShelf.line), sealed with its picks and questions, and carried by backup with the row. The pair (versus) is
+// fixed print and is not kept here. Nothing is generated (DESIGN.md rule 16) and nothing counted.
+
+/** The sign's line as read: his rewrite where he made one, else its starter. A locked journal gives '' (his words are
+ *  behind the PIN, so the page holds the line's room and prints nothing). */
+export async function lineOf(chakra: ChakraId): Promise<string> {
+  needSign(chakra);
+  if (keyState() === 'locked') return '';
+  const row = await store.get('signShelves', chakra);
+  if (row?.locked) return '';
+  return row?.line || chakraOf(chakra).line;
+}
+
+/** Rewrites the sign's line. Text is made one line and trimmed; an empty text, or the starter's own words, puts the
+ *  starter back (no line kept on the row). A sign with no row gets one holding its starters as picks, as setAsk gives
+ *  it; putting the starter back on a sign with no row writes nothing. Refuses while locked (LockedError). Returns the
+ *  line as read. */
+export async function setLine(chakra: ChakraId, text: string, now: Millis = Date.now()): Promise<string> {
+  needSign(chakra);
+  const starter = chakraOf(chakra).line;
+  const typed = oneLine(text);
+  const line = typed === starter ? '' : typed;
+  await store.unit(async u => {
+    const row = await u.get('signShelves', chakra);
+    if ((row?.line ?? '') === line) return;
+    const { line: _was, ...rest } = kept(row);
+    const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...rest, ...(line ? { line } : {}) });
+  });
+  return line || starter;
+}
+
+// ---- the deck: the questions the three are drawn from (PLAN-BLOCKERS.md sections 5 and 6, K0) ----
+// A sign holds a deck and shows its first three open questions. Absent, the deck is the starters with his rewritten
+// asks laid over the first three; the first write (a resolve, an edit) stores it whole on the shelf row, sealed with the
+// picks, and asks is then ignored and left as it was. Nothing here is counted (DESIGN.md rule 15).
+
+/** Seven a sign: today's three (STARTER_ASKS) and the four of PLAN-BLOCKERS.md section 6, verbatim. His to strike or
+ *  rewrite. */
+export const STARTER_DECK: Readonly<Record<ChakraId, readonly string[]>> = {
+  crown: [...STARTER_ASKS.crown, 'What are you trying to control that will not be controlled?', 'What would you do tomorrow if this never settled?', 'What is finished, even if it is not perfect?', 'What happens if you stop watching it?'],
+  'third-eye': [...STARTER_ASKS['third-eye'], 'What would change your mind?', 'What are you not looking at?', 'What will this look like in a year?', 'Which story about this have you told the longest?'],
+  throat: [...STARTER_ASKS.throat, 'What are you rehearsing instead of saying?', 'What is the kindest true version?', 'Where did you say yes and mean no?', 'What do you need to hear?'],
+  heart: [...STARTER_ASKS.heart, 'Who has been kind to you lately?', 'What are you grieving that you have not named?', 'What would you forgive, if it cost nothing?', 'Where are you holding love back?'],
+  'solar-plexus': [...STARTER_ASKS['solar-plexus'], 'What is putting it off protecting you from?', 'What would enough look like today?', 'What have you done that the critic never counts?', 'What would you try if no one were keeping score?'],
+  sacral: [...STARTER_ASKS.sacral, 'What did you enjoy this week, in the body?', 'What do you reach for when you do not want to feel?', 'What feeling keeps coming back?', 'What would feel good that is also good for you?'],
+  root: [...STARTER_ASKS.root, 'Where in the body is it quiet?', 'What is happening, apart from the fear?', 'Who or what is solid right now?', 'What does the alarm want you to do?'],
+};
+
+/** A starter's id in the deck, stable across reads and writes: "root-1" for Root's first. i counts from 0. */
+export const starterAskId = (chakra: ChakraId, i: number): string => `${chakra}-${i + 1}`;
+
+/** The deck as read when none is stored: the starters, his rewritten asks[i] over the first three. */
+const startingDeck = (chakra: ChakraId, asks?: string[]): DeckAsk[] =>
+  STARTER_DECK[chakra].map((text, i) => ({ id: starterAskId(chakra, i), text: (i < 3 && asks?.[i]) || text }));
+
+const deckFrom = (chakra: ChakraId, row: Pick<SignShelf, 'asks' | 'deck'> | undefined): DeckAsk[] =>
+  row?.deck ? row.deck.map(q => ({ ...q })) : startingDeck(chakra, row?.asks);
+
+const splitDeck = (deck: DeckAsk[]): { open: DeckAsk[]; resolved: DeckAsk[] } =>
+  ({ open: deck.filter(q => q.resolvedAt === undefined), resolved: deck.filter(q => q.resolvedAt !== undefined) });
+
+/** The sign's deck: the open questions in their order (the first three are the ones that show), and the resolved ones
+ *  in deck order, each with its resolvedAt. A locked journal gives both empty. */
+export async function deckOf(chakra: ChakraId): Promise<{ open: DeckAsk[]; resolved: DeckAsk[] }> {
+  needSign(chakra);
+  if (keyState() === 'locked') return { open: [], resolved: [] };
+  const row = await store.get('signShelves', chakra);
+  if (row?.locked) return { open: [], resolved: [] };
+  return splitDeck(deckFrom(chakra, row));
+}
+
+/** Reads, changes and writes one sign's deck as one unit, storing it whole (the first write stores the starters with
+ *  his asks laid over them). A sign with no row gets one holding its current starters as picks, as setAsk gives it.
+ *  Refuses while locked (LockedError). */
+async function changeDeck(chakra: ChakraId, change: (deck: DeckAsk[]) => DeckAsk[] | null, now: Millis): Promise<{ open: DeckAsk[]; resolved: DeckAsk[] }> {
+  needSign(chakra);
+  return store.unit(async u => {
+    const row = await u.get('signShelves', chakra);
+    const before = deckFrom(chakra, row);
+    const deck = change(before.map(q => ({ ...q })));
+    if (!deck) return splitDeck(before);
+    const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...kept(row), deck });
+    return splitDeck(deck);
+  });
+}
+
+/** Resolves the question with this id (on) or takes it back (off), where it stands in the deck. Resolving needs no
+ *  answer. An id not in the deck, or one already as asked, writes nothing. Returns the deck. */
+export function resolveAsk(chakra: ChakraId, id: string, on: boolean, now: Millis = Date.now()): Promise<{ open: DeckAsk[]; resolved: DeckAsk[] }> {
+  return changeDeck(chakra, deck => {
+    const q = deck.find(x => x.id === id);
+    if (!q || (q.resolvedAt !== undefined) === on) return null;
+    if (on) q.resolvedAt = now; else delete q.resolvedAt;
+    return deck;
+  }, now);
+}
+
+/**
+ * The deck sheet's rules, written back: texts are the open questions in his order. Each is made one line; a rule left
+ * empty removes its question, and a text that is new (the blank last rule) adds one. A question keeps its id when its
+ * words are unchanged, or when it was rewritten in its own place. An open deck left under three is filled back up from
+ * the starters not in it (neither open nor resolved), in their order, which keeps rule 37's "a rule left empty puts its
+ * starter back"; with every starter resolved it stays short. The resolved questions are kept where they stood among
+ * the open ones (K2: one brought back is open in its old place).
+ * Returns the deck.
+ */
+export function setDeck(chakra: ChakraId, texts: readonly string[], now: Millis = Date.now()): Promise<{ open: DeckAsk[]; resolved: DeckAsk[] }> {
+  return changeDeck(chakra, deck => {
+    const { open, resolved } = splitDeck(deck);
+    const lines = texts.map(oneLine);
+    const used = new Set<string>();
+    const ids: (string | undefined)[] = lines.map(line => {
+      const q = line ? open.find(x => !used.has(x.id) && x.text === line) : undefined;
+      if (q) used.add(q.id);
+      return q?.id;
+    });
+    const next: DeckAsk[] = [];
+    lines.forEach((text, i) => {
+      if (!text) return;
+      let id = ids[i];
+      // rewritten in its own place: the question keeps its id
+      if (!id && open[i] && !used.has(open[i].id) && !ids.includes(open[i].id)) { id = open[i].id; used.add(id); }
+      next.push({ id: id ?? crypto.randomUUID(), text });
+    });
+    const have = new Set([...next.map(q => q.id), ...resolved.map(q => q.id)]);
+    const said = new Set(next.map(q => q.text));
+    STARTER_DECK[chakra].forEach((text, i) => {
+      const id = starterAskId(chakra, i);
+      if (next.length >= 3 || have.has(id) || said.has(text)) return;
+      next.push({ id, text });
+    });
+    // the resolved keep their places among the open (K2), so one brought back from the sheet is open where it stood
+    const out: DeckAsk[] = [];
+    deck.forEach(q => {
+      if (q.resolvedAt !== undefined) out.push(q);
+      else if (next.length) out.push(next.shift()!);
+    });
+    return [...out, ...next];
+  }, now);
 }
 
 // ---- the marks (PLAN-TASKS.md section 7) ----

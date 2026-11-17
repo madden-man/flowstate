@@ -1,15 +1,18 @@
 // Be (PLAN-VALUES.md section 3 steps 1, 2, 3 and 11; C2; PLAN-TIERS.md B1): who he is building. "Values | Champions"
 // and "New value" at the top, the notebook's line "I determine my core.", then the tiers: the headings First, Second
-// and Third, each over its rows (the word large, First's the largest, Third's the size of ink; on the right its
-// champions' colours as short rules, a dashed one when nobody fights for it) or, when it has none, a dashed landing
-// rule; then the words Resting and Legacy, each a shelf that opens (a Legacy row carries its dates where the rules
-// would be). Long press a row to lift it and carry it anywhere: into another tier, onto a shelf, back (V13; B2, the
-// geometry in ui/be/drag.ts). A tap opens the value where it stands: the word travels to the left of a seam (rule 28, parts/Turn) and its
-// shadow is written across it, in italic at full ink (a shadow is a value too, never greyed); under it, the looks line,
-// the five words (First, Second, Third, Resting, Legacy: a tap carries it to the foot of that place), "First since
-// 11 / 12 / 26", the champions of each side (C3's ChampionsOf), what was said for it (C5's Said) and Edit. #/be/:id
-// opens that one and scrolls to it. In Still (rule 13): First's words alone (every held word when First is empty),
-// nothing to open, nothing to drag. #/be/champions is the second segment (C3's Champions).
+// and Third, then Resting and Legacy (PLAN-FOLDS.md G1): every place one heading, its word in print and, open, a pen
+// stroke out to the page's edge whose weight says the place, over its rows (the word large, First's the largest, Third's
+// the size of ink; on the right its champions' colours as short rules, a dashed one when nobody fights for it) or, when
+// it has none, a dashed landing rule; folded, the place is the one line of its words. A tap on a heading folds or opens
+// it, and the fold is kept (settings.beFolded); Resting and Legacy start folded, and show only when something is on
+// them (a Legacy row carries its dates where the rules would be). Long press a row to lift it and carry it anywhere:
+// into another tier, onto a shelf, back (V13; B2, the geometry in ui/be/drag.ts). A tap opens the value where it
+// stands: the word travels to the left of a seam (rule 28, parts/Turn) and its shadow is written across it, in italic
+// at full ink (a shadow is a value too, never greyed); under it, the looks line, the five words (First, Second,
+// Third, Resting, Legacy: a tap carries it to the foot of that place, opening the place if it was folded), "First since 11 / 12 / 26", the champions of each side (C3's ChampionsOf), what was said for it
+// (C5's Said) and Edit. #/be/:id opens that one, and its place for the visit, and scrolls to it. In Still (rule 13):
+// First's words alone (every held word when First is empty), folded or not, nothing to open, nothing to drag.
+// #/be/champions is the second segment (C3's Champions).
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { Page } from '../parts/Page';
@@ -22,16 +25,17 @@ import { tick } from '../parts/Haptic';
 import { bell } from '../parts/Sound';
 import { moves, tokenMs } from '../turns';
 import { CORE, callCouncil, placeValue, tiers as readTiers, type Tier, type Tiers, type ValuePlace } from '../../model/values';
+import { saveSettings, settings } from '../settings';
 import { allVoices } from '../../model/council';
-import type { Value, Voice } from '../../db/schema';
+import type { BePlaceKey, Value, Voice } from '../../db/schema';
 import type { Read } from '../../db/fields';
 import { beValues, beVersion, changed, openValue } from './state';
 import { ruleIds } from './lines';
 import { ValueSheet } from './ValueSheet';
 import { Champions, ChampionsOf } from './Champions';
 import { Said } from './Said';
-import { PLACE_WORDS, legacyLine, placeKey, placeWord, sinceLine, slots, stillValues, type Slot } from './tiers';
-import { carry, collapse, edgeSpeed, same, target, whereIs, type Box, type Target } from './drag';
+import { PLACE_WORDS, isFolded, legacyLine, placeKey, placeWord, rowsOf, runOf, sinceLine, slots, stillValues, type Slot } from './tiers';
+import { aim, carry, edgeSpeed, same, whereIs, type Box, type Target } from './drag';
 
 /** The turn that carries a tapped value's word between its list place and its place by the seam (parts.css). */
 const VALUE_TURN = 'be-value';
@@ -126,7 +130,12 @@ type Data = Tiers & { voices: Read<Voice>[] };
 
 function Values({ id }: { id?: string }) {
   const [data, setData] = useState<Data | null>(null);
-  const [shelf, setShelf] = useState<{ resting: boolean; legacy: boolean }>({ resting: false, legacy: false });
+  // PLAN-FOLDS.md G1: the places a deep link opened for this visit, over the kept folds (never written)
+  const [visit, setVisit] = useState<ReadonlySet<BePlaceKey>>(new Set());
+  const visited = useRef<string | null>(null);
+  // the heading just tapped: only its stroke or run is drawn (parts.css .fs-be-head.drawn), and only its rows unfold
+  const [drawn, setDrawn] = useState<BePlaceKey | null>(null);
+  const drawnTimer = useRef(0);
   const [open, setOpen] = useState<Set<string>>(() => new Set(id ? [id] : []));
   // a tapped value grows; one being closed stays to fold up before it goes
   const [closing, setClosing] = useState<Set<string>>(new Set());
@@ -166,14 +175,17 @@ function Values({ id }: { id?: string }) {
   const folded = (vid: string) => setClosing(prev => { if (!prev.has(vid)) return prev; const n = new Set(prev); n.delete(vid); return n; });
 
   /** The five words (PLAN-TIERS.md section 5, "No drag"): one tap puts the open value at the foot of that place, and the
-   *  row travels there (rule 28, parts/Turn), still open; a shelf it lands on opens, and the row is brought into view. */
+   *  row travels there (rule 28, parts/Turn), still open; a folded place it lands on opens (PLAN-FOLDS.md section 5, kept),
+   *  and the row is brought into view. */
   const place = (vid: string, to: ValuePlace) => {
     const row = document.getElementById(`be-${vid}`);
     for (const other of document.querySelectorAll<HTMLElement>('[data-turning]')) delete other.dataset.turning;
     if (row) row.dataset.turning = '';
     const update = async () => {
       await placeValue(vid, to);
-      if (to === 'resting' || to === 'legacy') setShelf(s => ({ ...s, [to]: true }));
+      // the row is open and must be seen to land (rule 28): a folded place it goes to opens, and stays open
+      const k = placeKey(to) as BePlaceKey;
+      if (isFolded(settings.value.beFolded, to)) await saveSettings({ beFolded: { ...settings.value.beFolded, [k]: false } });
       await read();
     };
     const show = () => {
@@ -206,12 +218,14 @@ function Values({ id }: { id?: string }) {
     return () => cancelAnimationFrame(raf);
   }, [id, data]);
 
-  // ---- the drag (V13; PLAN-TIERS.md section 5, B2): long press lifts a row; every open value folds, every tier ends in
-  // a landing rule and both shelves show open, each opening with one. The row rides under the finger across headings
-  // and shelf words as across rows (ui/be/drag.ts), taking the word size of the place it rides in, a tier tick as it
-  // crosses into another place; near the list's top or bottom edge the list scrolls under it, by hand, as iOS will not
-  // scroll a container while touchmove is held. It drops where it rides: placeValue, the drop tick, and the word
-  // settles. A drop where it started writes nothing. ----
+  // ---- the drag (V13; PLAN-TIERS.md section 5, B2; PLAN-FOLDS.md section 5, G2): long press lifts a row; every open
+  // value folds, every place keeps its fold, every open place ends in a landing rule (its foot), every folded heading
+  // turns dashed (somewhere to land) and both shelves show. The row rides under the finger across headings as across
+  // rows (ui/be/drag.ts), taking the word size of the place it rides in, a tier tick as it crosses into another place;
+  // over a folded line it is drawn alone under that heading, one rule tall, its word in italic at the end of the run.
+  // Near the list's top or bottom edge the list scrolls under it, by hand, as iOS will not scroll a container while
+  // touchmove is held. It drops where it rides: placeValue, the drop tick, and the word settles (or, in a folded place,
+  // goes into the run). A drop where it started writes nothing, and no drop changes a fold. ----
   const [lifted, setLifted] = useState<string | null>(null);
   const [live, setLive] = useState<Target | null>(null);
   const liveRef = useRef<Target | null>(null);
@@ -234,35 +248,46 @@ function Values({ id }: { id?: string }) {
     // every open value folds at once, so each row is one height (a fold drawn over --t-page would move the slots)
     setOpen(new Set());
     setClosing(new Set());
+    // nothing of a heading tap is left to draw under the lift
+    setDrawn(null);
     setLifted(vid);
   }, '.fs-dichotomy');
 
   const rowOf = (vid: string) => scroller.current?.querySelector<HTMLElement>(`:scope > [data-row="${CSS.escape(vid)}"]`) ?? null;
-  /** The row under the finger: its translate is where the finger wants it less where the list has put it. */
+  /** The row under the finger: its translate is where the finger wants it less where the list has put it. Riding in a
+   *  folded place it is held in its slot, just under the folded line (rule 20): never over the line and the run the
+   *  finger is on (PLAN-FOLDS.md section 9), and never hanging over the line below it where the list could not scroll
+   *  at the lift and the row was put down a few rules from the finger. */
   const ride = () => {
     const d = drag.current, el = d && rowOf(d.id);
     if (!d || !el) return;
     const natural = el.getBoundingClientRect().top - d.applied;
     d.applied = d.y - d.grab - natural - 2;
+    if (el.classList.contains('infold')) d.applied = -2;
     el.style.transform = `translateY(${d.applied}px)`;
   };
-  /** The slots but the lifted row, on the list's content axis, and the place the row's top edge has reached. */
+  /** The slots but the lifted row, on the list's content axis, and the place the finger or the row's top edge has
+   *  reached (ui/be/drag.ts aim: a finger on a folded line is that place's foot). */
   const follow = () => {
     const d = drag.current, sc = scroller.current, el = d && rowOf(d.id);
-    if (!d || !sc || !el) return;
+    if (!d || !sc || !el || !data) return;
     const base = sc.getBoundingClientRect().top - sc.scrollTop;
+    const at = (key: string): ValuePlace => (/^\d$/.test(key) ? (Number(key) as Tier) : (key as ValuePlace));
     const boxes: Box[] = [];
     for (const c of sc.children as HTMLCollectionOf<HTMLElement>) {
       if (c === el) continue;
       const ds = c.dataset;
-      const kind = ds.heading ? 'heading' : ds.land ? 'land' : ds.row ? 'row' : ds.shelf ? 'shelf' : null;
-      const key = ds.heading ?? ds.land ?? ds.place ?? ds.shelf;
+      const kind = ds.heading ? 'heading' : ds.land ? 'land' : ds.row ? 'row' : null;
+      const key = ds.heading ?? ds.land ?? ds.place;
       if (!kind || !key) continue;
       const rc = c.getBoundingClientRect();
-      boxes.push({ kind, place: /^\d$/.test(key) ? (Number(key) as Tier) : (key as ValuePlace), top: rc.top - base, bottom: rc.bottom - base });
+      boxes.push({ kind, place: at(key), top: rc.top - base, bottom: rc.bottom - base, folded: kind === 'heading' && ds.folded !== undefined });
     }
     const lt = el.getBoundingClientRect().top - d.applied - base;
-    const t = target(collapse(boxes, lt, lt + el.offsetHeight), d.y - d.grab - base);
+    const lift = { top: lt, bottom: lt + el.offsetHeight, place: at(el.dataset.place ?? '1'), infold: el.classList.contains('infold') };
+    // a place's foot: its rows less the lifted one (a folded place's are not drawn, so they are counted from the read)
+    const feet = (p: ValuePlace) => rowsOf(data, p).filter(v => v.id !== d.id).length;
+    const t = aim(boxes, lift, d.y - d.grab - base, d.y - base, feet);
     const was = liveRef.current;
     if (was && !same(t, was)) {
       if (t.to !== was.to) { tick('tier'); bell('tier'); }
@@ -348,8 +373,8 @@ function Values({ id }: { id?: string }) {
         if (moved) {
           await placeValue(d.id, t.to, t.index);
           tick('drop');
-          // a drop on a shelf leaves it open; one opened only for the lift closes again
-          if (t.to === 'resting' || t.to === 'legacy') setShelf(s => ({ ...s, [t.to as 'resting' | 'legacy']: true }));
+          // a drop never changes a fold (PLAN-FOLDS.md section 5): a row let go in a folded place goes into its run and
+          // is not drawn after (the settle finds no row and does nothing)
           await read();
         }
       } finally {
@@ -374,11 +399,36 @@ function Values({ id }: { id?: string }) {
 
   // while a row is lifted the list is drawn with it where it rides
   const shown: Tiers | null = data && (lifted && live ? carry(data, lifted, live) : data);
-  // a deep link to a value on a shelf opens that shelf
-  if (id && data) {
-    const on = (['resting', 'legacy'] as const).find(p => !shelf[p] && data[p].some(v => v.id === id));
-    if (on) setShelf(s => ({ ...s, [on]: true }));
+  // a deep link opens its value's place for this visit, without writing the kept fold (PLAN-FOLDS.md section 5)
+  // (a visit is the time on that link: back on #/be the kept folds are drawn again)
+  const kept = settings.value.beFolded;
+  if (data && visited.current !== (id ?? null)) {
+    visited.current = id ?? null;
+    const at = id ? whereIs(data, id) : null;
+    const next = at && isFolded(kept, at.to) ? [placeKey(at.to) as BePlaceKey] : [];
+    if (next.length || visit.size) setVisit(new Set(next));
   }
+  /** The folds as drawn: the kept ones, less the places this visit opened. */
+  const folds: Partial<Record<BePlaceKey, boolean>> = Object.fromEntries(
+    PLACE_WORDS.map(({ place: p }) => [placeKey(p), isFolded(kept, p) && !visit.has(placeKey(p) as BePlaceKey)]));
+  /** A tap on a heading folds or opens its place, and the fold is kept. A value open in a place folded is shut. */
+  const toggle = (p: ValuePlace) => {
+    const k = placeKey(p) as BePlaceKey;
+    const fold = !folds[k];
+    if (fold && data) {
+      const gone = new Set(rowsOf(data, p).map(v => v.id));
+      const less = (prev: Set<string>) => ([...prev].some(x => gone.has(x)) ? new Set([...prev].filter(x => !gone.has(x))) : prev);
+      setOpen(less);
+      setClosing(less);
+    }
+    setVisit(prev => { if (!prev.has(k)) return prev; const n = new Set(prev); n.delete(k); return n; });
+    clearTimeout(drawnTimer.current);
+    setDrawn(k);
+    // the stroke or the run is drawn once; after a page's length and a half nothing of the tap is left to draw
+    drawnTimer.current = window.setTimeout(() => setDrawn(d => (d === k ? null : d)), tokenMs('--t-page') * 1.5);
+    void saveSettings({ beFolded: { ...settings.value.beFolded, [k]: fold } });
+  };
+  useEffect(() => () => clearTimeout(drawnTimer.current), []);
   const byId = new Map((data?.voices ?? []).map(v => [v.id, v]));
 
   /** Still: the word alone, nothing to tap. */
@@ -388,7 +438,7 @@ function Values({ id }: { id?: string }) {
     </section>
   );
 
-  const row = (v: Read<Value>, at: ValuePlace) => {
+  const row = (v: Read<Value>, at: ValuePlace, infold = false) => {
     const vid = v.id;
     const isOpen = open.has(vid);
     const folding = !isOpen && closing.has(vid);
@@ -398,7 +448,7 @@ function Values({ id }: { id?: string }) {
     const since = sinceLine(v);
     const size = typeof at === 'number' ? ` fs-value-t${at}` : ' fs-value-shelf';
     return (
-      <section key={vid} id={`be-${vid}`} class={`fs-be-row${isOpen ? ' open' : ''}${lifted === vid ? ' lift' : ''}`} data-row={vid} data-place={placeKey(at)}>
+      <section key={vid} id={`be-${vid}`} class={`fs-be-row${isOpen ? ' open' : ''}${lifted === vid ? ' lift' : ''}${infold ? ' infold' : ''}${drawn === placeKey(at) && !lifted ? ' unfold' : ''}`} data-row={vid} data-place={placeKey(at)}>
         {isOpen ? (
           <button type="button" class={`fs-dichotomy fs-value-open${shadow ? '' : ' alone'}${grown.current.has(vid) ? ' written' : ''}`}
             aria-expanded="true" aria-controls={`value-${vid}`} onClick={() => flip(vid)}>
@@ -449,17 +499,40 @@ function Values({ id }: { id?: string }) {
     );
   };
 
-  /** One slot of the list (ui/be/tiers.ts slots): a heading, a row, a landing rule, or a shelf's word. */
+  /** A place's heading (PLAN-FOLDS.md section 2): its word in print, then, open, the stroke out to the page's edge or,
+   *  folded, its words on the same rule, a middle dot between, cut with an ellipsis (never a count, rule 15). While a
+   *  row is lifted a folded heading is dashed (its own landing rule, section 5) and, while the row rides there, its word
+   *  is the run's last, in italic. */
+  const heading = (s: Extract<Slot, { kind: 'heading' }>) => {
+    const k = placeKey(s.place);
+    const rows = s.folded && shown ? rowsOf(shown, s.place) : [];
+    const run = runOf(rows);
+    // the lifted row rides here: it is the run's last (carry puts it at the foot)
+    const ride = !!lifted && rows.length > 0 && rows[rows.length - 1].id === lifted;
+    const rest = ride ? run.slice(0, -1) : run;
+    const words = (ws: string[]) => ws.flatMap((w, i) => [...(i ? [<span key={`dot-${i}`} class="dot" aria-hidden="true">·</span>] : []), <span key={i}>{w}</span>]);
+    return (
+      <p key={s.key} class={`fs-be-tier fs-be-head${s.folded ? ' folded' : ''}${s.folded && lifted ? ' land' : ''}${drawn === k ? ' drawn' : ''}`}
+        data-heading={k} data-place={k} data-folded={s.folded ? '' : undefined}>
+        <button type="button" aria-expanded={!s.folded} onClick={() => toggle(s.place)}>
+          <span class="w">{placeWord(s.place)}</span>
+          {s.folded
+            ? <span class="run">{ride
+              // riding: the words before it are cut as one, so the lifted word, last, is never the one cut
+              ? <>{rest.length > 0 && <><span class="before">{words(rest)}</span><span class="dot" aria-hidden="true">·</span></>}<span class="riding">{run[run.length - 1]}</span></>
+              : words(run)}</span>
+            : <i class="stroke" aria-hidden="true" />}
+        </button>
+      </p>
+    );
+  };
+
+  /** One slot of the list (ui/be/tiers.ts slots): a place's heading, a row or a landing rule. */
   const slot = (s: Slot) => {
     switch (s.kind) {
-      case 'heading': return <p key={s.key} class="fs-be-tier" data-heading={placeKey(s.place)}>{placeWord(s.place)}</p>;
+      case 'heading': return heading(s);
       case 'land': return <p key={s.key} class="fs-be-land" data-land={placeKey(s.place)} aria-hidden="true" />;
-      case 'row': return row(s.value, s.place);
-      case 'shelf': return (
-        <p key={s.key} class="fs-value-line fs-be-shelf" data-shelf={s.place}>
-          <button type="button" class="fs-word" aria-expanded={s.open} onClick={() => setShelf(x => ({ ...x, [s.place]: !x[s.place] }))}>{placeWord(s.place)}</button>
-        </p>
-      );
+      case 'row': return row(s.value, s.place, s.infold);
     }
   };
 
@@ -471,7 +544,7 @@ function Values({ id }: { id?: string }) {
         <p class="fs-be-core">{CORE}</p>
         {still
           ? <>{data && !stillList.length && <p class="fs-quiet">Nothing held yet.</p>}{stillList.map(stillRow)}</>
-          : shown && slots(shown, shelf, !!lifted).map(slot)}
+          : shown && slots(shown, folds, lifted).map(slot)}
       </div>
       <ValueSheet />
     </Page>

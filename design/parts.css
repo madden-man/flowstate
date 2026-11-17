@@ -1506,26 +1506,74 @@ html[data-turn="be-value"]::view-transition-new(root) { animation: none; }
 .fs-value-acts > .fs-word { position: relative; min-height: var(--lh-ink); }
 .fs-value-acts > .fs-word::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
 .fs-value-acts > .fs-word:last-child { margin-left: auto; }
-/* ---- Be in tiers (PLAN-TIERS.md B1) ---- */
-/* a tier's heading: the core line's stationery print, in ink, on its own rule, with a blank rule above it, so a heading
-   never sits glued under the core line or the row before it */
-.fs-sheetof .fs-be-tier {
-  margin-bottom: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
-  margin-top: var(--lh-ink); color: var(--ink); line-height: var(--lh-ink);
+/* ---- Be in tiers (PLAN-TIERS.md B1; PLAN-FOLDS.md G1, places that fold) ---- */
+/* A place (First, Second, Third, Resting, Legacy) is a heading that folds: its word in the core line's stationery print,
+   then, open, a pen stroke out to the page's edge, or, folded, its values' words on the same rule. The stroke's weight
+   says the place. Each heading sits on its own rule with a blank rule above it, so it never sits glued under the core
+   line or the row before it. */
+.fs-sheetof .fs-be-head { margin: var(--lh-ink) 0 0; height: var(--lh-ink); min-height: 0; box-sizing: border-box; color: var(--ink); line-height: var(--lh-ink); }
+/* folded places sit on consecutive rules, so five folded places are five lines */
+.fs-sheetof .fs-be-head.folded + .fs-be-head.folded { margin-top: 0; }
+.fs-be-head > button {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; color: var(--ink);
+  display: flex; align-items: center; gap: var(--s1); width: 100%; min-width: 0; height: 100%; position: relative; text-align: left;
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; line-height: var(--lh-ink);
+  -webkit-user-select: none; user-select: none;
 }
-/* the tier is the size of the word, and nothing else says it: First at the manifesto's, Second a title's, Third ink's;
-   a value on a shelf (Resting, Legacy) is the size of Third's */
-.fs-dichotomy.fs-value.fs-value-t1 { font-size: var(--fs-manifesto); }
+/* the hit reaches a thumb's height */
+.fs-be-head > button::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-be-head > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* the five words keep one width, so every stroke and every run starts on the same line down the page */
+.fs-be-head .w { flex: none; width: calc(var(--s4) + var(--s3)); }
+.fs-be-head[data-place="resting"] .w, .fs-be-head[data-place="legacy"] .w { color: var(--print); }
+/* open: the stroke, drawn out from the word as a pen would (rule 27) */
+.fs-be-head .stroke { flex: 1; height: 0; border-top: 1px solid var(--ink); transform-origin: left center; }
+.fs-be-head.drawn .stroke { animation: fs-be-stroke var(--t-draw) var(--ease) both; }
+.fs-be-head[data-place="1"] .stroke { border-top-width: 3px; }
+.fs-be-head[data-place="2"] .stroke { border-top-width: 2px; }
+.fs-be-head[data-place="3"] .stroke { border-top-width: 1px; }
+.fs-be-head[data-place="resting"] .stroke { border-top: 1px dashed var(--print); }
+.fs-be-head[data-place="legacy"] .stroke { border-top: 1px dotted var(--print); }
+@keyframes fs-be-stroke { from { transform: scaleX(0); } }
+/* folded: the place's words on its one rule, in ink, cut with an ellipsis (rule 5's dense index); never a count */
+.fs-be-head .run {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--serif); font-size: var(--fs-ink); letter-spacing: 0; text-transform: none; color: var(--ink);
+}
+.fs-be-head.drawn .run { animation: fs-be-run var(--t-draw) var(--ease) both; }
+.fs-be-head[data-place="resting"] .run, .fs-be-head[data-place="legacy"] .run { color: var(--print); }
+.fs-be-head .run .dot { color: var(--print); padding: 0 .45em; }
+/* G2: the lifted row's word, at the end of the run of the folded place it rides in, in italic; the run's other words
+   before it are cut as one, so it is never the one cut */
+.fs-be-head .run .riding { font-style: italic; }
+.fs-be-head .run:has(.riding) { display: flex; text-overflow: clip; }
+.fs-be-head .run:has(.riding) > span { flex: none; }
+.fs-be-head .run:has(.riding) > .before { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@keyframes fs-be-run { from { clip-path: inset(0 100% 0 0); } }
+/* a place opened by a tap: its rows come up in place over a page's turn (the list stays one flat run, so nothing is
+   wrapped to grow; only opacity, so a row is under the thumb from the first frame); a fold takes them at once, as a
+   lift folds an open value */
+.fs-values .fs-be-row.unfold { animation: fs-be-unfold var(--t-page) var(--ease) both; }
+@keyframes fs-be-unfold { from { opacity: 0; } }
+/* the place is the size of the word and the room it takes: First's word over the manifesto's, Second a title's, Third
+   ink's; a value on a shelf (Resting, Legacy) is the size of Third's. First and Second take two rules a value; Third and
+   the shelves one, as a dense index is */
+.fs-dichotomy.fs-value.fs-value-t1 { font-size: var(--fs-first); }
 .fs-dichotomy.fs-value.fs-value-t2 { font-size: var(--fs-title); }
-.fs-dichotomy.fs-value.fs-value-t3, .fs-dichotomy.fs-value.fs-value-shelf { font-size: var(--fs-ink); }
+.fs-dichotomy.fs-value.fs-value-t3, .fs-dichotomy.fs-value.fs-value-shelf { font-size: var(--fs-ink); min-height: var(--lh-ink); }
 /* an empty tier's landing rule: a dashed blank rule where a value may be put (rule 11's mark for something owed) */
 .fs-sheetof .fs-be-land { margin: 0; height: var(--lh-ink); border-bottom: 1px dashed var(--print); box-sizing: border-box; }
+/* G2 (PLAN-FOLDS.md section 5): while a value is lifted a folded place keeps its fold and its line is dashed, its own
+   landing rule (rule 11's mark for somewhere to put it) */
+.fs-sheetof .fs-be-head.folded.land { border-bottom: 1px dashed var(--print); }
+/* the lifted row riding in a folded place: drawn alone under its heading, one rule tall at ink's size, and into the run
+   when let go; the folded line after it stays on the next rule, as folded lines do */
+.fs-be-row.lift.infold > .fs-dichotomy.fs-value { font-size: var(--fs-ink); min-height: var(--lh-ink); }
+.fs-sheetof .fs-be-head.folded + .fs-be-row.infold + .fs-be-head.folded { margin-top: 0; }
 /* B2, the drag: while a row rides, its word eases to the size of the place it rides in (its position follows the finger
    at once, rule 20); let go, it settles from under the finger into its slot (rule 18's settle) */
 .fs-be-row.lift > .fs-dichotomy.fs-value { transition: font-size var(--t-ui) var(--ease-settle), color var(--t-ui) var(--ease); }
 .fs-values .fs-be-row[data-settling] { transition: transform var(--t-ui) var(--ease-settle); }
-/* the shelves' words: each on its own rule with a blank rule above, as a heading is (never across a rule) */
-.fs-sheetof .fs-be-shelf { justify-content: flex-start; min-height: var(--lh-ink); margin: var(--lh-ink) calc(var(--s1) * -1) 0; }
 /* a Legacy row's dates, in print, where the champions' rules would be */
 .fs-value-dates {
   flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print);
@@ -1551,6 +1599,7 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 .fs-value-was { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
 @media (prefers-reduced-motion: reduce) {
   .fs-value-open.written .b, .fs-value-open.written i { animation: none; }
+  .fs-be-head.drawn .stroke, .fs-be-head.drawn .run, .fs-values .fs-be-row.unfold { animation: none; }
 }
 /* ---- C2 ends ---- */
 
@@ -1610,3 +1659,62 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 .fs-chip.armed, .fs-chip.armed[aria-pressed="true"] { background: transparent; color: var(--ink); border-color: var(--ink); border-style: dashed; }
 .fs-chip-again { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); font-style: normal; }
 /* ---- C3 ends ---- */
+
+/* ==== Resolve (PLAN-BLOCKERS.md decision 2, section 7; K1, parts/Resolve.tsx). The print word "Resolve", a thumb wide
+   and one rule tall; resolved, the drawn check in ink in its place, drawn over --t-draw and landing heavy (rule 27),
+   lifted over --t-ui when taken back while the word comes back. Down is instant, up is eased (rule 26). Its ::after
+   reaches a full --hit above and below the rule it sits on. Gone in Still with the states (fs-notstill). ==== */
+.fs-resolve {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer; position: relative;
+  display: inline-grid; place-items: center end; min-width: var(--hit); height: var(--lh-ink);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  line-height: var(--lh-ink); color: var(--print); -webkit-tap-highlight-color: transparent;
+}
+.fs-resolve::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-resolve > * { grid-area: 1 / 1; }
+.fs-resolve:disabled { cursor: default; }
+.fs-resolve-word { transition: opacity var(--t-ui) var(--ease), color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease); }
+.fs-resolve.done .fs-resolve-word { opacity: 0; }
+.fs-resolve-mark { width: 20px; height: var(--lh-ink); overflow: visible; }
+.fs-resolve-mark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.fs-resolve.done .fs-check-ink { stroke-dashoffset: 0; transition: stroke-dashoffset var(--t-draw) var(--ease); }
+.fs-resolve.done.inked .fs-check-ink { animation: fs-pen var(--t-draw) var(--ease); }
+.fs-resolve[data-down] .fs-resolve-word { color: var(--ink); translate: 0 1px; transition: none; }
+.fs-resolve:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+/* the ? tab: on the row's first rule, at the right of the date; the date keeps clear of it */
+.fs-qitem { position: relative; }
+.fs-qitem > .fs-resolve { position: absolute; top: 0; right: 0; }
+.fs-qitem .fs-list-meta { padding-right: calc(var(--hit) * 1.75); }
+/* a question's own page: at the right of the title's first rule; the title wraps short of it */
+.fs-qtitle { display: flex; align-items: flex-start; gap: var(--s1); }
+.fs-qtitle > .fs-edit { flex: 1; min-width: 0; }
+.fs-qtitle > .fs-resolve { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-resolve.done.inked .fs-check-ink { animation: none; }
+}
+/* ==== Resolve ends ==== */
+
+/* ==== K2: Resolve on a journal line (PLAN-BLOCKERS.md section 3 step 11; journal/PageView.tsx). A wise line that is
+   an open question of the page's sign carries Resolve at the right of its first rule; its words wrap short of it, so
+   the line never rewraps when the check stands there. Resolved, the words go to print grey, as on the sign's page.
+   Still: Resolve leaves (fs-notstill) and the line is ink again, since Still shows no states (rule 13). ==== */
+.fs-col .fs-msg.fs-resolvable { padding-right: calc(var(--hit) * 1.75); }
+.fs-line-resolve { position: absolute; top: 0; right: 0; z-index: 1; display: flex; }
+.fs-col .fs-msg.fs-resolved p, .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--print); }
+[data-light="still"] .fs-col .fs-msg.fs-resolved p, [data-light="still"] .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--ink); }
+/* ==== K2 ends ==== */
+
+/* ==== L1: parts/Versus, the pair a sign comes down to (PLAN-SIGN-LINES.md section 4). One rule: the sign lit and what
+   he wants in ink serif, "vs." in print sans, what works against it in print grey and the sign emptied. The signs are
+   parts/Sign at the rule's own height (R0's small size), no filter, nothing moving. Still: the signs leave (fs-notstill)
+   and the words stay on the rule, all in print, so the block keeps its height (rule 13). ==== */
+.fs-versus {
+  display: flex; align-items: center; gap: var(--s1); margin: 0; height: var(--lh-ink); overflow: hidden; white-space: nowrap;
+  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink);
+}
+.fs-versus-sign { display: inline-flex; flex: none; }
+.fs-versus-want { color: var(--ink); }
+.fs-versus-against { color: var(--print); }
+.fs-versus-vs { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); }
+[data-light="still"] .fs-versus-want { color: var(--print); }
+/* ==== L1 ends ==== */

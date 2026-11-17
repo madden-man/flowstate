@@ -93,7 +93,8 @@ const touch = (id: string) => click(`.ck-touches .ck-touch[data-touch="${id}"]`)
 async function type(sel: string, text: string, every = 55): Promise<HTMLInputElement | null> {
   const el = await seen<HTMLInputElement>(sel);
   if (!el) return null;
-  const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+  // a rule of the deck sheet is a textarea that wraps (PLAN-BLOCKERS.md K2), the rest are inputs
+  const set = Object.getOwnPropertyDescriptor(el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')!.set!;
   for (let k = 1; k <= text.length; k++) {
     set.call(el, text.slice(0, k));
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -219,7 +220,7 @@ async function act(): Promise<void> {
       await seen('.ck-asks:not(.wait) .ck-ask');
       await bring('.ck-asks');
       await wait(1100);
-      await click('.ck-asks .ck-ask:nth-of-type(2)');
+      await click('.ck-asks [data-ask="heart-2"] .ck-ask');
       return;
     // Edit raises the three on their rules; the first rewritten, letter by letter
     case 'rewrite': {
@@ -228,13 +229,13 @@ async function act(): Promise<void> {
       await wait(900);
       await click('.ck-asks-edit .fs-word');
       await wait(700);
-      const first = await seen<HTMLInputElement>('[data-sheet="Heart asks"] input');
+      const first = await seen<HTMLTextAreaElement>('[data-sheet="Heart asks"] .ck-deck .ck-deck-rule');
       if (first) {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(first, '');
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(first, '');
         first.dispatchEvent(new Event('input', { bubbles: true }));
         first.focus({ preventScroll: true });
       }
-      await type('[data-sheet="Heart asks"] input', 'Who do you want to call tonight?', 55);
+      await type('[data-sheet="Heart asks"] .ck-deck .ck-deck-rule', 'Who do you want to call tonight?', 55);
       return;
     }
     case 'signs':
@@ -257,17 +258,22 @@ async function act(): Promise<void> {
 
 const post = (msg: object) => { try { parent.postMessage({ fs: true, n: load, ...msg }, '*'); } catch { /* no parent */ } };
 
+/** The walkthrough has turned to another step and this app is shown only until that one has drawn: a field its own
+ *  taps focus in that time gives the arrows up, so the steps keep turning. */
+let leaving = false;
+
 export function startDriver(): void {
   // a click inside the phone gives the app the keys: the arrows it does not use itself still turn the walkthrough's steps
   addEventListener('keydown', e => {
     if (e.defaultPrevented || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
     const t = e.target as Element | null;
-    if (t?.closest?.('input,textarea,[contenteditable],[role="slider"]')) return;
+    if (!leaving && t?.closest?.('input,textarea,[contenteditable],[role="slider"]')) return;
     post({ key: e.key });
   });
   addEventListener('message', e => {
     if (e.source !== parent || !e.data || typeof e.data !== 'object' || !e.data.fs) return;
-    const d = e.data as { act?: boolean; light?: Light | 'design' };
+    const d = e.data as { act?: boolean; leaving?: boolean; light?: Light | 'design' };
+    if (d.leaving) leaving = true;
     if (d.light && step) {
       const l = d.light === 'design' ? DESIGNED[step] : asLight(d.light);
       if (l) void light(l).then(() => post({ lit: l }));

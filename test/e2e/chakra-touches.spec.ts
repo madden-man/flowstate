@@ -1,7 +1,8 @@
 // The place is the page (PLAN-TASKS.md T1): a sign's page is its taller plate with that sign's touch words printed on
 // it, the lead one lit; each word a thumb-sized button that, for now, only lights; the paper foot holds the gloss, the
-// gate, the shelf's slot and, on Heart and Root, the 988 line with Call and Text in every light. A live episode still
-// shows its step words. Through the door the place shows only the touches that write nothing.
+// gate, the Blockers (PLAN-BLOCKERS.md K3), the shelf's slot and, on Heart and Root, the 988 line with Call and Text in
+// every light. A live episode lands on its flow's own page, and the sign's page stays at rest. Through the door the place
+// shows only the touches that write nothing.
 import { test, expect, type Page } from '@playwright/test';
 
 const TOUCHES: Record<string, string[]> = {
@@ -54,9 +55,9 @@ test('each sign prints its touch words on its plate, thumb-sized, the lead lit; 
     }
     // the plate is the taller one: twelve rules
     expect(plate.height).toBeGreaterThan(330);
-    // the foot: gloss, gate, the sign's shelf (T5) under the gate
-    await expect(body.locator('.ck-gloss + .fs-gate')).toHaveCount(1);
-    await expect(body.locator(`.fs-gate + .ck-shelf[data-shelf="${c}"]`)).toHaveCount(1);
+    // the foot: the pair and the line (L1), gate, the Blockers (K3), then the sign's shelf (T5)
+    await expect(body.locator('.ck-for + .fs-gate')).toHaveCount(1);
+    await expect(body.locator(`.fs-gate + [data-blockers] + .ck-shelf[data-shelf="${c}"]`)).toHaveCount(1);
   }
   // a tap lights the word and marks it pressed; nothing is written, nothing leaves
   await page.goto('/#/flow/c/heart');
@@ -97,24 +98,28 @@ for (const light of ['day', 'night', 'still'] as const) {
   });
 }
 
-test('a live episode still shows its step words beside the place, and Done ends it with no checklist at rest', async ({ page }) => {
+test('a live episode lands on its flow\'s own page; the sign\'s page stays at rest, its row first with the step in ink', async ({ page }) => {
   await open(page, '#/flow/now');
   await page.locator('.fl-nowlist a[href="#/flow/depress/1"]').click();
-  const body = page.locator('.ck-page');
-  await expect(body).toHaveAttribute('data-chakra', 'heart');
-  await expect(body.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveCount(1);
-  await expect(body.locator('.ck-touch')).toHaveCount(4);
-  // on the step that prints its own 988 line, the line stays there, once, with Call and Text under it
-  await body.locator('.ck-steps .ck-step').nth(3).click();
+  const body = page.locator('.fs-flowpage[data-flow="depress"]');
+  await expect(body).toHaveAttribute('data-showing', '1');
+  await expect(page.locator('.ck-page')).toHaveCount(0);
+  // on the step that prints its own 988 line, the line is there, once
+  await body.locator('.fs-cycle-word[data-step="4"]').click();
   await expect(page).toHaveURL(/#\/flow\/depress\/4$/);
   await expect(body).toHaveAttribute('data-saved', 'true');
   await expect(body.locator('[data-tip="depress-4-988"]')).toBeVisible();
   expect(await body.getByText(/call or text 988/).count()).toBe(1);
+  // the way back is Heart; its page is at rest: no step words line, no rows, the place and the 988 line
+  await page.locator('.fs-hdr').getByRole('link', { name: 'Heart', exact: true }).click();
+  const sign = page.locator('.ck-page[data-chakra="heart"]');
+  await expect(sign.locator('.ck-touch')).toHaveCount(4);
+  await expect(sign.locator('.ck-steps, .ck-rows, .ck-done, .fl-tip')).toHaveCount(0);
+  expect(await sign.getByText(/call or text 988/).count()).toBe(1);
   await expect(page.getByRole('link', { name: 'Text 988' })).toBeVisible();
-  await body.locator('.ck-done').click();
-  // #/flow/depress keeps its step words to read, as mountain-fixes left it; nothing is live and no checklist shows
-  await expect(body).toHaveAttribute('data-showing', '0');
-  await expect(body.locator('.ck-done, .ck-rows')).toHaveCount(0);
+  const first = sign.locator('[data-blockers]:not([data-wait]) .bk-row').first();
+  await expect(first).toHaveAttribute('data-flow', 'depress');
+  await expect(first.locator('.bk-now')).toHaveText('The bottom');
 });
 
 test('through the door the place shows only the touches that write nothing, no gate, and the 988 line', async ({ page }) => {
@@ -140,7 +145,7 @@ test('through the door the place shows only the touches that write nothing, no g
   await expect(page.getByRole('group', { name: 'PIN' })).toHaveCount(0);
   expect(await body.locator('.ck-touch').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.touch))).toEqual(['five', 'breathe']);
   await expect(body.locator('.ck-touch[data-lit]')).toHaveAttribute('data-touch', 'five');
-  await expect(body.locator('.fs-gate, .ck-shelf, .ck-rows, .ck-steps')).toHaveCount(0);
+  await expect(body.locator('.fs-gate, .ck-shelf, .ck-rows, .ck-steps, [data-blockers], .bk-row')).toHaveCount(0);
   await expect(body.locator('.ck-gloss')).toHaveText('Root · feeling safe');
   await expect(page.getByRole('link', { name: 'Call 988' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Sections' })).toHaveCount(0);

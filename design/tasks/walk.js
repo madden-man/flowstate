@@ -62,6 +62,8 @@
     [].slice.call(rail.querySelectorAll('a')).forEach(function (a, j) { if (j === i) a.setAttribute('aria-current', 'step'); else a.removeAttribute('aria-current'); });
     counter.textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
     try { history.replaceState(null, '', '#' + steps[i].id); } catch (e) { /* a sandboxed page may refuse; the step still shows */ }
+    // the app still shown is on its way out: a field it focuses from here on must not keep the arrows (driver.ts)
+    if (shown) post(shown, { leaving: true });
     load(steps[i].id);
   }
 

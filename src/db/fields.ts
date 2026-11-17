@@ -7,7 +7,7 @@
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
 //   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
 //   revisions (PLAN-VALUES.md section 5); readings: value, the Depression meter's and each gate's
-//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks and asks; marks: text and
+//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks, asks, deck and line; marks: text and
 //   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear); inquiries: question
 //   and runs whole (the agents' messages carry the question; PLAN-RESEARCH.md section 5, Q2; ids, state, picks and dates
 //   stay clear). papers are not sealed: a paper's words are an index's public record, not his.
@@ -220,16 +220,26 @@ const readingSpec: Spec<Tables['readings']> = {
  *  seals the bare picks as before, so a row sealed before the asks reads unchanged; with asks it is `{ picks, asks }`.
  *  The clear copy keeps the sign and the date, with no picks and no asks, so nothing locked can be drawn as an empty
  *  shelf he chose. */
-type ShSecret = OnPick[] | { picks: OnPick[]; asks: string[] };
+// The deck (PLAN-BLOCKERS.md section 5, K0) rides in the same object: `{ picks, asks?, deck? }` once either is set.
+// The sign's line (PLAN-SIGN-LINES.md L1) rides there too: `{ picks, asks?, deck?, line? }`.
+type ShSecret = OnPick[] | { picks: OnPick[]; asks?: string[]; deck?: Tables['signShelves']['deck']; line?: string };
 const signShelfSpec: Spec<Tables['signShelves']> = {
   take: row => {
-    const { asks, ...rest } = row;
-    return { clear: { ...rest, picks: [] }, secret: (asks ? { picks: row.picks, asks } : row.picks) satisfies ShSecret };
+    const { asks, deck, line, ...rest } = row;
+    const secret: ShSecret = asks || deck || line !== undefined
+      ? { picks: row.picks, ...(asks ? { asks } : {}), ...(deck ? { deck } : {}), ...(line !== undefined ? { line } : {}) }
+      : row.picks;
+    return { clear: { ...rest, picks: [] }, secret };
   },
   give: (clear, raw) => {
     const s = raw as ShSecret | null | undefined;
     if (Array.isArray(s)) return { ...clear, picks: s };
-    if (s && typeof s === 'object' && Array.isArray(s.picks)) return { ...clear, picks: s.picks, ...(Array.isArray(s.asks) ? { asks: s.asks } : {}) };
+    if (s && typeof s === 'object' && Array.isArray(s.picks)) {
+      return {
+        ...clear, picks: s.picks, ...(Array.isArray(s.asks) ? { asks: s.asks } : {}), ...(Array.isArray(s.deck) ? { deck: s.deck } : {}),
+        ...(typeof s.line === 'string' ? { line: s.line } : {}),
+      };
+    }
     return { ...clear, picks: [] };
   },
 };

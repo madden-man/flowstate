@@ -17,7 +17,7 @@
   <div class="text" id="text">
 
 <!-- 1 -->
-<section class="step" id="start" data-name="My values start in the middle">
+<section class="step" id="start" data-light="day" data-time="9:30" data-name="My values start in the middle">
   <h2>My values start in the middle</h2>
   <p class="line">Nothing is ranked for me: First and Third wait on dashed rules. Example data, live.</p>
   <details><summary>How this is built</summary><table>
@@ -28,37 +28,37 @@
 </section>
 
 <!-- 2 -->
-<section class="step" id="lift" data-name="Hold one to lift it">
+<section class="step" id="lift" data-light="day" data-time="9:31" data-name="Hold one to lift it">
   <h2>Hold one to lift it</h2>
-  <p class="line">Open values fold, every tier ends in a rule to land on, and Resting and Legacy open.</p>
+  <p class="line">Open values fold, every tier ends in a rule to land on, and a folded line is its own.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Lift</td><td><code>useLongPress</code> over <code>--t-hold</code>; the lift empties <code>open</code> at once and <code>slots(t, shelf, true)</code> adds every landing rule.</td></tr>
+    <tr><td>Lift</td><td><code>useLongPress</code> over <code>--t-hold</code>; the lift empties <code>open</code> at once and <code>slots(t, folded, lifted)</code> adds every landing rule; places keep their fold.</td></tr>
     <tr><td>Demo</td><td>Touch pointer events dispatched on the real row, as <code>test/e2e/be-drag.spec.ts</code>; no pointerup, so it stays held.</td></tr>
   </table></details>
 </section>
 
 <!-- 3 -->
-<section class="step" id="cross" data-name="Carry it over a heading">
+<section class="step" id="cross" data-light="day" data-time="9:31" data-name="Carry it over a heading">
   <h2>Carry it over a heading</h2>
   <p class="line">One tick as it crosses into First, one as it lands.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Geometry</td><td><code>ui/be/drag.ts</code>: <code>collapse</code> and <code>target</code> turn slot rects and the row's top into <code>{ to, index }</code>; a heading is passed as a row is.</td></tr>
+    <tr><td>Geometry</td><td><code>ui/be/drag.ts</code>: <code>aim</code>, <code>collapse</code> and <code>target(boxes, top, feet)</code> turn slot rects and the row's top into <code>{ to, index }</code>; a heading is passed as a row is.</td></tr>
     <tr><td>Touch</td><td><code>tick('tier')</code> and <code>bell('tier')</code> on crossing; <code>placeValue</code> and <code>tick('drop')</code> on release.</td></tr>
   </table></details>
 </section>
 
 <!-- 4 -->
-<section class="step" id="sorted" data-name="The order they matter in">
+<section class="step" id="sorted" data-light="day" data-time="9:34" data-name="The order they matter in">
   <h2>The order they matter in</h2>
-  <p class="line">The heading and the size of the word say the tier; nothing is numbered.</p>
+  <p class="line">The heading's stroke and the size of the word say the tier; nothing is numbered.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Sizes</td><td><code>.fs-value-t1</code> to <code>t3</code>: <code>--fs-manifesto</code>, <code>--fs-title</code>, <code>--fs-ink</code>. No new token.</td></tr>
+    <tr><td>Sizes</td><td><code>.fs-value-t1</code> to <code>t3</code>: <code>--fs-first</code>, <code>--fs-title</code>, <code>--fs-ink</code>; strokes 3px, 2px, 1px (PLAN-FOLDS.md).</td></tr>
     <tr><td>Order</td><td>One <code>order</code> sequence across every value, sorted by status, tier, order; <code>held()</code> follows it for councils.</td></tr>
   </table></details>
 </section>
 
 <!-- 5 -->
-<section class="step" id="tap" data-name="Or tap where it belongs">
+<section class="step" id="tap" data-light="day" data-time="9:35" data-name="Or tap where it belongs">
   <h2>Or tap where it belongs</h2>
   <p class="line">Five words on an open value move it without a drag, and say since when.</p>
   <details><summary>How this is built</summary><table>
@@ -68,16 +68,16 @@
 </section>
 
 <!-- 6 -->
-<section class="step" id="rest" data-name="Put one down for now">
+<section class="step" id="rest" data-light="day" data-time="9:37" data-name="Put one down for now">
   <h2>Put one down for now</h2>
   <p class="line">On Resting a value waits undated, and comes back to the tier it left.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Place</td><td><code>placeValue(id, 'resting')</code> keeps <code>tier</code>, so <code>returnsTo</code> brings it back there; a drop leaves the shelf open.</td></tr>
+    <tr><td>Place</td><td><code>placeValue(id, 'resting')</code> keeps <code>tier</code>, so <code>returnsTo</code> brings it back there. A finger on a folded line is that place's foot (<code>fingerOn</code>, <code>ui/be/drag.ts</code>); a drop never changes a fold.</td></tr>
   </table></details>
 </section>
 
 <!-- 7 -->
-<section class="step" id="letgo" data-name="Let one go">
+<section class="step" id="letgo" data-light="day" data-time="9:38" data-name="Let one go">
   <h2>Let one go</h2>
   <p class="line">Carried to the foot, a value lands in Legacy.</p>
   <details><summary>How this is built</summary><table>
@@ -87,7 +87,7 @@
 </section>
 
 <!-- 8 -->
-<section class="step" id="legacy" data-name="Legacy keeps what I used to hold">
+<section class="step" id="legacy" data-light="day" data-time="9:40" data-name="Legacy keeps what I used to hold">
   <h2>Legacy keeps what I used to hold</h2>
   <p class="line">Each word with the dates it was mine; hold one to bring it back.</p>
   <details><summary>How this is built</summary><table>
@@ -96,7 +96,7 @@
 </section>
 
 <!-- 9 -->
-<section class="step" id="still" data-name="In Still, only what comes first">
+<section class="step" id="still" data-light="still" data-time="23:10" data-name="In Still, only what comes first">
   <h2>In Still, only what comes first</h2>
   <p class="line">The core line and First's words, at one size.</p>
   <details><summary>How this is built</summary><table>

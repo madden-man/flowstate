@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: what blocks each sign</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: what blocks each sign</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="blockers" data-name="Each sign names what blocks it">
+  <h2>Each sign names what blocks it</h2>
+  <p class="line">Safety vs. fear, the gate, then Panic, What if and 3 a.m.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Pair</td><td><code>parts/Versus.tsx</code> in <code>ChakraPage.tsx SignFor</code>: the sign lit and emptied, the line from <code>acts.ts lineOf</code>; PLAN-SIGN-LINES.md L1.</td></tr>
+    <tr><td>Rows</td><td><code>chakra/Blockers.tsx</code> on <code>mountain.ts blockersOf</code>: two rules a row, whole step words, the room held before the read; PLAN-BLOCKERS.md K3.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/blockers/src</code>), storage in memory, no network, the day pinned to 11 / 17.</td></tr>
+  </table></details>
+</section>
+
+<!-- 2 -->
+<section class="step" id="drawing" data-name="A tap opens its drawing">
+  <h2>A tap opens its drawing</h2>
+  <p class="line">Panic's own page; the way back reads Root.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Route</td><td><code>ChakraPage.tsx FlowRoute</code> sends every <code>#/flow/:id</code> to <code>FlowPage</code>; <code>Blockers.tsx backSignOf</code> names the sign it came from.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="walk" data-name="I walk it as before">
+  <h2>I walk it as before</h2>
+  <p class="line">A tap on "The wave" reads that step.</p>
+</section>
+
+<!-- 4 -->
+<section class="step" id="running" data-name="One that is running says where I am">
+  <h2>One that is running says where I am</h2>
+  <p class="line">What if comes first, the step I am on in ink.</p>
+</section>
+
+<!-- 5 -->
+<section class="step" id="decide" data-name="I decide what stays">
+  <h2>I decide what stays</h2>
+  <p class="line">A long press raises Root blockers; a tap strikes 3 a.m.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>chakra/BlockersSheet.tsx</code>: <code>mountain.ts strikeOff</code> writes <code>offSigns</code>; nothing deleted; "+ blocker" opens New flow; PLAN-BLOCKERS.md K4.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="draft" data-name="A new one starts as a draft">
+  <h2>A new one starts as a draft</h2>
+  <p class="line">Gripping, under Crown: a drawing and four step words, no tips yet.</p>
+</section>
+
+<!-- 7 -->
+<section class="step" id="asks" data-name="Questions to ponder, under the shelf">
+  <h2>Questions to ponder, under the shelf</h2>
+  <p class="line">The practice first, then three from the deck.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Ground</td><td><code>chakra/Asks.tsx Ground</code>, <code>acts.ts GROUND_ASKS</code>: fixed, never resolves, never in the sheet; PLAN-SIGN-LINES.md L2.</td></tr>
+    <tr><td>Deck</td><td><code>acts.ts deckOf</code>: seven starters a sign, the first three open shown; PLAN-BLOCKERS.md K2.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="resolve" data-name="A tap on the word resolves one">
+  <h2>A tap on the word resolves one</h2>
+  <p class="line">Grey, with the check, in its place.</p>
+</section>
+
+<!-- 9 -->
+<section class="step" id="next" data-name="Next time, the next one is there">
+  <h2>Next time, the next one is there</h2>
+  <p class="line">The fourth question stands where the first was.</p>
+</section>
+
+<!-- 10 -->
+<section class="step" id="deck" data-name="Edit holds my line and the deck">
+  <h2>Edit holds my line and the deck</h2>
+  <p class="line">My line, every open question, then Resolved with dates.</p>
+</section>
+
+<!-- 11 -->
+<section class="step" id="journal" data-name="Or resolve it where I answered it">
+  <h2>Or resolve it where I answered it</h2>
+  <p class="line">Today's page: the question, Resolve, my answer.</p>
+</section>
+
+<!-- 12 -->
+<section class="step" id="qtab" data-name="The same word on the ? tab">
+  <h2>The same word on the ? tab</h2>
+  <p class="line">Open ones carry Resolve; resolved ones sit under Resolved.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Word</td><td><code>parts/Resolve.tsx</code>: the print word, then the drawn check; <code>pages.ts resolveQuestion</code>; PLAN-BLOCKERS.md K1.</td></tr>
+  </table></details>
+</section>
+
+<!-- 13 -->
+<section class="step" id="qpage" data-name="And on a question's own page">
+  <h2>And on a question's own page</h2>
+  <p class="line">Resolve beside the title.</p>
+</section>
+
+<!-- 14 -->
+<section class="step" id="still" data-name="In Still, the names">
+  <h2>In Still, the names</h2>
+  <p class="line">The pair in words, then Blockers as names only.</p>
+</section>
+
+<!-- 15 -->
+<section class="step" id="door" data-name="Through the door, the practice stays">
+  <h2>Through the door, the practice stays</h2>
+  <p class="line">Without the PIN, Root keeps its grounding question, as print.</p>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>
