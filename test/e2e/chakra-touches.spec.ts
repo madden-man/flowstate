@@ -55,8 +55,8 @@ test('each sign prints its touch words on its plate, thumb-sized, the lead lit; 
     }
     // the plate is the taller one: twelve rules
     expect(plate.height).toBeGreaterThan(330);
-    // the foot: gloss, gate, the Blockers (K3), then the sign's shelf (T5)
-    await expect(body.locator('.ck-gloss + .fs-gate')).toHaveCount(1);
+    // the foot: the pair and the line (L1), gate, the Blockers (K3), then the sign's shelf (T5)
+    await expect(body.locator('.ck-for + .fs-gate')).toHaveCount(1);
     await expect(body.locator(`.fs-gate + [data-blockers] + .ck-shelf[data-shelf="${c}"]`)).toHaveCount(1);
   }
   // a tap lights the word and marks it pressed; nothing is written, nothing leaves

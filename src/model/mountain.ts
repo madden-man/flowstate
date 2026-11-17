@@ -19,21 +19,30 @@ export type ChakraId = typeof CHAKRA_IDS[number];
 export type SignKind = 'crown' | 'eye' | 'voice' | 'heart' | 'sun' | 'drop' | 'sprout';
 
 /** A stop on the stream. name is beside its sign on the mountain ("Heart"), pageName its page's header ("Heart chakra"),
- *  hue the voice formula's angle (DESIGN.md rule 3), gloss the print line under the large sign ("Heart · love and grief"). */
-export interface Chakra { id: ChakraId; name: string; pageName: string; sign: SignKind; hue: number; gloss: string }
+ *  hue the voice formula's angle (DESIGN.md rule 3), gloss the mountain's print line for the sign ("Heart · love and
+ *  grief"). line and versus are what the sign is for (PLAN-SIGN-LINES.md section 2, L1): line the italic starter under
+ *  the pair on its page, in the wiser second person, a want and what is in its way, 70 characters at most (lint DL23),
+ *  his to rewrite (model/acts.ts lineOf); versus the struggle it comes down to, what he wants and what works against
+ *  it, fixed print (parts/Versus). On the sign's page the pair stands where the gloss was. */
+export interface Chakra {
+  id: ChakraId; name: string; pageName: string; sign: SignKind; hue: number; gloss: string;
+  line: string; versus: readonly [string, string];
+}
 
-const stop = (id: ChakraId, name: string, sign: SignKind, hue: number, forWords: string): Chakra =>
-  ({ id, name, pageName: `${name} chakra`, sign, hue, gloss: `${name} · ${forWords}` });
+const stop = (id: ChakraId, name: string, sign: SignKind, hue: number, forWords: string, line: string, versus: readonly [string, string]): Chakra =>
+  ({ id, name, pageName: `${name} chakra`, sign, hue, gloss: `${name} · ${forWords}`, line, versus });
 
-/** Summit to foot (BUILD-MOUNTAIN.md section 3). Crown's gloss is "letting go" since PLAN-TASKS.md section 2 (sleep is one of Root's basics). */
+/** Summit to foot (BUILD-MOUNTAIN.md section 3). Crown's gloss is "letting go" since PLAN-TASKS.md section 2 (sleep is
+ *  one of Root's basics). The lines and pairs are PLAN-SIGN-LINES.md section 2's, verbatim; one stop a line, so the
+ *  lint can read each line (DL23). */
 export const CHAKRAS: readonly Chakra[] = [
-  stop('crown', 'Crown', 'crown', 305, 'letting go'),
-  stop('third-eye', 'Third eye', 'eye', 275, 'seeing clearly'),
-  stop('throat', 'Throat', 'voice', 250, 'speech'),
-  stop('heart', 'Heart', 'heart', 150, 'love and grief'),
-  stop('solar-plexus', 'Solar plexus', 'sun', 95, 'will and worth'),
-  stop('sacral', 'Sacral', 'drop', 55, 'feeling'),
-  stop('root', 'Root', 'sprout', 25, 'feeling safe'),
+  stop('crown', 'Crown', 'crown', 305, 'letting go', 'You want to rest in something larger. You keep a hand on everything.', ['Letting go', 'holding on']),
+  stop('third-eye', 'Third eye', 'eye', 275, 'seeing clearly', 'You want to see what is true. The old story speaks first.', ['Seeing', 'the story']),
+  stop('throat', 'Throat', 'voice', 250, 'speech', 'You want to be heard as you are. Saying it risks the answer.', ['Saying it', 'swallowing it']),
+  stop('heart', 'Heart', 'heart', 150, 'love and grief', 'You want to love and be loved. What you love can be lost.', ['Opening', 'guarding']),
+  stop('solar-plexus', 'Solar plexus', 'sun', 95, 'will and worth', 'You want to act and to matter. One failure reads like a verdict.', ['Will', 'shame']),
+  stop('sacral', 'Sacral', 'drop', 55, 'feeling', 'You want to feel alive. Feeling lets the pain in too.', ['Feeling', 'numbing']),
+  stop('root', 'Root', 'sprout', 25, 'feeling safe', 'You want to be safe. The alarm rings when nothing is wrong.', ['Safety', 'fear']),
 ];
 
 export const isChakraId = (id: unknown): id is ChakraId => (CHAKRA_IDS as readonly unknown[]).includes(id);

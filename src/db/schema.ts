@@ -621,6 +621,9 @@ export type SignShelf = {
    *  on asks is ignored and left as it was. Absent, the deck reads as the starters (model/acts.ts STARTER_DECK) with
    *  asks laid over the first three. Sealed with picks and asks. Optional and unindexed, so no Dexie version bump. */
   deck?: DeckAsk[];
+  /** PLAN-SIGN-LINES.md section 7 (L1): the sign's italic line as he rewrote it; absent or empty, the line is its
+   *  starter (model/mountain.ts CHAKRAS line). Sealed with picks. Optional and unindexed, so no Dexie version bump. */
+  line?: string;
 };
 
 /** One question in a sign's deck (PLAN-BLOCKERS.md section 5). id is a starter's own (model/acts.ts starterAskId) or a

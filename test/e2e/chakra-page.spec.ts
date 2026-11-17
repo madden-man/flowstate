@@ -44,7 +44,9 @@ test('a stop opens on its place, its drawings unnamed, and the gate writes one r
   // the plate: the place, the light, the sign that travels from the mountain
   await expect(body.locator('.ck-plate.on-plate[data-fx="fireflies"] canvas.ck-light')).toHaveCount(1);
   await expect(body.locator('.ck-sign')).toHaveAttribute('data-travel', 'mt-sign-root');
-  await expect(body.locator('.ck-gloss')).toHaveText('Root · feeling safe');
+  // what the sign is for, in the gloss's place (PLAN-SIGN-LINES.md L1)
+  await expect(body.locator('.ck-for [data-versus]')).toHaveText('Safetyvs.fear');
+  await expect(body.locator('.ck-gloss')).toHaveCount(0);
   // the old flows' large drawings are gone: the plate is the drawing; a flow's small drawing is only on its Blockers row
   await expect(body.locator('.ck-drawing, .fl-drawing')).toHaveCount(0);
   await expect(body.locator('.fs-cycle:not(.bk-row .fs-cycle)')).toHaveCount(0);
