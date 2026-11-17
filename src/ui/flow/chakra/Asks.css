@@ -15,6 +15,17 @@
 .ck-ask { transition: color var(--t-ui) var(--ease); }
 .ck-ask[data-down] { color: var(--print); transition: none; }
 .ck-ask:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
+/* the grounding question (PLAN-SIGN-LINES.md section 5): first, the same italic on the same rules, ending on a blank
+   rule, with no Resolve beside it, so its words run the full width. A row on the page (a button), print through the door */
+.ck-ground {
+  appearance: none; border: 0; background: transparent; margin: 0; -webkit-tap-highlight-color: transparent;
+  display: block; width: fit-content; max-width: 100%; min-height: calc(var(--lh-ink) * 2);
+  padding: 0 0 var(--lh-ink) 0; text-align: left;
+  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); color: var(--ink); overflow-wrap: anywhere;
+}
+button.ck-ground { cursor: pointer; transition: color var(--t-ui) var(--ease); }
+button.ck-ground[data-down] { color: var(--print); transition: none; }
+button.ck-ground:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
 /* Resolve on the row's first rule, at the right; resolved, the words go to print grey and the check stands there */
 .ck-ask-row > .ck-ask-resolve { position: absolute; top: 0; right: 0; z-index: 1; }
 .ck-ask-row.done > .ck-ask { color: var(--print); }
@@ -24,8 +35,9 @@
 .ck-asks-edit .fs-word { margin-right: calc(var(--s1) * -1); }
 /* before the read: the rules it took last time, or the starters drawn unseen (Asks.tsx) */
 .ck-asks.wait { visibility: hidden; min-height: calc(var(--lh-ink) * var(--ck-ask-rules, 0)); }
-/* short of three (the rest resolved): what is left, in the room the three took (six rules if never measured) */
-.ck-asks.short { min-height: calc(var(--lh-ink) * var(--ck-ask-rules, 6)); }
+/* short of three (the rest resolved): what is left, in the room the three took (nine rules if never measured: the
+   grounding question on two and its blank rule, three questions on one and theirs) */
+.ck-asks.short { min-height: calc(var(--lh-ink) * var(--ck-ask-rules, 9)); }
 /* the deck sheet Edit raises: every open question on its rules, wrapping whole, a blank last rule, then Resolved */
 .ck-asks-sheet { display: grid; gap: var(--s2); padding: var(--s1) 0 var(--s2); }
 .ck-deck { display: grid; gap: var(--s2); }

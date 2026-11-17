@@ -27,7 +27,7 @@ import { useNow } from './breath';
 import { Plate } from './chakra/Plate';
 import { Touches } from './chakra/Touches';
 import { SignShelf } from './chakra/SignShelf';
-import { Asks } from './chakra/Asks';
+import { Asks, Ground } from './chakra/Asks';
 import { Blockers, lastSign } from './chakra/Blockers';
 import { readGuard } from './chakra/fresh';
 import { asks, settle } from './chakra/surge';
@@ -62,7 +62,8 @@ function SafeLine({ line, links }: { line?: string; links: boolean }) {
 }
 
 /** A sign's page through the door, without the PIN (PLAN-TASKS.md section 7): the place, the gloss, the touches that
- *  happen in the place and write nothing (door: true), and the 988 line. No gate, no shelf, no flow: what he set and
+ *  happen in the place and write nothing (door: true), the sign's grounding question as print (PLAN-SIGN-LINES.md
+ *  section 5: no word of his in it; no tap, the journal is locked; gone in Still), and the 988 line. No gate, no shelf, no flow: what he set and
  *  what he wrote stay behind the PIN, so the plate is drawn open, as in Still. The way back asks for the PIN. */
 export function DoorChakraPage({ chakra }: { chakra: string }) {
   if (!isChakraId(chakra)) return <Redirect to="/flow/now" />;
@@ -76,6 +77,7 @@ export function DoorChakraPage({ chakra }: { chakra: string }) {
           <Touches chakra={chakra} door still={still} />
         </Plate>
         <p class="ck-gloss">{c.gloss}</p>
+        <Ground chakra={chakra} />
         <SafeLine line={foot.line} links={foot.links} />
       </div>
     </Page>

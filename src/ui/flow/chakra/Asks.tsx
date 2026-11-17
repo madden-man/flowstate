@@ -30,6 +30,13 @@
 // never in the sheet. L1's italic line is the sheet's first rule, before the open questions (the marked line in
 // AsksSheet), saved through its own setLine; the deck's rules and setDeck do not see it.
 //
+// The grounding question (PLAN-SIGN-LINES.md L2, section 5): Ground, the sign's GROUND_ASKS, stands first in the block,
+// fixed print in the same italic, drawn over whatever the deck gives and never addressing a deck question by place. It
+// has no Resolve and no Edit of its own, is never in the sheet, and its tap is the others' (askInJournal, written once a
+// day). Through the door DoorChakraPage prints it, words only, no tap; in Still it leaves with the block. Its rules and
+// its blank rule are counted into the block's room, kept under a key of its own (ROOM_KEY): the rooms kept before it
+// were measured without it, and a room one row short would move the lines under it on the first paint after the update.
+//
 // Nothing is counted (rule 15): no mark for a question asked, no tally of resolved, no number. Still never asks (rule
 // 13): the block leaves with the light (fs-notstill), Resolve and the check and Edit with it, and a sheet open when the
 // light turns goes down. Locked (the door): nothing at all; DoorChakraPage does not mount it. The check is drawn once
@@ -38,7 +45,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import type { ChakraId } from '../../../model/mountain';
 import { chakraOf } from '../../../model/mountain';
-import { STARTER_ASKS, deckOf, resolveAsk, setDeck } from '../../../model/acts';
+import { GROUND_ASKS, STARTER_ASKS, deckOf, resolveAsk, setDeck } from '../../../model/acts';
 import { askInJournal } from '../../../model/into';
 import type { DeckAsk } from '../../../db/schema';
 import { pageCarry } from './carry';
@@ -52,7 +59,8 @@ import { notebookDate } from '../../date';
 import { gateState } from '../../lock/pin';
 import './Asks.css';
 
-const ROOM_KEY = 'fs-asks-room';
+// with the grounding question counted in (L2); 'fs-asks-room', measured before it, is left unread
+export const ROOM_KEY = 'fs-asks-room-2';
 const SHOWN = 3;
 
 /** The rules the block took the last time it was drawn on this sign's page, or null if never. */
@@ -114,6 +122,18 @@ export function slotsAfter(was: readonly DeckAsk[], deck: { open: DeckAsk[]; res
   return out.filter((q): q is DeckAsk => !!q);
 }
 
+/** The sign's grounding question (PLAN-SIGN-LINES.md section 5): with onAsk, a row whose tap carries it to today's
+ *  page as the deck's questions do; without, print (through the door, and unseen before the read). No Resolve. */
+export function Ground({ chakra, onAsk }: { chakra: ChakraId; onAsk?: (text: string) => void }) {
+  const text = GROUND_ASKS[chakra];
+  if (!onAsk) return <p class="ck-ground fs-wise fs-notstill" data-ground={chakra}>{text}</p>;
+  return (
+    <div class="ck-ground-row" data-ground={chakra}>
+      <button type="button" class="ck-ground fs-wise" onClick={() => onAsk(text)}>{text}</button>
+    </div>
+  );
+}
+
 /** The starters drawn unseen before the first read, so the block takes its height. */
 function Waiting({ chakra }: { chakra: ChakraId }) {
   return (
@@ -170,6 +190,7 @@ export function Asks({ chakra, edit = true }: { chakra: ChakraId; edit?: boolean
     // before the read: the room it took last time, or the starters drawn unseen, so nothing under it moves
     return (
       <section ref={root} class="ck-asks wait fs-notstill" aria-hidden="true" style={room}>
+        {!rules && <Ground chakra={chakra} />}
         {!rules && <Waiting chakra={chakra} />}
       </section>
     );
@@ -202,7 +223,8 @@ export function Asks({ chakra, edit = true }: { chakra: ChakraId; edit?: boolean
       {/* short of three (every other one resolved), the block keeps the room it took with three */}
       <section ref={root} class={`ck-asks fs-notstill${slots.length < SHOWN ? ' short' : ''}`} data-asks={chakra} aria-label="Questions"
         style={slots.length < SHOWN ? room : undefined}>
-        {/* PLAN-SIGN-LINES.md L2: the grounding question's row goes here, first, with no Resolve */}
+        {/* PLAN-SIGN-LINES.md L2: the grounding question, first, fixed, with no Resolve */}
+        <Ground chakra={chakra} onAsk={text => void ask(text)} />
         {slots.map(q => {
           const done = q.resolvedAt !== undefined;
           return (

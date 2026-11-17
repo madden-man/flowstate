@@ -226,6 +226,22 @@ export const STARTER_ASKS: Readonly<Record<ChakraId, readonly [string, string, s
   root: ['What is true right here, in this room?', 'What do you need in the next hour?', 'What has held before when it felt like this?'],
 };
 
+// ---- the question that always shows (PLAN-SIGN-LINES.md section 5, L2) ----
+// One a sign, first in its questions: a small thing to do with the body or the room, then a question whose answer is in
+// front of him. Fixed print, the same on every phone: not stored, not sealed (so the door can print it), never in the
+// deck or its sheet, never resolved, never on the ? tab. The plan's drafts, verbatim; changing one is a code change.
+
+/** The sign's grounding question. Frozen: nothing at run time rewrites it. */
+export const GROUND_ASKS: Readonly<Record<ChakraId, string>> = Object.freeze({
+  crown: 'Breathe out slower than you breathed in. What can you set down for that long?',
+  'third-eye': 'Look at the farthest thing you can see. What is actually in front of you?',
+  throat: 'Say it once, out loud, to the room. What is the sentence?',
+  heart: 'Hand on your chest for three breaths. What is it holding?',
+  'solar-plexus': 'Stand up and drop your shoulders. What can your hands finish in ten minutes?',
+  sacral: 'Find where the feeling sits. Does it move when you breathe into it?',
+  root: 'Feel your feet on the floor. What are five things you can see?',
+});
+
 /** The three as read: his own at each place he rewrote (row.asks[i] not empty), the starter at the rest. */
 const asksFrom = (chakra: ChakraId, asks?: string[]): string[] => STARTER_ASKS[chakra].map((s, i) => asks?.[i] || s);
 
