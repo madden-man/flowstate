@@ -1,0 +1,32 @@
+/* Pieces that do not exist yet (PLAN-BLOCKERS.md). Tokens only; the build moves these into src/ui. */
+
+/* Blockers on a sign's page: the print word on its own rule, then a row a blocker (the Flow list's own row, .fl-flow) */
+.bk { margin: 0; }
+.bk-label { color: var(--print); }
+.bk .fs-row.fl-flow { display: block; min-height: calc(var(--lh-ink) * 2); }
+.bk .fl-flow .fs-list-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk .fl-flow[data-also] .fs-list-line { color: var(--print); }
+.bk .fl-flow[data-struck] .fs-list-line { text-decoration: line-through; color: var(--print); }
+.bk-edit { display: flex; justify-content: flex-end; height: var(--lh-ink); align-items: center; margin: 0; }
+.bk-edit .fs-word { margin-right: calc(var(--s1) * -1); }
+.bk-new { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); }
+
+/* A question and its ring: the words are the tap into the journal, the ring at the right is the tap that resolves */
+.pd-q { display: flex; align-items: flex-start; gap: var(--s2); }
+.pd-q .ck-ask, .pd-q .fs-qrow { flex: 1; min-width: 0; width: auto; }
+.pd-ring {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0 calc(var(--s2) * -1) 0 0; flex: none;
+  width: var(--hit); height: var(--lh-ink); display: grid; place-items: center; cursor: pointer; color: var(--print);
+}
+.pd-ring svg { overflow: visible; }
+.pd-ring circle { fill: none; stroke: currentColor; stroke-width: 1.2; }
+.pd-ring .in { fill: var(--ink); stroke: none; }
+.pd-ring.on { color: var(--ink); }
+.pd-q.done .ck-ask, .pd-q.done .fs-list-line { color: var(--print); }
+.pd-q.rise .ck-ask { opacity: .55; }
+.pd-date { flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); line-height: var(--lh-ink); }
+.pd-foot { display: flex; justify-content: space-between; align-items: center; height: var(--lh-ink); margin: 0; }
+.pd-foot .fs-word:first-child { margin-left: calc(var(--s1) * -1); }
+.pd-foot .fs-word:last-child { margin-right: calc(var(--s1) * -1); }
+.pd-title { display: flex; align-items: flex-start; gap: var(--s2); }
+.pd-title > :first-child { flex: 1; min-width: 0; }
