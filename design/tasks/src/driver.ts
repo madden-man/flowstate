@@ -220,7 +220,7 @@ async function act(): Promise<void> {
       await seen('.ck-asks:not(.wait) .ck-ask');
       await bring('.ck-asks');
       await wait(1100);
-      await click('.ck-asks .ck-ask-row:nth-of-type(2) .ck-ask');
+      await click('.ck-asks [data-ask="heart-2"] .ck-ask');
       return;
     // Edit raises the three on their rules; the first rewritten, letter by letter
     case 'rewrite': {

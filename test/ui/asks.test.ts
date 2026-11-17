@@ -174,7 +174,7 @@ describe('a sign\'s questions on its page (rule 37, K2)', () => {
   });
 
   it('with every question resolved, what is left, in the room it took', async () => {
-    localStorage.setItem('fs-asks-room', JSON.stringify({ heart: 8 }));
+    localStorage.setItem('fs-asks-room-2', JSON.stringify({ heart: 8 }));
     const now = Date.now();
     for (let i = 0; i < 6; i++) await resolveAsk('heart', starterAskId('heart', i), true, now);
     await draw(h(Asks, { chakra: 'heart' }));
@@ -204,13 +204,13 @@ describe('a sign\'s questions on its page (rule 37, K2)', () => {
     expect([...wait!.querySelectorAll('.ck-ask')].map(b => b.textContent)).toEqual([...STARTER_ASKS.heart]);
     expect(wait!.querySelectorAll('.fs-resolve')).toHaveLength(0);
     render(null, root); root.remove();
-    localStorage.setItem('fs-asks-room', JSON.stringify({ heart: 7 }));
+    localStorage.setItem('fs-asks-room-2', JSON.stringify({ heart: 7 }));
     expect(asksRoomOf('heart')).toBe(7);
     await draw(h(Asks, { chakra: 'heart' }), false);
     const held = root.querySelector<HTMLElement>('.ck-asks.wait')!;
     expect(held.style.getPropertyValue('--ck-ask-rules')).toBe('7');
     expect(held.querySelectorAll('.ck-ask')).toHaveLength(0);
-    localStorage.setItem('fs-asks-room', JSON.stringify({ heart: 'x' }));
+    localStorage.setItem('fs-asks-room-2', JSON.stringify({ heart: 'x' }));
     expect(asksRoomOf('heart')).toBeNull();
   });
 

@@ -23,7 +23,9 @@ const go = async (page: Page, hash: string) => { await page.evaluate(h => { loca
 
 /** Where each thing stands on the page: the block, each row, each Resolve, the 988 line. */
 const where = (page: Page) => page.evaluate(() => {
-  const y = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().top + scrollY) : -1);
+  // on the page, not the screen: the page scrolls in its own sheet (.fs-sheetof), and a tap low on it scrolls that
+  const sheet = document.querySelector('.fs-sheetof');
+  const y = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().top + scrollY + (sheet?.scrollTop ?? 0)) : -1);
   const hgt = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().height) : -1);
   const block = document.querySelector('[data-asks="heart"]');
   return {
