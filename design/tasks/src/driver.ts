@@ -17,17 +17,19 @@ import { connectMusic, writeLines } from './seed';
 export type Light = 'day' | 'night' | 'still';
 export type Step =
   | 'held' | 'place' | 'grieve' | 'look-far' | 'basics' | 'surge' | 'ask' | 'back' | 'stand-on' | 'send' | 'i-will'
-  | 'shelf' | 'signs' | 'door' | 'sea';
+  | 'shelf' | 'asks' | 'asked' | 'rewrite' | 'signs' | 'door' | 'sea';
 
 /** Each step's light as designed (the relight control's first choice): the evening it starts, the morning after. */
 export const DESIGNED: Record<Step, Light> = {
   held: 'night', place: 'night', grieve: 'night', 'look-far': 'day', basics: 'day', surge: 'night', ask: 'day', back: 'day',
-  'stand-on': 'day', send: 'night', 'i-will': 'day', shelf: 'night', signs: 'night', door: 'night', sea: 'night',
+  'stand-on': 'day', send: 'night', 'i-will': 'day', shelf: 'night', asks: 'night', asked: 'night', rewrite: 'night', signs: 'night',
+  door: 'night', sea: 'night',
 };
 
 const SIGN: Partial<Record<Step, ChakraId>> = {
   place: 'heart', grieve: 'heart', 'look-far': 'third-eye', basics: 'root', surge: 'sacral', ask: 'third-eye', back: 'third-eye',
-  'stand-on': 'solar-plexus', send: 'throat', 'i-will': 'solar-plexus', shelf: 'heart', door: 'root', sea: 'heart',
+  'stand-on': 'solar-plexus', send: 'throat', 'i-will': 'solar-plexus', shelf: 'heart', asks: 'heart', asked: 'heart',
+  rewrite: 'heart', door: 'root', sea: 'heart',
 };
 
 /** Each step's route: its sign's page, the mountain, or today's page. */
@@ -71,7 +73,7 @@ export async function setUp(): Promise<void> {
   for (const [id, v] of Object.entries(GATES[step] ?? {})) await writeReading(id as ChakraId, v);
   // slept is already lit this morning; ate and water are lit on the step
   if (step === 'basics') await setBasic('slept', true);
-  if (step === 'shelf' || step === 'signs') await connectMusic();
+  if (step === 'shelf' || step === 'signs' || step === 'asks' || step === 'rewrite') await connectMusic();
   if (step === 'shelf') await writeLines();
   if (step === 'door') {
     // a PIN set (few rounds: a demo key), the ring without the PIN on, then locked as the phone relocks
@@ -205,6 +207,34 @@ async function act(): Promise<void> {
       await wait(1200);
       const cells = document.querySelectorAll<HTMLElement>('.ck-shelf [data-pick]');
       if (cells[1]) await longPress(cells[1]);
+      return;
+    }
+    // the three questions under the five covers (DESIGN.md rule 37)
+    case 'asks':
+      await seen('.ck-asks:not(.wait) .ck-ask');
+      await bring('.ck-asks');
+      return;
+    // a tap on one: today's page opens on it, an italic line, the caret under it, the sign by the date
+    case 'asked':
+      await seen('.ck-asks:not(.wait) .ck-ask');
+      await bring('.ck-asks');
+      await wait(1100);
+      await click('.ck-asks .ck-ask:nth-of-type(2)');
+      return;
+    // Edit raises the three on their rules; the first rewritten, letter by letter
+    case 'rewrite': {
+      await seen('.ck-asks:not(.wait) .ck-ask');
+      await bring('.ck-asks');
+      await wait(900);
+      await click('.ck-asks-edit .fs-word');
+      await wait(700);
+      const first = await seen<HTMLInputElement>('[data-sheet="Heart asks"] input');
+      if (first) {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(first, '');
+        first.dispatchEvent(new Event('input', { bubbles: true }));
+        first.focus({ preventScroll: true });
+      }
+      await type('[data-sheet="Heart asks"] input', 'Who do you want to call tonight?', 55);
       return;
     }
     case 'signs':

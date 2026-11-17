@@ -2,7 +2,7 @@
 // Builds the tasks walkthrough (PLAN-TASKS.md T6) into ONE directory, ready to publish as an artifact:
 //   design/tasks/dist/  index.html, walk.css, walk.js, tokens.css  (the page and its chrome)
 //                          app.html, app.js, app.css                  (the real app, one classic script, built from src)
-//                          c-<sign>-<n>.jpg                           (the 21 starter covers, each its own file)
+//                          c-<sign>-<n>.jpg                           (the 35 starter covers, each its own file)
 // dist/ is ignored by git and skipped by design-lint, as design/motion/dist is (the bundled app holds the app's own
 // AudioContext). Then the artifact lint runs on the page and check-dist on the directory.
 import { execFileSync } from 'node:child_process';
