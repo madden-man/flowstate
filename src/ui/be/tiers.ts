@@ -33,32 +33,37 @@ export const rowsOf = (t: Tiers, p: ValuePlace): Read<Value>[] =>
   p === 1 ? t.first : p === 2 ? t.second : p === 3 ? t.third : p === 'resting' ? t.resting : t.legacy;
 
 /**
- * The list as one run of slots, top to bottom (PLAN-TIERS.md section 5, PLAN-FOLDS.md section 6): for each of the five
- * places its heading; folded, nothing else (the heading carries the run of its words); open, its rows and, when it has
- * none, its landing rule. Resting and Legacy show only when something is on them. Every slot has a key unique across the
- * run, so the list is one flat keyed run and a row that changes place moves instead of being drawn again (B2's drag
+ * The list as one run of slots, top to bottom (PLAN-TIERS.md section 5, PLAN-FOLDS.md sections 5 and 6): for each of the
+ * five places its heading; folded, nothing else (the heading carries the run of its words); open, its rows and, when it
+ * has none, its landing rule. Resting and Legacy show only when something is on them. Every slot has a key unique across
+ * the run, so the list is one flat keyed run and a row that changes place moves instead of being drawn again (the drag
  * swaps past a heading as it swaps past a row).
- * While a row is lifted (B2) there is somewhere to drop everywhere: every place is drawn open (G1; G2 lets a lift keep
- * the folds), every tier ends in its landing rule, and both shelves show, empty or not, each opening with one (the
- * drag's geometry reads a shelf's rule as its head, ui/be/drag.ts target).
+ * While a row is lifted (lifted: its id) there is somewhere to drop everywhere, and every place keeps its fold (G2): an
+ * open place ends in its landing rule, its foot, the shelves as the tiers; a folded place is its heading alone (dashed,
+ * its own landing), and when the lifted row rides there it is drawn right under it, the only row (infold); both shelves
+ * show, empty or not, each at its kept fold.
  */
 export type Slot =
   | { kind: 'heading'; key: string; place: ValuePlace; folded: boolean }
-  | { kind: 'row'; key: string; place: ValuePlace; value: Read<Value> }
+  | { kind: 'row'; key: string; place: ValuePlace; value: Read<Value>; infold?: boolean }
   | { kind: 'land'; key: string; place: ValuePlace };
 
-export function slots(t: Tiers, folded: Settings['beFolded'], lifting = false): Slot[] {
+export function slots(t: Tiers, folded: Settings['beFolded'], lifted: string | null = null): Slot[] {
   const out: Slot[] = [];
+  const lifting = lifted !== null;
   for (const { place: p } of PLACE_WORDS) {
     const rows = rowsOf(t, p);
     const shelf = typeof p !== 'number';
     if (shelf && !rows.length && !lifting) continue;
-    const shut = !lifting && isFolded(folded, p);
+    const shut = isFolded(folded, p);
     out.push({ kind: 'heading', key: `heading-${p}`, place: p, folded: shut });
-    if (shut) continue;
-    if (shelf && lifting) out.push({ kind: 'land', key: `land-${p}`, place: p });
+    if (shut) {
+      const riding = lifting ? rows.find(v => v.id === lifted) : undefined;
+      if (riding) out.push({ kind: 'row', key: riding.id, place: p, value: riding, infold: true });
+      continue;
+    }
     for (const value of rows) out.push({ kind: 'row', key: value.id, place: p, value });
-    if (!shelf && (!rows.length || lifting)) out.push({ kind: 'land', key: `land-${p}`, place: p });
+    if (!rows.length || lifting) out.push({ kind: 'land', key: `land-${p}`, place: p });
   }
   return out;
 }
