@@ -1,8 +1,9 @@
 // PLAN-TIERS.md B2, the drag across the tiers, driven by touch-style pointer events as the gate specs drive theirs: a
-// long press lifts a row and folds every open value; every tier ends in a landing rule and both shelves open with one;
-// the row rides across a heading (a tier tick as it crosses, the word taking the place's size) and drops (placeValue,
-// the drop tick), into First, an empty Third, Resting and Legacy and back; near an edge the list scrolls under it; a
-// drop where it started writes nothing; Still lifts nothing. B2_SHOTS=1 writes the mid-drag screenshots.
+// long press lifts a row and folds every open value; every place is drawn open (PLAN-FOLDS.md G1), every tier ends in a
+// landing rule and both shelves show with one; the row rides across a heading (a tier tick as it crosses, the word
+// taking the place's size) and drops (placeValue, the drop tick), into First, an empty Third, Resting and Legacy and
+// back, each place going back to its kept fold after; near an edge the list scrolls under it; a drop where it started
+// writes nothing; Still lifts nothing. B2_SHOTS=1 writes the mid-drag screenshots.
 import { test, expect, type Page, type Locator } from '@playwright/test';
 
 const SHOTS = process.env.B2_SHOTS_DIR ?? '/private/tmp/claude-501/-Users-musicman-dev/dd72be1f-a9a3-4c9c-9d41-8c02e2a7bd04/scratchpad/b2';
@@ -12,7 +13,9 @@ const list = (p: Page) => p.locator('.fs-values');
 const row = (p: Page, w: string) => p.locator('.fs-values .fs-be-row', { has: p.locator('.a', { hasText: new RegExp(`^${w}$`) }) });
 const words = (p: Page, place: string) => p.locator(`.fs-values .fs-be-row[data-place="${place}"] > .fs-dichotomy .a`);
 const land = (p: Page, place: string) => p.locator(`.fs-values [data-land="${place}"]`);
-const shelf = (p: Page, w: 'Resting' | 'Legacy') => p.locator('.fs-be-shelf button', { hasText: new RegExp(`^${w}$`) });
+/** A place's heading button (PLAN-FOLDS.md G1): aria-expanded says open or folded. */
+const head = (p: Page, place: string) => p.locator(`.fs-values .fs-be-head[data-place="${place}"] > button`);
+const run = (p: Page, place: string) => head(p, place).locator('.run > span:not(.dot)');
 const lifted = (p: Page) => p.locator('.fs-values .fs-be-row.lift');
 const size = (l: Locator) => l.evaluate(el => getComputedStyle(el).fontSize);
 const px = (page: Page, token: string) => page.evaluate(t => getComputedStyle(document.documentElement).getPropertyValue(t).trim(), token);
@@ -83,7 +86,7 @@ const shot = async (page: Page, name: string) => {
 
 test.beforeEach(async ({ page }) => { await page.setViewportSize({ width: 390, height: 844 }); });
 
-test('a lift folds every open value, every tier ends in a landing rule, both shelves open with one; let go where it started, nothing is written', async ({ page }) => {
+test('a lift folds every open value, every place is drawn open, every tier ends in a landing rule, both shelves show with one; let go where it started, nothing is written', async ({ page }) => {
   await be(page);
   await row(page, 'thoughtful').locator('.fs-dichotomy').click();
   await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
@@ -94,10 +97,10 @@ test('a lift folds every open value, every tier ends in a landing rule, both she
   await expect(list(page).locator('.fs-value-body')).toHaveCount(0);
   for (const p of ['1', '2', '3', 'resting', 'legacy']) await expect(land(page, p)).toHaveCount(1);
   // nothing is on either shelf, yet each shows open so there is somewhere to drop
-  await expect(shelf(page, 'Resting')).toHaveAttribute('aria-expanded', 'true');
-  await expect(shelf(page, 'Legacy')).toHaveAttribute('aria-expanded', 'true');
-  const order = await list(page).evaluate(el => [...el.children].map(c => { const d = (c as HTMLElement).dataset; return d.heading ? `h${d.heading}` : d.land ? `_${d.land}` : d.shelf ? `s:${d.shelf}` : d.row ? d.row.replace(/^value-px-|-.*$/g, '') : ''; }));
-  expect(order).toEqual(['', 'h1', '_1', 'h2', 'selfless', 'thoughtful', '_2', 'h3', '_3', 's:resting', '_resting', 's:legacy', '_legacy']);
+  await expect(head(page, 'resting')).toHaveAttribute('aria-expanded', 'true');
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'true');
+  const order = await list(page).evaluate(el => [...el.children].map(c => { const d = (c as HTMLElement).dataset; return d.heading ? `h${d.heading}` : d.land ? `_${d.land}` : d.row ? d.row.replace(/^value-px-|-.*$/g, '') : ''; }));
+  expect(order).toEqual(['', 'h1', '_1', 'h2', 'selfless', 'thoughtful', '_2', 'h3', '_3', 'hresting', '_resting', 'hlegacy', '_legacy']);
   // the lifted row did not move under the still finger
   const r = (await lifted(page).boundingBox())!;
   expect(Math.abs(r.y + hold.grab - hold.y)).toBeLessThanOrEqual(1);
@@ -107,7 +110,7 @@ test('a lift folds every open value, every tier ends in a landing rule, both she
   await release(page, hold);
   await expect(words(page, '2')).toHaveText(['selfless', 'thoughtful']);
   await expect(land(page, '2')).toHaveCount(0);
-  await expect(page.locator('.fs-be-shelf')).toHaveCount(0);
+  await expect(head(page, 'resting').or(head(page, 'legacy'))).toHaveCount(0);
   expect(await ticks(page)).toEqual([]);
   // the lift swallowed the tap: nothing opened
   await expect(list(page).locator('.fs-dichotomy[aria-expanded="true"]')).toHaveCount(0);
@@ -129,7 +132,7 @@ test('carry Second to First across the heading: a tier tick as it crosses, the w
   await expect(words(page, '1')).toHaveText(['thoughtful']);
   await expect(words(page, '2')).toHaveText(['selfless']);
   await expect(land(page, '1')).toHaveCount(0);
-  await expect.poll(() => size(row(page, 'thoughtful').locator('.fs-dichotomy'))).toBe(await px(page, '--fs-manifesto'));
+  await expect.poll(() => size(row(page, 'thoughtful').locator('.fs-dichotomy'))).toBe(await px(page, '--fs-first'));
   await expect(page.locator('[data-settling]')).toHaveCount(0);
   await page.reload();
   await be(page);
@@ -152,29 +155,35 @@ test('drop into an empty Third', async ({ page }) => {
   await expect(words(page, '3')).toHaveText(['selfless']);
 });
 
-test('drop into Resting and into Legacy: each shelf stays open, Legacy shows dates; carried back from Legacy to a tier', async ({ page }) => {
+test('drop into Resting and into Legacy: each goes back to its kept fold, its run one word longer; Legacy shows dates; carried back from Legacy to a tier', async ({ page }) => {
   await page.clock.install({ time: new Date(2026, 10, 12, 9, 40) });
   await be(page);
   let hold = await lift(page, 'selfless');
   await carry(page, hold, land(page, 'resting'));
   await expect(row(page, 'selfless')).toHaveAttribute('data-place', 'resting');
   await release(page, hold);
-  await expect(shelf(page, 'Resting')).toHaveAttribute('aria-expanded', 'true');
-  await expect(row(page, 'selfless')).toHaveAttribute('data-place', 'resting');
-  await expect(row(page, 'selfless').locator('.fs-dichotomy')).toHaveClass(/resting/);
-  // Legacy was opened only for the lift, and nothing landed there: it is gone again
-  await expect(shelf(page, 'Legacy')).toHaveCount(0);
+  // a drop writes no fold (PLAN-FOLDS.md section 5): Resting is folded as it was, the value in its run
+  await expect(head(page, 'resting')).toHaveAttribute('aria-expanded', 'false');
+  await expect(run(page, 'resting')).toHaveText(['selfless']);
+  await expect(row(page, 'selfless')).toHaveCount(0);
+  // Legacy was drawn only for the lift, and nothing landed there: it is gone again
+  await expect(head(page, 'legacy')).toHaveCount(0);
 
   hold = await lift(page, 'thoughtful');
+  // the lift draws Resting open, its row with it
+  await expect(head(page, 'resting')).toHaveAttribute('aria-expanded', 'true');
+  await expect(row(page, 'selfless').locator('.fs-dichotomy')).toHaveClass(/resting/);
   await carry(page, hold, land(page, 'legacy'));
   await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', 'legacy');
   await shot(page, 'over-legacy');
   await release(page, hold);
-  await expect(shelf(page, 'Legacy')).toHaveAttribute('aria-expanded', 'true');
-  await expect(shelf(page, 'Resting')).toHaveAttribute('aria-expanded', 'true');
-  await expect(row(page, 'thoughtful').locator('.fs-value-dates')).toHaveText('11 / 6 / 26 to 11 / 12 / 26');
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'false');
+  await expect(head(page, 'resting')).toHaveAttribute('aria-expanded', 'false');
+  await expect(run(page, 'legacy')).toHaveText(['thoughtful']);
   await expect(words(page, '2')).toHaveCount(0);
   expect((await ticks(page)).filter(t => t === 'drop')).toHaveLength(2);
+  await head(page, 'legacy').click();
+  await expect(row(page, 'thoughtful').locator('.fs-value-dates')).toHaveText('11 / 6 / 26 to 11 / 12 / 26');
 
   // back from Legacy to First
   hold = await lift(page, 'thoughtful');
@@ -182,12 +191,12 @@ test('drop into Resting and into Legacy: each shelf stays open, Legacy shows dat
   await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', '1');
   await release(page, hold);
   await expect(words(page, '1')).toHaveText(['thoughtful']);
-  await expect(shelf(page, 'Legacy')).toHaveCount(0);
-  await expect(words(page, 'resting')).toHaveText(['selfless']);
+  await expect(head(page, 'legacy')).toHaveCount(0);
+  await expect(run(page, 'resting')).toHaveText(['selfless']);
   await page.reload();
   await be(page);
   await expect(words(page, '1')).toHaveText(['thoughtful']);
-  await shelf(page, 'Resting').click();
+  await head(page, 'resting').click();
   await expect(words(page, 'resting')).toHaveText(['selfless']);
 });
 
@@ -235,7 +244,7 @@ test('near an edge the list scrolls under the lifted row, and it lands where it 
   expect(await words(page, '2').first().textContent()).not.toBe('selfless');
   await page.reload();
   await be(page);
-  for (const w of ['Resting', 'Legacy'] as const) if (await shelf(page, w).count()) await shelf(page, w).click();
+  for (const w of ['resting', 'legacy']) if (await head(page, w).count() && await head(page, w).getAttribute('aria-expanded') === 'false') await head(page, w).click();
   await expect(row(page, 'selfless')).toHaveAttribute('data-place', went!);
 });
 

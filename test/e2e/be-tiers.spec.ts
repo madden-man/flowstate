@@ -1,7 +1,9 @@
 // PLAN-TIERS.md B1, the tiered list: after the upgrade every value is in Second, with First and Third each over a
-// dashed landing rule; the five words on an open value carry it to each place and back (a shelf it lands on opens, the
-// value stays open); a Legacy row carries its dates; the value sheet has no Status; Still shows First's words alone.
-// Each in Day and Night where it is drawn. B1_SHOTS=1 writes the review screenshots to the scratchpad.
+// dashed landing rule; the five words on an open value carry it to each place and back (a folded place it lands on
+// opens, the value stays open); a Legacy row carries its dates; the value sheet has no Status; Still shows First's words
+// alone. PLAN-FOLDS.md G1: every place is a heading with a stroke, a tap folds it to its one line of words, and the fold
+// is kept across a reload; a deep link opens its place for the visit only. Each in Day and Night where it is drawn.
+// B1_SHOTS=1 writes the review screenshots to the scratchpad.
 import { test, expect, type Page } from '@playwright/test';
 
 const SHOTS = process.env.B1_SHOTS_DIR ?? '/private/tmp/claude-501/-Users-musicman-dev/dd72be1f-a9a3-4c9c-9d41-8c02e2a7bd04/scratchpad/b1';
@@ -23,7 +25,20 @@ const words = (p: Page, place: string) => p.locator(`.fs-values .fs-be-row[data-
 const heading = (p: Page, n: 1 | 2 | 3) => p.locator(`.fs-values [data-heading="${n}"]`);
 const land = (p: Page, place: string) => p.locator(`.fs-values [data-land="${place}"]`);
 const places = (r: ReturnType<Page['locator']>) => r.getByRole('group', { name: 'Place' });
-const shelf = (p: Page, w: 'Resting' | 'Legacy') => p.getByRole('button', { name: w, exact: true }).and(p.locator('.fs-be-shelf button'));
+/** A place's heading button (PLAN-FOLDS.md G1): aria-expanded says open or folded. */
+const head = (p: Page, place: string) => p.locator(`.fs-values .fs-be-head[data-place="${place}"] > button`);
+/** settings.beFolded as stored (G0), read straight from IndexedDB: a reload waits for the fold to be written. */
+const kept = (page: Page) => page.evaluate(() => new Promise<unknown>((resolve, reject) => {
+  const open = indexedDB.open('flowstate');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const db = open.result;
+    const r = db.transaction('settings', 'readonly').objectStore('settings').get('app');
+    r.onsuccess = () => { db.close(); resolve((r.result as { beFolded?: unknown } | undefined)?.beFolded ?? null); };
+    r.onerror = () => { db.close(); reject(r.error); };
+  };
+}));
+const shelves = (p: Page) => p.locator('.fs-values .fs-be-head[data-place="resting"], .fs-values .fs-be-head[data-place="legacy"]');
 
 async function be(page: Page, hash = '#/be') {
   await page.goto(`/${hash}`);
@@ -49,8 +64,13 @@ test('after the upgrade every value is in Second; First and Third each show a da
   await expect(land(page, '1')).toHaveCount(1);
   await expect(land(page, '2')).toHaveCount(0);
   await expect(land(page, '3')).toHaveCount(1);
-  // nothing on either shelf yet: neither word shows
-  await expect(page.locator('.fs-be-shelf')).toHaveCount(0);
+  // nothing on either shelf yet: neither heading shows
+  await expect(shelves(page)).toHaveCount(0);
+  // each tier is open, its word then a stroke, First's the heaviest; no run of words
+  for (const n of ['1', '2', '3']) await expect(head(page, n)).toHaveAttribute('aria-expanded', 'true');
+  await expect(list(page).locator('.fs-be-head .run')).toHaveCount(0);
+  const strokes = await list(page).locator('.fs-be-head .stroke').evaluateAll(es => es.map(e => getComputedStyle(e).borderTopWidth));
+  expect(strokes).toEqual(['3px', '2px', '1px']);
   // the order on the page: core line, First, its rule, Second, its rows, Third, its rule
   const order = await list(page).evaluate(el => [...el.children].map(c => (c as HTMLElement).dataset.heading ?? (c as HTMLElement).dataset.land ?? (c as HTMLElement).dataset.row ?? c.className));
   expect(order).toEqual(['fs-be-core', '1', '1', '2', 'value-px-selfless-selfish', 'value-px-thoughtful-reactive', '3', '3']);
@@ -106,20 +126,21 @@ test('the five words carry an open value to each place and back; it stays open, 
   await expect(land(page, '3')).toHaveCount(0);
   await expect(selfless.locator('.fs-be-since')).toHaveText('Third since 11 / 12 / 26');
 
+  // Resting was folded (its default): it opens for the row to land in, and stays open
   await to('Resting', 'resting');
-  await expect(shelf(page, 'Resting')).toHaveAttribute('aria-expanded', 'true');
+  await expect(head(page, 'resting')).toHaveAttribute('aria-expanded', 'true');
   await expect(selfless.locator('.fs-be-since')).toHaveCount(0);
   await expect(land(page, '3')).toHaveCount(1);
 
   await to('Legacy', 'legacy');
-  await expect(shelf(page, 'Legacy')).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.locator('.fs-be-shelf')).toHaveCount(1);
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'true');
+  await expect(shelves(page)).toHaveCount(1);
   // a Legacy value's champions are kept, not drawn; nor is "Call a council"
   await expect(selfless.locator('.fs-champs')).toHaveCount(0);
   await expect(selfless.getByRole('button', { name: 'Call a council' })).toHaveCount(0);
 
   await to('Second', '2');
-  await expect(page.locator('.fs-be-shelf')).toHaveCount(0);
+  await expect(shelves(page)).toHaveCount(0);
   // back at Second's foot
   await expect(words(page, '2')).toHaveText(['thoughtful', 'selfless']);
   // a day that ends where it began leaves no mark (model/values.ts logged): still Second since its making
@@ -136,7 +157,7 @@ test('the five words carry an open value to each place and back; it stays open, 
   await be(page);
   await expect(words(page, '1')).toHaveText(['selfless']);
   await expect(words(page, '2')).toHaveText(['thoughtful']);
-  expect(await size(row(page, 'selfless').locator('.fs-dichotomy'))).toBe(await px(page, '--fs-manifesto'));
+  expect(await size(row(page, 'selfless').locator('.fs-dichotomy'))).toBe(await px(page, '--fs-first'));
   expect(await size(row(page, 'thoughtful').locator('.fs-dichotomy'))).toBe(await px(page, '--fs-title'));
   await row(page, 'thoughtful').locator('.fs-dichotomy').click();
   await places(row(page, 'thoughtful')).getByRole('button', { name: 'Third', exact: true }).click();
@@ -178,16 +199,112 @@ test('a Legacy row carries the dates it was held, in print grey, where the champ
   }
   await shot(page, 'legacy', 'day');
   await shot(page, 'legacy', 'night');
-  // closed and opened again, it stays on its shelf after a reload
+  // Legacy opened for the row to land in and is kept open across a reload; folded, it is the one line of its words
   await page.reload();
   await be(page);
-  await expect(shelf(page, 'Legacy')).toHaveAttribute('aria-expanded', 'false');
-  await expect(row(page, 'thoughtful')).toHaveCount(0);
-  await shelf(page, 'Legacy').click();
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'true');
   await expect(row(page, 'thoughtful').locator('.fs-value-dates')).toHaveText('11 / 6 / 26 to 11 / 12 / 26');
-  // a deep link to a Legacy value opens its shelf and the value
+  await head(page, 'legacy').click();
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'false');
+  await expect(row(page, 'thoughtful')).toHaveCount(0);
+  await expect(head(page, 'legacy').locator('.run')).toHaveText('thoughtful');
+  await expect.poll(() => kept(page)).toEqual({ legacy: true });
+  await page.reload();
+  await be(page);
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'false');
+  // a deep link to a Legacy value opens its place for the visit, and the value, and writes no fold
   await be(page, '#/be/value-px-thoughtful-reactive');
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'true');
   await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
+  await be(page);
+  await expect(head(page, 'legacy')).toHaveAttribute('aria-expanded', 'false');
+  expect(await kept(page)).toEqual({ legacy: true });
+});
+
+test('a tap on a heading folds its place to the one line of its words and opens it again; the fold is kept across a reload', async ({ page }) => {
+  await be(page);
+  const run = (place: string) => head(page, place).locator('.run > span:not(.dot)');
+  await head(page, '2').click();
+  await expect(head(page, '2')).toHaveAttribute('aria-expanded', 'false');
+  await expect(words(page, '2')).toHaveCount(0);
+  await expect(land(page, '2')).toHaveCount(0);
+  await expect(run('2')).toHaveText(['selfless', 'thoughtful']);
+  await expect(head(page, '2').locator('.stroke')).toHaveCount(0);
+  // the run is drawn on the heading just tapped, and only there
+  await expect(list(page).locator('.fs-be-head.drawn')).toHaveCount(1);
+  await expect(page.locator('.fs-values [data-heading="2"]')).toHaveClass(/drawn/);
+  await expect(list(page)).not.toContainText(/\d/);
+  await shot(page, 'folded', 'day');
+  await shot(page, 'folded', 'night');
+  await light(page, 'day');
+  await expect.poll(() => kept(page)).toEqual({ '2': true });
+  await page.reload();
+  await be(page);
+  await expect(head(page, '2')).toHaveAttribute('aria-expanded', 'false');
+  await expect(run('2')).toHaveText(['selfless', 'thoughtful']);
+  // a reload draws nothing: no heading was just tapped
+  await expect(list(page).locator('.fs-be-head.drawn')).toHaveCount(0);
+  await head(page, '2').click();
+  await expect(head(page, '2')).toHaveAttribute('aria-expanded', 'true');
+  await expect(words(page, '2')).toHaveText(['selfless', 'thoughtful']);
+
+  // folding a place shuts the value open in it: opened again, it is a row again
+  await row(page, 'selfless').locator('.fs-dichotomy').click();
+  await expect(row(page, 'selfless').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('[data-turning]')).toHaveCount(0);
+  await head(page, '2').click();
+  await expect(row(page, 'selfless')).toHaveCount(0);
+  await head(page, '2').click();
+  await expect(row(page, 'selfless').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'false');
+  await expect(list(page).locator('.fs-value-body')).toHaveCount(0);
+
+  // the three tiers folded sit on consecutive rules
+  for (const n of ['1', '2', '3']) await head(page, n).click();
+  for (const n of ['1', '2', '3']) await expect(head(page, n)).toHaveAttribute('aria-expanded', 'false');
+  const lh = parseFloat(await px(page, '--lh-ink'));
+  const tops = await list(page).locator('.fs-be-head').evaluateAll(es => es.map(e => e.getBoundingClientRect().top));
+  expect(Math.abs(tops[1] - tops[0] - lh)).toBeLessThanOrEqual(1);
+  expect(Math.abs(tops[2] - tops[1] - lh)).toBeLessThanOrEqual(1);
+  await expect(list(page).locator('.fs-be-land, .fs-be-row')).toHaveCount(0);
+  await shot(page, 'all-folded', 'day');
+  await shot(page, 'all-folded', 'night');
+});
+
+test('a tap on one of the five words into a folded place opens that place, and it stays open', async ({ page }) => {
+  await be(page);
+  // First, empty, folded: its heading alone
+  await head(page, '1').click();
+  await expect(head(page, '1')).toHaveAttribute('aria-expanded', 'false');
+  await expect(land(page, '1')).toHaveCount(0);
+  const selfless = row(page, 'selfless');
+  await selfless.locator('.fs-dichotomy').click();
+  await places(selfless).getByRole('button', { name: 'First', exact: true }).click();
+  await expect(selfless).toHaveAttribute('data-place', '1');
+  await expect(head(page, '1')).toHaveAttribute('aria-expanded', 'true');
+  await expect(selfless.locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
+  await expect(selfless).toBeInViewport({ ratio: 0.1 });
+  await expect.poll(() => kept(page)).toEqual({ '1': false });
+  await page.reload();
+  await be(page);
+  await expect(head(page, '1')).toHaveAttribute('aria-expanded', 'true');
+  await expect(words(page, '1')).toHaveText(['selfless']);
+});
+
+test("in Still with First folded, First's words alone all the same", async ({ page }) => {
+  await be(page);
+  const selfless = row(page, 'selfless');
+  await selfless.locator('.fs-dichotomy').click();
+  await places(selfless).getByRole('button', { name: 'First', exact: true }).click();
+  await expect(selfless).toHaveAttribute('data-place', '1');
+  await expect(page.locator('[data-turning]')).toHaveCount(0);
+  await head(page, '1').click();
+  await expect(head(page, '1')).toHaveAttribute('aria-expanded', 'false');
+  await page.getByRole('button', { name: 'Still', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
+  await expect(page.locator('.fs-values .fs-value')).toHaveText(['selfless']);
+  await expect(page.locator('.fs-values .fs-be-head, .fs-values button')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(head(page, '1')).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('the value sheet is words only: no Status', async ({ page }) => {
@@ -219,7 +336,7 @@ test("in Still, First's words alone; every held word while First is empty; no he
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   // First is empty: every held word (selfless), never the Legacy one
   await expect(page.locator('.fs-values .fs-value')).toHaveText(['selfless']);
-  await expect(page.locator('.fs-values .fs-be-tier, .fs-values .fs-be-land, .fs-values .fs-be-shelf, .fs-values .fs-opts, .fs-values .fs-value-dates, .fs-values button')).toHaveCount(0);
+  await expect(page.locator('.fs-values .fs-be-tier, .fs-values .fs-be-land, .fs-values .fs-be-head, .fs-values .fs-opts, .fs-values .fs-value-dates, .fs-values button')).toHaveCount(0);
   await expect(list(page)).not.toContainText(/\d/);
   await page.getByRole('button', { name: 'Leave Still' }).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-light', 'still');

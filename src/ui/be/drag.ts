@@ -2,13 +2,13 @@
 // lifted row's place from the slots around it, and the speed the list scrolls at under it near an edge.
 //
 // The run while a row is lifted, top to bottom: for each tier its heading, its rows and its landing rule; then each
-// shelf's word, its landing rule and its rows. The boxes are every slot but the lifted row, laid out as if it were not
+// shelf's heading, its landing rule and its rows (PLAN-FOLDS.md G1: every place is a heading, and drawn open while a
+// row is lifted). The boxes are every slot but the lifted row, laid out as if it were not
 // there (collapse), on one axis (the list's content, so a scroll moves nothing here). The lifted row goes into the gap
-// after every slot whose middle its top edge has passed: so it swaps past a heading or a shelf's word exactly as it
-// swaps past a row, half the other's height each way, and never rocks between two places.
+// after every slot whose middle its top edge has passed: so it swaps past a heading exactly as it swaps past a row, half the other's height each way, and never rocks between two places.
 import type { Tiers, ValuePlace } from '../../model/values';
 
-export type Box = { kind: 'heading' | 'row' | 'land' | 'shelf'; place: ValuePlace; top: number; bottom: number };
+export type Box = { kind: 'heading' | 'row' | 'land'; place: ValuePlace; top: number; bottom: number };
 export type Target = { to: ValuePlace; index: number };
 
 /** The slots as they would lie with the lifted row (at liftTop to liftBottom on the same axis) taken out: everything
@@ -22,9 +22,9 @@ export function collapse(boxes: readonly Box[], liftTop: number, liftBottom: num
  * Where the lifted row goes: the place and the index within that place's rows without it (placeValue's index). top is
  * the lifted row's top edge (the pointer's y less where it took hold of the row), on the boxes' axis.
  *
- * The gap is named by the slot above it: above the first heading, or under a heading, is the head of that tier; under
+ * The gap is named by the slot above it: above the first heading, or under a heading, is the head of that place; under
  * a row is the next index in that row's place; under a tier's landing rule is that tier's foot (the rule is the foot,
- * so a row held over it lands last in the tier); under a shelf's word or its landing rule is the head of that shelf.
+ * so a row held over it lands last in the tier); under a shelf's landing rule is the head of that shelf.
  * Past the last slot is the gap under it.
  */
 export function target(boxes: readonly Box[], top: number): Target {
@@ -35,7 +35,7 @@ export function target(boxes: readonly Box[], top: number): Target {
   const above = sorted[k - 1];
   const rows = (p: ValuePlace, before: number) => sorted.slice(0, before).filter(b => b.kind === 'row' && b.place === p).length;
   switch (above.kind) {
-    case 'heading': case 'shelf': return { to: above.place, index: 0 };
+    case 'heading': return { to: above.place, index: 0 };
     case 'row': return { to: above.place, index: rows(above.place, k) };
     case 'land':
       // a tier's rule is its foot; a shelf's rule opens it, so under it is the shelf's head

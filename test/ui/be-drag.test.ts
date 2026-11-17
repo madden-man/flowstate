@@ -1,6 +1,7 @@
 // PLAN-TIERS.md B2: the drag's geometry (src/ui/be/drag.ts), with no browser. A list is laid out here as Be draws it
 // while a row is lifted: each tier's heading (a rule's margin above it), its rows (two rules each) and its landing rule;
-// then each shelf's word (a rule's margin above it), its landing rule and its rows.
+// then each shelf's heading (a rule's margin above it; PLAN-FOLDS.md G1: every place is a heading), its landing rule and
+// its rows.
 import { describe, it, expect } from 'vitest';
 import type { Value } from '../../src/db/schema';
 import type { Tiers, ValuePlace } from '../../src/model/values';
@@ -22,7 +23,7 @@ function lay(specs: Spec[]): { boxes: (Box & { id?: string })[]; top: Record<str
       for (const id of s.rows) put({ kind: 'row', place: s.place, id }, 2 * R);
       put({ kind: 'land', place: s.place }, R);
     } else {
-      put({ kind: 'shelf', place: s.place }, R);
+      put({ kind: 'heading', place: s.place }, R);
       put({ kind: 'land', place: s.place }, R);
       for (const id of s.rows) put({ kind: 'row', place: s.place, id }, 2 * R);
     }
@@ -169,15 +170,17 @@ describe('carrying', () => {
 });
 
 describe('the slots while a row is lifted', () => {
-  const shape = (x: Tiers, open = { resting: false, legacy: false }) => slots(x, open, true).map(s => (s.kind === 'row' ? `${s.place}:${s.value.id}` : s.key));
-  it('every tier ends in its landing rule; both shelves show open, empty or not, each opening with one', () => {
-    expect(shape(T({ second: [v('a')] }))).toEqual(['heading-1', 'land-1', 'heading-2', '2:a', 'land-2', 'heading-3', 'land-3', 'shelf-resting', 'land-resting', 'shelf-legacy', 'land-legacy']);
-    const s = slots(T({ legacy: [v('l')] }), { resting: false, legacy: false }, true);
-    expect(s.filter(x => x.kind === 'shelf').map(x => x.kind === 'shelf' && x.open)).toEqual([true, true]);
-    expect(shape(T({ legacy: [v('l')] })).slice(-3)).toEqual(['shelf-legacy', 'land-legacy', 'legacy:l']);
+  const shape = (x: Tiers, folded = {}) => slots(x, folded, true).map(s => (s.kind === 'row' ? `${s.place}:${s.value.id}` : s.key));
+  it('every place is drawn open, folded or not (G1); every tier ends in its landing rule; both shelves show, empty or not, each opening with one', () => {
+    expect(shape(T({ second: [v('a')] }))).toEqual(['heading-1', 'land-1', 'heading-2', '2:a', 'land-2', 'heading-3', 'land-3', 'heading-resting', 'land-resting', 'heading-legacy', 'land-legacy']);
+    const all = { '1': true, '2': true, '3': true, resting: true, legacy: true };
+    const s = slots(T({ second: [v('a')], legacy: [v('l')] }), all, true);
+    expect(s.filter(x => x.kind === 'heading').map(x => x.kind === 'heading' && x.folded)).toEqual([false, false, false, false, false]);
+    expect(shape(T({ second: [v('a')], legacy: [v('l')] }), all)).toContain('2:a');
+    expect(shape(T({ legacy: [v('l')] })).slice(-3)).toEqual(['heading-legacy', 'land-legacy', 'legacy:l']);
   });
   it('the keys stay unique', () => {
-    const keys = slots(T({ first: [v('a')], resting: [v('r')], legacy: [v('l')] }), { resting: true, legacy: false }, true).map(x => x.key);
+    const keys = slots(T({ first: [v('a')], resting: [v('r')], legacy: [v('l')] }), { resting: false }, true).map(x => x.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
 });
