@@ -77,7 +77,11 @@ test('the pair in the gloss\'s place, the line in italic, the gate never moving;
   const field = sheet.getByRole('textbox', { name: 'The line' });
   await expect(field).toHaveValue(LINE);
   await expect(field).toHaveCSS('font-style', 'italic');
-  expect((await box(field)).y).toBeLessThan((await box(sheet.locator('.ck-deck textarea').first())).y);
+  // over the deck's first rule (both read in one look: the sheet is still rising)
+  expect(await sheet.evaluate(el => {
+    const line = el.querySelector('[data-rule="line"]')!, first = el.querySelector('.ck-deck textarea')!;
+    return line.getBoundingClientRect().top < first.getBoundingClientRect().top;
+  })).toBe(true);
   await field.fill(MINE);
   await sheet.getByRole('button', { name: 'Done' }).click();
   await expect(line).toHaveText(MINE);
