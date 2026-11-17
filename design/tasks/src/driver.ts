@@ -258,17 +258,22 @@ async function act(): Promise<void> {
 
 const post = (msg: object) => { try { parent.postMessage({ fs: true, n: load, ...msg }, '*'); } catch { /* no parent */ } };
 
+/** The walkthrough has turned to another step and this app is shown only until that one has drawn: a field its own
+ *  taps focus in that time gives the arrows up, so the steps keep turning. */
+let leaving = false;
+
 export function startDriver(): void {
   // a click inside the phone gives the app the keys: the arrows it does not use itself still turn the walkthrough's steps
   addEventListener('keydown', e => {
     if (e.defaultPrevented || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
     const t = e.target as Element | null;
-    if (t?.closest?.('input,textarea,[contenteditable],[role="slider"]')) return;
+    if (!leaving && t?.closest?.('input,textarea,[contenteditable],[role="slider"]')) return;
     post({ key: e.key });
   });
   addEventListener('message', e => {
     if (e.source !== parent || !e.data || typeof e.data !== 'object' || !e.data.fs) return;
-    const d = e.data as { act?: boolean; light?: Light | 'design' };
+    const d = e.data as { act?: boolean; leaving?: boolean; light?: Light | 'design' };
+    if (d.leaving) leaving = true;
     if (d.light && step) {
       const l = d.light === 'design' ? DESIGNED[step] : asLight(d.light);
       if (l) void light(l).then(() => post({ lit: l }));
