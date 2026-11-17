@@ -1,8 +1,8 @@
 # FlowState Be: places that fold
 
-Date: 2026-11-17. Status: proposed, not built. Packages are G0 to G3. Tommy's ask: "look at the 'be' section tiers and make a plan to design them in a more interesting/cohesive way, also make each tier collapsible, and retain the ability to drag values from one tier to another. show me an artifact before we build."
+Date: 2026-11-17. Status: built 2026-11-17, G0 to G3 on branch `be-folds-plan` (section 10 says where the build differs from this plan). Packages are G0 to G3. Tommy's ask: "look at the 'be' section tiers and make a plan to design them in a more interesting/cohesive way, also make each tier collapsible, and retain the ability to drag values from one tier to another. show me an artifact before we build."
 
-`PLAN.md` stays the architecture, `DESIGN.md` the standard, `PLAN-TIERS.md` the list this redraws. The walkthrough is `design/folds/index.html`, ten steps: a hand-drawn mock on the real app's stylesheet with the proposed `design/folds/folds.css` over it (taps and drags work). G3 rebuilds it from the real app, as `design/tiers/` is.
+`PLAN.md` stays the architecture, `DESIGN.md` the standard, `PLAN-TIERS.md` the list this redraws. The walkthrough is `design/folds/index.html`, ten steps, built from the real app (`npm run walkthrough:folds`, into `design/folds/dist`), on `design/tiers/`'s shell, seed and touch driver; the proposal's hand-drawn mock is gone.
 
 ## 1. What is there today (main 0236779)
 
@@ -66,7 +66,7 @@ Folding is also the answer to the long carry: fold what lies between and First a
 - `ui/be/tiers.ts`: the `shelf` slot kind goes; `heading` takes any `ValuePlace` and a `folded` flag; `slots(t, folded, lifting)` emits, for a folded place, the heading alone (plus the lifted row when it rides there). `runOf(rows)` gives the folded line's words.
 - `ui/be/drag.ts`: `Box` gains `folded?: boolean`; `target` takes the pointer's y for the finger test and the foot case. Pure, vitest as today.
 - `ui/be/Be.tsx`: `shelf` state becomes `folded` read from `settings` and written through `saveSettings`; the heading button; the `Fold` part wraps a place's rows; the `setShelf(...true)` calls on drop go.
-- `parts.css`: `design/folds/folds.css` moves in, replacing `.fs-be-tier` and `.fs-be-shelf`. `tokens.css` (both copies): `--fs-first: 28px`, with its comment.
+- `parts.css`: the proposal's stylesheet moves in (done; the proposal file is gone), replacing `.fs-be-tier` and `.fs-be-shelf`. `tokens.css` (both copies): `--fs-first: 28px`, with its comment.
 - `DESIGN.md` rule 11 rewritten (the stroke and the fold join the heading and the size as what says the place; the shelves are headings); rule 20 (a lift keeps the folds); rule 13 unchanged.
 
 ## 7. Build packages (one PR each, PLAN.md section 10 rules)
@@ -99,3 +99,14 @@ Considered, left out: a chevron or caret on the heading (rule 7: no new glyph; t
 - A long First word at 28px beside four champions' rules on a narrow screen.
 - The fold over `--t-page` with eight or more rows: whether it reads as a fold or a jump.
 - The three stroke weights in Night and Still's soft contrast (Still shows none of this, but Night must tell 3px from 2px).
+
+## 10. As built (G3, 2026-11-17)
+
+Where the build differs from the plan above:
+
+- **A fade, not the Fold part.** The list stays one flat keyed run so the drag can swap a row past a heading, so a place's rows are not wrapped in `Fold`: opening, they fade in over `--t-page` (`.unfold`); folding, they go at once, as a lift folds an open value. The stroke and the run are drawn over `--t-draw` on the tapped heading only (`.drawn`).
+- **The shelves' landing rule is at the foot.** Lifted, an open Resting or Legacy ends in its landing rule as the tiers do (it was at the head when a lift opened them); a folded one is its own line.
+- **The long press.** `useLongPress` (`ui/council/state.ts`) forgets the click it would swallow on any new pointerdown, so a heading tap right after a drag is answered.
+- **No rocking.** A row swaps past a heading exactly as past a row, at half the other's height each way, and a finger on a folded line (`fingerOn`) holds that place while the row is drawn under the line, so a still finger never sees the row rock between two places. `aim` puts the finger test and `target(boxes, top, feet)` together; `slots(t, folded, lifted)` takes the lifted id.
+- **Held under its line.** A row riding in a folded place is held in its slot just under the line, whatever the finger's grab (G3: where the list could not scroll at the lift the row is put down from the finger and hung over the next line).
+- **The walkthroughs.** `design/tiers/` is kept and updated (its shelf steps hold the row on Resting's and Legacy's folded lines, Legacy opens by its heading); `design/folds/` reuses its seed, clock, touch driver, `walk.js`, `walk.css` and build config.

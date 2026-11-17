@@ -133,7 +133,7 @@ function Values({ id }: { id?: string }) {
   // PLAN-FOLDS.md G1: the places a deep link opened for this visit, over the kept folds (never written)
   const [visit, setVisit] = useState<ReadonlySet<BePlaceKey>>(new Set());
   const visited = useRef<string | null>(null);
-  // the heading just tapped: only its stroke or run is drawn (folds.css .drawn), and only its rows unfold
+  // the heading just tapped: only its stroke or run is drawn (parts.css .fs-be-head.drawn), and only its rows unfold
   const [drawn, setDrawn] = useState<BePlaceKey | null>(null);
   const drawnTimer = useRef(0);
   const [open, setOpen] = useState<Set<string>>(() => new Set(id ? [id] : []));
@@ -255,14 +255,15 @@ function Values({ id }: { id?: string }) {
 
   const rowOf = (vid: string) => scroller.current?.querySelector<HTMLElement>(`:scope > [data-row="${CSS.escape(vid)}"]`) ?? null;
   /** The row under the finger: its translate is where the finger wants it less where the list has put it. Riding in a
-   *  folded place it is drawn no higher than its slot, just under the folded line, so it never covers the line and the
-   *  run the finger is on (PLAN-FOLDS.md section 9). */
+   *  folded place it is held in its slot, just under the folded line (rule 20): never over the line and the run the
+   *  finger is on (PLAN-FOLDS.md section 9), and never hanging over the line below it where the list could not scroll
+   *  at the lift and the row was put down a few rules from the finger. */
   const ride = () => {
     const d = drag.current, el = d && rowOf(d.id);
     if (!d || !el) return;
     const natural = el.getBoundingClientRect().top - d.applied;
     d.applied = d.y - d.grab - natural - 2;
-    if (el.classList.contains('infold')) d.applied = Math.max(d.applied, -2);
+    if (el.classList.contains('infold')) d.applied = -2;
     el.style.transform = `translateY(${d.applied}px)`;
   };
   /** The slots but the lifted row, on the list's content axis, and the place the finger or the row's top edge has

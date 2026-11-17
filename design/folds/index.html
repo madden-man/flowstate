@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FlowState: Be, places that fold (proposal)</title>
+<title>FlowState: Be, places that fold</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="walk.css">
 </head>
@@ -17,96 +17,101 @@
   <div class="text" id="text">
 
 <!-- 1 -->
-<section class="step" id="places" data-name="Five places, one drawing">
+<section class="step" id="places" data-light="day" data-time="9:30" data-name="Five places, one drawing">
   <h2>Five places, one drawing</h2>
-  <p class="line">Each place is a word and a pen stroke: heavy for First, thinner down, dashed and dotted for the shelves. Example data; PROPOSAL, not built.</p>
+  <p class="line">Each place is a word and a pen stroke: heavy for First, thinner down, dashed and dotted for the shelves. Example data, live.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Mock</td><td>The real app's stylesheet with the proposed <code>design/folds/folds.css</code> over it; the list is drawn by <code>mock.js</code>. Taps and drags work.</td></tr>
-    <tr><td>Changes</td><td>Resting and Legacy become headings like the tiers. First's word goes to 28px (<code>--fs-first</code>, new); Third and shelf rows take one rule.</td></tr>
-    <tr><td>Plan</td><td><code>PLAN-FOLDS.md</code>, packages G0 to G3.</td></tr>
+    <tr><td>List</td><td><code>src/ui/be/Be.tsx</code> draws <code>slots(t, folded, lifted)</code> (<code>be/tiers.ts</code>): each place a heading (<code>.fs-be-head</code>), then its rows or a landing rule.</td></tr>
+    <tr><td>Marks</td><td>Strokes 3px, 2px, 1px ink, dashed and dotted print. Words at <code>--fs-first</code> (28px, the one new token), <code>--fs-title</code>, <code>--fs-ink</code> on one rule.</td></tr>
+    <tr><td>Demo</td><td>The real app (<code>design/folds/src</code>, the tiers walkthrough's seed and touch), storage in memory, no network, today pinned to 11 / 12.</td></tr>
   </table></details>
 </section>
 
 <!-- 2 -->
-<section class="step" id="fold" data-name="Tap a heading to fold it">
+<section class="step" id="fold" data-light="day" data-time="9:31" data-name="Tap a heading to fold it">
   <h2>Tap a heading to fold it</h2>
   <p class="line">The stroke lifts and the place's words are written on its one line.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Fold</td><td>The heading is a button with <code>aria-expanded</code>; the rows fold through the existing <code>Fold</code> part over <code>--t-page</code>.</td></tr>
-    <tr><td>Kept</td><td><code>Settings.beFolded</code>, a clear optional field: no schema bump. Resting and Legacy start folded, as today.</td></tr>
+    <tr><td>Fold</td><td>The heading is a button with <code>aria-expanded</code>. Folding takes the rows at once; opening fades them in over <code>--t-page</code> (<code>.unfold</code>), not the <code>Fold</code> part, so the list stays one flat run for the drag.</td></tr>
+    <tr><td>Drawn</td><td>The stroke or the run is drawn over <code>--t-draw</code> on the tapped heading only (<code>.drawn</code>).</td></tr>
+    <tr><td>Kept</td><td><code>Settings.beFolded</code>, a clear optional field, no schema bump; <code>isFolded</code> defaults the tiers open and the shelves folded.</td></tr>
   </table></details>
 </section>
 
 <!-- 3 -->
-<section class="step" id="glance" data-name="Fold them all to see the whole of me">
+<section class="step" id="glance" data-light="day" data-time="9:31" data-name="Fold them all to see the whole of me">
   <h2>Fold them all to see the whole of me</h2>
   <p class="line">Five lines, every word, nothing counted.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Run</td><td>Words in list order, cut with an ellipsis (rule 5's dense index). No number stands in for them (rule 15).</td></tr>
+    <tr><td>Run</td><td><code>runOf(rows)</code>: words in list order, a middle dot between, cut with an ellipsis. Folded headings sit on consecutive rules. Never a count (rule 15).</td></tr>
   </table></details>
 </section>
 
 <!-- 4 -->
-<section class="step" id="lift" data-name="Hold one to lift it">
+<section class="step" id="lift" data-light="day" data-time="9:33" data-name="Hold one to lift it">
   <h2>Hold one to lift it</h2>
   <p class="line">Open places end in a landing rule; a folded place is its own.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Lift</td><td>As today: <code>useLongPress</code>, open values fold. New: places keep their fold, so the shelves no longer spring open.</td></tr>
+    <tr><td>Lift</td><td><code>useLongPress</code>, open values fold; <code>slots(t, folded, lifted)</code> keeps every fold, ends open places in <code>.fs-be-land</code> and dashes folded lines (<code>.land</code>).</td></tr>
+    <tr><td>Demo</td><td>Touch pointer events dispatched on the real row, as <code>test/e2e/be-drag.spec.ts</code>; no pointerup, so it stays held.</td></tr>
   </table></details>
 </section>
 
 <!-- 5 -->
-<section class="step" id="cross" data-name="Carry it into an open tier">
+<section class="step" id="cross" data-light="day" data-time="9:33" data-name="Carry it into an open tier">
   <h2>Carry it into an open tier</h2>
   <p class="line">It takes that tier's size as it crosses and lands where I hold it.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Geometry</td><td><code>ui/be/drag.ts</code> unchanged for open places: <code>collapse</code>, <code>target</code>, <code>carry</code>, the <code>tier</code> tick.</td></tr>
+    <tr><td>Geometry</td><td><code>ui/be/drag.ts</code>: <code>aim</code> runs <code>target(boxes, top, feet)</code> over the <code>collapse</code>d slots; <code>carry</code> draws the list; <code>tick('tier')</code> on crossing.</td></tr>
+    <tr><td>Steady</td><td>A row swaps past a heading as past a row, at half the other's height, so it never rocks between two places.</td></tr>
   </table></details>
 </section>
 
 <!-- 6 -->
-<section class="step" id="into" data-name="Or over a folded line">
+<section class="step" id="into" data-light="day" data-time="9:34" data-name="Or over a folded line">
   <h2>Or over a folded line</h2>
   <p class="line">Its word joins the end of the line while I hold it there.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Target</td><td>One new case in <code>target</code>: under a folded heading is that place's foot. A <code>Box</code> gains <code>folded</code>.</td></tr>
+    <tr><td>Finger</td><td><code>fingerOn(boxes, y, riding)</code>: a finger on a folded line is that place's foot (<code>feet</code>); its riding slot counts as the line, so a still finger stays.</td></tr>
+    <tr><td>Drawn</td><td>The row rides <code>.infold</code> under the line, one rule tall; its word is <code>.riding</code>, last in the run, in italic.</td></tr>
     <tr><td>Reach</td><td>Folding the tiers between makes a long carry a short one.</td></tr>
   </table></details>
 </section>
 
 <!-- 7 -->
-<section class="step" id="landed" data-name="It lands and the line stays folded">
+<section class="step" id="landed" data-light="day" data-time="9:34" data-name="It lands and the line stays folded">
   <h2>It lands and the line stays folded</h2>
   <p class="line">Third is empty now, so it keeps a dashed rule to land on.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Drop</td><td><code>placeValue(id, to, foot)</code> and the <code>drop</code> tick, as today. A drop never changes a fold.</td></tr>
+    <tr><td>Drop</td><td><code>placeValue(id, to, index)</code> and the <code>drop</code> tick. A drop never changes a fold: on a folded line the row goes into the run.</td></tr>
   </table></details>
 </section>
 
 <!-- 8 -->
-<section class="step" id="open" data-name="Tap a word to open it">
+<section class="step" id="open" data-light="day" data-time="9:36" data-name="Tap a word to open it">
   <h2>Tap a word to open it</h2>
   <p class="line">The open value is as it is today; with the rest folded it has the page.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Same</td><td>Shadow, looks, the five words, champions, Said, Call a council. A tap on one of the five words opens the place it goes to.</td></tr>
+    <tr><td>Same</td><td>Shadow, looks, the five words, champions, Said, Call a council, grown by the <code>Fold</code> part. One of the five words carries it to a place's foot and opens that place.</td></tr>
+    <tr><td>Link</td><td><code>#/be/:id</code> opens its place for the visit, without writing <code>beFolded</code>.</td></tr>
   </table></details>
 </section>
 
 <!-- 9 -->
-<section class="step" id="shelves" data-name="Resting and Legacy fold the same way">
+<section class="step" id="shelves" data-light="night" data-time="21:40" data-name="Resting and Legacy fold the same way">
   <h2>Resting and Legacy fold the same way</h2>
   <p class="line">A dashed stroke for what I put down, a dotted one for what I used to hold.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Shelves</td><td>The <code>shelf</code> slot kind goes; every place is a <code>heading</code>. An empty shelf still shows only while a value is lifted.</td></tr>
+    <tr><td>Shelves</td><td>The <code>shelf</code> slot kind is gone: all five places are <code>heading</code> slots. An empty shelf shows only while a value is lifted, at its kept fold, its landing rule at the foot.</td></tr>
   </table></details>
 </section>
 
 <!-- 10 -->
-<section class="step" id="still" data-name="In Still, only what comes first">
+<section class="step" id="still" data-light="still" data-time="23:10" data-name="In Still, only what comes first">
   <h2>In Still, only what comes first</h2>
   <p class="line">Unchanged: no headings, no strokes, nothing folds or lifts.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Still</td><td><code>stillValues</code>, DESIGN.md rule 13. First's words show even when First is folded.</td></tr>
+    <tr><td>Still</td><td><code>stillValues</code>, DESIGN.md rule 13. First is folded here, and its words still show.</td></tr>
   </table></details>
 </section>
 
@@ -114,7 +119,7 @@
   <div class="phone" data-mock><div class="screen"><div class="island"></div>
     <div class="status"><span id="clock">9:30</span><span>FlowState</span></div>
     <div class="frames" id="frames"></div>
-    <p class="nolive" id="nolive" hidden>The mock could not start here.</p>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
   </div></div>
   <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
 </main>
