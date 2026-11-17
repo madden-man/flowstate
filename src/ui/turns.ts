@@ -43,6 +43,8 @@ function depth(p: string): number {
   if (!a) return 0;
   // Research (PLAN-RESEARCH.md Q4): the blank page, Asked, a question, a paper's page, each a step deeper
   if (section === 'flow' && a === 'research') return !b ? 2 : b === 'asked' ? 2.5 : c ? 4 : 3;
+  // a flow's own page sits under a sign's (PLAN-BLOCKERS.md K3): a Blockers row opens into it, its way back closes
+  if (section === 'flow' && a !== 'c' && a !== 'now' && a !== 'meditate') return 2.5;
   return section === 'journal' && a === 'pages' ? 1 : 2;
 }
 
@@ -194,6 +196,8 @@ function takeBackPaper() {
 //   Energize     fs-drawing        the circle afloat, and the drawing on its flow page
 //   Research     rs-name           the word under the circle afloat, and the same word on its page's header (Q4)
 //   his own      fs-drawing        a flow he made with no sign yet: its row's small drawing, and the drawing on its page
+// and from a sign's page (PLAN-BLOCKERS.md K3), a Blockers row's small drawing and the drawing on that flow's page,
+// both ways: into the flow's page, and back to the sign it reads as its way back.
 
 let named: HTMLElement[] = [];
 let generation = 0;
@@ -224,7 +228,11 @@ function travelName(p: string): string | undefined {
 const linkOf = (p: string) => { const ps = parts(p); return `#/${ps.slice(0, ps[1] === 'c' ? 3 : 2).join('/')}`; };
 /** The Flow tab's side: inside the link to that page (a sign, a circle, a row), what carries the name. */
 const onPlate = (n: string, p: string) =>
-  document.querySelector(`.fs-flows a[href="${CSS.escape(linkOf(p))}"] [data-travel="${CSS.escape(n)}"]`);
+  document.querySelector(`:is(.fs-flows, .bk) a[href="${CSS.escape(linkOf(p))}"] [data-travel="${CSS.escape(n)}"]`);
+/** A sign's page, #/flow/c/:chakra. */
+const isSign = (p: string) => { const ps = parts(p); return ps[0] === 'flow' && ps[1] === 'c' && !!ps[2]; };
+/** Where a row stands that travels: the mountain's list, or a sign's Blockers; from a sign only a flow's drawing goes. */
+const rowsOn = (p: string, n: string | undefined) => p === '/flow' || (isSign(p) && n === 'fs-drawing');
 /** The page's side. */
 function offPlate(n: string): Element | null {
   if (n === 'fs-drawing') return document.querySelector('.fs-flowpage .fl-drawing .fs-cycle');
@@ -240,8 +248,8 @@ export async function turnBetween(from: string, to: string, go: () => void): Pro
   unname();
   takeBackPaper();
   // from the mountain into a page, or back: the thing that goes there, from the side now on screen
-  const into = kind === 'open' && from === '/flow' ? travelName(to) : undefined;
-  const outOf = kind === 'close' && to === '/flow' ? travelName(from) : undefined;
+  const into = kind === 'open' && rowsOn(from, travelName(to)) ? travelName(to) : undefined;
+  const outOf = kind === 'close' && rowsOn(to, travelName(from)) ? travelName(from) : undefined;
   const n = into ?? outOf;
   const paired = !!n && name(into ? onPlate(n, to) : offPlate(n), n);
   await turn(kind, go, {

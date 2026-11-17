@@ -53,8 +53,15 @@ export function doorRead(flow: Read<Flow>): Read<Flow> {
 /** One Right now row: his line for a step (or none), the flow and the step in print, and where it leads. */
 export type NowRow = { flowId: string; flow: string; step: number; stepId: string; name: string; line?: string };
 
-/** Every step of every flow, in flow order then step order. A step with neither a line nor a name is left out. */
+/** A draft's step with nothing written on it but its name (PLAN-BLOCKERS.md section 4: a candidate ships as step
+ *  words only, until K5 writes the ones he keeps). */
+const unwritten = (f: Pick<Flow, 'draft'>, s: Step) => !!f.draft && !s.line && !s.said && !s.tips.length;
+
+/** Every step of every flow, in flow order then step order. A step with neither a line nor a name is left out, and so
+ *  is a draft's step with only its name: a candidate is not offered as somewhere to be until it has been written. */
 export function nowRows(fs: Read<Flow>[]): NowRow[] {
-  return fs.flatMap(f => f.steps.map((s, i) => ({ flowId: f.id, flow: f.name, step: i + 1, stepId: s.id, name: s.name, line: s.line || undefined })))
-    .filter(r => r.line || r.name);
+  return fs.flatMap(f => f.steps.filter(s => !unwritten(f, s)).map(s => {
+    const i = f.steps.indexOf(s);
+    return { flowId: f.id, flow: f.name, step: i + 1, stepId: s.id, name: s.name, line: s.line || undefined };
+  })).filter(r => r.line || r.name);
 }

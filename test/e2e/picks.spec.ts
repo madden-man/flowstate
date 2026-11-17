@@ -112,12 +112,12 @@ test('the On sheet: covers from the kept cache, lines as check rows, a tick name
   await page.locator('[data-sheet="Settings"]').getByRole('button', { name: 'Done' }).click();
 
   // a live episode at Under the skin
-  // (started from Right now: a sign's page has no drawing to drag, Tommy 2026-11-11)
+  // (started from Right now, which lands on Panic's own page, PLAN-BLOCKERS.md K3)
   await page.goto('/#/flow/now');
   await page.locator('.fl-nowlist a[href="#/flow/panic/4"]').click();
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', 'panic');
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-showing', '4');
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-saved', 'true');
+  const body = page.locator('.fs-flowpage[data-flow="panic"]');
+  await expect(body).toHaveAttribute('data-showing', '4');
+  await expect(body).toHaveAttribute('data-saved', 'true');
   await expect.poll(async () => (await all(page, 'episodes')).filter(x => x.flowId === 'panic' && x.endedAt === undefined).length).toBe(1);
 
   // the On row: its word is On, and a tap opens the sheet without ticking it

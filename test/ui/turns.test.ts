@@ -30,6 +30,10 @@ describe('kindOf', () => {
     expect(kindOf('/flow/c/heart', '/flow/c/root')).toBe('open');
     expect(kindOf('/flow', '/flow/c/root')).toBe('open');
     expect(kindOf('/flow/c/root', '/flow')).toBe('close');
+    // a flow's own page sits under a sign's (PLAN-BLOCKERS.md K3): a Blockers row opens it, its way back closes it
+    expect(kindOf('/flow/c/root', '/flow/panic')).toBe('open');
+    expect(kindOf('/flow/panic/2', '/flow/c/root')).toBe('close');
+    expect(kindOf('/flow/now', '/flow/panic/1')).toBe('open');
   });
   it('turns through Research\'s pages, each a step deeper: the blank page, Asked, a question, a paper (Q4)', () => {
     expect(kindOf('/flow', '/flow/research')).toBe('open');

@@ -51,6 +51,9 @@ test('a written touch: the name sinks into the tarn and stays as a stone; every 
   for (const [c, word, name] of rules) {
     await page.goto(`/#/flow/c/${c}`);
     await expect(page.locator('.ck-page')).toHaveAttribute('data-chakra', c);
+    // the turn over first: while it runs <html> takes the pointer, and Playwright would retry the click by scrolling the
+    // column to another alignment, which is not what a thumb does (ui/turns.ts hands a touch mid-turn to the page)
+    await expect(page.locator('html')).not.toHaveAttribute('data-turn', /./);
     await page.getByRole('button', { name: word, exact: true }).click();
     const box = page.getByRole('textbox', { name });
     await box.focus();
