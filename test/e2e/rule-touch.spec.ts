@@ -63,3 +63,26 @@ test('touch: a thumb drags the gate on a sign\'s page', async ({ page }) => {
   await expect.poll(() => now(rule)).toBeGreaterThan(30);
   await expect(page.locator('.fs-gate')).not.toHaveAttribute('data-drag', '');
 });
+
+// iOS takes a touch for the page's scroll when a thumb drifts down mid-drag, pan-y or not (Chromium does not, so the
+// drags above cannot show it): a taken drag must prevent its touchmoves, and an undecided touch must not.
+test('touch: a taken drag holds the page still, an undecided touch does not', async ({ page }) => {
+  await open(page, '#/flow/c/heart');
+  const held = await page.evaluate(() => {
+    const rule = document.querySelector<HTMLElement>('.fs-gate-rule')!;
+    const b = rule.getBoundingClientRect();
+    const y = b.top + b.height / 2;
+    const ptr = (type: string, x: number, yy = y) => rule.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: x, clientY: yy }));
+    const moved = () => { const e = new TouchEvent('touchmove', { bubbles: true, cancelable: true }); rule.dispatchEvent(e); return e.defaultPrevented; };
+    ptr('pointerdown', b.left + 10);
+    const before = moved();
+    ptr('pointermove', b.left + 40);
+    const during = moved();
+    ptr('pointermove', b.left + 70, y + 60); // the thumb's arc
+    const drifting = moved();
+    ptr('pointerup', b.left + 70, y + 60);
+    return { before, during, drifting, after: moved() };
+  });
+  expect(held).toEqual({ before: false, during: true, drifting: true, after: false });
+  await expect.poll(async () => Number(await page.getByRole('slider', { name: 'Heart gate', exact: true }).getAttribute('aria-valuenow'))).toBeGreaterThan(10);
+});
