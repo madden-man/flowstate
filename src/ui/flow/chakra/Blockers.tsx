@@ -17,9 +17,10 @@
 // small number, no word of his), or the seeded number, so the shelf, the questions and the safety lines under it never
 // move. Locked under the page it holds that room empty.
 //
-// The seam for K4 (the Blockers sheet): onHold, when given, makes a long press on a row (rule 8: long press means pick
-// up) call it with the row's flow instead of opening it; foot is drawn after the rows (K4's "+ blocker", the one line a
-// sign with every blocker struck still shows under the word).
+// The Blockers sheet (K4, ./BlockersSheet.tsx): onHold, when given, makes a long press on a row (rule 8: long press
+// means pick up) call it with the row's flow instead of opening it; never in Still, where nothing opens or lifts. foot
+// is drawn under the word only when no row is left (every blocker struck off the sign): "+ blocker", which raises the
+// same sheet. version, bumped by the sheet, reads the rows again.
 import type { ComponentChildren } from 'preact';
 import { signal } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
@@ -105,11 +106,13 @@ export function BlockerRow({ b, still, onHold }: RowProps) {
   );
 }
 
-type Props = { chakra: ChakraId; onHold?: (flow: Read<Flow>) => void; foot?: ComponentChildren };
+type Props = { chakra: ChakraId; onHold?: (flow: Read<Flow>) => void; foot?: ComponentChildren; version?: number };
 
-export function Blockers({ chakra, onHold, foot }: Props) {
+export function Blockers({ chakra, onHold, foot, version = 0 }: Props) {
   const locked = gateState() === 'locked';
   const still = light.value === 'still';
+  // Still: nothing lifts, so a long press is a tap
+  const hold = still ? undefined : onHold;
   const [rows, setRows] = useState<Blocker[] | null>(null);
   // a turn back to this page waits for the rows (parts/Turn caps the wait), so the small drawing it lands on is there
   useDrawn(rows !== null || locked);
@@ -129,13 +132,14 @@ export function Blockers({ chakra, onHold, foot }: Props) {
     }, () => { /* locked under the read: the room stays held */ });
     read(SEED_TRIES);
     return () => { on = false; clearTimeout(retry); };
-  }, [chakra, locked, dataVersion.value]);
+  }, [chakra, locked, version, dataVersion.value]);
 
   if (!rows || locked) {
     const n = blockersRoomOf(chakra);
+    // none left: the word and "+ blocker", one rule more
     return (
       <section class="bk" data-blockers="" data-wait="" aria-label="Blockers"
-        style={{ '--bk-rows': String(n) }}>
+        style={{ '--bk-rows': String(n), '--bk-foot': n === 0 && foot ? '1' : '0' }}>
         <p class="fs-month bk-word-head">Blockers</p>
       </section>
     );
@@ -145,8 +149,8 @@ export function Blockers({ chakra, onHold, foot }: Props) {
   return (
     <section class="bk" data-blockers="" aria-label="Blockers">
       <p class="fs-month bk-word-head">Blockers</p>
-      {shown.map(b => <BlockerRow key={b.flow.id} b={b} still={still} onHold={onHold} />)}
-      {foot}
+      {shown.map(b => <BlockerRow key={b.flow.id} b={b} still={still} onHold={hold} />)}
+      {shown.length === 0 && foot}
     </section>
   );
 }

@@ -1,6 +1,8 @@
 // "+ flow", last on the Flow list (PLAN-FLOWS.md section 4 part 2 step 14, F3): a sheet with the flow's name and its
 // drawing, the nine shapes drawn small in print with their names. Make opens the new flow's page on an empty drawing
 // and "name the first step". Nothing is filled in for you (rule 16); Make stays print-grey until there is a name.
+// The same sheet is "+ blocker" on a sign (PLAN-BLOCKERS.md K4, chakra/BlockersSheet.tsx): FlowForm with that sign
+// already chosen under Under, so the flow made is listed under it.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import { Sheet } from '../parts/Sheet';
@@ -33,12 +35,13 @@ export function NewFlow({ onMade }: { onMade?: () => void } = {}) {
   );
 }
 
-function FlowForm({ open, onClose, onMade }: { open: boolean; onClose: () => void; onMade?: () => void }) {
+/** The New flow sheet. under: the sign already chosen (a "+ blocker"), his to unchoose. */
+export function FlowForm({ open, onClose, onMade, under }: { open: boolean; onClose: () => void; onMade?: () => void; under?: ChakraId }) {
   const { route } = useLocation();
   const [name, setName] = useState('');
   const [diagram, setDiagram] = useState<DiagramName>('ring');
   // R3: which sign it sits under; none chosen leaves it on its own page. A second tap on the chosen sign unchooses it.
-  const [chakra, setChakra] = useState<ChakraId | undefined>(undefined);
+  const [chakra, setChakra] = useState<ChakraId | undefined>(under);
   const done = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const ok = !!name.trim();

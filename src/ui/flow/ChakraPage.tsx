@@ -4,8 +4,9 @@
 //
 // The place is the page (PLAN-TASKS.md T1): the plate is twelve rules tall with the sign's touch words printed on it
 // (./chakra/Touches.tsx, every tap through ./chakra/touch.ts onTouch), and under it a paper foot: the gloss, the gate,
-// what blocks the sign (./chakra/Blockers.tsx, PLAN-BLOCKERS.md K3), the sign's shelf, its three questions
-// (./chakra/Asks.tsx, rule 37), the printed lines and, on Heart and Root, the 988 line with Call and Text.
+// what blocks the sign (./chakra/Blockers.tsx, PLAN-BLOCKERS.md K3; its long press sheet ./chakra/BlockersSheet.tsx,
+// K4), the sign's shelf, its three questions (./chakra/Asks.tsx, rule 37), the printed lines and, on Heart and Root,
+// the 988 line with Call and Text.
 //
 // One thing at rest, always (PLAN-BLOCKERS.md decision 10): no flow is ever in front here. A flow under a sign has its
 // own page again (FlowPage, with its drawing), reached by a tap on its Blockers row; a live episode, Right now,
@@ -28,7 +29,8 @@ import { Plate } from './chakra/Plate';
 import { Touches } from './chakra/Touches';
 import { SignShelf } from './chakra/SignShelf';
 import { Asks, Ground } from './chakra/Asks';
-import { Blockers, lastSign } from './chakra/Blockers';
+import { lastSign } from './chakra/Blockers';
+import { SignBlockers } from './chakra/BlockersSheet';
 import { readGuard } from './chakra/fresh';
 import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
@@ -152,8 +154,9 @@ export function ChakraPage({ chakra }: { chakra: ChakraId }) {
         {/* a surge makes the gate ask afresh (./chakra/surge.ts): drawn anew, so a touch before it does not hide the dash */}
         <Gate key={asks(chakra) ? 'asks' : 'rests'} value={gate} hue={c.hue} label={c.name} stale={(!!stored && isStale(stored, now)) || asks(chakra)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
-        {/* what shuts it (PLAN-BLOCKERS.md decision 8): the flows under the sign, a tap opening each one's own page */}
-        <Blockers chakra={chakra} />
+        {/* what shuts it (PLAN-BLOCKERS.md decision 8): the flows under the sign, a tap opening each one's own page, a
+            long press raising the sheet that strikes one off or puts it back (decision 13, K4) */}
+        <SignBlockers chakra={chakra} />
         {/* the sign's music shelf (PLAN-TASKS.md T5): renders nothing while locked */}
         <SignShelf chakra={chakra} />
         {/* its three questions (DESIGN.md rule 37): a tap opens today's page on one; nothing while locked or in Still */}

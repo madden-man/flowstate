@@ -41,7 +41,9 @@ const TICKS: Record<string, string[]> = {
     // Q4: Research's word Settings, where the key goes, opens the Settings sheet
     'src/ui/flow/Research.tsx',
     // rule 37: a sign's questions' Edit raises the sheet to rewrite them
-    'src/ui/flow/chakra/Asks.tsx'],
+    'src/ui/flow/chakra/Asks.tsx',
+    // PLAN-BLOCKERS.md K4: a long press on a Blockers row raises their sheet, and "+ blocker" the New flow sheet
+    'src/ui/flow/chakra/BlockersSheet.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],
