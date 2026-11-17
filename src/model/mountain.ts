@@ -5,9 +5,9 @@
 //
 // The water, crown to sea: the meter d gives the spring s = 1 - 0.8d; a gate b lets through p = 1 - 0.85b; below sign
 // i runs q(i) = s * p(1) * ... * p(i). Neither floor reaches zero, so something always gets through.
-import type { Flow, Millis, Reading } from '../db/schema';
+import type { Episode, Flow, Millis, Reading } from '../db/schema';
 import { keyState, store, type Read } from '../db/fields';
-import { flows } from './flows';
+import { flows, liveEpisode } from './flows';
 
 export const CHAKRA_IDS = ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root'] as const;
 export type ChakraId = typeof CHAKRA_IDS[number];
@@ -114,4 +114,70 @@ export const isStale = (reading: Pick<Reading, 'at'>, now: Millis = Date.now()):
  *  createdAt, then id). */
 export async function flowsUnder(chakra: ChakraId): Promise<Read<Flow>[]> {
   return (await flows()).filter(f => f.chakra === chakra);
+}
+
+// ---- the blockers (PLAN-BLOCKERS.md section 5, K0) ----
+
+/** Lists the sign: its own (chakra) or a second listing (alsoUnder). */
+const listsSign = (f: Pick<Flow, 'chakra' | 'alsoUnder'>, chakra: ChakraId) => f.chakra === chakra || !!f.alsoUnder?.includes(chakra);
+
+/** A blocker row: the flow and its live episode, if one is open (its row comes first and says the step he is on). */
+export type Blocker = { flow: Read<Flow>; live?: Read<Episode> };
+
+/** What blocks this sign: the flows whose chakra or alsoUnder names it and whose offSigns does not, live ones first,
+ *  then the flow list's order (flows: order, then createdAt, then id). Drafts are among them. Locked, the flows come
+ *  as the list gives them (no words), so the rows can hold their room. */
+export async function blockersOf(chakra: ChakraId): Promise<Blocker[]> {
+  if (!isChakraId(chakra)) throw new Error(`Not a sign: ${String(chakra)}`);
+  const under = (await flows()).filter(f => listsSign(f, chakra) && !f.offSigns?.includes(chakra));
+  const rows = await Promise.all(under.map(async flow => ({ flow, live: await liveEpisode(flow.id) })));
+  return [...rows.filter(r => r.live), ...rows.filter(r => !r.live)].map(r => (r.live ? r : { flow: r.flow }));
+}
+
+/** Every flow listed under this sign, struck ones too, in the flow list's order, each with whether it is struck: the
+ *  long press's sheet (PLAN-BLOCKERS.md section 2, decision 13). A second listing is one whose chakra is another sign
+ *  ("also Crown"); a candidate carries draft. */
+export async function blockerSheetOf(chakra: ChakraId): Promise<{ flow: Read<Flow>; struck: boolean }[]> {
+  if (!isChakraId(chakra)) throw new Error(`Not a sign: ${String(chakra)}`);
+  return (await flows()).filter(f => listsSign(f, chakra)).map(flow => ({ flow, struck: !!flow.offSigns?.includes(chakra) }));
+}
+
+/** Changes one flow's clear sign fields as one unit; a flow not there, or a change that leaves it as it was, writes
+ *  nothing. Refuses while locked (LockedError). */
+async function changeSigns(flowId: string, change: (f: Read<Flow>) => Partial<Pick<Flow, 'alsoUnder' | 'offSigns'>> | null, now: Millis): Promise<Read<Flow> | undefined> {
+  return store.unit(async u => {
+    const f = await u.get('flows', flowId);
+    if (!f) return undefined;
+    const patch = change(f);
+    if (!patch) return f;
+    const next: Read<Flow> = { ...f, ...patch, updatedAt: now };
+    for (const k of ['alsoUnder', 'offSigns'] as const) if (!next[k]?.length) delete next[k];
+    await u.put('flows', next);
+    return next;
+  });
+}
+
+/** Strikes a flow off a sign it is listed under (on), or puts it back (off): offSigns, rule 10's struck, never deleted.
+ *  The flow is kept whole and is still reached by hand-offs and the door. A sign it is not listed under writes nothing.
+ *  Returns the flow. */
+export async function strikeOff(flowId: string, chakra: ChakraId, on: boolean, now: Millis = Date.now()): Promise<Read<Flow> | undefined> {
+  if (!isChakraId(chakra)) throw new Error(`Not a sign: ${String(chakra)}`);
+  return changeSigns(flowId, f => {
+    const off = new Set(f.offSigns ?? []);
+    if (!listsSign(f, chakra) || off.has(chakra) === on) return null;
+    if (on) off.add(chakra); else off.delete(chakra);
+    return { offSigns: CHAKRA_IDS.filter(c => off.has(c)) };
+  }, now);
+}
+
+/** Lists a flow under a sign ("+ blocker" choosing a flow that is there): a second listing (alsoUnder) unless it is the
+ *  flow's own sign, and not struck there. Returns the flow. */
+export async function listUnder(flowId: string, chakra: ChakraId, now: Millis = Date.now()): Promise<Read<Flow> | undefined> {
+  if (!isChakraId(chakra)) throw new Error(`Not a sign: ${String(chakra)}`);
+  return changeSigns(flowId, f => {
+    const struck = !!f.offSigns?.includes(chakra);
+    if (listsSign(f, chakra) && !struck) return null;
+    const also = f.chakra === chakra || f.alsoUnder?.includes(chakra) ? f.alsoUnder : [...(f.alsoUnder ?? []), chakra];
+    return { alsoUnder: also, offSigns: f.offSigns?.filter(c => c !== chakra) };
+  }, now);
 }
