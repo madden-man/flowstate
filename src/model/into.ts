@@ -5,7 +5,7 @@
 // prints that sign beside its date and a tap on it goes back. Every read and write goes through store (sealed words).
 import type { Message, Page } from '../db/schema';
 import { store, type Read } from '../db/fields';
-import { askThis, dayKey, keptLines, todayLinked, writeLine, type Kept } from './pages';
+import { askThis, dayKey, keptLines, messagesOf, todayLinked, writeLine, type Kept } from './pages';
 import { councilPages, newCouncil, speak } from './council';
 import { starOfDay, type Star } from './stars';
 import type { ChakraId } from './mountain';
@@ -36,6 +36,23 @@ export async function askToday(chakra: ChakraId, text: string, now = Date.now())
 export async function writeFromIt(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message> }> {
   const line = needLine(text);
   const r = await writeLine(await todayLinked({ sign: { chakra } }, now), undefined, { text: line }, now);
+  if (!r?.message) throw new Error('Nothing written');
+  return { page: r.page, message: r.message };
+}
+
+/** A sign's question (2026-11-17, model/acts.ts asksOf): a tap opens today's page, linked to the sign, with the question
+ *  written as its next line, set wise (italic, the wiser second person, DESIGN.md rule 17), so what he writes under it
+ *  answers from a step away. A question already a line on today's page (the same words) is not written again: the page
+ *  opens on the line that is there. The question is his or the starter he kept, never the app's own. */
+export async function askInJournal(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message> }> {
+  const line = needLine(text);
+  const page = await todayLinked({ sign: { chakra } }, now);
+  const there = (await messagesOf(page.id)).find(m => oneLine(m.text) === line);
+  if (there) {
+    await store.put('pages', page);
+    return { page, message: there };
+  }
+  const r = await writeLine(page, undefined, { text: line, wise: true }, now);
   if (!r?.message) throw new Error('Nothing written');
   return { page: r.page, message: r.message };
 }

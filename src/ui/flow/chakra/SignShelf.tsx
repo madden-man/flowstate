@@ -7,7 +7,7 @@
 // cache the ♪ grid fills, never fetched here (flow/On.tsx keep), and a kept cover shows whether or not Spotify is
 // connected now. An album with no kept cover (every starter until Spotify has been connected: the seed carries a
 // Spotify id and no art) is the same tile with nothing in it, the ♪ grid's own look for a cover not yet here, with its
-// title written on it in print so the three can be told apart; the title leaves in Still and on the small rows.
+// title written on it in print so they can be told apart; the title leaves in Still and on the small rows.
 // With no account a tap on a tile opens that album in Spotify (music/spotify.ts openAlbum), since nothing can play it
 // from here.
 //

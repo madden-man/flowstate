@@ -64,7 +64,7 @@ describe('the shelf on a sign (T5)', () => {
   it('its starters as empty tiles with their titles on them while no cover is kept, as covers once they are, wordless, in his order', async () => {
     let el = await draw(h(SignShelf, { chakra: 'crown' }));
     expect([...el.querySelectorAll<HTMLElement>('.fs-tile')].map(t => t.dataset.album)).toEqual(crownUris());
-    expect(el.querySelectorAll('.ck-shelf-cover.blank')).toHaveLength(3);
+    expect(el.querySelectorAll('.ck-shelf-cover.blank')).toHaveLength(STARTERS.crown.length);
     expect(el.querySelectorAll('.fs-tile img')).toHaveLength(0);
     expect([...el.querySelectorAll('.ck-shelf-name')].map(s => s.textContent)).toEqual(STARTERS.crown.map(p => p.title));
     // the title is print over the tile and leaves in Still; the tile itself names the album to a reader
@@ -76,7 +76,7 @@ describe('the shelf on a sign (T5)', () => {
     el = await draw(h(SignShelf, { chakra: 'crown' }));
     const tiles = [...el.querySelectorAll<HTMLElement>('.fs-tile')];
     expect(tiles.map(t => t.dataset.album)).toEqual(crownUris());
-    expect(el.querySelectorAll('.fs-tile img')).toHaveLength(3);
+    expect(el.querySelectorAll('.fs-tile img')).toHaveLength(STARTERS.crown.length);
     expect(el.querySelectorAll('.ck-shelf-cover.blank')).toHaveLength(0);
     // covers are wordless: nothing is written in the row but the plus
     expect(el.querySelector('.ck-shelf-covers')!.textContent).toBe('+');
@@ -114,7 +114,7 @@ describe('the shelf on a sign (T5)', () => {
     expect(wait.style.getPropertyValue('--ck-lines')).toBe('3');
     expect(wait.getAttribute('aria-hidden')).toBe('true');
     await until(() => { expect(root.querySelector('[data-shelf]')).not.toBeNull(); });
-    // read: the room it takes now is what is kept (three tiles and the plus on one row, no lines)
+    // read: the room it takes now is what is kept (the starters' tiles and the plus, no lines)
     expect(root.querySelector('.ck-shelf.wait')).toBeNull();
     expect(roomOf('crown')).toEqual({ rows: 1, lines: 0 });
     await addPick('crown', { kind: 'art', title: 'The Great Wave' });
@@ -134,7 +134,7 @@ describe('the shelf on a sign (T5)', () => {
     await keepCovers(crownUris());
     await addPick('crown', { kind: 'book', title: 'The Snow Leopard' });
     const el = await draw(h(SignShelf, { chakra: 'crown' }));
-    expect(el.querySelectorAll('.fs-tile')).toHaveLength(3);
+    expect(el.querySelectorAll('.fs-tile')).toHaveLength(STARTERS.crown.length);
     expect(el.querySelector('.ck-shelf-line')!.textContent).toBe('The Snow Leopard Book');
   });
 
@@ -172,14 +172,14 @@ describe('the shelf on a sign (T5)', () => {
     await act(() => { [...sheet()!.querySelectorAll<HTMLElement>('.fs-opt')].find(b => b.textContent === 'Art')!.click(); });
     await write('The Great Wave');
     await act(() => { sheet()!.querySelector('input.fs-input')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
-    await until(async () => { expect((await shelf('heart')).slice(3).map(p => [p.kind, p.title])).toEqual([['book', 'The Snow Leopard'], ['art', 'The Great Wave']]); });
+    await until(async () => { expect((await shelf('heart')).slice(STARTERS.heart.length).map(p => [p.kind, p.title])).toEqual([['book', 'The Snow Leopard'], ['art', 'The Great Wave']]); });
     await until(() => { expect([...el.querySelectorAll('.ck-shelf-line')].map(l => l.textContent)).toEqual(['The Snow Leopard Book', 'The Great Wave Art']); });
     // every rise starts on Book, whatever was chosen last
     await act(() => { el.querySelector<HTMLElement>('.ck-shelf-plus')!.click(); });
     expect(sheet()!.querySelector('.fs-opt[aria-pressed="true"]')!.textContent).toBe('Book');
     // a line is taken off as a cover is: Delete on it
     await act(() => { el.querySelector<HTMLElement>('.ck-shelf-line')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
-    await until(async () => { expect((await shelf('heart')).slice(3).map(p => p.title)).toEqual(['The Great Wave']); });
+    await until(async () => { expect((await shelf('heart')).slice(STARTERS.heart.length).map(p => p.title)).toEqual(['The Great Wave']); });
   });
 
   it('connected, the sheet\'s "+ album" raises the ♪ sheet to choose from, and the cover chosen goes on the end', async () => {
@@ -202,7 +202,7 @@ describe('the shelf on a sign (T5)', () => {
   it('a small row\'s plus is only there connected, and goes straight to the ♪ sheet', async () => {
     let el = await draw(h(Shelf, { chakra: 'heart', small: true }));
     expect(el.querySelector('.ck-shelf-plus')).toBeNull();
-    expect(el.querySelectorAll('.fs-tile')).toHaveLength(3);
+    expect(el.querySelectorAll('.fs-tile')).toHaveLength(STARTERS.heart.length);
     expect(el.querySelector('.ck-shelf-name')).toBeNull();
     render(null, root); root.remove();
     await saveSettings({ spotify: { connectedAt: 1, tokens: { accessToken: 'A', refreshToken: 'R', expiresAt: Date.now() + 600_000, name: 'T' } } });
@@ -219,11 +219,11 @@ describe('the shelf on a sign (T5)', () => {
     const first = el.querySelector<HTMLElement>('.fs-tile')!;
     await act(() => { first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })); });
     const ids = STARTERS.crown.map(p => p.id);
-    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[0], ids[2]]); });
+    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[0], ...ids.slice(2)]); });
     const last = [...el.querySelectorAll<HTMLElement>('.fs-tile')].at(-1)!;
     await act(() => { last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
-    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[0]]); });
-    await vi.waitFor(async () => { await settle(); expect(el.querySelectorAll('.fs-tile')).toHaveLength(2); });
+    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[0], ...ids.slice(2, -1)]); });
+    await vi.waitFor(async () => { await settle(); expect(el.querySelectorAll('.fs-tile')).toHaveLength(ids.length - 1); });
     expect(ticks.filter(t => t === 'drop')).toHaveLength(2);
   });
 
@@ -244,11 +244,11 @@ describe('the shelf on a sign (T5)', () => {
     expect(ticks).not.toContain('album');
     expect(el.querySelector('.ck-shelf-off')).not.toBeNull();
     await act(() => { cell(ids[2]).querySelector<HTMLElement>('.fs-tile')!.click(); });
-    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[2], ids[0]]); });
+    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[1], ids[2], ids[0], ...ids.slice(3)]); });
     expect(el.querySelector('.lift')).toBeNull();
     await press(ids[1]);
     await act(() => { el.querySelector<HTMLElement>('.ck-shelf-off')!.click(); });
-    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[2], ids[0]]); });
+    await until(async () => { expect((await shelf('crown')).map(p => p.id)).toEqual([ids[2], ids[0], ...ids.slice(3)]); });
   });
 
   it('locked (the door): no shelf at all, never an empty one; open again, his shelf', async () => {
@@ -263,7 +263,7 @@ describe('the shelf on a sign (T5)', () => {
     expect(await unlock(key)).toBe(true);
     gate.value = 'open';
     el = await draw(h(SignShelf, { chakra: 'root' }));
-    expect(el.querySelectorAll('.fs-tile')).toHaveLength(3);
+    expect(el.querySelectorAll('.fs-tile')).toHaveLength(STARTERS.root.length);
   });
 
   it('Still: no plus and nothing lifts or moves; the lines leave with the light', async () => {
@@ -275,12 +275,12 @@ describe('the shelf on a sign (T5)', () => {
     expect(root.querySelector('[data-sheet="On the shelf"]')).toBeNull();
     expect(el.querySelector('.ck-shelf-lines')!.classList.contains('fs-notstill')).toBe(true);
     // the empty tiles stay, as covers do
-    expect(el.querySelectorAll('.fs-tile')).toHaveLength(3);
+    expect(el.querySelectorAll('.fs-tile')).toHaveLength(STARTERS.sacral.length);
     const line = el.querySelector<HTMLElement>('.ck-shelf-line')!;
     await act(() => { line.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
     await act(() => { el.querySelector<HTMLElement>('.fs-tile')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); });
     await settle(100);
-    expect(await shelf('sacral')).toHaveLength(4);
+    expect(await shelf('sacral')).toHaveLength(STARTERS.sacral.length + 1);
   });
 
   it('places by the nearest of its kind, after it past its middle', () => {
@@ -303,7 +303,7 @@ describe('the Signs segment (T5)', () => {
     expect(rows.map(r => r.querySelector('.ck-sign-name')!.textContent)).toEqual(CHAKRAS.map(c => c.name));
     expect(rows.map(r => r.style.getPropertyValue('--h'))).toEqual(CHAKRAS.map(c => String(c.hue)));
     expect(rows.map(r => r.querySelector('a')!.getAttribute('href'))).toEqual(CHAKRAS.map(c => `#/flow/c/${c.id}`));
-    expect(rows.every(r => r.querySelectorAll('.fs-tile').length === 3 && !r.querySelector('.ck-shelf-line'))).toBe(true);
+    expect(rows.every((r, i) => r.querySelectorAll('.fs-tile').length === STARTERS[CHAKRAS[i].id].length && !r.querySelector('.ck-shelf-line'))).toBe(true);
     await act(() => { rows[3].querySelector<HTMLElement>('a')!.click(); });
     expect(openSheet.value).toBeNull();
   });

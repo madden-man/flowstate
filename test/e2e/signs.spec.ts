@@ -1,7 +1,7 @@
 // The ♪ sheet's Signs segment (PLAN-TASKS.md section 4, T5) in the production build. A journal given Spotify tokens,
-// one chosen playlist holding the 21 starter albums and their kept covers (design/tasks/c-*.jpg), as the ♪ grid would
+// one chosen playlist holding the 35 starter albums and their kept covers (design/tasks/c-*.jpg), as the ♪ grid would
 // have kept them. ♪ opens on Playlists; Signs beside it shows seven rows summit to foot, each name on its hue and
-// its three covers, wordless, then a plus. A cover plays on the playlist that holds it; the plus opens the grid on
+// its five covers, wordless, then a plus. A cover plays on the playlist that holds it; the plus opens the grid on
 // Playlists; a name opens its sign's page and the sheet goes down. Only Spotify's API was asked for anything.
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
@@ -11,8 +11,13 @@ const PL = 'T5signs00000000000000';
 const root = process.cwd();
 const acts = fs.readFileSync(path.join(root, 'src/model/acts.ts'), 'utf8');
 const seed = fs.readFileSync(path.join(root, 'src/db/seed/picks.ts'), 'utf8');
-const ids = new Map([...seed.matchAll(/album\('[^']+', '((?:[^'\\]|\\.)+)', '((?:[^'\\]|\\.)+)', '([A-Za-z0-9]{22})'\)/g)]
-  .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }]));
+// a starter is a seed pick (album(...) in picks.ts) or one of acts.ts's own STARTER_ALBUMS ({ by, title, albumId })
+const ids = new Map([
+  ...[...seed.matchAll(/album\('[^']+', '((?:[^'\\]|\\.)+)', '((?:[^'\\]|\\.)+)', '([A-Za-z0-9]{22})'\)/g)]
+    .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }] as const),
+  ...[...acts.matchAll(/\{ by: '((?:[^'\\]|\\.)+)', title: '((?:[^'\\]|\\.)+)', albumId: '([A-Za-z0-9]{22})' \}/g)]
+    .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }] as const),
+]);
 const block = acts.slice(acts.indexOf('STARTER_TITLES'), acts.indexOf('};', acts.indexOf('STARTER_TITLES')));
 const STARTERS = [...block.matchAll(/'?([a-z-]+)'?: \[([^\]]+)\]/g)].map(m => ({
   sign: m[1], titles: [...m[2].matchAll(/'((?:[^'\\]|\\.)+)'/g)].map(t => t[1].replace(/\\'/g, "'")),
@@ -34,9 +39,9 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
     const url = route.request().url();
     if (url.endsWith('/v1/me')) return route.fulfill({ json: { id: 'tommy', display_name: 'Tommy' } });
     if (url.includes('/v1/me/playlists')) return route.fulfill({ json: { next: null, items: [
-      { id: PL, name: 'master (ii)', uri: `spotify:playlist:${PL}`, snapshot_id: 's', owner: { id: 'tommy' }, images: [], items: { total: 21 } },
+      { id: PL, name: 'master (ii)', uri: `spotify:playlist:${PL}`, snapshot_id: 's', owner: { id: 'tommy' }, images: [], items: { total: ALBUMS.length } },
     ] } });
-    // the first ♪ of a load reads the chosen playlist again: it holds the 21, in this order
+    // the first ♪ of a load reads the chosen playlist again: it holds the 35, in this order
     if (url.includes(`/playlists/${PL}/items`)) return route.fulfill({ json: { next: null, items: ALBUMS.map(a => ({
       item: { type: 'track', uri: `spotify:track:${a.id}`, album: { uri: `spotify:album:${a.id}`, name: a.title, images: [] }, artists: [{ name: a.by }] },
     })) } });
@@ -79,7 +84,7 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
   const rows = sheet.locator('.ck-sign-row');
   await expect(rows.locator('.ck-sign-name')).toHaveText(NAMES);
   for (let i = 0; i < 7; i++) {
-    await expect(rows.nth(i).locator('.fs-tile img')).toHaveCount(3);
+    await expect(rows.nth(i).locator('.fs-tile img')).toHaveCount(5);
     await expect(rows.nth(i).locator('.ck-shelf-plus')).toHaveCount(1);
   }
   await expect(sheet.locator('.ck-signs')).not.toContainText(/\d/);
@@ -98,15 +103,16 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
   await expect(page.locator('[data-sheet="Playlists"]')).toBeVisible();
   await expect(seg).toHaveCount(0);
   await page.locator('[data-sheet="Playlists"]').locator('.fs-playlist').first().click();
-  await page.locator('[data-sheet="master (ii)"] .fs-tile').nth(3).click();
+  // the Third eye's first starter: one the Crown does not already hold
+  await page.locator('[data-sheet="master (ii)"] .fs-tile').nth(5).click();
   await expect(page.locator('.fs-sheet')).toHaveCount(0);
   expect(played).toHaveLength(1);
 
   // ♪ again opens on Signs, Crown's shelf a cover longer; a name opens its sign and the sheet goes down
   await page.getByRole('button', { name: 'Music', exact: true }).click();
   await expect(sheet).toBeVisible();
-  await expect(rows.nth(0).locator('.fs-tile')).toHaveCount(4);
-  await expect(rows.nth(0).locator('.fs-tile').nth(3)).toHaveAttribute('data-album', `spotify:album:${ALBUMS[3].id}`);
+  await expect(rows.nth(0).locator('.fs-tile')).toHaveCount(6);
+  await expect(rows.nth(0).locator('.fs-tile').nth(5)).toHaveAttribute('data-album', `spotify:album:${ALBUMS[5].id}`);
   await rows.nth(3).getByRole('link', { name: 'Heart' }).click();
   await expect(page).toHaveURL(/#\/flow\/c\/heart$/);
   await expect(page.locator('.fs-sheet')).toHaveCount(0);
@@ -118,9 +124,12 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
   await page.waitForTimeout(800);
   const order = (i: number) => rows.nth(i).locator('.fs-tile').evaluateAll(t => t.map(x => x.getAttribute('data-album')));
   // the covers are read once they carry their albums (they arrive after the sheet is drawn)
-  await expect.poll(async () => { const o = await order(1); return o.length === 3 && o.every(Boolean); }).toBe(true);
+  await expect.poll(async () => { const o = await order(1); return o.length === 5 && o.every(Boolean); }).toBe(true);
   const before = await order(1);
   const drag = async (i: number, k: number, dx: number, dy: number) => {
+    // five covers and the plus make each row two rows of tiles: the lower signs are below the sheet's fold until scrolled
+    await rows.nth(i).locator('.fs-tile').nth(k).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
     const b = (await rows.nth(i).locator('.fs-tile').nth(k).boundingBox())!;
     const x = b.x + b.width / 2, y = b.y + b.height / 2;
     await page.mouse.move(x, y);
@@ -131,11 +140,12 @@ test('Signs beside Playlists: seven shelves, a cover plays, a name opens its sig
     await page.mouse.up();
   };
   await drag(1, 0, 120, 0);
-  await expect.poll(() => order(1)).toEqual([before[1], before[2], before[0]]);
+  await expect.poll(() => order(1)).toEqual([before[1], before[2], before[0], ...before.slice(3)]);
   expect(played).toHaveLength(1);
   await drag(6, 0, 0, -160);
-  await expect(rows.nth(6).locator('.fs-tile')).toHaveCount(2);
+  await expect(rows.nth(6).locator('.fs-tile')).toHaveCount(4);
   await expect(rows.nth(6).locator('.lift')).toHaveCount(0);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/signs-connected.png` });
   await sheet.getByRole('button', { name: 'Done' }).click();
 
   // Still: the names without their hue

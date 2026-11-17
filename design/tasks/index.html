@@ -30,7 +30,7 @@
 <!-- 2 -->
 <section class="step" id="place" data-name="A sign's page is its place">
   <h2>A sign's page is its place</h2>
-  <p class="line">The Heart's tarn, four touch words on it, the lead lit.</p>
+  <p class="line">The Heart's tarn and its four touch words.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Words</td><td><code>model/acts.ts TOUCHES</code>: at most four a sign, one <code>lead</code>; placed by <code>chakra/words.ts</code>, drawn by <code>chakra/Touches.tsx</code>.</td></tr>
     <tr><td>Touch</td><td><code>chakra/touch.ts onTouch</code>: one dispatcher, handlers under <code>chakra/handlers/</code> (place, into, out).</td></tr>
@@ -47,7 +47,7 @@
 <!-- 4 -->
 <section class="step" id="look-far" data-name="I look further than today">
   <h2>I look further than today</h2>
-  <p class="line">Look far: a held thumb clears the ranges on the breath.</p>
+  <p class="line">A held thumb clears the ranges.</p>
 </section>
 
 <!-- 5 -->
@@ -59,7 +59,7 @@
 <!-- 6 -->
 <section class="step" id="surge" data-name="A touch moves the water">
   <h2>A touch moves the water</h2>
-  <p class="line">Feel lets the pool go as one surge; the gate asks, dashed.</p>
+  <p class="line">Feel lets the pool go; the gate asks.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Surge</td><td><code>chakra/surge.ts answer</code>: <code>SHARE</code> .6 of what the gate holds; never writes the gate; nothing in Still, through the door or under Reduce Motion.</td></tr>
     <tr><td>Ask</td><td><code>asking</code>: the gate dashed until set or left. Demo: the Sacral at .6.</td></tr>
@@ -69,7 +69,7 @@
 <!-- 7 -->
 <section class="step" id="ask" data-name="I ask what I'm not seeing">
   <h2>I ask what I'm not seeing</h2>
-  <p class="line">Ask lands on today's page, the sign over the date.</p>
+  <p class="line">Ask lands on today's page.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Carry</td><td><code>handlers/into.tsx</code>, <code>model/into.ts</code>: Ask this on the line, Turn to answer open (rule 17); <code>page.sign</code> links the page.</td></tr>
   </table></details>
@@ -84,7 +84,7 @@
 <!-- 9 -->
 <section class="step" id="stand-on" data-name="I stand on what I hold">
   <h2>I stand on what I hold</h2>
-  <p class="line">Stand on opens a held value on Be, champions under it.</p>
+  <p class="line">Stand on opens a value on Be.</p>
   <details><summary>How this is built</summary><table>
     <tr><td>Be</td><td><code>handlers/intoViews.tsx</code> reads <code>model/values.ts held</code>; a tap routes to <code>#/be/:id</code>. Demo: honesty (example data).</td></tr>
   </table></details>
@@ -106,21 +106,45 @@
 </section>
 
 <!-- 12 -->
-<section class="step" id="shelf" data-name="Every sign has its music">
-  <h2>Every sign has its music</h2>
-  <p class="line">Covers, then a book and a painting he wrote; a long press lifts one.</p>
+<section class="step" id="shelf" data-name="Five albums under every sign">
+  <h2>Five albums under every sign</h2>
+  <p class="line">Covers, a book, a painting; a long press lifts one.</p>
   <details><summary>How this is built</summary><table>
-    <tr><td>Shelf</td><td><code>chakra/SignShelf.tsx</code> on <code>signShelves</code>; starters from <code>acts.ts STARTER_TITLES</code>; the plus raises a sheet that writes a line (Mountain R4: Book, Art), with + album when Spotify is connected.</td></tr>
+    <tr><td>Shelf</td><td><code>chakra/SignShelf.tsx</code> on <code>signShelves</code>; five starters a sign from <code>acts.ts STARTER_TITLES</code>, one row at any phone width; the plus raises a sheet that writes a line (Mountain R4), with + album when Spotify is connected.</td></tr>
   </table></details>
 </section>
 
 <!-- 13 -->
+<section class="step" id="asks" data-name="Three questions under them">
+  <h2>Three questions under them</h2>
+  <p class="line">Each one opens the journal.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Asks</td><td><code>chakra/Asks.tsx</code>; starters <code>acts.ts STARTER_ASKS</code>, his own via <code>setAsk</code>, kept on the <code>signShelves</code> row; DESIGN.md rule 37. Gone in Still and through the door.</td></tr>
+  </table></details>
+</section>
+
+<!-- 14 -->
+<section class="step" id="asked" data-name="A tap opens today's page on the question">
+  <h2>A tap opens today's page on the question</h2>
+  <p class="line">In italic, the caret under it.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Carry</td><td><code>model/into.ts askInJournal</code>: a wise line on today's page, once a day per question; <code>page.sign</code> prints the sign by the date.</td></tr>
+  </table></details>
+</section>
+
+<!-- 15 -->
+<section class="step" id="rewrite" data-name="Rewrite them">
+  <h2>Rewrite them</h2>
+  <p class="line">An empty rule is the starter again.</p>
+</section>
+
+<!-- 16 -->
 <section class="step" id="signs" data-name="All seven under ♪">
   <h2>All seven under ♪</h2>
   <p class="line">Each sign's covers; a name opens that sign.</p>
 </section>
 
-<!-- 14 -->
+<!-- 17 -->
 <section class="step" id="door" data-name="Through the door">
   <h2>Through the door</h2>
   <p class="line">Without the PIN, only Five and Breathe, and the 988 line.</p>
@@ -129,7 +153,7 @@
   </table></details>
 </section>
 
-<!-- 15 -->
+<!-- 18 -->
 <section class="step" id="sea" data-name="The surge reaches the sea">
   <h2>The surge reaches the sea</h2>
   <p class="line">Back on Flow, it runs from the Heart to the sea, once.</p>

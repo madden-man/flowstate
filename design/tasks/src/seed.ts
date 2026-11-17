@@ -32,7 +32,7 @@ export async function seedDemo(): Promise<void> {
 /** Every starter album, kept as the ♪ grid would keep it, its cover the file beside app.html (vite.config.ts's seam). */
 const COVERS = new Map(CHAKRA_IDS.flatMap(c => STARTERS[c].map((p, i) => [`spotify:album:${p.albumId}` as string, `c-${c}-${i + 1}.jpg`] as const)));
 
-/** Spotify connected (tokens that go nowhere: the network is refused) and one chosen playlist holding the 21 starters,
+/** Spotify connected (tokens that go nowhere: the network is refused) and one chosen playlist holding the 35 starters,
  *  so the shelf shows its covers and its plus. */
 export async function connectMusic(): Promise<void> {
   (globalThis as { fsCoverUrl?: (uri: string) => string | undefined }).fsCoverUrl = uri => COVERS.get(uri);
