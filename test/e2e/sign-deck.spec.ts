@@ -46,9 +46,12 @@ test('steps 7 to 9: Resolve on each; resolved, it keeps its slot and nothing mov
   await expect(words).toHaveCount(3);
   // step 7: the print word at the right of each question's first rule, over the 988 line
   for (let i = 0; i < 3; i++) {
-    const w = (await words.nth(i).boundingBox())!;
-    const q = (await asks.locator('.ck-ask').nth(i).boundingBox())!;
     await expect(words.nth(i)).toHaveText('Resolve');
+    // both boxes read in one look: the page may still be settling between two reads
+    const { w, q } = await asks.evaluate((el, k) => {
+      const r = (e: Element) => { const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width }; };
+      return { w: r(el.querySelectorAll('[role="checkbox"][aria-label="Resolved"]')[k]), q: r(el.querySelectorAll('.ck-ask')[k]) };
+    }, i);
     expect(Math.abs(w.y - q.y)).toBeLessThan(2);
     expect(w.x + w.width).toBeGreaterThan(q.x + q.width - 2);
     expect(w.x + w.width).toBeLessThanOrEqual(390);
