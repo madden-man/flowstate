@@ -19,7 +19,10 @@ const HEART = [
   { id: '1E9iqjfSf5I5hPNfI1DRIh', title: 'Atlas: I', by: 'Sleeping At Last', file: 'c-heart-1.jpg' },
   { id: '0U8DeqqKDgIhIiWOdqiQXE', title: 'Carrie & Lowell', by: 'Sufjan Stevens', file: 'c-heart-2.jpg' },
   { id: '0tWckYjFI6ioZptLr42J3p', title: 'Birthplace', by: 'Novo Amor', file: 'c-heart-3.jpg' },
+  { id: '2LpfNj3vB5rOXfaawLcOBg', title: 'Bon Iver, Bon Iver', by: 'Bon Iver', file: 'c-heart-4.jpg' },
+  { id: '4H1xbaXxVDmHnFQ5ifzyM4', title: 'Hundred Acres', by: 'S. Carey', file: 'c-heart-5.jpg' },
 ];
+const N = HEART.length;
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -78,7 +81,7 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
 }
 
-/** Keeps the Heart's three covers as the ♪ grid would have, with no account. */
+/** Keeps the Heart's five covers as the ♪ grid would have, with no account. */
 async function keepCovers(page: Page) {
   const albums = HEART.map(a => ({ ...a, b64: fs.readFileSync(path.join(process.cwd(), 'design/tasks', a.file)).toString('base64') }));
   await page.evaluate(async list => {
@@ -119,7 +122,7 @@ test('the shelf holds its room from first paint: the 988 line never moves', asyn
   page.on('pageerror', e => errors.push(String(e)));
   await watch(page);
   await enter(page);
-  await expect(page.locator('[data-shelf="heart"] .fs-tile')).toHaveCount(3);
+  await expect(page.locator('[data-shelf="heart"] .fs-tile')).toHaveCount(N);
   await page.waitForTimeout(400);
   let seen = await tops(page);
   // the line was on the page while the shelf was still unread, and it stood where it stands now
@@ -146,26 +149,30 @@ test('with no account: a title on an empty tile where no cover is kept, the cove
   context.on('request', r => { if (!r.url().startsWith(baseURL!) && !r.url().startsWith('blob:')) outside.push(r.url()); });
   await enter(page);
   const shelf = page.locator('[data-shelf="heart"]');
-  // the three starters: tiles in the shelf's rhythm, each with its title on it and its name for a reader, then the plus
-  await expect(shelf.locator('.ck-shelf-cover.blank')).toHaveCount(3);
+  // the five starters: tiles in the shelf's rhythm, each with its title on it and its name for a reader, then the plus
+  await expect(shelf.locator('.ck-shelf-cover.blank')).toHaveCount(N);
   await expect(shelf.locator('.ck-shelf-name')).toHaveText(HEART.map(a => a.title));
-  await expect(shelf.locator('.fs-tile')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile')).toHaveCount(N);
   await expect(shelf.locator('.fs-tile img')).toHaveCount(0);
   await expect(shelf.getByRole('button', { name: 'Atlas: I, Sleeping At Last' })).toBeVisible();
   await expect(shelf.locator('.ck-shelf-line')).toHaveCount(0);
   await expect(shelf.locator('.ck-shelf-plus')).toBeVisible();
-  const size = await shelf.locator('.ck-shelf-cover').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  expect(size).toEqual([[66, 66], [66, 66], [66, 66]]);
+  // the five and the plus on one row across the column (Tommy, 2026-11-17): square, all one size, more than a thumb
+  const boxes = await shelf.locator('.ck-shelf-cover, .ck-shelf-plus').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height, top: Math.round(r.top), right: r.right }; }));
+  expect(boxes).toHaveLength(N + 1);
+  expect(new Set(boxes.map(b => b.top)).size).toBe(1);
+  expect(boxes.every(b => Math.abs(b.w - boxes[0].w) < 0.5 && Math.abs(b.w - b.h) < 0.5 && b.w >= 44 && b.w <= 66)).toBe(true);
+  expect(boxes[N].right).toBeLessThanOrEqual(390 - 20 + 0.5);
 
   // covers kept on the phone show with no account
   await keepCovers(page);
   await again(page);
-  await expect(shelf.locator('.fs-tile img')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile img')).toHaveCount(N);
   await expect(shelf.locator('.ck-shelf-cover.blank')).toHaveCount(0);
   await expect(shelf.locator('.ck-shelf-covers')).toHaveText('+');
   // Still: the covers stay and the plus leaves
   await toStill(page);
-  await expect(shelf.locator('.fs-tile img')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile img')).toHaveCount(N);
   await expect(shelf.locator('.ck-shelf-plus')).toBeHidden();
   expect(outside).toEqual([]);
 });
@@ -187,7 +194,7 @@ test('a book and a piece of art are written on the shelf from its plus, and take
   // kept: there after a reload, under the covers
   await again(page);
   await expect(shelf.locator('.ck-shelf-line')).toHaveText(['The Remains of the Day Book', 'Nighthawks Art']);
-  await expect(shelf.locator('.fs-tile img')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile img')).toHaveCount(N);
 
   // a long press lifts the book; the struck place takes it off
   const book = shelf.locator('.ck-shelf-linecell', { hasText: 'The Remains of the Day' });
@@ -199,7 +206,7 @@ test('a book and a piece of art are written on the shelf from its plus, and take
   await page.keyboard.press('Delete');
   await expect(shelf.locator('.ck-shelf-line')).toHaveCount(0);
   await again(page);
-  await expect(shelf.locator('.fs-tile')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile')).toHaveCount(N);
   await expect(shelf.locator('.ck-shelf-line')).toHaveCount(0);
 });
 
@@ -210,7 +217,7 @@ test('in Still the empty tiles stay as covers do; their titles, the written line
   await expect(shelf.locator('.ck-shelf-line')).toHaveText(['Nighthawks Art']);
   const before = await page.locator('.ck-safe-line').evaluate(el => el.getBoundingClientRect().top + scrollY);
   await toStill(page);
-  await expect(shelf.locator('.fs-tile')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile')).toHaveCount(N);
   await expect(shelf.locator('.ck-shelf-name').first()).toBeHidden();
   await expect(shelf.locator('.ck-shelf-line')).toBeHidden();
   await expect(shelf.locator('.ck-shelf-plus')).toBeHidden();
@@ -225,7 +232,7 @@ for (const light of ['day', 'night'] as const) {
     await keepCovers(page);
     await again(page);
     const shelf = page.locator('[data-shelf="heart"]');
-    await expect(shelf.locator('.fs-tile img')).toHaveCount(3);
+    await expect(shelf.locator('.fs-tile img')).toHaveCount(N);
     const cells = shelf.locator('.ck-shelf-cover');
     await hold(page, cells.nth(1));
     const ink = await page.evaluate(() => { const p = document.createElement('p'); p.style.color = 'var(--ink)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; });
@@ -241,7 +248,7 @@ for (const light of ['day', 'night'] as const) {
     await cells.nth(1).click();
     await expect(shelf.locator('.lift')).toHaveCount(0);
     await expect(cells.nth(0)).toHaveCSS('opacity', '1');
-    await expect(shelf.locator('.fs-tile')).toHaveCount(3);
+    await expect(shelf.locator('.fs-tile')).toHaveCount(N);
   });
 }
 
@@ -251,7 +258,7 @@ test('in Still nothing lifts, and a cover lifted when the light turns is put dow
   await again(page);
   const shelf = page.locator('[data-shelf="heart"]');
   const cells = shelf.locator('.ck-shelf-cover');
-  await expect(shelf.locator('.fs-tile img')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile img')).toHaveCount(N);
   await hold(page, cells.nth(0));
   await toStill(page);
   await expect(shelf.locator('.lift')).toHaveCount(0);
@@ -262,7 +269,7 @@ test('in Still nothing lifts, and a cover lifted when the light turns is put dow
   await page.waitForTimeout(900);
   await expect(shelf.locator('.lift')).toHaveCount(0);
   await page.mouse.up();
-  await expect(shelf.locator('.fs-tile')).toHaveCount(3);
+  await expect(shelf.locator('.fs-tile')).toHaveCount(N);
 });
 
 // The looks, for a reader: SHOTS=dir writes each state at 390x844 in the three lights. Not run otherwise.

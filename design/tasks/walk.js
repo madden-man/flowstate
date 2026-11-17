@@ -7,9 +7,9 @@
   var rail = document.getElementById('rail'), counter = document.getElementById('counter');
   var frames = document.getElementById('frames'), screen = document.querySelector('.screen'), nolive = document.getElementById('nolive');
   var clock = document.getElementById('clock');
-  var DESIGNED = { held: 'night', place: 'night', grieve: 'night', 'look-far': 'day', basics: 'day', surge: 'night', ask: 'day', back: 'day', 'stand-on': 'day', send: 'night', 'i-will': 'day', shelf: 'night', signs: 'night', door: 'night', sea: 'night' };
+  var DESIGNED = { held: 'night', place: 'night', grieve: 'night', 'look-far': 'day', basics: 'day', surge: 'night', ask: 'day', back: 'day', 'stand-on': 'day', send: 'night', 'i-will': 'day', shelf: 'night', asks: 'night', asked: 'night', rewrite: 'night', signs: 'night', door: 'night', sea: 'night' };
   // the phone's clock at each step: one evening on the mountain, the morning after, the small hours at the door
-  var TIME = { held: '21:40', place: '21:41', grieve: '21:43', 'look-far': '9:12', basics: '9:20', surge: '21:48', ask: '9:30', back: '9:32', 'stand-on': '9:40', send: '21:50', 'i-will': '9:45', shelf: '21:55', signs: '21:57', door: '23:10', sea: '22:15' };
+  var TIME = { held: '21:40', place: '21:41', grieve: '21:43', 'look-far': '9:12', basics: '9:20', surge: '21:48', ask: '9:30', back: '9:32', 'stand-on': '9:40', send: '21:50', 'i-will': '9:45', shelf: '21:55', asks: '21:56', asked: '21:57', rewrite: '21:58', signs: '21:59', door: '23:10', sea: '22:15' };
   var i = 0, LIGHT = 'design', n = 0, shown = null, pending = null, everReady = false, late = 0;
 
   function lightOf(id) { return LIGHT === 'design' ? DESIGNED[id] : LIGHT; }

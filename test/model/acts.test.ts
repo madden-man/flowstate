@@ -5,12 +5,14 @@ import { freshDB } from '../db/helpers';
 import { store, setKey, lock, unlock, LockedError } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { ensureSeeded } from '../../src/db/seed';
-import { PICKS } from '../../src/db/seed/picks';
+import { PICKS, pickId } from '../../src/db/seed/picks';
+import titles from '../fixtures/picks-titles.json';
 import type { FlowDB } from '../../src/db/schema';
 import { CHAKRA_IDS, chakraOf } from '../../src/model/mountain';
 import { sunTimes } from '../../src/model/sun';
 import {
-  TOUCHES, touchesOf, touchOf, leadOf, STARTERS, STARTER_TITLES, shelf, addPick, movePick, removePick,
+  TOUCHES, touchesOf, touchOf, leadOf, STARTERS, STARTER_TITLES, STARTER_ALBUMS, shelf, addPick, movePick, removePick,
+  STARTER_ASKS, asksOf, setAsk,
   writeMark, marksOf, stones, BASICS, dayOf, basicsToday, setBasic,
 } from '../../src/model/acts';
 
@@ -96,19 +98,41 @@ describe('the shelves (section 4)', () => {
   let db: FlowDB;
   beforeEach(async () => { db = await freshDB(); });
 
-  it('the starters are the plan\'s, three a sign, each an album already seeded with its artist and Spotify id', () => {
+  it('the starters are five a sign: the plan\'s three first, in order, then two, each with its artist and Spotify id', () => {
     const seeded = PICKS.flatMap(s => s.picks).filter(p => p.kind === 'album');
+    const plan: Record<string, string[]> = {
+      crown: ['Ágætis byrjun', 'Raising Your Voice... Trying to Stop an Echo', 'Takk...'],
+      'third-eye': ['Dive', 'v2.0 (Deluxe Edition)', 'Awake'],
+      throat: ['x Infinity', 'The Incredible True Story', 'Professional Rapper'],
+      heart: ['Atlas: I', 'Carrie & Lowell', 'Birthplace'],
+      'solar-plexus': ['Gossamer', 'Celeste (Original Soundtrack)', 'Through the Deep, Dark Valley'],
+      sacral: ['In Between Dreams', 'Bahamas Is Afie', 'The Head and the Heart'],
+      root: ['Romantic Piano', 'Solitudes', 'All We Grow'],
+    };
     for (const c of CHAKRA_IDS) {
-      expect(STARTERS[c]).toHaveLength(3);
+      expect(STARTERS[c]).toHaveLength(5);
       expect(STARTERS[c].map(p => p.title)).toEqual([...STARTER_TITLES[c]]);
+      expect(STARTERS[c].slice(0, 3).map(p => p.title)).toEqual(plan[c]);
       for (const p of STARTERS[c]) {
-        const s = seeded.find(x => x.title === p.title)!;
+        const s = seeded.find(x => x.title === p.title) ?? STARTER_ALBUMS.find(x => x.title === p.title)!;
         expect(p).toMatchObject({ kind: 'album', title: s.title, by: s.by, albumId: s.albumId });
-        expect(p.id.startsWith(`pk-${c}-`)).toBe(true);
+        expect(p.albumId).toMatch(/^[A-Za-z0-9]{22}$/);
+        expect(p.id).toBe(pickId(c, p.title));
       }
     }
-    expect(STARTERS.crown.map(p => p.by)).toEqual(['Sigur Rós', 'Hammock', 'Sigur Rós']);
-    expect(new Set(CHAKRA_IDS.flatMap(c => STARTERS[c].map(p => p.id))).size).toBe(21);
+    expect(STARTERS.crown.map(p => p.by)).toEqual(['Sigur Rós', 'Hammock', 'Sigur Rós', 'Tom Ashbrook', 'The Cinematic Orchestra']);
+    expect(new Set(CHAKRA_IDS.flatMap(c => STARTERS[c].map(p => p.id))).size).toBe(35);
+    // no album is a starter on two signs
+    expect(new Set(CHAKRA_IDS.flatMap(c => STARTERS[c].map(p => p.albumId))).size).toBe(35);
+  });
+  it('every starter is an album he listed: a seed pick, or one the fixture names as a starter (his Poems playlist)', () => {
+    // Starters need not be seed picks any more (five a sign outran the seed's albums), so the fixture's guard on the
+    // seed (test/db/seed-picks.test.ts) cannot see them; this is the same guard for the starters.
+    const known = new Set([...titles.albums, ...titles.starters].map(a => `${a.by}|${a.title}|${a.albumId}`));
+    for (const c of CHAKRA_IDS) for (const p of STARTERS[c]) expect(known.has(`${p.by}|${p.title}|${p.albumId}`), p.id).toBe(true);
+    // and the declared ones are the fixture's starters exactly, none of them a seed pick already
+    expect(STARTER_ALBUMS.map(a => ({ ...a }))).toEqual(titles.starters);
+    for (const a of STARTER_ALBUMS) expect(titles.albums.some(x => x.title === a.title)).toBe(false);
   });
   it('a shelf never touched reads as its starters and writes nothing', async () => {
     expect(await shelf('heart')).toEqual(STARTERS.heart);
@@ -116,6 +140,7 @@ describe('the shelves (section 4)', () => {
   });
   it('add, reorder and remove, kept in his order', async () => {
     const T = 1000;
+    for (const p of STARTERS.root.slice(3)) await removePick('root', p.id, T - 1);
     let s = await addPick('root', { kind: 'album', title: 'Hundred Acres', by: 'S. Carey', albumId: '4H1xbaXxVDmHnFQ5ifzyM4' }, T);
     expect(s.map(p => p.title)).toEqual(['Romantic Piano', 'Solitudes', 'All We Grow', 'Hundred Acres']);
     s = await addPick('root', { kind: 'film', title: '  My Neighbor Totoro ', id: 'totoro' }, T + 1);
@@ -136,6 +161,19 @@ describe('the shelves (section 4)', () => {
     expect((await db.signShelves.get('root'))!.updatedAt).toBe(T + 6);
     // the other signs are untouched
     expect(await shelf('crown')).toEqual(STARTERS.crown);
+  });
+  it('a shelf he already changed stays exactly as he left it: no top-up to five; only a sign with no row reads the five', async () => {
+    // a row written before the starters were five, as the three-a-sign version left it
+    const three = STARTERS.heart.slice(0, 3).map(p => ({ ...p }));
+    await db.signShelves.put({ id: 'heart', picks: three, updatedAt: 5 });
+    expect(await shelf('heart')).toEqual(three);
+    expect(await asksOf('heart')).toEqual([...STARTER_ASKS.heart]);
+    expect(await shelf('crown')).toEqual(STARTERS.crown);
+    expect(await shelf('crown')).toHaveLength(5);
+    // changing it keeps his three and adds only what he adds
+    const s = await addPick('heart', { kind: 'film', title: 'The Big Sick', id: 'sick' }, 6);
+    expect(s.map(p => p.title)).toEqual(['Atlas: I', 'Carrie & Lowell', 'Birthplace', 'The Big Sick']);
+    expect(await db.signShelves.count()).toBe(1);
   });
   it('a shelf he empties stays empty', async () => {
     for (const p of STARTERS.sacral) await removePick('sacral', p.id);
@@ -160,6 +198,73 @@ describe('the shelves (section 4)', () => {
     await expect(addPick('throat', { kind: 'show', title: 'x' })).rejects.toBeInstanceOf(LockedError);
     expect(await unlock(key)).toBe(true);
     expect((await shelf('throat')).at(-1)).toMatchObject({ id: 'cunk', title: 'Cunk on Earth' });
+  });
+});
+
+describe('the asks: three questions under a sign\'s shelf (2026-11-17)', () => {
+  let db: FlowDB;
+  beforeEach(async () => { db = await freshDB(); });
+
+  it('every sign asks three, his starters as he wrote them, with no em dash', () => {
+    expect(Object.keys(STARTER_ASKS)).toEqual([...CHAKRA_IDS]);
+    for (const c of CHAKRA_IDS) {
+      expect(STARTER_ASKS[c]).toHaveLength(3);
+      for (const q of STARTER_ASKS[c]) expect(q).not.toMatch(/\u2014|\u2013/);
+    }
+    expect(STARTER_ASKS.heart).toEqual(['Who are you missing?', 'What is heavy today?', 'What was good, even a little?']);
+  });
+  it('a sign never touched reads its starters and writes nothing', async () => {
+    expect(await asksOf('root')).toEqual([...STARTER_ASKS.root]);
+    expect(await db.signShelves.count()).toBe(0);
+  });
+  it('setAsk rewrites one place, one line and trimmed; the others stay the starters', async () => {
+    const out = await setAsk('heart', 1, '  What is\n  heavy   tonight? ', 100);
+    expect(out).toEqual(['Who are you missing?', 'What is heavy tonight?', 'What was good, even a little?']);
+    expect(await asksOf('heart')).toEqual(out);
+    expect(await asksOf('crown')).toEqual([...STARTER_ASKS.crown]);
+    expect((await db.signShelves.get('heart'))!.updatedAt).toBe(100);
+  });
+  it('an empty text, or the starter\'s own words, puts the starter back; no asks are kept once all are starters', async () => {
+    await setAsk('throat', 0, 'What did you swallow?', 1);
+    await setAsk('throat', 2, 'Say it plainly.', 2);
+    expect(await setAsk('throat', 0, '   ', 3)).toEqual(['What did you not say?', 'Who needs to hear it, and in what words?', 'Say it plainly.']);
+    expect(await setAsk('throat', 2, ' What do you want them to understand? ', 4)).toEqual([...STARTER_ASKS.throat]);
+    expect((await store.get('signShelves', 'throat'))!.asks).toBeUndefined();
+  });
+  it('a question on a sign with no row writes its current starters as the shelf, so the shelf reads as it did', async () => {
+    await setAsk('sacral', 0, 'Where is it in you?', 1);
+    expect(await shelf('sacral')).toEqual(STARTERS.sacral);
+    expect((await store.get('signShelves', 'sacral'))!.picks).toHaveLength(5);
+  });
+  it('a question keeps the shelf he changed, and a shelf change keeps his questions', async () => {
+    await removePick('crown', STARTERS.crown[0].id, 1);
+    await setAsk('crown', 2, 'What can you put down tonight?', 2);
+    expect((await shelf('crown')).map(p => p.title)).toEqual(STARTER_TITLES.crown.slice(1));
+    await addPick('crown', { kind: 'film', title: 'Elf', id: 'elf' }, 3);
+    await movePick('crown', 'elf', 0, 4);
+    await removePick('crown', STARTERS.crown[1].id, 5);
+    expect((await asksOf('crown'))[2]).toBe('What can you put down tonight?');
+    expect((await shelf('crown'))[0].id).toBe('elf');
+  });
+  it('refuses a place that is not 0, 1 or 2, and an unknown sign', async () => {
+    for (const i of [-1, 3, 1.5, NaN]) await expect(setAsk('root', i, 'x')).rejects.toThrow();
+    await expect(asksOf('elbow' as never)).rejects.toThrow();
+    expect(await db.signShelves.count()).toBe(0);
+  });
+  it('sealed with the picks: no words of his in the database, none while locked, all of them once open', async () => {
+    await setAsk('heart', 0, 'Who is Grandpa to you now?', 1);
+    const key = await lockWith();
+    const raw = (await db.signShelves.get('heart'))!;
+    expect(raw.asks).toBeUndefined();
+    expect(raw.picks).toEqual([]);
+    expect(JSON.stringify(raw)).not.toMatch(/Grandpa|Atlas/);
+    lock();
+    expect(await asksOf('heart')).toEqual([]);
+    expect(await asksOf('root')).toEqual([]);
+    await expect(setAsk('heart', 1, 'x')).rejects.toBeInstanceOf(LockedError);
+    expect(await unlock(key)).toBe(true);
+    expect(await asksOf('heart')).toEqual(['Who is Grandpa to you now?', 'What is heavy today?', 'What was good, even a little?']);
+    expect(await shelf('heart')).toEqual(STARTERS.heart);
   });
 });
 

@@ -1,8 +1,12 @@
 /* A sign's shelf (PLAN-TASKS.md section 4, T5; flow/chakra/SignShelf.tsx): covers, wordless, then a plus, and his
-   written lines under them. On a sign's page the covers are a thumb and a half wide; on the Signs segment's rows
-   (ui/music/Signs.tsx) a thumb wide. Sizes come from --hit and the spacing tokens; colours from the page's own. */
+   written lines under them. On a sign's page a row holds six (the five starters and the plus, Tommy, 2026-11-17), each
+   a sixth of the column less the gaps and never wider than a thumb and a half: about 52pt on a 390pt iPhone, 49pt on a
+   375pt one, still more than a thumb. On the Signs segment's rows (ui/music/Signs.tsx) a thumb wide. Sizes come from
+   --hit and the spacing tokens; colours from the page's own. */
 /* on the page a row of covers is three rules tall, the covers centred on them, so what follows still sits on its rule */
 .ck-shelf { --ck-cover: calc(var(--hit) * 1.5); --ck-pitch: calc(var(--lh-ink) * 3); touch-action: pan-y; }
+/* the page's shelf measures its own column (cqi), so the six fit one row on any phone and its first paint is one row */
+.ck-shelf:not(.small) { container-type: inline-size; --ck-cover: min(calc(var(--hit) * 1.5), calc((100cqi - var(--s1) * 5) / 6)); }
 .ck-shelf-covers.fs-tiles { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s1);
   row-gap: calc(var(--ck-pitch) - var(--ck-cover)); padding: calc((var(--ck-pitch) - var(--ck-cover)) / 2) 0; }
 /* room from first paint: on a sign's page the shelf is never shorter than one row of covers, and before it has been
@@ -14,13 +18,14 @@
 .ck-shelf.small .ck-shelf-covers.fs-tiles { row-gap: var(--s1); padding: 0; }
 .ck-shelf-cover { width: var(--ck-cover); flex: none; position: relative; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .ck-shelf-cover .fs-tile { border-radius: 3px; }
-/* an album with no kept cover: the tile empty and flat on the page, its title on it in print, cut at four lines */
+/* an album with no kept cover: the tile empty and flat on the page, its title on it in print, cut at three lines (a
+   tile a sixth of the column holds three of print and its padding, so the title never runs out under it) */
 .ck-shelf-cover.blank .fs-tile { box-shadow: none; }
 .ck-shelf-name {
-  /* no bottom edge: the box ends with its fourth line, so a fifth never shows in the room under it */
-  position: absolute; inset: 0 0 auto; padding: calc(var(--s1) * .75) calc(var(--s1) * .75) 0; overflow: hidden; pointer-events: none;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
-  font-family: var(--sans); font-size: var(--fs-print); line-height: 1.2; color: var(--print); overflow-wrap: anywhere;
+  /* no bottom edge: the box ends with its third line, so a fourth never shows in the room under it */
+  position: absolute; inset: 0 0 auto; padding: calc(var(--s1) * .5) calc(var(--s1) * .5) 0; overflow: hidden; pointer-events: none;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3;
+  font-family: var(--sans); font-size: var(--fs-print); line-height: 1.2; color: var(--print); overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto;
 }
 
 /* the plus, and while a thing is lifted the place it held, struck through: off the shelf */
@@ -58,16 +63,16 @@
 .ck-shelf.lifting .ck-shelf-cover:not(.lift), .ck-shelf.lifting .ck-shelf-linecell:not(.lift) { opacity: .45; transition: none; }
 @media (prefers-reduced-motion: reduce) { .ck-shelf-off path { animation: none; } }
 
-/* the ♪ sheet's Signs segment (ui/music/Signs.tsx): a row a sign, its name on its hue, its shelf beside it */
+/* the ♪ sheet's Signs segment (ui/music/Signs.tsx): a row a sign, its name on its hue, its shelf under the name (five
+   covers and the plus, a thumb each, fit across a phone's sheet; beside the name they wrapped the plus alone) */
 .ck-signs { display: grid; gap: var(--s1); padding: var(--s1) 0 var(--s2); }
-.ck-sign-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s1);
+.ck-sign-row { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 0 var(--s1);
   padding: calc(var(--s1) / 2) 0 calc(var(--s1) / 2) var(--s1); border-left: 3px solid oklch(var(--voice-l) var(--voice-c) var(--h)); }
 .ck-sign-name { display: flex; align-items: center; min-height: var(--hit); color: var(--ink); text-decoration: none;
   font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink); }
 .ck-sign-name:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.ck-sign-row .ck-shelf { justify-self: end; max-width: calc(var(--hit) * 5 + var(--s1) * 4); }
-.ck-sign-row .ck-shelf-covers.fs-tiles { justify-content: flex-end; }
-.ck-sign-row .ck-shelf-lines { text-align: right; }
+.ck-sign-row .ck-shelf { justify-self: start; }
+.ck-sign-row .ck-shelf-covers.fs-tiles { justify-content: flex-start; }
 [data-light="still"] .ck-sign-row { border-left-color: var(--print); }
 
 /* the segment words over the list (the Council and Be segments' own look) */

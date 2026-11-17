@@ -8,7 +8,9 @@
 //
 // The place is the page (PLAN-TASKS.md T1): the plate is twelve rules tall with the sign's touch words printed on it
 // (./chakra/Touches.tsx, every tap through ./chakra/touch.ts onTouch), and under it a paper foot: the gloss, the gate,
-// the slot where T5's shelf mounts, the printed lines and, on Heart and Root, the 988 line with Call and Text.
+// the slot where T5's shelf mounts, the sign's three questions (./chakra/Asks.tsx, rule 37), the printed lines and, on
+// Heart and Root, the 988 line with Call and Text. A flow in front leaves the questions where they are (its step words
+// and rows come above the shelf, so the questions under it crowd nothing) and, while its step's Edit shows, takes theirs, so one Edit shows.
 //
 // The rows: with the dot on a step, or a step word tapped, that step's rows as Tips draws them (his own line, the said
 // paragraph, "Usually", the words under the clock, the wise lines and the note to the next one leave the page; the data
@@ -41,6 +43,7 @@ import { Plate } from './chakra/Plate';
 import { FromRow } from './chakra/From';
 import { Touches } from './chakra/Touches';
 import { SignShelf } from './chakra/SignShelf';
+import { Asks } from './chakra/Asks';
 import { readGuard } from './chakra/fresh';
 import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
@@ -246,6 +249,9 @@ export function ChakraPage({ chakra, focus, step }: { chakra: ChakraId; focus?: 
         )}
         {/* the sign's music shelf (PLAN-TASKS.md T5): renders nothing while locked */}
         <SignShelf chakra={chakra} />
+        {/* its three questions (DESIGN.md rule 37): a tap opens today's page on one; nothing while locked or in Still.
+            With a flow in front they stay where they are, without their Edit while the step's Edit shows (one Edit a screen) */}
+        <Asks chakra={chakra} edit={!(shown && sheets && !live)} />
         <PrintLines step={{ tips: foot.lines }}
           onHandOff={shown ? t => void handOff(t, shown.id) : undefined} />
         <SafeLine line={foot.line} links={foot.links} />

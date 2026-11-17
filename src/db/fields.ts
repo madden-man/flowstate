@@ -7,7 +7,7 @@
 //   names and steps, and the notes' text (PLAN-FLOWS.md section 5); episodes: the Five lines, the prediction's text and the On pick's title;
 //   fixations: name and next (PLAN-ENERGIZE.md section 5); values: word, shadow, looks, each champion's why and the
 //   revisions (PLAN-VALUES.md section 5); readings: value, the Depression meter's and each gate's
-//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks; marks: text and
+//   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks and asks; marks: text and
 //   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear); inquiries: question
 //   and runs whole (the agents' messages carry the question; PLAN-RESEARCH.md section 5, Q2; ids, state, picks and dates
 //   stay clear). papers are not sealed: a paper's words are an index's public record, not his.
@@ -15,7 +15,7 @@
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
 import type { Collection, IndexableType, Table } from 'dexie';
-import { db as defaultDb, type FlowDB, type Settings, type TableName, type Tables, TABLES, type Sealed } from './schema';
+import { db as defaultDb, type FlowDB, type OnPick, type Settings, type TableName, type Tables, TABLES, type Sealed } from './schema';
 import { seal, unseal, makeVerifier, checkVerifier, isSealed } from './crypto';
 
 export class LockedError extends Error {
@@ -215,11 +215,23 @@ const readingSpec: Spec<Tables['readings']> = {
   give: (clear, secret) => ({ ...clear, value: Number(secret) }),
 };
 
-/** A sign's shelf seals its picks, as a step seals its picks (PLAN-TASKS.md section 4): what he puts on is his. The
- *  clear copy keeps the sign and the date, with no picks, so nothing locked can be drawn as an empty shelf he chose. */
+/** A sign's shelf seals its picks, as a step seals its picks (PLAN-TASKS.md section 4): what he puts on is his. Its
+ *  questions, once he rewrites one, are his words too, and are sealed with them (2026-11-17). A row with no asks
+ *  seals the bare picks as before, so a row sealed before the asks reads unchanged; with asks it is `{ picks, asks }`.
+ *  The clear copy keeps the sign and the date, with no picks and no asks, so nothing locked can be drawn as an empty
+ *  shelf he chose. */
+type ShSecret = OnPick[] | { picks: OnPick[]; asks: string[] };
 const signShelfSpec: Spec<Tables['signShelves']> = {
-  take: row => ({ clear: { ...row, picks: [] }, secret: row.picks }),
-  give: (clear, secret) => ({ ...clear, picks: Array.isArray(secret) ? secret as Tables['signShelves']['picks'] : [] }),
+  take: row => {
+    const { asks, ...rest } = row;
+    return { clear: { ...rest, picks: [] }, secret: (asks ? { picks: row.picks, asks } : row.picks) satisfies ShSecret };
+  },
+  give: (clear, raw) => {
+    const s = raw as ShSecret | null | undefined;
+    if (Array.isArray(s)) return { ...clear, picks: s };
+    if (s && typeof s === 'object' && Array.isArray(s.picks)) return { ...clear, picks: s.picks, ...(Array.isArray(s.asks) ? { asks: s.asks } : {}) };
+    return { ...clear, picks: [] };
+  },
 };
 
 /** A mark seals its words (PLAN-TASKS.md section 7), as the mountain seals its readings: the line and the struck line.

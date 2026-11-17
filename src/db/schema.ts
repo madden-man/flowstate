@@ -605,8 +605,14 @@ function mountainVersion(db: Dexie) {
 /** A sign's shelf (PLAN-TASKS.md section 4): what plays under that sign, in his order. id is the sign. Named signShelves,
  *  not the plan's shelves, because shelves is already the playlists' table (V7). picks are sealed like a step's picks
  *  (fields.ts); the id and updatedAt stay clear. No row means the sign's starters; a row with no picks is a shelf he
- *  emptied, and stays empty. */
-export type SignShelf = { id: ChakraId; picks: OnPick[]; updatedAt: Millis; sealed?: Sealed };
+ *  emptied, and stays empty; a row is never topped up when the starters change. */
+export type SignShelf = {
+  id: ChakraId; picks: OnPick[]; updatedAt: Millis; sealed?: Sealed;
+  /** Not in PLAN-TASKS.md (2026-11-17): the three questions the sign's page asks, as he rewrote them, by place; an
+   *  empty place (or no field, as on every older row) is that place's starter (model/acts.ts STARTER_ASKS). Sealed
+   *  with picks. Optional and unindexed, so no Dexie version bump. */
+  asks?: string[];
+};
 
 /** What he writes on the water (PLAN-TASKS.md section 7): one line at one touch of one sign, never edited. text is the
  *  line; struck (not in the plan's list) is the second line a touch strikes, Reword's verdict beside its deed. text and

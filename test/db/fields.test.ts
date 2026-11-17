@@ -228,3 +228,35 @@ describe('removeKey', () => {
     expect(s.lock).toEqual({ enabled: false, relockAfterMin: 5 });
   });
 });
+
+describe('a sign\'s shelf seals its asks with its picks (2026-11-17)', () => {
+  it('both seal and both read back; a row with no asks seals as it always did; removeKey writes them back plain', async () => {
+    await ensureSeeded();
+    const pick = { id: 'pk1', kind: 'film' as const, title: 'The Big Sick' };
+    const withAsks = { id: 'heart' as const, picks: [pick], updatedAt: 1, asks: ['', 'What is heavy tonight?', ''] };
+    const without = { id: 'root' as const, picks: [pick], updatedAt: 2 };
+    // written plain, then sealed in place by setKey
+    await store.bulkPut('signShelves', [withAsks, without]);
+    expect((await db.signShelves.get('heart'))!.asks).toEqual(withAsks.asks);
+    const salt = randomSalt();
+    const key = await deriveKey('2580', salt, FAST);
+    await setKey(key, { salt, iterations: FAST });
+    const raw = await db.signShelves.toArray();
+    expect(raw.every(r => r.picks.length === 0 && !('asks' in r) && r.sealed)).toBe(true);
+    expect(JSON.stringify(raw)).not.toMatch(/heavy|Big Sick/);
+    expect(await store.get('signShelves', 'heart')).toEqual(withAsks);
+    expect(await store.get('signShelves', 'root')).toEqual(without);
+    // written while open, read while locked: nothing of either
+    await store.put('signShelves', { ...withAsks, id: 'crown', asks: ['Mine', '', ''] });
+    lock();
+    const locked = (await store.get('signShelves', 'crown'))!;
+    expect(locked.locked).toBe(true);
+    expect(locked.asks).toBeUndefined();
+    expect(locked.picks).toEqual([]);
+    expect(await unlock(key)).toBe(true);
+    expect((await store.get('signShelves', 'crown'))!.asks).toEqual(['Mine', '', '']);
+    await removeKey();
+    expect(await db.signShelves.get('heart')).toEqual(withAsks);
+    expect(await db.signShelves.get('root')).toEqual(without);
+  });
+});

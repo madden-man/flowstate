@@ -3,7 +3,7 @@
 // the page from an opaque origin, where a module script (fetched with CORS) may not load. The seams are the motion
 // walkthrough's own (no service worker, no persist(), an awaited hook before the first render, no location.origin).
 // One seam more than the mountain's: a kept cover is shown from its own file beside app.html (c-<sign>-<n>.jpg, copied
-// by the build) instead of an object URL of bytes in memory, so the 21 starter covers stay separate image files.
+// by the build) instead of an object URL of bytes in memory, so the 35 starter covers stay separate image files.
 // Run through script/build-tasks-walkthrough.mjs, which also copies the page and its files beside it.
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';

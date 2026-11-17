@@ -15,10 +15,10 @@ import path from 'node:path';
 
 const dir = path.resolve('design/tasks/dist');
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg' };
-const STEPS = ['held', 'place', 'grieve', 'look-far', 'basics', 'surge', 'ask', 'back', 'stand-on', 'send', 'i-will', 'shelf', 'signs', 'door', 'sea'];
+const STEPS = ['held', 'place', 'grieve', 'look-far', 'basics', 'surge', 'ask', 'back', 'stand-on', 'send', 'i-will', 'shelf', 'asks', 'asked', 'rewrite', 'signs', 'door', 'sea'];
 /** What each step's app shows once it has drawn. */
 const SHOWS: Record<string, string> = {
-  held: '.mt-plate', signs: '.fs-page', door: '.ck-page[data-door] .ck-plate', sea: '.ck-page .ck-plate, .mt-plate',
+  held: '.mt-plate', signs: '.fs-page', asked: '.fs-page', door: '.ck-page[data-door] .ck-plate', sea: '.ck-page .ck-plate, .mt-plate',
 };
 let server: Server;
 let base = '';
@@ -97,6 +97,12 @@ test('tasks walkthrough: the live app starts in a sandboxed frame, every step dr
       await expect(app.locator('.fs-msg p', { hasText: 'What am I not seeing?' })).toBeVisible({ timeout: 15_000 });
       await expect(app.locator('.fs-hdr-r [data-sign-back="third-eye"]')).toBeVisible();
     }
+    if (id === 'asks') await expect(app.locator('.ck-asks:not(.wait) .ck-ask')).toHaveCount(3, { timeout: 15_000 });
+    if (id === 'asked') {
+      await expect(app.locator('.fs-msg.fs-wise p', { hasText: 'What is heavy today?' })).toBeVisible({ timeout: 15_000 });
+      await expect(app.locator('.fs-hdr-r [data-sign-back="heart"]')).toBeVisible();
+    }
+    if (id === 'rewrite') await expect(app.locator('[data-sheet="Heart asks"] input').first()).toHaveValue('Who do you want to call tonight?', { timeout: 15_000 });
     if (id === 'send') await expect(app.locator('.ck-stage [data-out="send"] a.out-go')).toHaveText('Ali', { timeout: 15_000 });
     if (id === 'door') {
       expect(await app.locator('.ck-touch').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.touch))).toEqual(['five', 'breathe']);

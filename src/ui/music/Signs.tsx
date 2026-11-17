@@ -1,5 +1,5 @@
 // The ♪ sheet's Signs segment (PLAN-TASKS.md section 4, T5): seven rows, summit to foot, each the sign's name on its
-// hue (a voice's 3px rule, rule 9) and that sign's shelf (flow/chakra/SignShelf.tsx) beside it, small. A tap on a cover
+// hue (a voice's 3px rule, rule 9) and that sign's shelf (flow/chakra/SignShelf.tsx) under it, small. A tap on a cover
 // plays it; a tap on the name opens that sign's page and the sheet goes down. Still: the names in print's grey, no hue.
 import { CHAKRAS } from '../../model/mountain';
 import { Shelf } from '../flow/chakra/SignShelf';

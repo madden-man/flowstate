@@ -23,11 +23,16 @@ const SHOTS = process.env.SHOTS;
 const BEGIN = '<!-- T5 shelves: begin (script/build-shelf-steps.mjs) -->';
 const END = '<!-- T5 shelves: end -->';
 
-// ---- the starters, read from the source: each sign's three titles, their Spotify ids, their covers in design/tasks
+// ---- the starters, read from the source: each sign's five titles, their Spotify ids, their covers in design/tasks
 const acts = fs.readFileSync(path.join(root, 'src/model/acts.ts'), 'utf8');
 const seed = fs.readFileSync(path.join(root, 'src/db/seed/picks.ts'), 'utf8');
-const ids = new Map([...seed.matchAll(/album\('[^']+', '((?:[^'\\]|\\.)+)', '((?:[^'\\]|\\.)+)', '([A-Za-z0-9]{22})'\)/g)]
-  .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }]));
+// a starter is a seed pick (album(...) in picks.ts) or one of acts.ts's own STARTER_ALBUMS ({ by, title, albumId })
+const ids = new Map([
+  ...[...seed.matchAll(/album\('[^']+', '((?:[^'\\]|\\.)+)', '((?:[^'\\]|\\.)+)', '([A-Za-z0-9]{22})'\)/g)]
+    .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }]),
+  ...[...acts.matchAll(/\{ by: '((?:[^'\\]|\\.)+)', title: '((?:[^'\\]|\\.)+)', albumId: '([A-Za-z0-9]{22})' \}/g)]
+    .map(m => [m[2].replace(/\\'/g, "'"), { by: m[1], id: m[3] }]),
+]);
 const block = acts.slice(acts.indexOf('STARTER_TITLES'), acts.indexOf('};', acts.indexOf('STARTER_TITLES')));
 const STARTERS = [...block.matchAll(/'?([a-z-]+)'?: \[([^\]]+)\]/g)].map(m => ({
   sign: m[1], titles: [...m[2].matchAll(/'((?:[^'\\]|\\.)+)'/g)].map(t => t[1].replace(/\\'/g, "'")),
