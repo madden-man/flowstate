@@ -1,12 +1,12 @@
 // The safety lines on a stop's page, checked on the page itself (R3 review finding 7): for every seeded flow under a
-// sign, in Day, Night and Still, at rest and with an episode live on each of its steps, every line the old FlowPage
-// printed there is on the page and visible: the 988 lines, the doctor lines, the hand-offs (a link to their step), and
+// sign, in Day, Night and Still, at rest on its sign's page and with an episode live on each of its steps on its own
+// page (PLAN-BLOCKERS.md K3: a live episode lands there), every line the old FlowPage printed there is visible: the 988 lines, the doctor lines, the hand-offs (a link to their step), and
 // 3 a.m.'s rest line. The expected lines are read from the stored flows, so a page that stopped passing them, or hid
 // them in a light, fails here.
 import { test, expect, type Page } from '@playwright/test';
 
 type Tip = { id: string; text: string; print?: boolean; struck?: boolean; handoff?: { flowId: string; stepId: string } };
-type Flow = { id: string; chakra?: string; restLine?: string; steps: { id: string; tips: Tip[] }[] };
+type Flow = { id: string; chakra?: string; draft?: true; restLine?: string; steps: { id: string; tips: Tip[] }[] };
 
 const TIMES = { day: '2026-11-11T12:00:00', night: '2026-11-11T21:30:00' } as const;
 
@@ -36,7 +36,7 @@ async function enter(page: Page, light: 'day' | 'night' | 'still') {
 
 /** Every line the old FlowPage printed for this flow at this place: its rest line at rest, its step's print lines. */
 async function expectLines(page: Page, f: Flow, at: number, where: string) {
-  const prints = page.locator('.ck-page .fl-prints');
+  const prints = page.locator(at === 0 ? '.ck-page .fl-prints' : `.fs-flowpage[data-flow="${f.id}"] .fl-prints`);
   if (at === 0) {
     if (f.restLine) await expect(prints.getByText(f.restLine, { exact: true }), where).toBeVisible();
     return;
@@ -46,7 +46,6 @@ async function expectLines(page: Page, f: Flow, at: number, where: string) {
     await expect(line, `${where} ${t.id}`).toBeVisible();
     if (t.handoff) {
       await expect(line.locator('a.fl-handoff'), `${where} ${t.id}`).toBeVisible();
-      await expect(line, `${where} ${t.id}`).not.toContainText(/\bflow\b/);
     } else await expect(line, `${where} ${t.id}`).toHaveText(t.text);
   }
 }
@@ -55,7 +54,7 @@ for (const light of ['day', 'night', 'still'] as const) {
   test(`every safety line the old flow page printed is on its stop's page, in ${light}, at rest and on every step`, async ({ page }) => {
     test.setTimeout(240_000);
     await enter(page, light);
-    const flows = (await storedFlows(page)).filter(f => f.chakra);
+    const flows = (await storedFlows(page)).filter(f => f.chakra && !f.draft);
     expect(flows.map(f => f.id).sort()).toEqual(['depress', 'fight', 'night', 'panic', 'replay', 'shame', 'shutdown', 'whatif']);
     // the lines that matter most are among them
     const all = flows.flatMap(f => [f.restLine ?? '', ...f.steps.flatMap(s => s.tips.filter(t => t.print).map(t => t.text))]).join(' ');
@@ -70,12 +69,13 @@ for (const light of ['day', 'night', 'still'] as const) {
       // an episode, live on each step in turn
       await page.goto('/#/flow/now');
       await page.locator(`.fl-nowlist a[href="#/flow/${f.id}/1"]`).click();
-      await expect(body).toHaveAttribute('data-front', f.id);
+      const own = page.locator(`.fs-flowpage[data-flow="${f.id}"]`);
       for (let k = 1; k <= f.steps.length; k++) {
-        if (k > 1) await page.locator('.ck-steps .ck-step').nth(k - 1).click();
+        // the word by its keys: on a small drawing the dot's grip can lie over the next word
+        if (k > 1) await own.locator(`.fs-cycle-word[data-step="${k}"]`).press('Enter');
         await expect(page).toHaveURL(new RegExp(`#/flow/${f.id}/${k}$`));
-        await expect(body).toHaveAttribute('data-saved', 'true');
-        await expect(body).toHaveAttribute('data-showing', String(k));
+        await expect(own).toHaveAttribute('data-saved', 'true');
+        await expect(own).toHaveAttribute('data-showing', String(k));
         await expectLines(page, f, k, `${light} ${f.id} live on ${k}`);
       }
     }

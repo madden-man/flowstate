@@ -127,18 +127,6 @@
   font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
   color: var(--print); line-height: var(--lh-ink);
 }
-/* a flow in front: its step words on one line that wraps, print, the one being read in ink; each a full tap target */
-.ck-steps { display: flex; flex-wrap: wrap; margin: 0 calc(var(--s1) * -1); }
-.ck-step {
-  appearance: none; border: 0; background: transparent; padding: 0 var(--s1); margin: 0; cursor: pointer;
-  min-height: var(--hit); display: inline-flex; align-items: center; -webkit-tap-highlight-color: transparent;
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
-  line-height: 1; color: var(--print);
-}
-.ck-step[aria-current] { color: var(--ink); }
-.ck-step:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
-.ck-done { margin-left: auto; }
-.ck-rows:empty { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .ck-ink, .ck-line, .ck-hatch, .ck-stars, .ck-mass, .ck-deep, .ck-snow, .ck-lit, .ck-sign .fs-sign-body, .ck-sign .fs-sign-line { animation: none; }

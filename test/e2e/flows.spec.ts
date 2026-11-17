@@ -1,7 +1,7 @@
-// The flows (F1, PLAN-FLOWS.md section 6). On a sign's page (a flow under a sign; the old drawing is gone from it since
-// 2026-11-11): a deep link reads a step and starts nothing; Right now starts the episode and a step word moves the dot;
-// a reload offline keeps the marks and the app opens on the live episode instead of the journal; the mountain carries
-// the dot; Still shows no digits on the page; Done ends it. On a flow under no sign (the flow page, with the drawing;
+// The flows (F1, PLAN-FLOWS.md section 6). A flow under a sign has its own page again (PLAN-BLOCKERS.md K3): a deep
+// link reads a step and starts nothing; Right now starts the episode and a step word moves the dot; a reload offline
+// keeps the marks and the app opens on the live episode instead of the journal; the mountain carries the dot; Still
+// shows no digits on the page; back to rest ends it. On a flow under no sign (the flow page, with the drawing;
 // Panic taken off its sign, ./no-sign.ts): dragging the dot to a detent starts an episode, the keys walk the ring, the
 // clock reads in the middle and a thumb held there runs the breath.
 import { test, expect, type Page } from '@playwright/test';
@@ -46,26 +46,25 @@ const visibleWords = (page: Page) => page.locator('.fs-flowpage').evaluate(el =>
   return out.join(' ');
 });
 
-test('flows on a sign\'s page: a deep link reads a step, Right now starts the episode, an offline reload opens on it, Still has no digits, Done ends it', async ({ page }) => {
+test('a flow under a sign has its own page: a deep link reads a step, Right now starts the episode, an offline reload opens on it, Still has no digits, rest ends it', async ({ page }) => {
   await enter(page, '/#/flow/panic/2');
   const t = page.locator('[data-threshold]');
 
-  // the deep link reads step 2 on the Root's page; nothing is started (walk it once), and no drawing is on the page
-  const pageBody = page.locator('.ck-page');
+  // the deep link reads step 2 on Panic's own page (PLAN-BLOCKERS.md K3); nothing is started (walk it once)
+  const pageBody = page.locator('.fs-flowpage[data-flow="panic"]');
   await expect(pageBody).toHaveAttribute('data-showing', '2');
-  await expect(pageBody).toHaveAttribute('data-chakra', 'root');
-  await expect(pageBody).toHaveAttribute('data-front', 'panic');
-  // his line, the said paragraph and "Usually" leave a sign's page (PLAN-MOUNTAIN.md section 6)
-  await expect(pageBody.locator('.fl-step-page > .fl-line, .fl-step-page > .fl-said, .fl-step-page > .fl-usual')).toHaveCount(0);
-  await expect(pageBody.locator('.fl-drawing, .fs-cycle, .fl-stream')).toHaveCount(0);
-  await expect(page.getByRole('slider', { name: 'Where you are' })).toHaveCount(0);
-  const steps = pageBody.locator('.ck-steps .ck-step:not(.ck-done)');
-  await expect(steps).toHaveText(['Overstimulated', 'The wave', 'Settling', 'Under the skin']);
-  await expect(pageBody.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('The wave');
-  await expect(pageBody.locator('.ck-done')).toHaveCount(0);
+  await expect(page.locator('.ck-page')).toHaveCount(0);
+  await expect(pageBody.locator('.fl-drawing .fs-cycle')).toBeVisible();
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Root', exact: true })).toHaveAttribute('href', '#/flow/c/root');
+  const dot = page.getByRole('slider', { name: 'Where you are' });
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
+  const words = pageBody.locator('.fs-cycle-word');
+  await expect(words).toHaveCount(4);
+  expect(await words.evaluateAll(ws => ws.map(w => w.getAttribute('aria-label')))).toEqual(['Overstimulated', 'The wave', 'Settling', 'Under the skin']);
+  await expect(pageBody.locator('.fs-cycle-word[aria-pressed="true"]')).toHaveAttribute('aria-label', 'The wave');
 
   // a tap on a step word only reads it
-  await steps.nth(2).click();
+  await pageBody.locator('.fs-cycle-word[data-step="3"]').click();
   await expect(page).toHaveURL(/#\/flow\/panic\/3$/);
   await expect(pageBody).toHaveAttribute('data-showing', '3');
   expect(await episodes(page)).toEqual([]);
@@ -78,22 +77,22 @@ test('flows on a sign\'s page: a deep link reads a step, Right now starts the ep
   await expect(pageBody).toHaveAttribute('data-saved', 'true');
   await expect.poll(async () => (await episodes(page)).map(e => [e.flowId, e.endedAt ?? null, e.marks.map(m => m.stepId)]))
     .toEqual([['panic', null, ['panic-1']]]);
-  await expect(pageBody.locator('.ck-done')).toHaveText('Done');
+  await expect(dot).toHaveAttribute('aria-valuenow', '1');
 
   // with the episode live a step word moves the dot: the wave
-  await steps.nth(1).click();
+  await pageBody.locator('.fs-cycle-word[data-step="2"]').click();
   await expect(page).toHaveURL(/#\/flow\/panic\/2$/);
-  await expect(pageBody.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('The wave');
+  await expect(dot).toHaveAttribute('aria-valuenow', '2');
   await expect.poll(async () => (await episodes(page))[0].marks.map(m => m.stepId)).toEqual(['panic-1', 'panic-2']);
 
   // the mountain: Panic's sign (the root) carries the dot and its halo while the episode is open
-  await page.getByRole('link', { name: 'Flow', exact: true }).first().click();
+  await page.goto('/#/flow');
   await expect(page).toHaveURL(/#\/flow$/);
   await expect(page.locator('a.mt-stop[data-chakra="root"]')).toHaveAttribute('data-live', 'true');
   await expect(page.locator('a.mt-stop[data-chakra="root"] .mt-dot')).toHaveCount(1);
   await expect(page.locator('a.mt-stop[data-live]')).toHaveCount(1);
 
-  // offline, a reload on the journal opens on the live episode instead
+  // offline, a reload on the journal opens on the live episode instead, on the flow's own page
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   // the worker takes the page over from the next load
   await page.reload();
@@ -104,29 +103,30 @@ test('flows on a sign\'s page: a deep link reads a step, Right now starts the ep
   await page.reload();
   if (await t.count()) await t.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/2$/);
-  await expect(pageBody).toHaveAttribute('data-front', 'panic');
   await expect(pageBody).toHaveAttribute('data-showing', '2');
+  await expect(page.locator('.ck-page')).toHaveCount(0);
   expect((await episodes(page))[0].marks.map(m => m.stepId)).toEqual(['panic-1', 'panic-2']);
 
-  // Still: the step words and the rows; no said line, and no digit anywhere on the page
+  // Still: the step words and the drawing; no said line, and no digit anywhere on the page
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
-  await expect(pageBody.locator('.fl-step-page > .fl-said, .fl-step-page > .fl-usual')).toHaveCount(0);
+  await expect(pageBody.locator('.fl-step-page > .fl-said')).toBeHidden();
   const shown = await visibleWords(page);
   expect(shown).toContain('The wave');
-  // the 988 line is printed on the Root's page in every light (PLAN-TASKS.md section 2): a number to call, not a count
   expect(shown.replace(/988/g, '')).not.toMatch(/\d/);
 
-  // Done: the episode ends, and the page is at rest: the place and its touch words, no checklist (PLAN-TASKS.md T1)
+  // back to rest: the episode ends, and the page is at rest with one last-time line
   await page.getByRole('button', { name: 'Leave Still' }).click();
-  await pageBody.locator('.ck-done').click();
+  for (const k of ['1', '0']) {
+    await dot.focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(dot).toHaveAttribute('aria-valuenow', k);
+    await expect(pageBody).toHaveAttribute('data-saved', 'true');
+  }
   await expect.poll(async () => (await episodes(page))[0].endedAt ?? null).not.toBeNull();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
   await expect(pageBody).toHaveAttribute('data-showing', '0');
-  await expect(pageBody.locator('.ck-done')).toHaveCount(0);
-  await expect(pageBody.locator('.fl-last')).toHaveCount(0);
-  await expect(pageBody.locator('.ck-rows')).toHaveCount(0);
-  await expect(pageBody.locator('.ck-touch[data-lit]')).toHaveAttribute('data-touch', 'five');
+  await expect(pageBody.locator('.fl-last')).toHaveText(/^Last time · \d+ \/ \d+/);
 });
 
 test('flows under no sign: the drawing, a drag to a detent, the keys, the clock and the held breath, Still\'s words, last time', async ({ page }) => {
@@ -221,11 +221,12 @@ const episode = async (page: Page) => (await page.evaluate(() => new Promise<{ d
   };
 })))[0];
 
-test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row settles, the journal links both ways, the step sheet strikes', async ({ page }) => {
+test('what to do (F2) on a flow under a sign: a tick persists offline, the Still row settles, the journal links both ways, the step sheet strikes', async ({ page }) => {
   await enter(page, '/#/flow/panic/1');
   const t = page.locator('[data-threshold]');
-  const body = page.locator('.ck-page');
-  const steps = body.locator('.ck-steps .ck-step:not(.ck-done)');
+  const body = page.locator('.fs-flowpage[data-flow="panic"]');
+  const word = (k: number) => body.locator(`.fs-cycle-word[data-step="${k}"]`);
+  const dot = page.getByRole('slider', { name: 'Where you are' });
   await expect(body).toHaveAttribute('data-showing', '1');
 
   // at rest a tick only draws (walk it once): nothing is written
@@ -241,7 +242,7 @@ test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row 
   await expect(body).toHaveAttribute('data-showing', '1');
   await expect(body).toHaveAttribute('data-saved', 'true');
   await expect.poll(async () => (await episode(page))?.endedAt ?? null).toBeNull();
-  await expect(body.locator('.ck-done')).toBeVisible();
+  await expect(dot).toHaveAttribute('aria-valuenow', '1');
   await cold.click();
   await expect.poll(async () => (await episode(page))?.done.map(d => d.tipId)).toEqual(['panic-1-cold']);
 
@@ -263,7 +264,7 @@ test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row 
   await expect(page.getByRole('checkbox', { name: /^Less coming in/ })).toHaveAttribute('aria-checked', 'true');
 
   // the peak shows one thing at a time; Next brings the next
-  await steps.nth(1).click();
+  await word(2).click();
   await expect(body).toHaveAttribute('data-showing', '2');
   await expect(body).toHaveAttribute('data-saved', 'true');
   await expect(page.locator('.fl-one [data-tip]')).toHaveCount(1);
@@ -272,7 +273,7 @@ test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row 
   await expect(page.locator('.fl-one [data-tip]')).toHaveAttribute('data-tip', 'panic-2-cold');
 
   // the journal row: today's page, linked; the page links back to the flow on its step
-  await steps.nth(3).click();
+  await word(4).click();
   await expect(body).toHaveAttribute('data-showing', '4');
   await expect(body).toHaveAttribute('data-saved', 'true');
   await page.getByRole('checkbox', { name: /Write it down, later/ }).click();
@@ -284,15 +285,16 @@ test('what to do (F2) on a sign\'s page: a tick persists offline, the Still row 
   await link.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/4$/);
 
-  // Done, back on rest: what helped is no sentence, and the checklist is gone at rest (PLAN-TASKS.md T1)
-  await body.locator('.ck-done').click();
+  // back on rest (right from Under the skin wraps to rest): what helped, in one line
+  await dot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
   await expect.poll(async () => (await episode(page))?.endedAt ?? null).not.toBeNull();
   await expect(page).toHaveURL(/#\/flow\/panic$/);
-  await expect(page.locator('.fl-helped')).toHaveCount(0);
-  await expect(page.locator('.ck-rows')).toHaveCount(0);
+  await expect(page.locator('.fl-helped')).toContainText('Cold water on your wrists');
 
   // the step sheet: strike a tip; Earlier shows it struck, and the page no longer does
-  await steps.first().click();
+  await word(1).click();
   await expect(body).toHaveAttribute('data-showing', '1');
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
   const sheet = page.locator('.fs-sheet');

@@ -31,7 +31,7 @@ const ROUTE: Record<Step, string> = {
 /** What the page must show before the load reports ready. */
 const DRAWN: Record<Step, string> = {
   arrive: '.mt-plate', water: '.mt-plate[data-arrive="done"]', heavy: '.mt-plate', close: '.mt-plate', open: '.mt-plate',
-  tap: '.mt-plate', page: '.ck-page .ck-plate', live: '.ck-page[data-front="depress"] .ck-plate', root: '.ck-page .ck-plate',
+  tap: '.mt-plate', page: '.ck-page .ck-plate', live: '.fs-flowpage[data-flow="depress"] .fl-drawing', root: '.ck-page .ck-plate',
   sea: '.mt-plate', still: '.mt-plate',
 };
 
@@ -145,7 +145,7 @@ async function act(): Promise<void> {
       return;
     case 'live':
       await wait(1800);
-      await bring('.ck-page .fl-prints [data-tip="depress-4-988"]');
+      await bring('.fs-flowpage .fl-prints [data-tip="depress-4-988"]');
       return;
     case 'sea':
       await wait(700);

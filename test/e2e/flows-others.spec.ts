@@ -1,5 +1,5 @@
 // The other three and your own flows (F3, PLAN-FLOWS.md section 6): a deep link to Depress's bottom reads the step on
-// the Heart's page with its printed safety line (a line, never a check), in Still too; the drawings (the valley's
+// Depress's own page (PLAN-BLOCKERS.md K3) with its printed safety line (a line, never a check), in Still too; the drawings (the valley's
 // floor, Fight's mountain) are the flow page's, seen with those flows taken off their signs (./no-sign.ts); Energize
 // at rest is the three (X2); "+ flow" makes a flow that opens on an empty drawing, its first step is named in the
 // sheet, and the flow survives an offline reload.
@@ -12,29 +12,27 @@ const threshold = async (page: Page) => {
   await expect(t).toHaveCount(0);
 };
 
-test('the bottom on the Heart\'s page and its printed safety line; Energize at rest; Fight on the Throat\'s page', async ({ page }) => {
+test('the bottom on Depress\'s own page and its printed safety line; Energize at rest; Fight\'s own page', async ({ page }) => {
   await page.goto('/#/flow/depress/4');
-  await page.locator('.ck-page').waitFor();
+  await page.locator('.fs-flowpage').waitFor();
   await threshold(page);
-  const body = page.locator('.ck-page');
+  const body = page.locator('.fs-flowpage[data-flow="depress"]');
   await expect(body).toHaveAttribute('data-showing', '4');
-  // the Heart's page: no drawing, the step word in the strip; the said paragraph leaves it, the safety line stays
-  await expect(body).toHaveAttribute('data-chakra', 'heart');
-  await expect(body).toHaveAttribute('data-front', 'depress');
-  await expect(body.locator('.fs-cycle, .fl-drawing')).toHaveCount(0);
-  await expect(body.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('The bottom');
-  await expect(body.locator('.fl-said:not(.fl-print)')).toHaveCount(0);
+  // its own page again (PLAN-BLOCKERS.md K3): the valley, the step pressed, the said paragraph, the safety line
+  await expect(page.locator('.ck-page')).toHaveCount(0);
+  await expect(body.locator('.fs-cycle[data-diagram="valley"]')).toBeVisible();
+  await expect(body.locator('.fs-cycle-word[aria-pressed="true"]')).toHaveAttribute('aria-label', 'The bottom');
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Heart', exact: true })).toHaveAttribute('href', '#/flow/c/heart');
   const safety = body.locator('.fl-print');
   await expect(safety).toHaveText("If you're thinking about suicide, call or text 988. Someone answers, any hour.");
   // a printed line, not a row: nothing to tick
   await expect(safety).not.toHaveAttribute('role', /.+/);
   await expect(body.locator('[role="checkbox"]', { hasText: '988' })).toHaveCount(0);
 
-  // Still keeps the safety line; no said line and no "Usually"
+  // Still keeps the safety line
   await page.getByRole('button', { name: 'Still', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(safety).toBeVisible();
-  await expect(body.locator('.fl-step-page > .fl-usual')).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
   // Energize at rest: the three (PLAN-ENERGIZE.md X2) in place of the rest page; the boundary line stays in the data
@@ -45,12 +43,12 @@ test('the bottom on the Heart\'s page and its printed safety line; Energize at r
   await expect(page.locator('.fs-flowpage .fl-print')).toHaveCount(0);
   await expect(page.getByRole('slider', { name: 'Where you are' })).toHaveAttribute('aria-valuemax', '5');
 
-  // Fight cooling, on the Throat's page: no drawing, and the step's own line leaves with the copy (open question 3)
+  // Fight cooling on its own page: the mountain, and its line asks "Slower now?"
   await page.goto('/#/flow/fight/5');
-  await expect(body).toHaveAttribute('data-chakra', 'throat');
-  await expect(body).toHaveAttribute('data-showing', '5');
-  await expect(body.locator('.fs-cycle, .fl-drawing')).toHaveCount(0);
-  await expect(body.locator('.fl-line')).toHaveCount(0);
+  const fight = page.locator('.fs-flowpage[data-flow="fight"]');
+  await expect(fight).toHaveAttribute('data-showing', '5');
+  await expect(fight.locator('.fs-cycle[data-diagram="mountain"]')).toBeVisible();
+  await expect(fight.locator('.fl-line')).toHaveText('Slower now?');
 
   // on the mountain Fight sits under the throat's sign (PLAN-MOUNTAIN.md section 6), reached through it
   await page.goto('/#/flow');

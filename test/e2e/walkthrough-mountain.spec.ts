@@ -76,7 +76,8 @@ test('mountain walkthrough: the live app starts in a sandboxed frame, each step 
   await expect(app.locator('.ck-page[data-chakra="throat"] .ck-plate')).toBeVisible({ timeout: 15_000 });
   // the live step: the dot at The bottom, and the 988 line on the page
   await top.locator('#rail a[href="#live"]').click();
-  await expect(app.locator('.ck-page[data-front="depress"] [data-tip="depress-4-988"]')).toBeVisible({ timeout: 15_000 });
+  // a live episode lands on the flow's own page (PLAN-BLOCKERS.md K3)
+  await expect(app.locator('.fs-flowpage[data-flow="depress"] [data-tip="depress-4-988"]')).toBeVisible({ timeout: 15_000 });
   // Still: the stored heavy day shows nothing of itself, no meter and no gates
   await top.locator('#rail a[href="#still"]').click();
   await expect(app.locator('html')).toHaveAttribute('data-light', 'still', { timeout: 15_000 });

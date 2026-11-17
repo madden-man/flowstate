@@ -101,11 +101,12 @@ test('a flow under no sign: the note asked once and shown at its step offline, g
   await page.getByRole('button', { name: 'Leave Still' }).click();
 });
 
-test('carried forward on a sign\'s page: no ghost rings and no note (the old drawings are gone), the person row', async ({ page }) => {
-  // Panic opens on the Root's page; its drawing left the page (Tommy, 2026-11-11), and the ghost rings with it
+test('carried forward on a flow under a sign: its own page again, the person row', async ({ page }) => {
+  // Panic has its own page again (PLAN-BLOCKERS.md K3), its drawing on it; the Root's page carries none of it
   await enter(page, '/#/flow/panic/3');
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-showing', '3');
-  await expect(page.locator('.fl-ghosts, .fl-ask, .fl-carried, .fl-note')).toHaveCount(0);
+  await expect(page.locator('.fs-flowpage[data-flow="panic"]')).toHaveAttribute('data-showing', '3');
+  await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
+  await expect(page.locator('.ck-page')).toHaveCount(0);
 
   // the person row at Settling: no name yet, so it opens its sheet; filled, it is a link to Messages
   const empty = page.locator('[data-tip="panic-3-person"] .fl-person-empty');
@@ -145,7 +146,7 @@ test('your own stamps: the morning after a prediction, one tap, and the outcome 
   await page.reload();
   await expect(page.locator('.fl-stampask')).toHaveCount(0);
   await page.goto(`/#/flow/${flowId}`);
-  // the old drawings are gone from a sign's page, so the mark is kept on the episode and not drawn there
-  await expect(page.locator('.ck-page')).toHaveAttribute('data-front', flowId);
-  await expect(page.locator('.fs-cycle')).toHaveCount(0);
+  // the flow's own page (PLAN-BLOCKERS.md K3): its drawing, with the kept outcome as his stamp
+  await expect(page.locator(`.fs-flowpage[data-flow="${flowId}"] .fl-drawing .fs-cycle`)).toBeVisible();
+  await expect(page.locator('.ck-page')).toHaveCount(0);
 });

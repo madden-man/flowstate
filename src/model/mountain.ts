@@ -6,6 +6,9 @@
 // The water, crown to sea: the meter d gives the spring s = 1 - 0.8d; a gate b lets through p = 1 - 0.85b; below sign
 // i runs q(i) = s * p(1) * ... * p(i). Neither floor reaches zero, so something always gets through.
 import type { Episode, Flow, Millis, Reading } from '../db/schema';
+import { SEED_CHAKRAS } from '../db/schema';
+import { BLOCKER_DRAFTS, SEED_ALSO_UNDER } from '../db/seed/blockers';
+import { BLOCKERS_PASS } from '../db/seed';
 import { keyState, store, type Read } from '../db/fields';
 import { flows, liveEpisode } from './flows';
 
@@ -132,6 +135,20 @@ export async function blockersOf(chakra: ChakraId): Promise<Blocker[]> {
   const under = (await flows()).filter(f => listsSign(f, chakra) && !f.offSigns?.includes(chakra));
   const rows = await Promise.all(under.map(async flow => ({ flow, live: await liveEpisode(flow.id) })));
   return [...rows.filter(r => r.live), ...rows.filter(r => !r.live)].map(r => (r.live ? r : { flow: r.flow }));
+}
+
+/** How many rows a sign's Blockers list has on a journal as seeded (its own seed flows, the second listings, the
+ *  drafts): the room ui/flow/chakra/Blockers.tsx holds on its first paint before it has ever read the sign. */
+export function seededBlockerCount(chakra: ChakraId): number {
+  const own = Object.values(SEED_CHAKRAS).filter(c => c === chakra).length;
+  const also = Object.values(SEED_ALSO_UNDER).filter(cs => cs.includes(chakra)).length;
+  return own + also + BLOCKER_DRAFTS.filter(f => f.chakra === chakra).length;
+}
+
+/** Whether the one-time blockers pass (db/seed.ts seedBlockersOnce) has run on this journal: until it has, a sign's
+ *  list is missing its second listings and drafts, so the page holds its room rather than draw a list about to grow. */
+export async function blockersSeeded(): Promise<boolean> {
+  return !!(await store.get('settings', 'app'))?.cleaned?.includes(BLOCKERS_PASS);
 }
 
 /** Every flow listed under this sign, struck ones too, in the flow list's order, each with whether it is struck: the
