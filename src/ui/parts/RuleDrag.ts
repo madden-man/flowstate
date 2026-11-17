@@ -21,6 +21,11 @@ const SNAP = 0.03;
 export const snapRule = (x: number) => { const v = clamp(x); return v < SNAP ? 0 : v > 1 - SNAP ? 1 : v; };
 /** How far a touch travels before it is a drag of the mark or the page's scroll (the old parts/Spread's SLOP_PX). */
 export const SLOP_PX = 8;
+/** The least a finger travels to take the mark from one end to the other. A rule shorter than this (the mountain's
+ *  compact gates, 54px on a phone) would be a percent or two to the pixel; so its mark moves by the finger's share of
+ *  this, slower than the finger, and a thumb can set it (Tommy, 2026-11-17: "make sure they can be adjusted easily on
+ *  a mobile phone"). A rule this long or longer follows the finger one to one, as before. */
+export const TRAVEL_PX = 132;
 const end = (v: number) => (v === 0 ? 0 : v === 1 ? 1 : null);
 
 type Drag = { pointer: number; x0: number; y0: number; from: number; value: number; taken: boolean };
@@ -51,7 +56,7 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
     if (drag.current || keyed.current) { drag.current = null; keyed.current = null; setLive(null); onCancel?.(); }
   }, [disabled]);
 
-  const width = () => Math.max(1, rule.current!.getBoundingClientRect().width);
+  const width = () => Math.max(TRAVEL_PX, rule.current!.getBoundingClientRect().width);
   const land = (next: number, prev: number) => { const e = end(next); if (e !== null && e !== end(prev)) tick(tickName); };
   const show = (v: number) => { setLive(v); onInput?.(v); };
 
@@ -123,5 +128,9 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
     if (k.to !== k.from) onCommit(k.to);
     else if (onCancel) onCancel();
   };
-  return { rule, live, touched, pressed, shown: clamp(live ?? value), handlers: { ...handlers, onLostPointerCapture: handlers.onPointerUp } };
+  // Losing the rule's own capture is a release. A touch is captured at first by whatever it landed on (the drawn line
+  // inside the rule), and taking it for the rule fires lostpointercapture on that child, which bubbles here: that is
+  // not a release, and reading it as one ended every touch drag as it began (2026-11-17; a mouse never showed it).
+  const onLostPointerCapture = (e: PointerEvent) => { if (e.target === e.currentTarget) handlers.onPointerUp(e); };
+  return { rule, live, touched, pressed, shown: clamp(live ?? value), handlers: { ...handlers, onLostPointerCapture } };
 }

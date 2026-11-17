@@ -155,7 +155,8 @@ test('weather: a reading older than a day draws its control dashed until touched
 
 test('gates: a gate on the mountain writes one reading on release, and the stop\'s page shows it', async ({ page }) => {
   const plate = await settled(page);
-  await drag(page, 'Heart gate', 0.05, 0.75, async () => { expect(await readings(page)).toEqual([]); });
+  // past the short rule's own end: a compact gate takes parts/RuleDrag's TRAVEL_PX of travel end to end, not its 54px
+  await drag(page, 'Heart gate', 0.05, 1.75, async () => { expect(await readings(page)).toEqual([]); });
   // the sign empties under the finger, before anything is written
   await expect(plate.locator('a.mt-stop[data-chakra="heart"] .fs-sign')).not.toHaveAttribute('data-closed', '0.00');
   expect(await readings(page)).toEqual([]);
