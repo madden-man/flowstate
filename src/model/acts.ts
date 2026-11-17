@@ -7,6 +7,7 @@
 //   STARTER_ASKS, asksOf(chakra), setAsk(chakra, i, text)        the three questions under the shelf (2026-11-17)
 //   STARTER_DECK, starterAskId(chakra, i), deckOf(chakra), resolveAsk(chakra, id, on), setDeck(chakra, texts)
 //                                                                 the deck the three are drawn from (PLAN-BLOCKERS.md, K0)
+//   lineOf(chakra), setLine(chakra, text)                          the sign's italic line (PLAN-SIGN-LINES.md, L1)
 //   writeMark(chakra, touch, text, { struck, at }), marksOf(chakra, touch?), stones()                     section 7
 //   BASICS, dayOf(t, place), basicsToday(now), setBasic(basic, lit, now)                                  section 7
 // A touch says where it lands and what it carries (section 3); the page that acts on it is T2 to T4's. Everything he
@@ -14,7 +15,7 @@
 import type { BasicId, DeckAsk, Mark, Millis, OnPick, Place, SignShelf } from '../db/schema';
 import { keyState, store } from '../db/fields';
 import { PICKS, pickId } from '../db/seed/picks';
-import { CHAKRA_IDS, isChakraId, type ChakraId } from './mountain';
+import { CHAKRA_IDS, chakraOf, isChakraId, type ChakraId } from './mountain';
 import { dayKey } from './pages';
 import { oneLine } from './into';
 import { sunTimes } from './sun';
@@ -180,9 +181,10 @@ async function changeShelf(chakra: ChakraId, change: (picks: OnPick[]) => OnPick
   });
 }
 
-/** The questions a shelf row carries (asks, deck), so a write to one part of the row keeps the rest as it was. */
-const kept = (row: Pick<SignShelf, 'asks' | 'deck'> | undefined): Pick<SignShelf, 'asks' | 'deck'> =>
-  ({ ...(row?.asks ? { asks: row.asks } : {}), ...(row?.deck ? { deck: row.deck } : {}) });
+/** The words a shelf row carries besides its picks (asks, deck, and the sign's line, L1), so a write to one part of the
+ *  row keeps the rest as it was. */
+const kept = (row: Pick<SignShelf, 'asks' | 'deck' | 'line'> | undefined): Pick<SignShelf, 'asks' | 'deck' | 'line'> =>
+  ({ ...(row?.asks ? { asks: row.asks } : {}), ...(row?.deck ? { deck: row.deck } : {}), ...(row?.line ? { line: row.line } : {}) });
 
 /** Puts a pick at the end of the shelf. An album already on it (by albumId) or a pick with the same id is not added
  *  twice. A pick with no id gets one. Returns the shelf. */
@@ -250,7 +252,7 @@ export async function setAsk(chakra: ChakraId, i: number, text: string, now: Mil
     const asks = [0, 1, 2].map(k => row?.asks?.[k] ?? '');
     asks[i] = line === STARTER_ASKS[chakra][i] ? '' : line;
     const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
-    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(asks.some(Boolean) ? { asks } : {}) });
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(asks.some(Boolean) ? { asks } : {}), ...(row?.line ? { line: row.line } : {}) });
     return { asks: asksFrom(chakra, asks) };
   });
   if (out.asks) return out.asks;
@@ -259,6 +261,40 @@ export async function setAsk(chakra: ChakraId, i: number, text: string, now: Mil
   else if (line) texts.push(line);
   await setDeck(chakra, texts, now);
   return asksOf(chakra);
+}
+
+// ---- the sign's line: what it is for, in italic under its pair (PLAN-SIGN-LINES.md sections 2, 3 and 7, L1) ----
+// The starter is CHAKRAS line (model/mountain.ts), fixed print in the code; his rewrite is kept on the sign's shelf
+// row (SignShelf.line), sealed with its picks and questions, and carried by backup with the row. The pair (versus) is
+// fixed print and is not kept here. Nothing is generated (DESIGN.md rule 16) and nothing counted.
+
+/** The sign's line as read: his rewrite where he made one, else its starter. A locked journal gives '' (his words are
+ *  behind the PIN, so the page holds the line's room and prints nothing). */
+export async function lineOf(chakra: ChakraId): Promise<string> {
+  needSign(chakra);
+  if (keyState() === 'locked') return '';
+  const row = await store.get('signShelves', chakra);
+  if (row?.locked) return '';
+  return row?.line || chakraOf(chakra).line;
+}
+
+/** Rewrites the sign's line. Text is made one line and trimmed; an empty text, or the starter's own words, puts the
+ *  starter back (no line kept on the row). A sign with no row gets one holding its starters as picks, as setAsk gives
+ *  it; putting the starter back on a sign with no row writes nothing. Refuses while locked (LockedError). Returns the
+ *  line as read. */
+export async function setLine(chakra: ChakraId, text: string, now: Millis = Date.now()): Promise<string> {
+  needSign(chakra);
+  const starter = chakraOf(chakra).line;
+  const typed = oneLine(text);
+  const line = typed === starter ? '' : typed;
+  await store.unit(async u => {
+    const row = await u.get('signShelves', chakra);
+    if ((row?.line ?? '') === line) return;
+    const { line: _was, ...rest } = kept(row);
+    const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...rest, ...(line ? { line } : {}) });
+  });
+  return line || starter;
 }
 
 // ---- the deck: the questions the three are drawn from (PLAN-BLOCKERS.md sections 5 and 6, K0) ----
@@ -312,7 +348,7 @@ async function changeDeck(chakra: ChakraId, change: (deck: DeckAsk[]) => DeckAsk
     const deck = change(before.map(q => ({ ...q })));
     if (!deck) return splitDeck(before);
     const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
-    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(row?.asks ? { asks: row.asks } : {}), deck });
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...kept(row), deck });
     return splitDeck(deck);
   });
 }

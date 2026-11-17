@@ -1,9 +1,10 @@
 // A stop's page (PLAN-MOUNTAIN.md section 6 and pass 6, R3): #/flow/c/:chakra. Top to bottom: the plate (a close view
-// of this stop's place on the mountain, ./chakra/Plate.tsx), one print line ("Root · feeling safe"), the gate
-// (parts/Gate, written on release), the Blockers, the shelf, the three questions, the printed safety lines.
+// of this stop's place on the mountain, ./chakra/Plate.tsx), what the sign is for (the pair and the italic line,
+// PLAN-SIGN-LINES.md L1, in the gloss's place), the gate (parts/Gate, written on release), the Blockers, the shelf, the
+// three questions, the printed safety lines.
 //
 // The place is the page (PLAN-TASKS.md T1): the plate is twelve rules tall with the sign's touch words printed on it
-// (./chakra/Touches.tsx, every tap through ./chakra/touch.ts onTouch), and under it a paper foot: the gloss, the gate,
+// (./chakra/Touches.tsx, every tap through ./chakra/touch.ts onTouch), and under it a paper foot: the pair, the line, the gate,
 // what blocks the sign (./chakra/Blockers.tsx, PLAN-BLOCKERS.md K3), the sign's shelf, its three questions
 // (./chakra/Asks.tsx, rule 37), the printed lines and, on Heart and Root, the 988 line with Call and Text.
 //
@@ -15,10 +16,13 @@
 // FlowRoute is the one component the router renders for #/flow/c/:chakra, #/flow/:id and #/flow/:id/:step: a sign
 // goes to its page, every flow to FlowPage.
 //
-// Still (rule 13): no gate, no percent, no hue, the sign open in the line colour, slow water, the Blockers' names only.
+// Still (rule 13): no gate, no percent, no hue, the sign open in the line colour, slow water, the Blockers' names only;
+// the pair's two signs leave and its words and the line stay. Through the door (DoorChakraPage) the gloss stays and
+// neither the pair nor the line is printed: that page carries as few words as it can.
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
 import { Gate } from '../parts/Gate';
+import { Versus } from '../parts/Versus';
 import { Redirect } from '../route';
 import { FlowPage } from './FlowPage';
 import { PrintLines } from './PrintLines';
@@ -29,6 +33,7 @@ import { Touches } from './chakra/Touches';
 import { SignShelf } from './chakra/SignShelf';
 import { Asks } from './chakra/Asks';
 import { Blockers, lastSign } from './chakra/Blockers';
+import { shelfVersion } from './chakra/SignShelf';
 import { readGuard } from './chakra/fresh';
 import { asks, settle } from './chakra/surge';
 import { dataVersion } from '../sheets';
@@ -40,6 +45,7 @@ import {
   CHAKRA_IDS, chakraOf, isChakraId, isStale, latestReadings, reach, spring, writeReading, type ChakraId,
 } from '../../model/mountain';
 import { chakraPageData, safetyFoot, safetyLines } from '../../model/chakra-page';
+import { lineOf } from '../../model/acts';
 import './chakra/chakra.css';
 
 /** The router's one component for #/flow/c/:chakra, #/flow/:id and #/flow/:id/:step. */
@@ -79,6 +85,29 @@ export function DoorChakraPage({ chakra }: { chakra: string }) {
         <SafeLine line={foot.line} links={foot.links} />
       </div>
     </Page>
+  );
+}
+
+/** What the sign is for (PLAN-SIGN-LINES.md sections 3 and 4, L1): the pair drawn on the gloss's rule, then the line in
+ *  italic on two rules and a blank one (rule 5). The block is four rules tall from first paint, its line read after
+ *  (model/acts.ts lineOf: his rewrite, else the starter) and cut to two rules, so the gate under it never moves. The
+ *  line is rewritten in the questions' Edit sheet (./chakra/Asks.tsx), which bumps shelfVersion. Locked, the line is
+ *  empty and the room stays. Nothing here is tappable, counted or animated. */
+export function SignFor({ chakra }: { chakra: ChakraId }) {
+  const c = chakraOf(chakra);
+  const [line, setLine] = useState<{ chakra: ChakraId; text: string } | null>(null);
+  const v = shelfVersion.value, d = dataVersion.value, locked = gateState() === 'locked';
+  useEffect(() => {
+    let on = true;
+    lineOf(chakra).then(text => { if (on) setLine({ chakra, text }); }, () => { if (on) setLine({ chakra, text: '' }); });
+    return () => { on = false; };
+  }, [chakra, v, d, locked]);
+  const text = line?.chakra === chakra ? line.text : '';
+  return (
+    <div class="ck-for" data-for={chakra} data-read={line ? '' : undefined}>
+      <Versus kind={c.sign} hue={c.hue} words={c.versus} class="ck-pair" />
+      <p class="ck-for-line fs-wise">{text}</p>
+    </div>
   );
 }
 
@@ -146,7 +175,8 @@ export function ChakraPage({ chakra }: { chakra: ChakraId }) {
         <Plate chakra={chakra} gate={still ? 0 : gate} above={still ? 1 : above}>
           <Touches chakra={chakra} still={still} />
         </Plate>
-        <p class="ck-gloss">{c.gloss}</p>
+        {/* what the sign is for, in the gloss's place (PLAN-SIGN-LINES.md L1): the pair, the line, holding four rules */}
+        <SignFor chakra={chakra} />
         {/* a surge makes the gate ask afresh (./chakra/surge.ts): drawn anew, so a touch before it does not hide the dash */}
         <Gate key={asks(chakra) ? 'asks' : 'rests'} value={gate} hue={c.hue} label={c.name} stale={(!!stored && isStale(stored, now)) || asks(chakra)}
           disabled={gateState() === 'locked'} onInput={setGateLive} onCancel={() => setGateLive(null)} onCommit={v => void commitGate(v)} />
