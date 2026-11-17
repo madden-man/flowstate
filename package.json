@@ -25,7 +25,8 @@
     "walkthrough:values": "node script/build-values-walkthrough.mjs",
     "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs",
     "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
-    "walkthrough:research": "node script/build-research-walkthrough.mjs"
+    "walkthrough:research": "node script/build-research-walkthrough.mjs",
+    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -52,10 +52,14 @@ test('Root\'s page: Blockers under the gate and over the shelf, two rules a row,
   for (const row of await block.locator('.bk-row').all()) {
     const words = await row.locator('.bk-word').evaluateAll(ws => {
       const box = ws[0].parentElement!.getBoundingClientRect();
-      return ws.map(w => { const b = w.getBoundingClientRect(); return { shown: b.top < box.bottom - 1, inside: b.right <= box.right + 0.5 }; });
+      const first = ws[0].getBoundingClientRect().top;
+      return ws.map(w => { const b = w.getBoundingClientRect(); return { shown: b.top < box.bottom - 1, inside: b.right <= box.right + 0.5, line: Math.round(b.top - first) }; });
     });
     expect(words[0].shown).toBe(true);
     for (const w of words) if (w.shown) expect(w.inside).toBe(true);
+    // one line: no word of a second line shows under the first
+    for (const w of words) if (w.shown) expect(w.line).toBe(0);
+    expect(words.some(w => !w.shown) || words.every(w => w.line === 0)).toBe(true);
   }
   await expect(block.locator('.bk-row').first().locator('.fl-mini .fs-cycle.small')).toBeVisible();
 });

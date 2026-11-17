@@ -3,149 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FlowState: blockers and questions under each sign</title>
-<link rel="stylesheet" href="../tokens.css">
-<style>
-/* Page chrome around the phones; the phones themselves run on tokens.css and parts.css unchanged. */
-:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow: walkthrough chrome */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow: walkthrough chrome */
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px 16px 40px}
-.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
-@media (max-width:760px){.wrap{grid-template-columns:1fr}}
-header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
-header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
-.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
-.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
-nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
-nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
-nav.rail a[aria-current]{background:var(--bg)}
-nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
-@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
-main{min-width:0}
-.step{display:none}
-.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
-.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
-.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
-.ctl{display:flex;gap:10px;justify-content:center}
-.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
-details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
-summary{cursor:pointer;color:var(--fg)}
-details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
-details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
-details td:first-child{color:var(--fg);white-space:nowrap}
-details code{font-size:12px}
-details s{color:var(--muted)}
-/* ---------- the phone: each screen is a photograph of the real app with the proposed pieces drawn in (capture.mjs) ---------- */
-.phone{width:min(100%,380px);aspect-ratio:390/844;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative} /* design-lint: allow: the phone shell */
-.screen{height:100%;border-radius:38px;overflow:hidden;position:relative}
-.screen img{display:block;width:100%;height:100%;object-fit:cover}
-.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow: the phone shell */
-.wide{width:100%;max-width:760px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.wide img{display:block;width:100%;height:auto}
-</style>
+<title>FlowState: what blocks each sign</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
 </head>
 <body>
 <div class="wrap">
-<header class="top"><h1>Blockers and questions under each sign</h1><span class="counter" id="counter"></span></header>
+<header class="top"><h1>FlowState: what blocks each sign</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
 <nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
 <main id="main">
+  <div class="text" id="text">
 
+<!-- 1 -->
 <section class="step" id="blockers" data-name="Each sign names what blocks it">
   <h2>Each sign names what blocks it</h2>
-  <p class="line">Under the gate: the word Blockers, then a row for each flow that fits.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="blockers.jpg" alt="Each sign names what blocks it" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Where</td><td><code>ui/flow/chakra/Blockers.tsx</code>, mounted in <code>ChakraPage</code> under the gate, over the shelf.</td></tr><tr><td>Row</td><td>The Flow list's own row (<code>.fl-flow</code>): name, step words, <code>Cycle small</code>.</td></tr><tr><td>Reads</td><td><code>blockersOf(chakra)</code>: flows whose <code>chakra</code> or <code>alsoUnder</code> names the sign, minus struck ones.</td></tr><tr><td>Plan</td><td><code>PLAN-BLOCKERS.md</code> sections 3 and 5.</td></tr></table></details>
-</section>
-<section class="step" id="drawing" data-name="A tap opens its drawing">
-  <h2>A tap opens its drawing</h2>
-  <p class="line">The old diagram is back, one tap under its sign.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="drawing.jpg" alt="A tap opens its drawing" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Route</td><td><code>#/flow/:id</code> draws <code>FlowPage</code> again for a flow under a sign; the way back is the sign.</td></tr><tr><td>Leaves the sign</td><td>The step words line and the rows a flow in front put on <code>ChakraPage</code>.</td></tr><tr><td>Travel</td><td>The small drawing to the large one, <code>parts/Turn</code> (rule 28).</td></tr></table></details>
-</section>
-<section class="step" id="step" data-name="I walk it as before">
-  <h2>I walk it as before</h2>
-  <p class="line">A step word reads that step; the dot moves when it is happening.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="step.jpg" alt="I walk it as before" width="390" height="844"></div></div>
-</section>
-<section class="step" id="live" data-name="One that is running shows where I am">
-  <h2>One that is running shows where I am</h2>
-  <p class="line">The dot sits on its small drawing, and that row comes first.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="live.jpg" alt="One that is running shows where I am" width="390" height="844"></div></div>
-</section>
-<section class="step" id="stays" data-name="I decide what stays">
-  <h2>I decide what stays</h2>
-  <p class="line">Edit strikes a blocker off this sign; the flow itself is kept.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="stays.jpg" alt="I decide what stays" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Data</td><td><code>Flow.offSigns?: ChakraId[]</code>, clear, optional. No schema bump.</td></tr><tr><td>Struck</td><td>A drawn stroke through the name (rule 10); a tap puts it back.</td></tr><tr><td>+ blocker</td><td><code>NewFlow</code> with this sign already chosen.</td></tr></table></details>
-</section>
-<section class="step" id="candidates" data-name="The candidates, sign by sign">
-  <h2>The candidates, sign by sign</h2>
-  <p class="line">Eight old drawings, three that also fit a second sign, six new ones.</p>
-  <div class="wide" data-mock><img src="candidates.jpg" alt="The candidates, sign by sign" width="1000" height="760"></div>
-  <details><summary>How this is built</summary><table><tr><td>Has its steps</td><td>Seeded today with steps, tips and a drawing.</td></tr><tr><td>Also here</td><td>The same flow listed under a second sign: <code>Flow.alsoUnder</code>.</td></tr><tr><td>New</td><td>Name, shape and step words only; steps get written for the ones kept (package K5).</td></tr></table></details>
-</section>
-<section class="step" id="ponder" data-name="Questions to ponder, under the shelf">
-  <h2>Questions to ponder, under the shelf</h2>
-  <p class="line">Three show at a time, from a deck of seven a sign.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="ponder.jpg" alt="Questions to ponder, under the shelf" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Data</td><td><code>signShelves.deck?: { id, text, resolvedAt? }[]</code>, sealed like <code>asks</code>. No schema bump.</td></tr><tr><td>Starters</td><td>The three there today plus four more a sign: <code>PLAN-BLOCKERS.md</code> section 6.</td></tr><tr><td>A tap on the words</td><td>Unchanged: today's journal page opens on the question.</td></tr></table></details>
-</section>
-<section class="step" id="resolved" data-name="A tap on the ring resolves one">
-  <h2>A tap on the ring resolves one</h2>
-  <p class="line">The ring fills, the words go grey, and the next question comes up.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="resolved.jpg" alt="A tap on the ring resolves one" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Part</td><td><code>parts/Resolve.tsx</code>: an open ring, a thumb wide, at the right of the question's first rule.</td></tr><tr><td>Motion</td><td>The dot is drawn over <code>--t-draw</code> with the check's tick (rules 19 and 27).</td></tr><tr><td>Model</td><td><code>resolveAsk(chakra, id, on)</code>.</td></tr></table></details>
-</section>
-<section class="step" id="fold" data-name="Resolved keeps them, dated">
-  <h2>Resolved keeps them, dated</h2>
-  <p class="line">A tap on a filled ring brings one back.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="fold.jpg" alt="Resolved keeps them, dated" width="390" height="844"></div></div>
-</section>
-<section class="step" id="deck" data-name="Edit holds the whole deck">
-  <h2>Edit holds the whole deck</h2>
-  <p class="line">I rewrite any, and add my own on the last rule.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="deck.jpg" alt="Edit holds the whole deck" width="390" height="844"></div></div>
-</section>
-<section class="step" id="journal" data-name="Or resolve it where I answered it">
-  <h2>Or resolve it where I answered it</h2>
-  <p class="line">The question carries its ring onto today's page.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="journal.jpg" alt="Or resolve it where I answered it" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>How</td><td>A wise line on a page linked to a sign whose words are an open question of that sign draws the ring.</td></tr></table></details>
-</section>
-<section class="step" id="qtab" data-name="The same ring on the ? tab">
-  <h2>The same ring on the ? tab</h2>
-  <p class="line">One tap moves a question under Resolved.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="qtab.jpg" alt="The same ring on the ? tab" width="390" height="844"></div></div>
-  <details><summary>How this is built</summary><table><tr><td>Model</td><td><code>resolveQuestion(id, on)</code> in <code>model/pages.ts</code>: <code>state</code>, <code>answeredAt</code>, and <code>resolvedByTap</code> so unmarking a line does not reopen it.</td></tr><tr><td>Kept</td><td>"This answers it" on a held line still resolves, and marks the line.</td></tr><tr><td>Word</td><td>The label "Answered" becomes "Resolved".</td></tr></table></details>
-</section>
-<section class="step" id="qpage" data-name="And on a question's own page">
-  <h2>And on a question's own page</h2>
-  <p class="line">The ring sits by the title; no long press needed.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="qpage.jpg" alt="And on a question's own page" width="390" height="844"></div></div>
-</section>
-<section class="step" id="still" data-name="In Still, none of it">
-  <h2>In Still, none of it</h2>
-  <p class="line">No blockers, no questions, no rings.</p>
-  <div class="phone" data-mock><div class="screen"><div class="island"></div><img src="still.jpg" alt="In Still, none of it" width="390" height="844"></div></div>
+  <p class="line">Safety vs. fear, the gate, then Panic, What if and 3 a.m.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Pair</td><td><code>parts/Versus.tsx</code> in <code>ChakraPage.tsx SignFor</code>: the sign lit and emptied, the line from <code>acts.ts lineOf</code>; PLAN-SIGN-LINES.md L1.</td></tr>
+    <tr><td>Rows</td><td><code>chakra/Blockers.tsx</code> on <code>mountain.ts blockersOf</code>: two rules a row, whole step words, the room held before the read; PLAN-BLOCKERS.md K3.</td></tr>
+    <tr><td>Demo</td><td>The real app, one classic script (<code>design/blockers/src</code>), storage in memory, no network, the day pinned to 11 / 17.</td></tr>
+  </table></details>
 </section>
 
+<!-- 2 -->
+<section class="step" id="drawing" data-name="A tap opens its drawing">
+  <h2>A tap opens its drawing</h2>
+  <p class="line">Panic's own page; the way back reads Root.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Route</td><td><code>ChakraPage.tsx FlowRoute</code> sends every <code>#/flow/:id</code> to <code>FlowPage</code>; <code>Blockers.tsx backSignOf</code> names the sign it came from.</td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="walk" data-name="I walk it as before">
+  <h2>I walk it as before</h2>
+  <p class="line">A tap on "The wave" reads that step.</p>
+</section>
+
+<!-- 4 -->
+<section class="step" id="running" data-name="One that is running says where I am">
+  <h2>One that is running says where I am</h2>
+  <p class="line">What if comes first, the step I am on in ink.</p>
+</section>
+
+<!-- 5 -->
+<section class="step" id="decide" data-name="I decide what stays">
+  <h2>I decide what stays</h2>
+  <p class="line">A long press raises Root blockers; a tap strikes 3 a.m.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Sheet</td><td><code>chakra/BlockersSheet.tsx</code>: <code>mountain.ts strikeOff</code> writes <code>offSigns</code>; nothing deleted; "+ blocker" opens New flow; PLAN-BLOCKERS.md K4.</td></tr>
+  </table></details>
+</section>
+
+<!-- 6 -->
+<section class="step" id="draft" data-name="A new one starts as a draft">
+  <h2>A new one starts as a draft</h2>
+  <p class="line">Gripping, under Crown: a drawing and four step words, no tips yet.</p>
+</section>
+
+<!-- 7 -->
+<section class="step" id="asks" data-name="Questions to ponder, under the shelf">
+  <h2>Questions to ponder, under the shelf</h2>
+  <p class="line">The practice first, then three from the deck.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Ground</td><td><code>chakra/Asks.tsx Ground</code>, <code>acts.ts GROUND_ASKS</code>: fixed, never resolves, never in the sheet; PLAN-SIGN-LINES.md L2.</td></tr>
+    <tr><td>Deck</td><td><code>acts.ts deckOf</code>: seven starters a sign, the first three open shown; PLAN-BLOCKERS.md K2.</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="resolve" data-name="A tap on the word resolves one">
+  <h2>A tap on the word resolves one</h2>
+  <p class="line">Grey, with the check, in its place.</p>
+</section>
+
+<!-- 9 -->
+<section class="step" id="next" data-name="Next time, the next one is there">
+  <h2>Next time, the next one is there</h2>
+  <p class="line">The fourth question stands where the first was.</p>
+</section>
+
+<!-- 10 -->
+<section class="step" id="deck" data-name="Edit holds my line and the deck">
+  <h2>Edit holds my line and the deck</h2>
+  <p class="line">My line, every open question, then Resolved with dates.</p>
+</section>
+
+<!-- 11 -->
+<section class="step" id="journal" data-name="Or resolve it where I answered it">
+  <h2>Or resolve it where I answered it</h2>
+  <p class="line">Today's page: the question, Resolve, my answer.</p>
+</section>
+
+<!-- 12 -->
+<section class="step" id="qtab" data-name="The same word on the ? tab">
+  <h2>The same word on the ? tab</h2>
+  <p class="line">Open ones carry Resolve; resolved ones sit under Resolved.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Word</td><td><code>parts/Resolve.tsx</code>: the print word, then the drawn check; <code>pages.ts resolveQuestion</code>; PLAN-BLOCKERS.md K1.</td></tr>
+  </table></details>
+</section>
+
+<!-- 13 -->
+<section class="step" id="qpage" data-name="And on a question's own page">
+  <h2>And on a question's own page</h2>
+  <p class="line">Resolve beside the title.</p>
+</section>
+
+<!-- 14 -->
+<section class="step" id="still" data-name="In Still, the names">
+  <h2>In Still, the names</h2>
+  <p class="line">The pair in words, then Blockers as names only.</p>
+</section>
+
+<!-- 15 -->
+<section class="step" id="door" data-name="Through the door, the practice stays">
+  <h2>Through the door, the practice stays</h2>
+  <p class="line">Without the PIN, Root keeps its grounding question, as print.</p>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:12</span><span>FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
 </main>
 </div>
-<script>
-(function(){
-  var steps=[].slice.call(document.querySelectorAll('.step')),rail=document.getElementById('rail'),counter=document.getElementById('counter'),i=0;
-  steps.forEach(function(s,j){var li=document.createElement('li'),a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(j+1)+'</span><span class="t"></span>';a.querySelector('.t').textContent=s.dataset.name;a.addEventListener('click',function(e){e.preventDefault();go(j);});li.appendChild(a);rail.appendChild(li);
-    var c=document.createElement('div');c.className='ctl';c.innerHTML='<button type="button" data-prev>Previous</button><button type="button" data-next>Next</button>';s.appendChild(c);});
-  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){s.classList.toggle('on',j===i);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
-  document.addEventListener('click',function(e){if(e.target.closest('[data-prev]'))go(i-1);if(e.target.closest('[data-next]'))go(i+1);});
-  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
-  function fromHash(){var h=(location.hash||'').replace('#','');var k=steps.findIndex(function(s){return s.id===h;});go(k>=0?k:0);}
-  window.addEventListener('hashchange',fromHash);fromHash();
-})();
-</script>
+<script src="walk.js"></script>
 </body>
 </html>

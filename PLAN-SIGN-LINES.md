@@ -1,6 +1,6 @@
 # FlowState: what each sign is for (one italic line, its struggle, and the one question that always shows)
 
-Planned 2026-11-17 at Tommy's ask. Not built. Two packages (section 7). It sits beside PLAN-BLOCKERS.md (branch `blockers-plan`), which is a separate plan and does not touch the same lines of the page or `CHAKRAS`.
+Planned 2026-11-17 at Tommy's ask. Built 2026-11-17 and 18 on `blockers-build` (L2 then L1; DESIGN.md rules 37 and 39, lint DL23); the copy and the eight questions in section 8 are still his to change. Two packages (section 7). It sits beside PLAN-BLOCKERS.md (branch `blockers-plan`), which is a separate plan and does not touch the same lines of the page or `CHAKRAS`.
 
 Revised the same evening after a UI/UX audit (Tommy: "write in your fixes, and use the shorter second person blurbs"). The last section lists what changed.
 
