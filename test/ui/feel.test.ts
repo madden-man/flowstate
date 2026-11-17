@@ -27,7 +27,8 @@ const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
   // PLAN-RESEARCH.md section 2 (Q4): a title landing on Research as it is written in
-  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx'],
+  // PLAN-BLOCKERS.md K1: the drawn check standing in for the word Resolve (parts/Resolve.tsx)
+  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx', 'src/ui/parts/Resolve.tsx'],
   // PLAN-TASKS.md T5: a cover or line set down on a sign's shelf (moved, or taken off it)
   drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/chakra/SignShelf.tsx'],
   detent: ['src/ui/parts/Cycle.tsx'],
@@ -40,7 +41,9 @@ const TICKS: Record<string, string[]> = {
     // Q4: Research's word Settings, where the key goes, opens the Settings sheet
     'src/ui/flow/Research.tsx',
     // rule 37: a sign's questions' Edit raises the sheet to rewrite them
-    'src/ui/flow/chakra/Asks.tsx'],
+    'src/ui/flow/chakra/Asks.tsx',
+    // PLAN-BLOCKERS.md K4: a long press on a Blockers row raises their sheet, and "+ blocker" the New flow sheet
+    'src/ui/flow/chakra/BlockersSheet.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],

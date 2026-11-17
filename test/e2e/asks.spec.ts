@@ -2,8 +2,8 @@
 // journal the Heart's page shows five covers and the plus on one row, then its three questions on the rules in italic,
 // Edit on the last blank rule, and the 988 line under them, which stands where it stood at first paint. A tap opens
 // today's page with the question as an italic line and the caret on the rule under it; the sign by the date comes
-// back; the same question again that day is not written twice. Edit rewrites one (kept over a reload); emptied, the
-// starter is back. Still: none of it. Through the door: none of it.
+// back; the same question again that day is not written twice. Edit raises the deck sheet and rewrites one (kept over
+// a reload); emptied, it leaves the deck and the next stands in its slot. Still: none of it. Through the door: none of it.
 import { test, expect, type Page } from '@playwright/test';
 
 const HEART = ['Who are you missing?', 'What is heavy today?', 'What was good, even a little?'];
@@ -95,14 +95,15 @@ test('five covers, then three questions; the line under them never moves; a tap 
   expect(errors).toEqual([]);
 });
 
-test('Edit rewrites a question, kept over a reload; emptied, its starter is back', async ({ page }) => {
+test('Edit rewrites a question, kept over a reload; emptied, the next in the deck takes its slot', async ({ page }) => {
   await open(page, '#/flow/c/heart');
   const asks = page.locator('[data-asks="heart"]');
   await asks.getByRole('button', { name: 'Edit' }).click();
   const sheet = page.locator('[data-sheet="Heart asks"]');
   await expect(sheet).toBeVisible();
-  const rules = sheet.locator('input');
-  await expect(rules).toHaveCount(3);
+  // the deck sheet (PLAN-BLOCKERS.md K2): the seven open questions on their rules, then a blank one
+  const rules = sheet.locator('.ck-deck textarea');
+  await expect(rules).toHaveCount(8);
   await rules.nth(0).fill('Who do you want to call tonight?');
   await rules.nth(0).press('Enter');
   await expect(rules.nth(1)).toBeFocused();
@@ -113,15 +114,17 @@ test('Edit rewrites a question, kept over a reload; emptied, its starter is back
   const t = page.locator('[data-threshold]');
   if (await t.count()) await t.click();
   await expect(asks.locator('.ck-ask')).toHaveText(['Who do you want to call tonight?', HEART[1], HEART[2]]);
-  // emptied: the starter shows on the rule, and is back on the page
+  // emptied: the question leaves the deck, and the next in the deck stands in its slot (the deck has more than three)
   await asks.getByRole('button', { name: 'Edit' }).click();
   await rules.nth(0).fill('');
-  await expect(rules.nth(0)).toHaveAttribute('placeholder', HEART[0]);
   await sheet.getByRole('button', { name: 'Done' }).click();
-  await expect(asks.locator('.ck-ask')).toHaveText(HEART);
+  await expect(asks.locator('.ck-ask')).toHaveText(['Who has been kind to you lately?', HEART[1], HEART[2]]);
   await page.reload();
   if (await t.count()) await t.click();
-  await expect(asks.locator('.ck-ask')).toHaveText(HEART);
+  await expect(asks.locator('.ck-ask')).toHaveText(['Who has been kind to you lately?', HEART[1], HEART[2]]);
+  await asks.getByRole('button', { name: 'Edit' }).click();
+  await expect(rules).toHaveCount(7);
+  await expect(rules.nth(2)).toHaveValue('Who has been kind to you lately?');
 });
 
 test('Still never asks: the questions and their Edit leave with the light, and come back after', async ({ page }) => {

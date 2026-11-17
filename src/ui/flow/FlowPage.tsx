@@ -6,6 +6,11 @@
 //
 // Walk it once (3.7): a tap on a step word only reads that step; an episode starts when the dot is dragged off rest.
 //
+// Every flow has this page (PLAN-BLOCKERS.md decisions 9 and 10, K3), a flow under a sign too: a tap on its Blockers
+// row, a live episode, Right now, hand-offs and the door land here. The way back is the sign it was opened from
+// (chakra/Blockers.tsx backSignOf), else its own sign, else Flow. A draft (a candidate with step words only) shows its
+// drawing and step words, and "+ step" where a written flow's rest page has its lines.
+//
 // doorOnly (F5, the door without the PIN, 3.7): the journal is locked and the lock let this page through. The flow
 // reads as its seed (model/door.ts doorRead), the dot moves in memory only (ui/flow/door.ts doorDot) and nothing is
 // written until the PIN; "last time" stays behind the PIN, and the header's moon and Flow word ask for it. Anything
@@ -51,6 +56,8 @@ import { Stream } from '../parts/Stream';
 import { pacesOf } from '../../model/pace';
 import { FIXATION_FLOW, type Sparked } from '../../model/fixations';
 import { FixationCard, Fixations, laneHues, useFixations, type Landed } from './Fixations';
+import { backSignOf } from './chakra/Blockers';
+import { chakraOf } from '../../model/mountain';
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -152,9 +159,15 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
     if (l) setLanding(was => ({ k: at, seq: (was?.seq ?? 0) + 1, hue: l.hue }));
   };
 
+  // the way back (PLAN-BLOCKERS.md decision 9): the sign it was opened from, else its own sign, else Flow; through the
+  // door the word asks for the PIN, which opens Flow, so it stays Flow there
+  const sign = doorOnly ? null : backSignOf(flow);
+  const back = sign ? { word: chakraOf(sign).name, href: `#/flow/c/${sign}` } : { word: 'Flow', href: '#/flow' };
+
   return (
-    <Page label={flow.name} back={{ word: 'Flow', href: '#/flow' }} keepSettings door={door}>
-      <div class="fs-sheetof fs-rules fs-flowpage" data-saved={writing ? 'false' : 'true'} data-showing={showing} data-door={doorOnly ? '' : undefined}>
+    <Page label={flow.name} back={back} keepSettings door={door}>
+      <div class="fs-sheetof fs-rules fs-flowpage" data-saved={writing ? 'false' : 'true'} data-showing={showing} data-door={doorOnly ? '' : undefined}
+        data-flow={flow.id} data-draft={flow.draft ? '' : undefined}>
         {!doorOnly && <HandOff live={live} />}
         <div class="fl-drawing" style={midStyle(flow.diagram)} data-own={own ? '' : undefined}>
           {wash > 0 && <Wash left={wash} />}

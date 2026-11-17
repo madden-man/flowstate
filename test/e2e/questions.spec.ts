@@ -1,6 +1,6 @@
 // Questions, a section of their own (V2). A line on today's page is held and asked; the ? tab lists it
 // open; its page is the journal's editor under the title. A line written there is plain ink until it is
-// held and "This answers it" turns it italic, and the question rests under Answered with the day. With
+// held and "This answers it" turns it italic, and the question rests under Resolved with the day. With
 // two open questions, Next walks to the other one, and a swipe across the page does the same.
 import { test, expect, type Page } from '@playwright/test';
 
@@ -31,7 +31,7 @@ async function say(page: Page, box: ReturnType<Page['getByRole']>, text: string)
   await expect(page.locator('.fs-msg p', { hasText: text })).toBeVisible();
 }
 
-test('ask a line, find it under the ?, write to it, This answers it, and it rests under Answered', async ({ page }) => {
+test('ask a line, find it under the ?, write to it, This answers it, and it rests under Resolved', async ({ page }) => {
   await page.goto('/');
   await cross(page);
 
@@ -54,7 +54,7 @@ test('ask a line, find it under the ?, write to it, This answers it, and it rest
   await expect(tabs(page).getByRole('link', { name: 'Questions' })).toHaveAttribute('aria-current', 'page');
   const row = page.locator('.fs-qrow:not(.done)', { hasText: asked });
   await expect(row).toBeVisible();
-  await expect(page.getByText('Answered', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Resolved', { exact: true })).toHaveCount(0);
   await expect(page.getByText('[space to answer left]')).toHaveCount(0);
 
   // its page: Questions is the way back, Pages is not here; the title is the first rule
@@ -82,13 +82,13 @@ test('ask a line, find it under the ?, write to it, This answers it, and it rest
   // Asked from goes back to the day's page
   await expect(page.locator('.fs-link', { hasText: asked }).locator('small')).toHaveText('Asked from');
 
-  // back: it rests under Answered, the date asked and the date answered on its meta line
+  // back: it rests under Resolved, asked and resolved today, so its meta line prints the one date (PLAN-BLOCKERS.md K1)
   await hdr.getByRole('link', { name: 'Questions' }).click();
   await expect(page).toHaveURL(/#\/questions$/);
-  await expect(page.locator('.fs-answered')).toHaveText('Answered');
+  await expect(page.locator('.fs-answered')).toHaveText('Resolved');
   const done = page.locator('.fs-qrow.done', { hasText: asked });
   await expect(done).toBeVisible();
-  await expect(done.locator('.fs-list-meta')).toHaveText(/^\d+ \/ \d+ \/ \d+ · \d+ \/ \d+ \/ \d+$/);
+  await expect(done.locator('.fs-list-meta')).toHaveText(/^\d+ \/ \d+ \/ \d+$/);
   await expect(page.locator('.fs-qrow:not(.done)')).toHaveCount(0);
 
   // held again it is Not the answer: the line goes plain and the question is open again

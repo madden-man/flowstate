@@ -93,7 +93,8 @@ const touch = (id: string) => click(`.ck-touches .ck-touch[data-touch="${id}"]`)
 async function type(sel: string, text: string, every = 55): Promise<HTMLInputElement | null> {
   const el = await seen<HTMLInputElement>(sel);
   if (!el) return null;
-  const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+  // a rule of the deck sheet is a textarea that wraps (PLAN-BLOCKERS.md K2), the rest are inputs
+  const set = Object.getOwnPropertyDescriptor(el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')!.set!;
   for (let k = 1; k <= text.length; k++) {
     set.call(el, text.slice(0, k));
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -219,7 +220,7 @@ async function act(): Promise<void> {
       await seen('.ck-asks:not(.wait) .ck-ask');
       await bring('.ck-asks');
       await wait(1100);
-      await click('.ck-asks .ck-ask:nth-of-type(2)');
+      await click('.ck-asks [data-ask="heart-2"] .ck-ask');
       return;
     // Edit raises the three on their rules; the first rewritten, letter by letter
     case 'rewrite': {
@@ -228,13 +229,13 @@ async function act(): Promise<void> {
       await wait(900);
       await click('.ck-asks-edit .fs-word');
       await wait(700);
-      const first = await seen<HTMLInputElement>('[data-sheet="Heart asks"] input');
+      const first = await seen<HTMLTextAreaElement>('[data-sheet="Heart asks"] .ck-deck-rule');
       if (first) {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(first, '');
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(first, '');
         first.dispatchEvent(new Event('input', { bubbles: true }));
         first.focus({ preventScroll: true });
       }
-      await type('[data-sheet="Heart asks"] input', 'Who do you want to call tonight?', 55);
+      await type('[data-sheet="Heart asks"] .ck-deck-rule', 'Who do you want to call tonight?', 55);
       return;
     }
     case 'signs':

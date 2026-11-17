@@ -219,9 +219,10 @@ export async function askThis(p: Read<Page>, m: Pick<Message, 'text'>, now = Dat
   return { question, page };
 }
 
-/** A question with no wise line left goes back to open; with one, it stays as it is. */
+/** A question with no wise line left goes back to open; with one, it stays as it is. One resolved by the word
+ *  (resolveQuestion, resolvedByTap) stays resolved: taking back a line only reopens what a line resolved. */
 function reopened(p: Read<Page>, rest: Pick<Message, 'wise' | 'text'>[]): Partial<Page> {
-  if (p.kind !== 'question' || rest.some(m => m.wise && m.text.trim())) return {};
+  if (p.kind !== 'question' || p.resolvedByTap || rest.some(m => m.wise && m.text.trim())) return {};
   return { state: 'open', answeredAt: undefined };
 }
 
@@ -240,6 +241,25 @@ export async function answerWith(
   if (!wise) page = { ...page, ...reopened(q, (await messagesOf(q.id)).filter(x => x.id !== m.id)) };
   await store.many({ pages: [page], messages: [message] });
   return { page, message };
+}
+
+/**
+ * The word "Resolve" (PLAN-BLOCKERS.md section 5, K0): on, the question moves under Resolved with today's date and is
+ * marked resolvedByTap, so taking back a wise line under it does not reopen it; it needs no answer. Off, the check is
+ * taken back: the question is open again, whatever lines are under it. A page that is not a question, or one already
+ * as asked, writes nothing. Refuses while locked (LockedError). Returns the page, or undefined when there is none.
+ */
+export async function resolveQuestion(id: string, on: boolean, now = Date.now()): Promise<Read<Page> | undefined> {
+  return store.unit(async u => {
+    const q = await u.get('pages', id);
+    if (!q || q.kind !== 'question' || (q.state !== 'open') === on) return q;
+    const { resolvedByTap: _, answeredAt: __, ...rest } = q;
+    const page: Read<Page> = on
+      ? { ...rest, state: 'answered', answeredAt: now, resolvedByTap: true, updatedAt: now }
+      : { ...rest, state: 'open', updatedAt: now };
+    await u.put('pages', page);
+    return page;
+  });
 }
 
 /** "New question" on the Questions list: one line, and it is the page's title. */

@@ -159,6 +159,9 @@ export type Page = {
    *  Questions list as the date answered; cleared when its last answer is taken back ("Not the answer").
    *  Optional and unindexed, so no Dexie version bump; an older answered row simply has none. */
   answeredAt?: Millis;
+  /** PLAN-BLOCKERS.md section 5 (K0): resolved by the word "Resolve" (model/pages.ts resolveQuestion), so taking back
+   *  its last wise line does not reopen it. Optional and unindexed, clear like state. */
+  resolvedByTap?: true;
   music?: { albumUri: string; album: string; artist: string; coverId?: string };
   /** PLAN-FLOWS.md section 5 (F1): the flow episode this page was written about (F2's Journal helper links it).
    *  Optional and unindexed, like music; an id, clear. */
@@ -341,6 +344,15 @@ export type Flow = {
   /** PLAN-MOUNTAIN.md section 8 (MOUNTAIN_VERSION): which sign on the mountain this flow's drawing sits under. Absent on
    *  a flow that is not a blockage (Energize floats in the sea) and on one he has not placed. An id, in the clear. */
   chakra?: ChakraId;
+  /** PLAN-BLOCKERS.md section 5 (K0): the signs that list it as a blocker besides `chakra` (3 a.m. also under Root).
+   *  Optional and unindexed, so no Dexie version bump; ids, in the clear like chakra. */
+  alsoUnder?: ChakraId[];
+  /** PLAN-BLOCKERS.md section 5 (K0): the signs he struck it off (rule 10: struck, never deleted). The flow is kept whole
+   *  and is still reached by hand-offs and the door. Ids, in the clear. */
+  offSigns?: ChakraId[];
+  /** PLAN-BLOCKERS.md section 5 (K0): a new candidate with a name, a shape and step words only (section 4), until K5
+   *  writes its lines and tips. A flag, in the clear like diagram. */
+  draft?: true;
   steps: Step[];
   /** Every earlier version of the name and steps; a seeded flow's seed text is the first. */
   revisions: { at: Millis; name: string; steps: Step[] }[];
@@ -612,7 +624,15 @@ export type SignShelf = {
    *  empty place (or no field, as on every older row) is that place's starter (model/acts.ts STARTER_ASKS). Sealed
    *  with picks. Optional and unindexed, so no Dexie version bump. */
   asks?: string[];
+  /** PLAN-BLOCKERS.md section 5 (K0): the sign's whole deck of questions, stored on the first resolve or edit; from then
+   *  on asks is ignored and left as it was. Absent, the deck reads as the starters (model/acts.ts STARTER_DECK) with
+   *  asks laid over the first three. Sealed with picks and asks. Optional and unindexed, so no Dexie version bump. */
+  deck?: DeckAsk[];
 };
+
+/** One question in a sign's deck (PLAN-BLOCKERS.md section 5). id is a starter's own (model/acts.ts starterAskId) or a
+ *  new one; resolvedAt is when he resolved it, absent while it is open. */
+export type DeckAsk = { id: string; text: string; resolvedAt?: Millis };
 
 /** What he writes on the water (PLAN-TASKS.md section 7): one line at one touch of one sign, never edited. text is the
  *  line; struck (not in the plan's list) is the second line a touch strikes, Reword's verdict beside its deed. text and

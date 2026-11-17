@@ -38,19 +38,20 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await today.click();
   await today.pressSequentially(line, { delay: 2 });
   await expect(today).toHaveAttribute('data-saved', 'true');
-  // behind the PIN Panic is the Root's page, which has no drawing: Right now starts the episode and Done ends it
+  // behind the PIN Panic has its own page (PLAN-BLOCKERS.md K3): Right now starts the episode, and back to rest ends it
   await page.goto('/#/flow/now');
   await page.locator('.fl-nowlist a[href="#/flow/panic/1"]').click();
-  const signPage = page.locator('.ck-page');
-  await expect(signPage).toHaveAttribute('data-showing', '1');
+  const flowPage = page.locator('.fs-flowpage[data-flow="panic"]');
+  await expect(flowPage).toHaveAttribute('data-showing', '1');
   await expect.poll(async () => (await episodes(page)).length).toBe(1);
-  await signPage.locator('.ck-done').click();
-  await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
-  // through the door the flow page still draws the ring, and its dot is the slider
+  // the flow page draws the ring, and its dot is the slider: left from Overstimulated is rest
   const dot = page.getByRole('slider', { name: 'Where you are' });
-  // R3: behind the PIN Panic is the Root's page, at rest on its place, its touch words and no checklist (T1)
-  await expect(page.locator('.ck-touches')).toBeVisible();
-  await expect(page.locator('.ck-rows')).toHaveCount(0);
+  await expect(flowPage).toHaveAttribute('data-saved', 'true');
+  await dot.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(dot).toHaveAttribute('aria-valuenow', '0');
+  await expect.poll(async () => (await episodes(page)).map(e => e.endedAt !== undefined)).toEqual([true]);
+  await expect(page.locator('.ck-page')).toHaveCount(0);
   // F6: a note to the next one of you at the wave, and an ended episode (a ghost ring on the flow page); both stay
   // behind the PIN
   await page.evaluate(([text]) => new Promise<void>((resolve, reject) => {
@@ -69,14 +70,12 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
     };
   }), [note] as const);
   await page.reload();
-  await expect(signPage).toHaveAttribute('data-chakra', 'root');
+  await expect(flowPage).toHaveAttribute('data-showing', '0');
 
-  // Settings: no door switch until there is a PIN; the Shortcut row is there either way. A sign's header has no
-  // Settings (the way back stands in its place), so it is opened from the mountain, one tap back
-  await expect(page.locator('.fs-hdr').getByRole('button', { name: 'Settings' })).toHaveCount(0);
-  await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
-  await expect(page).toHaveURL(/#\/flow$/);
-  await page.getByRole('button', { name: 'Settings' }).click();
+  // Settings: no door switch until there is a PIN; the Shortcut row is there either way. A flow's header keeps
+  // Settings beside its way back (Root)
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Root', exact: true })).toBeVisible();
+  await page.locator('.fs-hdr').getByRole('button', { name: 'Settings' }).click();
   const settings = page.locator('[data-sheet="Settings"]');
   await expect(settings.locator('[data-shortcut-row]')).toContainText(`${baseURL}/#/flow/now`);
   await expect(settings.locator('[data-shortcut-row]')).toContainText('Back Tap');
@@ -178,10 +177,11 @@ test('door: the ring opens Right now read-only, the PIN writes the step, off mea
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect.poll(async () => (await episodes(page)).filter(e => e.endedAt === undefined).map(e => [e.flowId, e.marks.map(m => m.stepId)]))
     .toEqual([['panic', ['panic-2']]]);
-  // unlocked, it is the Root's page with Panic in front on the wave
-  await expect(signPage).toHaveAttribute('data-front', 'panic');
-  await expect(signPage).toHaveAttribute('data-showing', '2');
-  await expect(signPage.locator('.ck-steps .ck-step[aria-current="step"]')).toHaveText('The wave');
+  // unlocked, it is Panic's own page on the wave (PLAN-BLOCKERS.md K3)
+  await expect(flowPage).toHaveAttribute('data-showing', '2');
+  await expect(dot).toHaveAttribute('aria-valuenow', '2');
+  await expect(flowPage.locator('.fs-cycle-word[aria-pressed="true"]')).toHaveAttribute('aria-label', 'The wave');
+  await expect(page.locator('.ck-page')).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
   // locked again with the episode live: the app opens on its step through the door, read-only; the Flow word asks

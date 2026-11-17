@@ -1659,3 +1659,47 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 .fs-chip.armed, .fs-chip.armed[aria-pressed="true"] { background: transparent; color: var(--ink); border-color: var(--ink); border-style: dashed; }
 .fs-chip-again { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); font-style: normal; }
 /* ---- C3 ends ---- */
+
+/* ==== Resolve (PLAN-BLOCKERS.md decision 2, section 7; K1, parts/Resolve.tsx). The print word "Resolve", a thumb wide
+   and one rule tall; resolved, the drawn check in ink in its place, drawn over --t-draw and landing heavy (rule 27),
+   lifted over --t-ui when taken back while the word comes back. Down is instant, up is eased (rule 26). Its ::after
+   reaches a full --hit above and below the rule it sits on. Gone in Still with the states (fs-notstill). ==== */
+.fs-resolve {
+  appearance: none; border: 0; background: transparent; margin: 0; padding: 0; cursor: pointer; position: relative;
+  display: inline-grid; place-items: center end; min-width: var(--hit); height: var(--lh-ink);
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  line-height: var(--lh-ink); color: var(--print); -webkit-tap-highlight-color: transparent;
+}
+.fs-resolve::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); }
+.fs-resolve > * { grid-area: 1 / 1; }
+.fs-resolve:disabled { cursor: default; }
+.fs-resolve-word { transition: opacity var(--t-ui) var(--ease), color var(--t-ui) var(--ease), translate var(--t-ui) var(--ease); }
+.fs-resolve.done .fs-resolve-word { opacity: 0; }
+.fs-resolve-mark { width: 20px; height: var(--lh-ink); overflow: visible; }
+.fs-resolve-mark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.fs-resolve.done .fs-check-ink { stroke-dashoffset: 0; transition: stroke-dashoffset var(--t-draw) var(--ease); }
+.fs-resolve.done.inked .fs-check-ink { animation: fs-pen var(--t-draw) var(--ease); }
+.fs-resolve[data-down] .fs-resolve-word { color: var(--ink); translate: 0 1px; transition: none; }
+.fs-resolve:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+/* the ? tab: on the row's first rule, at the right of the date; the date keeps clear of it */
+.fs-qitem { position: relative; }
+.fs-qitem > .fs-resolve { position: absolute; top: 0; right: 0; }
+.fs-qitem .fs-list-meta { padding-right: calc(var(--hit) * 1.75); }
+/* a question's own page: at the right of the title's first rule; the title wraps short of it */
+.fs-qtitle { display: flex; align-items: flex-start; gap: var(--s1); }
+.fs-qtitle > .fs-edit { flex: 1; min-width: 0; }
+.fs-qtitle > .fs-resolve { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-resolve.done.inked .fs-check-ink { animation: none; }
+}
+/* ==== Resolve ends ==== */
+
+/* ==== K2: Resolve on a journal line (PLAN-BLOCKERS.md section 3 step 11; journal/PageView.tsx). A wise line that is
+   an open question of the page's sign carries Resolve at the right of its first rule; its words wrap short of it, so
+   the line never rewraps when the check stands there. Resolved, the words go to print grey, as on the sign's page.
+   Still: Resolve leaves (fs-notstill) and the line is ink again, since Still shows no states (rule 13). ==== */
+.fs-col .fs-msg.fs-resolvable { padding-right: calc(var(--hit) * 1.75); }
+.fs-line-resolve { position: absolute; top: 0; right: 0; z-index: 1; display: flex; }
+.fs-col .fs-msg.fs-resolved p, .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--print); }
+[data-light="still"] .fs-col .fs-msg.fs-resolved p, [data-light="still"] .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--ink); }
+/* ==== K2 ends ==== */

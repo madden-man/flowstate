@@ -1,0 +1,54 @@
+/* What blocks a sign (PLAN-BLOCKERS.md, K3; flow/chakra/Blockers.tsx): the print word on its own rule, then the Flow
+   list's rows on the page's rules. Every size and colour is a token; nothing new. */
+.bk { margin: 0; }
+.bk-word-head { margin: 0; height: var(--lh-ink); }
+/* a row is exactly two rules and draws no border of its own: the page's rules are its lines (rule 5) */
+.bk .bk-row.fs-row { border-top: 0; height: calc(var(--lh-ink) * 2); min-height: 0; overflow: hidden; }
+/* the step words: whole words on one line, as many as fit; a word that would be cut wraps to a line that is not shown */
+.bk .bk-words { display: flex; flex-wrap: wrap; height: var(--lh-ink); overflow: hidden; text-overflow: clip; white-space: normal; }
+.bk-word { white-space: pre; flex: none; }
+/* a running blocker: the step he is on, in ink, where its step words were */
+.bk-now {
+  display: block; height: var(--lh-ink); line-height: var(--lh-ink); color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Still: the names alone, one rule each, at --fs-ink */
+.bk-name {
+  display: block; height: var(--lh-ink); line-height: var(--lh-ink); font-size: var(--fs-ink); color: var(--ink);
+  text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background-color var(--t-page) var(--ease);
+}
+.bk-name[data-down] { background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none; }
+.bk-name:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+/* before the read: the rows it took last time, held, so nothing under it moves (two rules a row; one in Still) */
+/* (and with none left, the rule "+ blocker" takes) */
+.bk[data-wait] { min-height: calc(var(--lh-ink) * (1 + 2 * var(--bk-rows, 0) + var(--bk-foot, 0))); }
+[data-light="still"] .bk[data-wait] { min-height: calc(var(--lh-ink) * (1 + var(--bk-rows, 0))); }
+/* a long press (K4) picks a row up: no callout, no selection */
+.bk-row { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* the page's "+ blocker", under the word when every blocker is struck off the sign (K4): one rule, the print word */
+.bk-add { margin: 0; height: var(--lh-ink); display: flex; align-items: center; }
+.bk-add .fs-word { margin-left: calc(var(--s1) * -1); }
+
+/* the Blockers sheet (K4, BlockersSheet.tsx): a row a rule, the name in ink, what it is in print at the right */
+.bk-sheet { display: grid; padding: var(--s1) 0 var(--s2); }
+.fs-row.bk-pick {
+  appearance: none; border: 0; background: transparent; width: 100%; margin: 0; padding: 0; cursor: pointer;
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); text-align: left;
+  min-height: var(--hit); line-height: var(--lh-ink); font: inherit; color: var(--ink); -webkit-tap-highlight-color: transparent;
+}
+.bk-pick-name { font-family: var(--serif); font-size: var(--fs-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; }
+.bk-tag {
+  flex: none; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; color: var(--print);
+}
+/* struck by a tap: the stroke drawn left to right as a pen would (rule 27); put back: lifted (rule 27) */
+.bk-drawn .fs-struck-line { animation: bk-draw var(--t-draw) var(--ease) both; }
+.bk-lifting { color: var(--ink); transition: color var(--t-ui) var(--ease); }
+.bk-lifting .fs-struck-line { animation: bk-lift var(--t-ui) var(--ease) both; }
+@keyframes bk-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes bk-lift { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .bk-drawn .fs-struck-line, .bk-lifting .fs-struck-line { animation: none; }
+  .bk-lifting .fs-struck-line { opacity: 0; }
+}
