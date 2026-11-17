@@ -1703,3 +1703,18 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 .fs-col .fs-msg.fs-resolved p, .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--print); }
 [data-light="still"] .fs-col .fs-msg.fs-resolved p, [data-light="still"] .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--ink); }
 /* ==== K2 ends ==== */
+
+/* ==== L1: parts/Versus, the pair a sign comes down to (PLAN-SIGN-LINES.md section 4). One rule: the sign lit and what
+   he wants in ink serif, "vs." in print sans, what works against it in print grey and the sign emptied. The signs are
+   parts/Sign at the rule's own height (R0's small size), no filter, nothing moving. Still: the signs leave (fs-notstill)
+   and the words stay on the rule, all in print, so the block keeps its height (rule 13). ==== */
+.fs-versus {
+  display: flex; align-items: center; gap: var(--s1); margin: 0; height: var(--lh-ink); overflow: hidden; white-space: nowrap;
+  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink);
+}
+.fs-versus-sign { display: inline-flex; flex: none; }
+.fs-versus-want { color: var(--ink); }
+.fs-versus-against { color: var(--print); }
+.fs-versus-vs { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); }
+[data-light="still"] .fs-versus-want { color: var(--print); }
+/* ==== L1 ends ==== */

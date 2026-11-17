@@ -102,7 +102,7 @@ test('tasks walkthrough: the live app starts in a sandboxed frame, every step dr
       await expect(app.locator('.fs-msg.fs-wise p', { hasText: 'What is heavy today?' })).toBeVisible({ timeout: 15_000 });
       await expect(app.locator('.fs-hdr-r [data-sign-back="heart"]')).toBeVisible();
     }
-    if (id === 'rewrite') await expect(app.locator('[data-sheet="Heart asks"] .ck-deck-rule').first()).toHaveValue('Who do you want to call tonight?', { timeout: 15_000 });
+    if (id === 'rewrite') await expect(app.locator('[data-sheet="Heart asks"] .ck-deck .ck-deck-rule').first()).toHaveValue('Who do you want to call tonight?', { timeout: 15_000 });
     if (id === 'send') await expect(app.locator('.ck-stage [data-out="send"] a.out-go')).toHaveText('Ali', { timeout: 15_000 });
     if (id === 'door') {
       expect(await app.locator('.ck-touch').evaluateAll(els => els.map(e => (e as HTMLElement).dataset.touch))).toEqual(['five', 'breathe']);

@@ -120,7 +120,7 @@ describe('on a sign\'s page', () => {
     await draw(h(Asks, { chakra: 'heart' }));
     await act(() => { block().querySelector<HTMLElement>('.ck-asks-edit .fs-word')!.click(); });
     await until(() => { expect(sheet()?.querySelector('.ck-deck')).not.toBeNull(); });
-    const rules = [...sheet()!.querySelectorAll<HTMLTextAreaElement>('textarea')].map(r => r.value);
+    const rules = [...sheet()!.querySelectorAll<HTMLTextAreaElement>('.ck-deck textarea')].map(r => r.value);
     expect(rules).toEqual([...STARTER_DECK.heart, '']);
     expect(sheet()!.textContent).not.toContain(HEART);
     expect(sheet()!.querySelector('[data-ground]')).toBeNull();

@@ -98,6 +98,8 @@ async function keepCovers(page: Page) {
 
 /** A long press on a thing on the shelf, let go where it was: it stays lifted. */
 async function hold(page: Page, pick: ReturnType<Page['locator']>) {
+  // the page under the plate grew by the pair and the line (PLAN-SIGN-LINES.md L1): bring the thing under the pointer
+  await pick.scrollIntoViewIfNeeded();
   const box = (await pick.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

@@ -229,13 +229,13 @@ async function act(): Promise<void> {
       await wait(900);
       await click('.ck-asks-edit .fs-word');
       await wait(700);
-      const first = await seen<HTMLTextAreaElement>('[data-sheet="Heart asks"] .ck-deck-rule');
+      const first = await seen<HTMLTextAreaElement>('[data-sheet="Heart asks"] .ck-deck .ck-deck-rule');
       if (first) {
         Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(first, '');
         first.dispatchEvent(new Event('input', { bubbles: true }));
         first.focus({ preventScroll: true });
       }
-      await type('[data-sheet="Heart asks"] .ck-deck-rule', 'Who do you want to call tonight?', 55);
+      await type('[data-sheet="Heart asks"] .ck-deck .ck-deck-rule', 'Who do you want to call tonight?', 55);
       return;
     }
     case 'signs':

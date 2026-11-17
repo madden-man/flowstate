@@ -17,12 +17,15 @@ describe('the seven', () => {
     expect(CHAKRAS.map(c => c.id)).toEqual([...CHAKRA_IDS]);
     expect(CHAKRAS.map(c => c.sign)).toEqual(['crown', 'eye', 'voice', 'heart', 'sun', 'drop', 'sprout']);
     expect(CHAKRAS.map(c => c.hue)).toEqual([305, 275, 250, 150, 95, 55, 25]);
-    expect(chakraOf('heart')).toEqual({ id: 'heart', name: 'Heart', pageName: 'Heart chakra', sign: 'heart', hue: 150, gloss: 'Heart · love and grief' });
+    expect(chakraOf('heart')).toEqual({
+      id: 'heart', name: 'Heart', pageName: 'Heart chakra', sign: 'heart', hue: 150, gloss: 'Heart · love and grief',
+      line: 'You want to love and be loved. What you love can be lost.', versus: ['Opening', 'guarding'],
+    });
     expect(chakraOf('root').gloss).toBe('Root · feeling safe');
     expect(chakraOf('third-eye').pageName).toBe('Third eye chakra');
   });
   it('borrow no word from the tradition and no dash', () => {
-    const words = CHAKRAS.flatMap(c => [c.name, c.pageName, c.gloss]).join(' ');
+    const words = CHAKRAS.flatMap(c => [c.name, c.pageName, c.gloss, c.line, ...c.versus]).join(' ');
     expect(words).not.toMatch(/sahasrara|ajna|vishuddha|anahata|manipura|svadhisthana|muladhara|lotus|meru|\u2014/i);
   });
 });

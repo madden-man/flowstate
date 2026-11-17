@@ -45,7 +45,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 import type { ChakraId } from '../../../model/mountain';
 import { chakraOf } from '../../../model/mountain';
-import { GROUND_ASKS, STARTER_ASKS, deckOf, resolveAsk, setDeck } from '../../../model/acts';
+import { GROUND_ASKS, STARTER_ASKS, deckOf, resolveAsk, setDeck, lineOf, setLine } from '../../../model/acts';
 import { askInJournal } from '../../../model/into';
 import type { DeckAsk } from '../../../db/schema';
 import { pageCarry } from './carry';
@@ -250,6 +250,7 @@ function grow(el: HTMLTextAreaElement | null) {
 
 type Row = { id: string; text: string };
 const BLANK = 'blank';
+const LINE = 'line';
 
 /** Edit: the deck. Every open question on its rules, a blank last rule, then Resolved and the resolved ones with their
  *  dates and checks. Each rule is kept as he leaves it and when the sheet goes down (setDeck). */
@@ -265,6 +266,10 @@ function AsksSheet({ chakra, open, onClose }: { chakra: ChakraId; open: boolean;
   const chain = useRef<Promise<void>>(Promise.resolve());
   const fields = useRef(new Map<string, HTMLTextAreaElement>());
   const want = useRef<string | null>(null);
+  // PLAN-SIGN-LINES.md L1: the sign's italic line on the sheet's first rule, kept through setLine as he leaves it
+  const [line, setLineText] = useState('');
+  const lineRef = useRef('');
+  const lineSaved = useRef('');
 
   const show = (deck: { open: DeckAsk[]; resolved: DeckAsk[] }, typed?: Map<string, string>) => {
     // a rule typed on while the write ran keeps what is on it
@@ -281,7 +286,12 @@ function AsksSheet({ chakra, open, onClose }: { chakra: ChakraId; open: boolean;
     let on = true;
     blankRef.current = '';
     setBlank('');
-    deckOf(chakra).then(deck => { if (on) { show(deck); setRead(true); } }, () => undefined);
+    Promise.all([deckOf(chakra), lineOf(chakra)]).then(([deck, l]) => {
+      if (!on) return;
+      show(deck);
+      lineRef.current = l; lineSaved.current = l; setLineText(l);
+      setRead(true);
+    }, () => undefined);
     return () => { on = false; };
   }, [open, chakra]);
 
@@ -296,7 +306,7 @@ function AsksSheet({ chakra, open, onClose }: { chakra: ChakraId; open: boolean;
     el.setSelectionRange(el.value.length, el.value.length);
   });
   // the line height changes with the light, so each rule is measured again
-  useLayoutEffect(() => { fields.current.forEach(grow); }, [rows, blank, read, light.value]);
+  useLayoutEffect(() => { fields.current.forEach(grow); }, [rows, blank, line, read, light.value]);
 
   /** Writes the rules as they stand, one write at a time. */
   const keep = () => {
@@ -317,7 +327,21 @@ function AsksSheet({ chakra, open, onClose }: { chakra: ChakraId; open: boolean;
     });
     return chain.current;
   };
-  const close = () => { void keep(); onClose(); };
+  /** Writes the line as it stands, in the same queue; a rule left empty puts the starter back on it (setLine). */
+  const keepLine = () => {
+    chain.current = chain.current.then(async () => {
+      const typed = lineRef.current;
+      if (typed.replace(/\s+/g, ' ').trim() === lineSaved.current) return;
+      try {
+        const l = await setLine(chakra, typed);
+        lineSaved.current = l;
+        if (lineRef.current === typed) { lineRef.current = l; setLineText(l); }
+        shelfVersion.value++;
+      } catch { /* locked again under the thumb: nothing was written */ }
+    });
+    return chain.current;
+  };
+  const close = () => { void keepLine(); void keep(); onClose(); };
 
   const bringBack = async (q: DeckAsk) => {
     await keep();
@@ -354,6 +378,19 @@ function AsksSheet({ chakra, open, onClose }: { chakra: ChakraId; open: boolean;
     <Sheet open={open} onClose={close} title={`${chakraOf(chakra).name} asks`}>
       <div class="ck-asks-sheet">
         {/* PLAN-SIGN-LINES.md L1: the sign's italic line takes the first rule here, before the open questions */}
+        {read && (
+          <textarea ref={el => { if (el) fields.current.set(LINE, el); else fields.current.delete(LINE); }}
+            class="fs-input fs-area fs-wise ck-deck-rule ck-line-rule" rows={1} value={line} aria-label="The line" autocomplete="off" spellcheck
+            enterkeyhint="next" data-rule={LINE}
+            onInput={e => { grow(e.currentTarget); lineRef.current = e.currentTarget.value; setLineText(e.currentTarget.value); }}
+            onBlur={() => void keepLine()}
+            onKeyDown={e => {
+              if (e.key !== 'Enter' || e.isComposing) return;
+              // one line: Return goes on to the first question
+              e.preventDefault();
+              fields.current.get(rowsRef.current[0]?.id ?? BLANK)?.focus();
+            }} />
+        )}
         {read && (
           <div class="ck-deck" role="group" aria-label="Open">
             {rows.map((r, i) => rule(r.id, r.text, 'A question', i))}
