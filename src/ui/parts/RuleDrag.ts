@@ -56,6 +56,20 @@ export function useRuleDrag({ value, onInput, onCommit, onCancel, disabled, tick
     if (drag.current || keyed.current) { drag.current = null; keyed.current = null; setLive(null); onCancel?.(); }
   }, [disabled]);
 
+  // iOS: touch-action pan-y does not keep the page still once a drag is taken. A thumb sweeps in an arc, and as soon as
+  // it drifts down the page takes the touch for its scroll (or its rubber band), the drag is cancelled and the mark goes
+  // back where it was, so the rule seems dead (Tommy on the phone, 2026-11-17, after the capture fix). A taken drag
+  // holds the page: its touchmoves are prevented, by a listener that is not passive and is on the rule before the
+  // touch begins (iOS does not reliably honour one added mid-touch). An undecided touch is left alone, so a touch
+  // that goes down first still scrolls.
+  useEffect(() => {
+    const el = rule.current;
+    if (!el) return;
+    const hold = (e: TouchEvent) => { if (drag.current?.taken && e.cancelable) e.preventDefault(); };
+    el.addEventListener('touchmove', hold, { passive: false });
+    return () => el.removeEventListener('touchmove', hold);
+  }, []);
+
   const width = () => Math.max(TRAVEL_PX, rule.current!.getBoundingClientRect().width);
   const land = (next: number, prev: number) => { const e = end(next); if (e !== null && e !== end(prev)) tick(tickName); };
   const show = (v: number) => { setLive(v); onInput?.(v); };
