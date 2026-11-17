@@ -1,14 +1,14 @@
 // PLAN-TIERS.md B2: the drag's geometry (src/ui/be/drag.ts), with no browser. A list is laid out here as Be draws it
-// while a row is lifted: each tier's heading (a rule's margin above it), its rows (two rules each) and its landing rule;
-// then each shelf's word (a rule's margin above it), its landing rule and its rows.
+// while a row is lifted: for each place (PLAN-FOLDS.md G2: the shelves as the tiers) its heading (a rule's margin above
+// it), then, open, its rows (two rules each) and its landing rule, its foot; folded, the heading alone.
 import { describe, it, expect } from 'vitest';
 import type { Value } from '../../src/db/schema';
 import type { Tiers, ValuePlace } from '../../src/model/values';
-import { carry, collapse, edgeSpeed, same, target, whereIs, type Box } from '../../src/ui/be/drag';
+import { aim, carry, collapse, edgeSpeed, fingerOn, same, target, whereIs, type Box } from '../../src/ui/be/drag';
 import { slots } from '../../src/ui/be/tiers';
 
 const R = 28;
-type Spec = { place: ValuePlace; rows: string[] };
+type Spec = { place: ValuePlace; rows: string[]; folded?: boolean };
 /** The boxes of a lifted list: [place, row ids] in run order; rows are 2R, headings, words and rules R, with R above
  *  each heading and each shelf word. Returns the boxes and each row's top by id. */
 function lay(specs: Spec[]): { boxes: (Box & { id?: string })[]; top: Record<string, number> } {
@@ -17,15 +17,10 @@ function lay(specs: Spec[]): { boxes: (Box & { id?: string })[]; top: Record<str
   const put = (b: Omit<Box, 'top' | 'bottom'> & { id?: string }, h: number) => { boxes.push({ ...b, top: y, bottom: y + h }); if (b.id) top[b.id] = y; y += h; };
   for (const s of specs) {
     y += R;
-    if (typeof s.place === 'number') {
-      put({ kind: 'heading', place: s.place }, R);
-      for (const id of s.rows) put({ kind: 'row', place: s.place, id }, 2 * R);
-      put({ kind: 'land', place: s.place }, R);
-    } else {
-      put({ kind: 'shelf', place: s.place }, R);
-      put({ kind: 'land', place: s.place }, R);
-      for (const id of s.rows) put({ kind: 'row', place: s.place, id }, 2 * R);
-    }
+    if (s.folded) { put({ kind: 'heading', place: s.place, folded: true }, R); continue; }
+    put({ kind: 'heading', place: s.place }, R);
+    for (const id of s.rows) put({ kind: 'row', place: s.place, id }, 2 * R);
+    put({ kind: 'land', place: s.place }, R);
   }
   return { boxes, top };
 }
@@ -41,8 +36,8 @@ const LIST: Spec[] = [
 ];
 // with 'b' lifted and collapsed out, the run on the content axis is:
 //   heading-1 28..56, land-1 56..84, heading-2 112..140, a 140..196, c 196..252, land-2 252..280,
-//   heading-3 308..336, land-3 336..364, shelf-resting 392..420, land-resting 420..448,
-//   shelf-legacy 476..504, land-legacy 504..532, l 532..588
+//   heading-3 308..336, land-3 336..364, heading-resting 392..420, land-resting 420..448,
+//   heading-legacy 476..504, l 504..560, land-legacy 560..588
 
 describe('the lifted row goes where its top edge has passed the middles of the slots', () => {
   it('at rest it stays where it is', () => {
@@ -83,19 +78,22 @@ describe('the lifted row goes where its top edge has passed the middles of the s
     expect(at(LIST, 'b', 351)).toEqual({ to: 3, index: 0 });
   });
 
-  it('into each shelf: past its word, and over its landing rule, is the shelf\'s head', () => {
+  it('into each open shelf: past its heading is its head; its landing rule is its foot, as a tier\'s is (G2)', () => {
     expect(at(LIST, 'b', 405)).toEqual({ to: 3, index: 0 });
     expect(at(LIST, 'b', 407)).toEqual({ to: 'resting', index: 0 });
     expect(at(LIST, 'b', 435)).toEqual({ to: 'resting', index: 0 });
     expect(at(LIST, 'b', 489)).toEqual({ to: 'resting', index: 0 });
-    expect(at(LIST, 'b', 491 + 2)).toEqual({ to: 'legacy', index: 0 });
-    expect(at(LIST, 'b', 519)).toEqual({ to: 'legacy', index: 0 });
+    expect(at(LIST, 'b', 493)).toEqual({ to: 'legacy', index: 0 });
+    expect(at(LIST, 'b', 531)).toEqual({ to: 'legacy', index: 0 });
+    // past l, and over Legacy's rule: its foot, after l
+    expect(at(LIST, 'b', 533)).toEqual({ to: 'legacy', index: 1 });
+    expect(at(LIST, 'b', 575)).toEqual({ to: 'legacy', index: 1 });
   });
 
   it('past the foot is the end of the last place', () => {
     expect(at(LIST, 'b', 561)).toEqual({ to: 'legacy', index: 1 });
     expect(at(LIST, 'b', 99999)).toEqual({ to: 'legacy', index: 1 });
-    // with nothing on Legacy, past its rule is still Legacy's head
+    // with nothing on Legacy, past its rule is its foot, which is its head
     const bare: Spec[] = [{ place: 1, rows: ['a'] }, { place: 2, rows: [] }, { place: 3, rows: [] }, { place: 'resting', rows: [] }, { place: 'legacy', rows: [] }];
     expect(at(bare, 'a', 99999)).toEqual({ to: 'legacy', index: 0 });
   });
@@ -104,8 +102,8 @@ describe('the lifted row goes where its top edge has passed the middles of the s
     // l lifted: the run above it is as before, b among the rows
     const { boxes, top } = lay(LIST);
     const others = boxes.filter(x => x.id !== 'l');
-    expect(top.l).toBe(588);
-    expect(target(collapse(others, top.l, top.l + 2 * R), 588)).toEqual({ to: 'legacy', index: 0 });
+    expect(top.l).toBe(560);
+    expect(target(collapse(others, top.l, top.l + 2 * R), 560)).toEqual({ to: 'legacy', index: 0 });
     // up to Second's foot (c: 252..308, its middle 280; Second's rule 308..336, middle 322)
     expect(target(collapse(others, top.l, top.l + 2 * R), 300)).toEqual({ to: 2, index: 3 });
     expect(target(collapse(others, top.l, top.l + 2 * R), 279)).toEqual({ to: 2, index: 2 });
@@ -119,6 +117,73 @@ describe('the lifted row goes where its top edge has passed the middles of the s
   it('it never rocks: half a row each way from where it sits', () => {
     // b sits at index 1 with its top at 196 (collapsed); it must travel past c's middle (224) to move on
     for (const t of [170, 196, 223]) expect(at(LIST, 'b', t)).toEqual({ to: 2, index: 1 });
+  });
+});
+
+describe('folded places keep their fold under a lift (PLAN-FOLDS.md G2)', () => {
+  // First open over a, Second folded (its two rows are not drawn), Third open over b, both shelves folded and empty.
+  // Drawn as it is with b lifted: heading-1 28..56, a 56..112, land-1 112..140, heading-2~ 168..196, heading-3 224..252,
+  // b 252..308, land-3 308..336, heading-resting~ 364..392, heading-legacy~ 420..448. Collapsed (b out, 56 up from 308):
+  // land-3 252..280, heading-resting~ 308..336, heading-legacy~ 364..392.
+  const F: Spec[] = [
+    { place: 1, rows: ['a'] }, { place: 2, rows: [], folded: true }, { place: 3, rows: ['b'] },
+    { place: 'resting', rows: [], folded: true }, { place: 'legacy', rows: [], folded: true },
+  ];
+  const feet = (p: ValuePlace) => (p === 1 ? 1 : p === 2 ? 2 : 0);
+  const { boxes, top } = lay(F);
+  const others = boxes.filter(b => b.id !== 'b');
+  const edge = (t: number) => target(collapse(others, top.b, top.b + 2 * R), t, feet);
+  const lift = { top: top.b, bottom: top.b + 2 * R, place: 3 as ValuePlace, infold: false };
+
+  it('the gap under a folded heading is its foot, approached from above', () => {
+    expect(edge(181)).toEqual({ to: 1, index: 1 });
+    expect(edge(183)).toEqual({ to: 2, index: 2 });
+  });
+
+  it('and from below, until the top edge passes the next heading\'s middle', () => {
+    expect(edge(237)).toEqual({ to: 2, index: 2 });
+    expect(edge(239)).toEqual({ to: 3, index: 0 });
+  });
+
+  it('a finger on a folded line is in that place, its foot, whatever the top edge says', () => {
+    // the top edge is over First, the finger on Second's line
+    expect(aim(others, lift, 140, 180, feet)).toEqual({ to: 2, index: 2 });
+    // off the line, the top edge decides
+    expect(aim(others, lift, 140, 160, feet)).toEqual({ to: 1, index: 1 });
+  });
+
+  it('the finger is tested against the heading where it is drawn, not where it would lie collapsed', () => {
+    // Resting's line is drawn at 364..392 (it lies at 308..336 collapsed)
+    expect(aim(others, lift, 300, 370, feet)).toEqual({ to: 'resting', index: 0 });
+    expect(fingerOn(others, 320)).toBeNull();
+    expect(fingerOn(others, 430)).toBe('legacy');
+    // an open heading is no folded line
+    expect(fingerOn(others, 30)).toBeNull();
+  });
+
+  it('riding under a folded heading, its own slot counts as that line, so a still finger is not let go', () => {
+    // b drawn under Second's line, one rule: 196..224
+    expect(fingerOn(others, 210, { place: 2, bottom: 224 })).toBe(2);
+    expect(fingerOn(others, 210, { place: 3, bottom: 224 })).toBeNull();
+    expect(fingerOn(others, 210)).toBeNull();
+  });
+
+  it('with First folded, above everything is First\'s foot', () => {
+    const G: Spec[] = [{ place: 1, rows: [], folded: true }, { place: 2, rows: ['c', 'd'] }];
+    const g = lay(G);
+    const o = g.boxes.filter(b => b.id !== 'd');
+    const f = (p: ValuePlace) => (p === 1 ? 3 : 1);
+    expect(target(collapse(o, g.top.d, g.top.d + 2 * R), -500, f)).toEqual({ to: 1, index: 3 });
+    expect(target(collapse(o, g.top.d, g.top.d + 2 * R), 43, f)).toEqual({ to: 1, index: 3 });
+  });
+
+  it('with nothing folded, feet change nothing', () => {
+    const { boxes: b2, top: t2 } = lay(LIST);
+    const o = b2.filter(b => b.id !== 'b');
+    const f = (p: ValuePlace) => (p === 2 ? 2 : p === 'legacy' ? 1 : 0);
+    for (const t of [-500, 43, 127, 169, 225, 323, 407, 435, 533, 99999]) {
+      expect(target(collapse(o, t2.b, t2.b + 2 * R), t, f)).toEqual(target(collapse(o, t2.b, t2.b + 2 * R), t));
+    }
   });
 });
 
@@ -169,15 +234,27 @@ describe('carrying', () => {
 });
 
 describe('the slots while a row is lifted', () => {
-  const shape = (x: Tiers, open = { resting: false, legacy: false }) => slots(x, open, true).map(s => (s.kind === 'row' ? `${s.place}:${s.value.id}` : s.key));
-  it('every tier ends in its landing rule; both shelves show open, empty or not, each opening with one', () => {
-    expect(shape(T({ second: [v('a')] }))).toEqual(['heading-1', 'land-1', 'heading-2', '2:a', 'land-2', 'heading-3', 'land-3', 'shelf-resting', 'land-resting', 'shelf-legacy', 'land-legacy']);
-    const s = slots(T({ legacy: [v('l')] }), { resting: false, legacy: false }, true);
-    expect(s.filter(x => x.kind === 'shelf').map(x => x.kind === 'shelf' && x.open)).toEqual([true, true]);
-    expect(shape(T({ legacy: [v('l')] })).slice(-3)).toEqual(['shelf-legacy', 'land-legacy', 'legacy:l']);
+  const shape = (x: Tiers, folded: Parameters<typeof slots>[1], lifted: string) =>
+    slots(x, folded, lifted).map(s => (s.kind === 'row' ? `${s.place}:${s.value.id}${s.infold ? '^' : ''}` : s.kind === 'heading' && s.folded ? `${s.key}~` : s.key));
+  it('every place keeps its fold; every open place ends in its landing rule; both shelves show, empty or not', () => {
+    expect(shape(T({ second: [v('a')] }), {}, 'a')).toEqual(['heading-1', 'land-1', 'heading-2', '2:a', 'land-2', 'heading-3', 'land-3', 'heading-resting~', 'heading-legacy~']);
+    expect(shape(T({ second: [v('a')] }), { resting: false, legacy: false }, 'a').slice(-4)).toEqual(['heading-resting', 'land-resting', 'heading-legacy', 'land-legacy']);
+  });
+  it('an open shelf\'s landing rule is at its foot, as a tier\'s', () => {
+    expect(shape(T({ first: [v('a')], legacy: [v('l')] }), { legacy: false }, 'a').slice(-3)).toEqual(['heading-legacy', 'legacy:l', 'land-legacy']);
+  });
+  it('a folded place is its heading alone, rows or none, unless the lifted row rides there: then that row alone', () => {
+    const t = T({ first: [v('a')], second: [v('x'), v('y')] });
+    expect(shape(t, { '2': true }, 'a')).toEqual(['heading-1', '1:a', 'land-1', 'heading-2~', 'heading-3', 'land-3', 'heading-resting~', 'heading-legacy~']);
+    // a carried to Second's foot (drag.ts carry), Second folded
+    const c = T({ second: [v('x'), v('y'), v('a')] });
+    expect(shape(c, { '2': true }, 'a')).toEqual(['heading-1', 'land-1', 'heading-2~', '2:a^', 'heading-3', 'land-3', 'heading-resting~', 'heading-legacy~']);
+    // every place folded and the row riding on Legacy
+    const all = { '1': true, '2': true, '3': true, resting: true, legacy: true };
+    expect(shape(T({ legacy: [v('a')] }), all, 'a')).toEqual(['heading-1~', 'heading-2~', 'heading-3~', 'heading-resting~', 'heading-legacy~', 'legacy:a^']);
   });
   it('the keys stay unique', () => {
-    const keys = slots(T({ first: [v('a')], resting: [v('r')], legacy: [v('l')] }), { resting: true, legacy: false }, true).map(x => x.key);
+    const keys = slots(T({ first: [v('a')], resting: [v('r')], legacy: [v('l')] }), { resting: false }, 'a').map(x => x.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
 });

@@ -61,15 +61,17 @@ test('tiers walkthrough: each of the nine steps starts afresh in a sandboxed fra
   const lifted = app.locator('.fs-values .fs-be-row.lift');
   const T = { timeout: 10_000 };
 
-  // 1 every value in Second, First and Third on their landing rules, both shelves shut
+  // 1 every value in Second, First and Third on their landing rules, Resting and Legacy folded into their lines
   await at(1);
   await expect(words('2')).toHaveText(['honesty', 'courage', 'presence', 'patience', 'craft'], T);
   await expect(app.locator('[data-land]')).toHaveCount(2);
-  await expect(app.locator('.fs-be-shelf button')).toHaveText(['Resting', 'Legacy']);
-  // 2 honesty held: nothing open, a rule at the end of every tier and at the head of both shelves
+  await expect(app.locator('.fs-be-head .w')).toHaveText(['First', 'Second', 'Third', 'Resting', 'Legacy']);
+  await expect(app.locator('.fs-be-head[data-folded] .run')).toHaveText(['play', 'perfection']);
+  // 2 honesty held: nothing open, a rule at the end of every tier, and the shelves still folded, each line dashed
   await next(); await at(2);
   await expect(lifted.locator('.a')).toHaveText('honesty', T);
-  await expect(app.locator('[data-land]')).toHaveCount(5);
+  await expect(app.locator('[data-land]')).toHaveCount(3);
+  await expect(app.locator('.fs-be-head.folded.land')).toHaveCount(2);
   await expect(app.locator('.fs-value-body')).toHaveCount(0);
   // 3 carried over Second's heading into First
   await next(); await at(3);
@@ -83,14 +85,16 @@ test('tiers walkthrough: each of the nine steps starts afresh in a sandboxed fra
   await next(); await at(5);
   await expect(app.getByRole('group', { name: 'Place' }).getByRole('button', { name: 'First' })).toHaveAttribute('aria-pressed', 'true', T);
   await expect(app.locator('.fs-be-since')).toHaveText('First since 11 / 12 / 26');
-  // 6 craft held over Resting
+  // 6 craft held on Resting's folded line: it rides under it, its word last in the run
   await next(); await at(6);
   await expect(lifted).toHaveAttribute('data-place', 'resting', T);
   await expect(lifted.locator('.a')).toHaveText('craft');
-  // 7 patience held over Legacy
+  await expect(app.locator('[data-heading="resting"] .run .riding')).toHaveText('craft');
+  // 7 patience held on Legacy's folded line
   await next(); await at(7);
   await expect(lifted).toHaveAttribute('data-place', 'legacy', T);
   await expect(lifted.locator('.a')).toHaveText('patience');
+  await expect(app.locator('[data-heading="legacy"] .run .riding')).toHaveText('patience');
   // 8 Legacy open, each with its dates
   await next(); await at(8);
   await expect(app.locator('.fs-value-dates')).toHaveText(['8 / 3 / 26 to 11 / 12 / 26', '11 / 6 / 26 to 11 / 12 / 26'], T);

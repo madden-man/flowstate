@@ -42,9 +42,11 @@ export function useLongPress<T extends HTMLElement = HTMLElement>(onLong: (targe
   return {
     onPointerDown: (e: PointerEvent) => {
       if (e.button > 0) return;
+      // a new touch: the click a lift was waiting to swallow is not coming (a moved touch makes none on iOS), so a tap
+      // on anything after a drag, a row or not (Be's headings, PLAN-FOLDS.md G1), is answered
+      fired.current = false;
       const el = pick(e);
       if (!el) return;
-      fired.current = false;
       cancel();
       el.classList.add('holding');
       st.current = { x: e.clientX, y: e.clientY, el, t: setTimeout(() => { fired.current = true; cancel(); cb.current(el, e); }, HOLD_MS) };

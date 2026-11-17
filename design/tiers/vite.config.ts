@@ -1,4 +1,4 @@
-// Builds the tiers walkthrough's live app (design/tiers/src/main.ts, which boots src/main.tsx) as ONE classic
+// Builds the Be walkthroughs' live app (design/tiers/src/main.ts here, design/folds/src/main.ts through walkthroughConfig; each boots src/main.tsx) as ONE classic
 // script and one stylesheet, as design/motion/vite.config.ts does and for the same reason: the artifact host serves the
 // page from an opaque origin, where a module script (fetched with CORS) may not load. The seams are the motion
 // walkthrough's own (no service worker, no persist(), an awaited hook before the first render, no location.origin).
@@ -29,18 +29,22 @@ const seams = (): Plugin => ({
   },
 });
 
-export default defineConfig({
-  root: here('.'),
+/** The walkthrough's build for the directory at root (its src/main.ts), as one classic script named name; design/folds
+ *  builds through this too. */
+export const walkthroughConfig = (root: string, name: string) => defineConfig({
+  root,
   plugins: [seams(), preact()],
   define: { 'process.env.NODE_ENV': '"production"' },
   build: {
     target: 'es2022',
-    outDir: here('./dist'),
+    outDir: `${root}/dist`,
     emptyOutDir: true,
     sourcemap: false,
     copyPublicDir: false,
     minify: true,
     cssCodeSplit: false,
-    lib: { entry: here('./src/main.ts'), formats: ['iife'], name: 'FlowStateTiers', fileName: () => 'app.js', cssFileName: 'app' },
+    lib: { entry: `${root}/src/main.ts`, formats: ['iife'], name, fileName: () => 'app.js', cssFileName: 'app' },
   },
 });
+
+export default walkthroughConfig(here('.').replace(/\/$/, ''), 'FlowStateTiers');

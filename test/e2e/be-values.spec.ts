@@ -124,20 +124,24 @@ test('Resting puts a value down and brings it back', async ({ page }) => {
   // B1: the five words on the open value, not the sheet, say where it sits
   await row(page, 'thoughtful').getByRole('group', { name: 'Place' }).getByRole('button', { name: 'Resting' }).click();
   await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', 'resting');
-  // it lands on Resting's shelf, which opens, still open itself
-  const resting = page.getByRole('button', { name: 'Resting', exact: true }).and(page.locator('.fs-be-shelf button'));
+  // it lands in Resting, which was folded and opens (PLAN-FOLDS.md G1), still open itself
+  const resting = page.locator('.fs-values .fs-be-head[data-place="resting"] > button');
   await expect(resting).toHaveAttribute('aria-expanded', 'true');
   await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'true');
+  // folding Resting puts its row away, open as it was: the place is its one line, and the value is shut
   await resting.click();
   await expect(words(page)).toHaveText(['selfless']);
+  await expect(resting.locator('.run')).toHaveText('thoughtful');
   await resting.click();
   await expect(words(page)).toHaveText(['selfless', 'thoughtful']);
+  await expect(row(page, 'thoughtful').locator('.fs-dichotomy')).toHaveAttribute('aria-expanded', 'false');
+  await row(page, 'thoughtful').locator('.fs-dichotomy').click();
   await row(page, 'thoughtful').getByRole('group', { name: 'Place' }).getByRole('button', { name: 'Second' }).click();
   await expect(row(page, 'thoughtful')).toHaveAttribute('data-place', '2');
   await page.reload();
   await cross(page);
   await expect(words(page)).toHaveText(['selfless', 'thoughtful']);
-  await expect(page.locator('.fs-be-shelf')).toHaveCount(0);
+  await expect(page.locator('.fs-be-head[data-place="resting"], .fs-be-head[data-place="legacy"]')).toHaveCount(0);
 });
 
 test('Delete is two taps on the same row, and the value is gone after a reload', async ({ page }) => {
