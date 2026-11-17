@@ -6,7 +6,8 @@ import { freshDB } from '../db/helpers';
 import { store } from '../../src/db/fields';
 import { linksOf, messagesOf, questions, today, writeLine, setKept } from '../../src/model/pages';
 import { councilById, councilPages, speak } from '../../src/model/council';
-import { askToday, bringIt, keptStar, letterToday, oneLine, voiceCouncil, writeFromIt } from '../../src/model/into';
+import { askInJournal, askToday, bringIt, keptStar, letterToday, oneLine, voiceCouncil, writeFromIt } from '../../src/model/into';
+import { STARTER_ASKS } from '../../src/model/acts';
 import { STARS_MAX, starOfDay, starsOf } from '../../src/model/stars';
 
 beforeEach(async () => { await freshDB(); });
@@ -65,6 +66,44 @@ describe('Write from it and Letter', () => {
     const p = await letterToday('heart', T0 + 1000);
     expect(p.sign).toEqual({ chakra: 'heart' });
     expect((await messagesOf(p.id)).map(m => m.text)).toEqual(['restless']);
+  });
+});
+
+describe('a sign\'s question into the journal (2026-11-17)', () => {
+  const q = STARTER_ASKS.heart[1];
+  it('opens today\'s page, linked to the sign, with the question as a wise line', async () => {
+    const r = await askInJournal('heart', q, T0);
+    const t = await today(new Date(T0));
+    expect(t.page!.id).toBe(r.page.id);
+    expect(t.page!.sign).toEqual({ chakra: 'heart' });
+    expect(r.message.text).toBe(q);
+    expect((await messagesOf(r.page.id)).map(m => [m.text, !!m.wise])).toEqual([[q, true]]);
+    expect(await questions()).toEqual([]);
+  });
+  it('writes it once a day: tapped again it opens on the line that is there, after what he wrote', async () => {
+    await writeLine(undefined, undefined, { text: 'Morning.' }, T0 - 1000);
+    const a = await askInJournal('heart', q, T0);
+    await writeLine(a.page, undefined, { text: 'The move.' }, T0 + 1000);
+    const b = await askInJournal('heart', `  ${q}\n`, T0 + 2000);
+    expect(b.message.id).toBe(a.message.id);
+    expect((await messagesOf(a.page.id)).map(m => [m.text, !!m.wise])).toEqual([['Morning.', false], [q, true], ['The move.', false]]);
+    // another question goes after them; the next day the same question is written again on that day's page
+    await askInJournal('heart', STARTER_ASKS.heart[0], T0 + 3000);
+    expect((await messagesOf(a.page.id)).map(m => m.text)).toEqual(['Morning.', q, 'The move.', STARTER_ASKS.heart[0]]);
+    const tomorrow = await askInJournal('heart', q, T0 + 24 * 3600e3);
+    expect(tomorrow.page.id).not.toBe(a.page.id);
+    expect((await messagesOf(tomorrow.page.id)).map(m => m.text)).toEqual([q]);
+  });
+  it('the page is linked to the sign the question was tapped on, even when the line was there', async () => {
+    await askInJournal('heart', 'What now?', T0);
+    const r = await askInJournal('root', 'What now?', T0 + 1000);
+    expect(r.page.sign).toEqual({ chakra: 'root' });
+    expect((await today(new Date(T0 + 1000))).page!.sign).toEqual({ chakra: 'root' });
+    expect(await store.all('messages')).toHaveLength(1);
+  });
+  it('refuses to carry nothing', async () => {
+    await expect(askInJournal('heart', '  ', T0)).rejects.toThrow();
+    expect(await store.all('pages')).toEqual([]);
   });
 });
 

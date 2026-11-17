@@ -148,7 +148,7 @@ describe('round trip', () => {
   });
 
   it('the signs\' shelves, marks and days round-trip, plain and sealed (T0)', async () => {
-    const shelfRow = { id: 'heart' as const, picks: [{ id: 'pk1', kind: 'film' as const, title: 'The Big Sick' }], updatedAt: 1000 };
+    const shelfRow = { id: 'heart' as const, picks: [{ id: 'pk1', kind: 'film' as const, title: 'The Big Sick' }], updatedAt: 1000, asks: ['', 'What is heavy tonight?', ''] };
     const marks = [
       { id: 'mk1', chakra: 'heart' as const, touch: 'grieve', text: 'Grandpa', at: 1000 },
       { id: 'mk2', chakra: 'solar-plexus' as const, touch: 'reword', text: 'I sent it', struck: 'I am late', at: 2000 },
@@ -170,12 +170,29 @@ describe('round trip', () => {
     await setKey(await deriveKey('1357', salt, 1000), { salt, iterations: 1000 });
     const sealed = await roundTrip(db);
     const text = JSON.stringify([sealed.tables.signShelves, sealed.tables.marks, sealed.tables.days]);
-    expect(text).not.toMatch(/Big Sick|Grandpa|I sent it|I am late|water/);
+    expect(text).not.toMatch(/Big Sick|heavy tonight|Grandpa|I sent it|I am late|water/);
     const fourth = await freshDB();
     await importData(sealed, 'replace', fourth, await deriveKey('1357', sealed.salt!, sealed.iterations!));
     expect(await fourth.signShelves.toArray()).toEqual([shelfRow]);
     expect((await fourth.marks.toArray()).sort((a, b) => a.at - b.at)).toEqual(marks);
     expect(await fourth.days.toArray()).toEqual([day]);
+  });
+
+  it('a merge brings a sign\'s questions with its shelf when the file\'s row is newer, and keeps this phone\'s when not (2026-11-17)', async () => {
+    const pick = { id: 'pk1', kind: 'film' as const, title: 'Elf' };
+    await store.bulkPut('signShelves', [
+      { id: 'heart', picks: [pick], updatedAt: 2000, asks: ['Who now?', '', ''] },
+      { id: 'root', picks: [pick], updatedAt: 2000, asks: ['', '', 'What held?'] },
+    ]);
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await other.signShelves.bulkPut([
+      { id: 'heart', picks: [], updatedAt: 1000 },
+      { id: 'root', picks: [], updatedAt: 3000, asks: ['Mine', '', ''] },
+    ]);
+    await importData(file, 'merge', other);
+    expect(await other.signShelves.get('heart')).toEqual({ id: 'heart', picks: [pick], updatedAt: 2000, asks: ['Who now?', '', ''] });
+    expect(await other.signShelves.get('root')).toEqual({ id: 'root', picks: [], updatedAt: 3000, asks: ['Mine', '', ''] });
   });
 
   it('a file from before the tasks (TASKS_VERSION - 1) imports whole, with the three new tables empty', async () => {

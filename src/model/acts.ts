@@ -4,6 +4,7 @@
 // The API later packages build on:
 //   TOUCHES, touchesOf(chakra), touchOf(chakra, id), leadOf(chakra)  the touches of section 2, at most four a sign
 //   STARTERS, shelf(chakra), addPick(chakra, pick), movePick(chakra, id, to), removePick(chakra, id)   section 4
+//   STARTER_ASKS, asksOf(chakra), setAsk(chakra, i, text)        the three questions under the shelf (2026-11-17)
 //   writeMark(chakra, touch, text, { struck, at }), marksOf(chakra, touch?), stones()                     section 7
 //   BASICS, dayOf(t, place), basicsToday(now), setBasic(basic, lit, now)                                  section 7
 // A touch says where it lands and what it carries (section 3); the page that acts on it is T2 to T4's. Everything he
@@ -13,6 +14,7 @@ import { keyState, store } from '../db/fields';
 import { PICKS, pickId } from '../db/seed/picks';
 import { CHAKRA_IDS, isChakraId, type ChakraId } from './mountain';
 import { dayKey } from './pages';
+import { oneLine } from './into';
 import { sunTimes } from './sun';
 
 // ---- the touches (PLAN-TASKS.md section 2) ----
@@ -108,34 +110,54 @@ export const leadOf = (chakra: ChakraId): Touch => TOUCHES[chakra].find(x => x.l
 
 // ---- the shelves (PLAN-TASKS.md section 4) ----
 
-/** The starter albums of section 4, three a sign, by their titles in the seed picks (db/seed/picks.ts). Two read longer
- *  there than in the plan: "v2.0 (Deluxe Edition)" and "Celeste (Original Soundtrack)". His to replace. */
+/** The starter albums of section 4, five a sign: the plan's three first, in its order, then two more (PLAN-TASKS.md
+ *  section 4; Tommy, 2026-11-17: "five albums on each flow"). By title, found in the seed picks (db/seed/picks.ts) or,
+ *  for one not seeded there, in the starter albums below. Two read longer there than in the plan: "v2.0 (Deluxe
+ *  Edition)" and "Celeste (Original Soundtrack)". His to replace. */
 export const STARTER_TITLES: Readonly<Record<ChakraId, readonly string[]>> = {
-  crown: ['Ágætis byrjun', 'Raising Your Voice... Trying to Stop an Echo', 'Takk...'],
-  'third-eye': ['Dive', 'v2.0 (Deluxe Edition)', 'Awake'],
-  throat: ['x Infinity', 'The Incredible True Story', 'Professional Rapper'],
-  heart: ['Atlas: I', 'Carrie & Lowell', 'Birthplace'],
-  'solar-plexus': ['Gossamer', 'Celeste (Original Soundtrack)', 'Through the Deep, Dark Valley'],
-  sacral: ['In Between Dreams', 'Bahamas Is Afie', 'The Head and the Heart'],
-  root: ['Romantic Piano', 'Solitudes', 'All We Grow'],
+  crown: ['Ágætis byrjun', 'Raising Your Voice... Trying to Stop an Echo', 'Takk...', 'Nocturnes', 'Ma Fleur'],
+  'third-eye': ['Dive', 'v2.0 (Deluxe Edition)', 'Awake', 'Knee-Deep In the North Sea', 'In a Safe Place'],
+  throat: ['x Infinity', 'The Incredible True Story', 'Professional Rapper', 'Alfredo 2', 'Lahai'],
+  heart: ['Atlas: I', 'Carrie & Lowell', 'Birthplace', 'Bon Iver, Bon Iver', 'Hundred Acres'],
+  'solar-plexus': ['Gossamer', 'Celeste (Original Soundtrack)', 'Through the Deep, Dark Valley', 'Strange Trails', 'Funeral'],
+  sacral: ['In Between Dreams', 'Bahamas Is Afie', 'The Head and the Heart', 'Lonesome Dreams', 'My Head Is An Animal (The Cabin Sessions)'],
+  root: ['Romantic Piano', 'Solitudes', 'All We Grow', 'Mia Gargaret', 'Around the Well'],
 };
 
-const seededAlbum = (title: string): OnPick => {
+/** Starters that are not seed picks: albums from his own Poems playlist ("For the Poems and the Prose; May They Dance
+ *  Forever"), each with its artist and Spotify album id, read from the playlist on 2026-11-17 and checked against
+ *  Spotify's own title for the id. test/fixtures/picks-titles.json lists them under "starters". */
+export const STARTER_ALBUMS: readonly { by: string; title: string; albumId: string }[] = [
+  { by: 'The Cinematic Orchestra', title: 'Ma Fleur', albumId: '5VrMypyjjBGzObGwnEHIJO' },
+  { by: 'Portico Quartet', title: 'Knee-Deep In the North Sea', albumId: '2A8c5znvmslp2I77dTBV1K' },
+  { by: 'The Album Leaf', title: 'In a Safe Place', albumId: '1sZjWlyc9yL13U5q1nTQ8a' },
+  { by: 'Freddie Gibbs', title: 'Alfredo 2', albumId: '5WrpCQmbTUZuzNxGCPUFSV' },
+  { by: 'Sampha', title: 'Lahai', albumId: '5GuWww4OaildzkmTTlfMN3' },
+  { by: 'Arcade Fire', title: 'Funeral', albumId: '6ZB8qaR9JNuS0Q0bG1nbcH' },
+  { by: 'Gia Margaret', title: 'Mia Gargaret', albumId: '0NZqwH80237QvwcJDlOia7' },
+  { by: 'Iron & Wine', title: 'Around the Well', albumId: '5tOzXq44rU4yCCVY94f6m7' },
+];
+
+const starterAlbum = (title: string): OnPick => {
   const p = PICKS.flatMap(s => s.picks).find(x => x.kind === 'album' && x.title === title);
-  if (!p) throw new Error(`No seeded album ${title}`);
-  return p;
+  if (p) return p;
+  const a = STARTER_ALBUMS.find(x => x.title === title);
+  if (!a) throw new Error(`No starter album ${title}`);
+  return { id: '', kind: 'album', title: a.title, by: a.by, albumId: a.albumId };
 };
 
-/** A sign's starters as picks: the seeded album (its artist and Spotify id), under an id of the sign's own. */
+/** A sign's starters as picks: the album (its artist and Spotify id), under an id of the sign's own. */
 const startersOf = (chakra: ChakraId): OnPick[] =>
-  STARTER_TITLES[chakra].map(title => ({ ...seededAlbum(title), id: pickId(chakra, title) }));
+  STARTER_TITLES[chakra].map(title => ({ ...starterAlbum(title), id: pickId(chakra, title) }));
 
 export const STARTERS: Readonly<Record<ChakraId, readonly OnPick[]>> =
   Object.fromEntries(CHAKRA_IDS.map(c => [c, startersOf(c)])) as Record<ChakraId, OnPick[]>;
 
 const needSign = (chakra: ChakraId) => { if (!isChakraId(chakra)) throw new Error(`Not a sign: ${String(chakra)}`); };
 
-/** The sign's shelf, in his order: its starters until he first changes it. A locked journal has none to give. */
+/** The sign's shelf, in his order: its starters until he first changes it. A shelf he has changed (it has a row) is
+ *  read as he left it, whatever the starters are now: a starter added later never tops it up. A locked journal has
+ *  none to give. */
 export async function shelf(chakra: ChakraId): Promise<OnPick[]> {
   needSign(chakra);
   if (keyState() === 'locked') return [];
@@ -150,7 +172,8 @@ async function changeShelf(chakra: ChakraId, change: (picks: OnPick[]) => OnPick
   return store.unit(async u => {
     const row = await u.get('signShelves', chakra);
     const picks = change(row ? [...row.picks] : STARTERS[chakra].map(p => ({ ...p })));
-    await u.put('signShelves', { id: chakra, picks, updatedAt: now });
+    // the row's questions go on as they were (they share the row, and its seal)
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(row?.asks ? { asks: row.asks } : {}) });
     return picks;
   });
 }
@@ -179,6 +202,52 @@ export function movePick(chakra: ChakraId, id: string, to: number, now: Millis =
 /** Takes a pick off the shelf (dragged off it). A shelf emptied stays empty. Returns the shelf. */
 export function removePick(chakra: ChakraId, id: string, now: Millis = Date.now()): Promise<OnPick[]> {
   return changeShelf(chakra, picks => picks.filter(p => p.id !== id), now);
+}
+
+// ---- the asks: three questions under a sign's shelf (Tommy, 2026-11-17) ----
+// "Ask three questions below to prompt journaling. When one is clicked, it opens the journal." The starters are
+// Tommy's to rewrite, written as he asked for them; a tap carries one into today's page (into.ts askInJournal). They
+// are kept on the sign's shelf row (SignShelf.asks), sealed with its picks: once rewritten they are his words.
+
+/** The three questions a sign's page asks until he rewrites them. */
+export const STARTER_ASKS: Readonly<Record<ChakraId, readonly [string, string, string]>> = {
+  crown: ['What are you holding that is not yours to carry?', 'What would tonight be like if this were already settled?', 'What can wait until morning?'],
+  'third-eye': ['What do you actually know, and what are you guessing?', 'What would you tell a friend who saw it this way?', 'What is the question under this one?'],
+  throat: ['What did you not say?', 'Who needs to hear it, and in what words?', 'What do you want them to understand?'],
+  heart: ['Who are you missing?', 'What is heavy today?', 'What was good, even a little?'],
+  'solar-plexus': ['What did you do today that you would not take back?', 'Whose voice is saying you are not enough?', 'What is one thing you will do next?'],
+  sacral: ['What are you feeling, in the body, right now?', 'What did you want today?', 'What have you been avoiding feeling?'],
+  root: ['What is true right here, in this room?', 'What do you need in the next hour?', 'What has held before when it felt like this?'],
+};
+
+/** The three as read: his own at each place he rewrote (row.asks[i] not empty), the starter at the rest. */
+const asksFrom = (chakra: ChakraId, asks?: string[]): string[] => STARTER_ASKS[chakra].map((s, i) => asks?.[i] || s);
+
+/** The sign's three questions, in order: his own where he has rewritten them, else the starters. A locked journal gives []. */
+export async function asksOf(chakra: ChakraId): Promise<string[]> {
+  needSign(chakra);
+  if (keyState() === 'locked') return [];
+  const row = await store.get('signShelves', chakra);
+  if (row?.locked) return [];
+  return asksFrom(chakra, row?.asks);
+}
+
+/** Rewrites question i (0 to 2). Text is made one line and trimmed; an empty text puts the starter back. Refuses while locked. Returns the three.
+ *  Stored as three places, an empty one meaning the starter, so a text that is the starter's is stored as empty and no
+ *  row keeps asks once all three are the starters again. A sign with no row gets one holding its current starters as
+ *  picks, as changeShelf gives it: from then on the shelf reads as it did, and is his. */
+export async function setAsk(chakra: ChakraId, i: number, text: string, now: Millis = Date.now()): Promise<string[]> {
+  needSign(chakra);
+  if (!Number.isInteger(i) || i < 0 || i > 2) throw new Error(`No question ${String(i)}`);
+  const line = oneLine(text);
+  return store.unit(async u => {
+    const row = await u.get('signShelves', chakra);
+    const asks = [0, 1, 2].map(k => row?.asks?.[k] ?? '');
+    asks[i] = line === STARTER_ASKS[chakra][i] ? '' : line;
+    const picks = row ? row.picks : STARTERS[chakra].map(p => ({ ...p }));
+    await u.put('signShelves', { id: chakra, picks, updatedAt: now, ...(asks.some(Boolean) ? { asks } : {}) });
+    return asksFrom(chakra, asks);
+  });
 }
 
 // ---- the marks (PLAN-TASKS.md section 7) ----

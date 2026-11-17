@@ -1,5 +1,5 @@
 {
-  "about": "PLAN-PICKS.md section 3: every title the picks may seed, as the plan lists them. A seeded pick not in here fails test/db/seed-picks.test.ts.",
+  "about": "PLAN-PICKS.md section 3: every title the picks may seed, as the plan lists them. A seeded pick not in here fails test/db/seed-picks.test.ts. starters: the signs' starter albums that are not seed picks (model/acts.ts STARTER_ALBUMS, from his Poems playlist, 2026-11-17); a starter in neither list fails test/model/acts.test.ts.",
   "albums": [
     { "by": "Gia Margaret", "title": "Romantic Piano", "albumId": "4TFQoPpiHkSsYDbhfXMqCM" },
     { "by": "Tom Ashbrook", "title": "Solitudes", "albumId": "1Zrfkm3Oc8xhCLGCGmmKev" },
@@ -28,6 +28,16 @@
     { "by": "Sigur Rós", "title": "Ágætis byrjun", "albumId": "1DMMv1Kmoli3Y9fVEZDUVC" },
     { "by": "Hammock", "title": "Raising Your Voice... Trying to Stop an Echo", "albumId": "5oixCadw77lgY0qTWMPm5r" },
     { "by": "S. Carey", "title": "Hundred Acres", "albumId": "4H1xbaXxVDmHnFQ5ifzyM4" }
+  ],
+  "starters": [
+    { "by": "The Cinematic Orchestra", "title": "Ma Fleur", "albumId": "5VrMypyjjBGzObGwnEHIJO" },
+    { "by": "Portico Quartet", "title": "Knee-Deep In the North Sea", "albumId": "2A8c5znvmslp2I77dTBV1K" },
+    { "by": "The Album Leaf", "title": "In a Safe Place", "albumId": "1sZjWlyc9yL13U5q1nTQ8a" },
+    { "by": "Freddie Gibbs", "title": "Alfredo 2", "albumId": "5WrpCQmbTUZuzNxGCPUFSV" },
+    { "by": "Sampha", "title": "Lahai", "albumId": "5GuWww4OaildzkmTTlfMN3" },
+    { "by": "Arcade Fire", "title": "Funeral", "albumId": "6ZB8qaR9JNuS0Q0bG1nbcH" },
+    { "by": "Gia Margaret", "title": "Mia Gargaret", "albumId": "0NZqwH80237QvwcJDlOia7" },
+    { "by": "Iron & Wine", "title": "Around the Well", "albumId": "5tOzXq44rU4yCCVY94f6m7" }
   ],
   "lines": [
     { "title": "New Girl", "kind": "show" },
