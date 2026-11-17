@@ -8,13 +8,16 @@
 // day carries the date it was written.
 // A question page (#/questions/:id, V2) is this same editor under the question's title: writing is plain
 // ink, the long-press sheet offers "This answers it" in Ask this's place, the header says where it sits
-// among the open questions, and Previous and Next (or a horizontal swipe on the page) walk them.
+// among the open questions, and Previous and Next (or a horizontal swipe on the page) walk them. Resolve
+// (parts/Resolve, PLAN-BLOCKERS.md K1, section 3 step 13) stands at the right of the title: a tap resolves it with
+// nothing written under it, a tap on the check takes it back; "This answers it" still does the same and marks the line.
 // PLAN-VALUES.md C4: the current line, when a voice speaks it, has "Spoke for" step out under it (parts/SpokeFor), as
 // the dot's chips do; a tap confirms the line for a value after it was written, and never takes the caret.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
+import { Resolve } from '../parts/Resolve';
 import { Chip } from '../parts/Chip';
 import { Echo } from '../parts/Echo';
 import { useHold } from '../parts/Hold';
@@ -36,7 +39,7 @@ import { JournalLink } from '../flow/JournalLink';
 import { PaperLine, ResearchFrom } from '../flow/PaperLine';
 import { pageCarry, type PageCarry } from '../flow/chakra/carry';
 import {
-  today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, linkPages, takeToCouncil,
+  today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, resolveQuestion, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
   type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel, type Walk,
 } from '../../model/pages';
@@ -539,6 +542,18 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     setTimeout(() => setEcho(null), 300);
   };
 
+  // Resolve beside the title (K1): the page as stored comes back, so the header's counter and the title's state follow
+  const resolveHere = async (on: boolean) => {
+    // a title still being typed is written first, so the page read back carries it
+    await flush();
+    const p = pageRef.current;
+    if (!p) return;
+    const np = await resolveQuestion(p.id, on);
+    if (!np) return;
+    pageRef.current = np;
+    setData(d => (d ? { ...d, page: np } : d));
+  };
+
   const walk = data?.walk;
   const walkTo = (qid: string) => route(`/questions/${qid}`);
   const swipe = useSwipe(walk, walkTo);
@@ -580,10 +595,13 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
         }}>
         <textarea ref={proxy} class="fs-proxy" aria-hidden="true" tabIndex={-1} />
         {isQuestion && page && (
-          <TitleEdit page={page} onSave={title => queue(`title:${page.id}`, async () => {
-            const np = await setTitle(pageRef.current ?? page, title);
-            pageRef.current = np;
-          })} />
+          <div class="fs-qtitle">
+            <TitleEdit page={page} onSave={title => queue(`title:${page.id}`, async () => {
+              const np = await setTitle(pageRef.current ?? page, title);
+              pageRef.current = np;
+            })} />
+            <Resolve on={page.state !== 'open'} onChange={on => void resolveHere(on)} />
+          </div>
         )}
         {/* F2: a page written about a flow episode links back to it (page.flow, like page.music) */}
         {page?.flow && <JournalLink episodeId={page.flow.episodeId} />}

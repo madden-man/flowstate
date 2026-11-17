@@ -27,7 +27,8 @@ const TICKS: Record<string, string[]> = {
   tab: ['src/app.tsx'],
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
   // PLAN-RESEARCH.md section 2 (Q4): a title landing on Research as it is written in
-  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx'],
+  // PLAN-BLOCKERS.md K1: the drawn check standing in for the word Resolve (parts/Resolve.tsx)
+  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx', 'src/ui/parts/Resolve.tsx'],
   // PLAN-TASKS.md T5: a cover or line set down on a sign's shelf (moved, or taken off it)
   drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/chakra/SignShelf.tsx'],
   detent: ['src/ui/parts/Cycle.tsx'],
