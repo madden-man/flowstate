@@ -1644,3 +1644,13 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
   .fs-resolve.done.inked .fs-check-ink { animation: none; }
 }
 /* ==== Resolve ends ==== */
+
+/* ==== K2: Resolve on a journal line (PLAN-BLOCKERS.md section 3 step 11; journal/PageView.tsx). A wise line that is
+   an open question of the page's sign carries Resolve at the right of its first rule; its words wrap short of it, so
+   the line never rewraps when the check stands there. Resolved, the words go to print grey, as on the sign's page.
+   Still: Resolve leaves (fs-notstill) and the line is ink again, since Still shows no states (rule 13). ==== */
+.fs-col .fs-msg.fs-resolvable { padding-right: calc(var(--hit) * 1.75); }
+.fs-line-resolve { position: absolute; top: 0; right: 0; z-index: 1; display: flex; }
+.fs-col .fs-msg.fs-resolved p, .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--print); }
+[data-light="still"] .fs-col .fs-msg.fs-resolved p, [data-light="still"] .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--ink); }
+/* ==== K2 ends ==== */

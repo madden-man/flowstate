@@ -333,7 +333,8 @@ export function resolveAsk(chakra: ChakraId, id: string, on: boolean, now: Milli
  * empty removes its question, and a text that is new (the blank last rule) adds one. A question keeps its id when its
  * words are unchanged, or when it was rewritten in its own place. An open deck left under three is filled back up from
  * the starters not in it (neither open nor resolved), in their order, which keeps rule 37's "a rule left empty puts its
- * starter back"; with every starter resolved it stays short. The resolved questions are kept, after the open ones.
+ * starter back"; with every starter resolved it stays short. The resolved questions are kept where they stood among
+ * the open ones (K2: one brought back is open in its old place).
  * Returns the deck.
  */
 export function setDeck(chakra: ChakraId, texts: readonly string[], now: Millis = Date.now()): Promise<{ open: DeckAsk[]; resolved: DeckAsk[] }> {
@@ -361,7 +362,13 @@ export function setDeck(chakra: ChakraId, texts: readonly string[], now: Millis 
       if (next.length >= 3 || have.has(id) || said.has(text)) return;
       next.push({ id, text });
     });
-    return [...next, ...resolved];
+    // the resolved keep their places among the open (K2), so one brought back from the sheet is open where it stood
+    const out: DeckAsk[] = [];
+    deck.forEach(q => {
+      if (q.resolvedAt !== undefined) out.push(q);
+      else if (next.length) out.push(next.shift()!);
+    });
+    return [...out, ...next];
   }, now);
 }
 
