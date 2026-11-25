@@ -149,7 +149,7 @@ describe('the lean (ui/flow/tilt.ts)', () => {
     expect(leanOf(null)).toBe(0);
     expect(leanOf(Number.NaN)).toBe(0);
   });
-  it('asks once; no, an error or no such event and nothing leans', async () => {
+  it('a no is asked once; an error is no answer and the next tap asks again; no such event and nothing leans', async () => {
     expect(await askTilt()).toBe(false);
     resetTilt();
     let asked = 0;
@@ -158,13 +158,26 @@ describe('the lean (ui/flow/tilt.ts)', () => {
     expect(await askTilt()).toBe(false);
     expect(asked).toBe(1);
     resetTilt();
-    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => { throw new Error('not from a tap'); } });
+    let thrown = 0;
+    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => { thrown++; throw new Error('not from a tap'); } });
     expect(await askTilt()).toBe(false);
+    expect(await askTilt()).toBe(false);
+    expect(thrown).toBe(2);
     const el = document.createElement('div');
     const stop = lean(el);
     dispatchEvent(Object.assign(new Event('deviceorientation'), { gamma: 30 }));
     expect(el.style.getPropertyValue('--lean')).toBe('');
     stop();
+  });
+  it('the shelf asks from the tap itself (the click), not from the finger going down', async () => {
+    let asked = 0;
+    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => { asked++; return 'granted'; } });
+    act(() => { render(h(Shelf, { books: [OWN], worn: OWN.id, front: OWN.id }), root); });
+    const shelf = root.querySelector<HTMLElement>('.fl-shelf')!;
+    act(() => { shelf.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    expect(asked).toBe(0);
+    await act(async () => { root.querySelector<HTMLElement>('.fl-cover')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    expect(asked).toBe(1);
   });
   it('granted, the shelf leans with the phone', async () => {
     (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => 'granted' });
