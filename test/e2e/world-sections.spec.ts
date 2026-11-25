@@ -53,11 +53,11 @@ async function stubBridge(context: BrowserContext) {
 }
 
 /** The token saved and the registry on home's row, as Settings leaves them; then a reload. */
-async function setUp(page: Page, world?: string) {
+async function setUp(page: Page, world?: string, extra: Record<string, unknown> = {}) {
   await page.goto('/#/flow');
   await page.locator('.fl-cover').first().waitFor();
   await expect(page.locator('[data-threshold]')).toHaveCount(0, { timeout: 15_000 });
-  await page.evaluate(w => new Promise<void>((resolve, reject) => {
+  await page.evaluate(({ w, extra }) => new Promise<void>((resolve, reject) => {
     const r = indexedDB.open('flowstate');
     r.onerror = () => reject(r.error);
     r.onsuccess = () => {
@@ -65,11 +65,11 @@ async function setUp(page: Page, world?: string) {
       const tx = db.transaction('settings', 'readwrite');
       const st = tx.objectStore('settings');
       const g = st.get('app');
-      g.onsuccess = () => st.put({ ...g.result, bridge: { token: 'test-token' }, worlds: [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }], ...(w ? { world: w } : {}) });
+      g.onsuccess = () => st.put({ ...g.result, bridge: { token: 'test-token' }, worlds: [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }], ...(w ? { world: w } : {}), ...extra });
       tx.oncomplete = () => { db.close(); resolve(); };
       tx.onerror = () => reject(tx.error);
     };
-  }), world);
+  }), { w: world, extra });
   await page.reload();
   await expect(page.locator('[data-threshold]')).toHaveCount(0, { timeout: 15_000 });
   // worn: the pocket has come down once the header names its year
@@ -98,6 +98,16 @@ async function yearPoint(track: ReturnType<Page['locator']>, year: number) {
   }
   return { x: b.x + ((year - 2040) / 40) * b.width, y: b.y + b.height / 2 };
 }
+
+/** Every row of a table in one notebook, as stored (no PIN here, so plain). */
+const rows = (page: Page, db: string, table: string) => page.evaluate(({ db, table }) => new Promise<Record<string, unknown>[]>((resolve, reject) => {
+  const r = indexedDB.open(db);
+  r.onerror = () => reject(r.error);
+  r.onsuccess = () => {
+    const g = r.result.transaction(table).objectStore(table).getAll();
+    g.onsuccess = () => { r.result.close(); resolve(g.result); };
+  };
+}), { db, table });
 
 const today$ = (p: Page) => p.getByRole('textbox', { name: "Today's page" });
 async function hold(page: Page, text: string) {
@@ -251,9 +261,11 @@ test('the council in a world: seats with ages, the dead dimmed and seatable; Abo
   await expect.poll(() => [...up.values()].find(e => e.table === 'pages' && e.row?.kind === 'council')?.row?.reading, { timeout: 10_000 }).toBe('about');
 });
 
-test('questions both ways, and Research this; his own pages show none of it', async ({ page, context }) => {
+test('questions both ways, and Research this; his own pages show none of it', async ({ page, context, baseURL }) => {
   const up = await stubBridge(context);
-  await setUp(page, 'eastwinds');
+  // Research's own requests (the API, the indexes) are refused here: only the link between question and inquiry is tested
+  await context.route(u => !u.href.startsWith(baseURL!), r => r.abort());
+  await setUp(page, 'eastwinds', { research: { key: 'test-key' } });
   await page.goto('/#/questions');
   await expect(page.getByText('Does Siyuan leave before the flood, or after?')).toBeVisible();
   // decided in the bible: under Answered, the decision as its wise line
@@ -281,6 +293,17 @@ test('questions both ways, and Research this; his own pages show none of it', as
   await page.getByRole('button', { name: 'Research this' }).click();
   await expect(page).toHaveURL(/#\/flow\/research\?from=q-who$/);
   await expect(page.getByRole('textbox', { name: 'Question' })).toHaveValue('Who raises Dawn after 2065?');
+  // asked: the inquiry keeps the page, and the page keeps the inquiry
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(page).toHaveURL(/#\/flow\/research\/[\w-]+$/);
+  const inquiryId = page.url().split('/').pop()!;
+  await expect.poll(async () => (await rows(page, 'flowstate-w-eastwinds', 'inquiries')).find(q => q.id === inquiryId)?.pageId).toBe('q-who');
+  await expect.poll(async () => (await rows(page, 'flowstate-w-eastwinds', 'pages')).find(p => p.id === 'q-who')?.asked).toEqual({ inquiryId });
+  // the inquiry page leads back; Research this on a question researched before reopens its inquiry
+  await page.locator('.rs-from').click();
+  await expect(page).toHaveURL(/#\/questions\/q-who$/);
+  await page.getByRole('button', { name: 'Research this' }).click();
+  await expect(page).toHaveURL(new RegExp(`#/flow/research/${inquiryId}$`));
 
   // his own pages: no year, no chips, no Research this, no story on his cover
   await page.goto('/#/flow');
@@ -295,6 +318,24 @@ test('questions both ways, and Research this; his own pages show none of it', as
   await page.goto('/#/council');
   await page.getByRole('button', { name: 'New council' }).click();
   await expect(page.getByRole('group', { name: 'This council is' })).toHaveCount(0);
+  // as stored: no page of his own, written after the world was taken off, carries a year
+  await expect.poll(async () => (await rows(page, 'flowstate', 'pages')).filter(p => p.kind === 'council').length).toBeGreaterThan(0);
+  for (const p of await rows(page, 'flowstate', 'pages')) expect(p, String(p.id)).not.toHaveProperty('year');
   await page.goto('/#/flow');
   await expect(page.locator('.wd-ages, .wd-waiting, .fl-cover[data-book="own"] .wd-dial')).toHaveCount(0);
+});
+
+test('a page of his own written before any world was ever worn takes no year, as stored', async ({ page, context }) => {
+  await stubBridge(context);
+  await setUp(page);
+  await page.goto('/#/journal');
+  await today$(page).click();
+  await today$(page).pressSequentially('Before any world. Dawn is a word here.', { delay: 2 });
+  await today$(page).press('Enter');
+  await page.goto('/#/council');
+  await page.getByRole('button', { name: 'New council' }).click();
+  await expect(page.getByRole('group', { name: 'This council is' })).toHaveCount(0);
+  await expect.poll(async () => (await rows(page, 'flowstate', 'pages')).map(p => p.kind).sort()).toEqual(['council', 'entry']);
+  for (const p of await rows(page, 'flowstate', 'pages')) expect(p, String(p.id)).not.toHaveProperty('year');
+  for (const m of await rows(page, 'flowstate', 'messages')) expect(m, String(m.id)).not.toHaveProperty('chips');
 });

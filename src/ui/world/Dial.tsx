@@ -37,7 +37,8 @@ export function Dial({ pocket, year, onMove, onYear, marks }: Props) {
   if (!span) return null;
   const { from, to } = span;
   const shown = clamp(held ?? year, from, to);
-  const at = (y: number) => ((clamp(y, from, to) - from) / (to - from)) * 100;
+  // spanOf never gives a span of no length; guarded here too, so no lifeline ever stands at NaN
+  const at = (y: number) => ((clamp(y, from, to) - from) / ((to - from) || 1)) * 100;
   const yearAt = (x: number) => {
     const r = track.current!.getBoundingClientRect();
     return Math.round(from + clamp((x - r.left) / (r.width || 1), 0, 1) * (to - from));
@@ -68,6 +69,16 @@ export function Dial({ pocket, year, onMove, onYear, marks }: Props) {
     // the year it was let go on, against the year it stood at when the finger came down
     if (d.y !== d.start) onYear(d.y); else setHeld(null);
   };
+  /** The finger taken away from the dial before it lifted (the system took the touch, or the capture was lost): the
+   *  drag ends, nothing is written, and the year it stood at comes back. After a lift there is no drag left to end. */
+  const cancel = (e: Event) => {
+    stop(e);
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    setHeld(null);
+    onMove?.(d.start);
+  };
   const key = (e: JSX.TargetedKeyboardEvent<HTMLSpanElement>) => {
     const step = e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : 0;
     if (!step) return;
@@ -85,7 +96,7 @@ export function Dial({ pocket, year, onMove, onYear, marks }: Props) {
       onClick={e => { e.preventDefault(); stop(e); }}>
       <span ref={track} class="wd-track" role="slider" tabIndex={0} aria-label="Story year"
         aria-valuemin={from} aria-valuemax={to} aria-valuenow={shown} data-year={shown}
-        onPointerDown={down} onPointerMove={moving} onPointerUp={up} onPointerCancel={up} onKeyDown={key}>
+        onPointerDown={down} onPointerMove={moving} onPointerUp={up} onPointerCancel={cancel} onLostPointerCapture={cancel} onKeyDown={key}>
         <span class="wd-lives" aria-hidden="true">
           {lives.map(c => (
             <i key={c.id} style={{

@@ -161,7 +161,7 @@ type Story = { pocket: NovelPocket; year: number | null | undefined };
 
 /** "This council is" About the story or In the story, About chosen; "Set in" its year or The whole book, which only a
  *  council about the story may be (an in-story council always has a year). Changeable later, and the bible follows. */
-function Reading({ page, onChange }: { page: CouncilData['page']; onChange: () => void }) {
+export function Reading({ page, onChange }: { page: CouncilData['page']; onChange: () => void }) {
   const reading = readingOf(page);
   const year = typeof page.year === 'number' ? page.year : wornYear.value;
   const set = (r: 'in' | 'about') => { if (r !== reading) void setReading(page.id, r).then(onChange); };
@@ -171,7 +171,8 @@ function Reading({ page, onChange }: { page: CouncilData['page']; onChange: () =
       <p class="fs-quiet">This council is</p>
       <div class="fs-seats" role="group" aria-label="This council is">
         <Chip label="About the story" pressed={reading === 'about'} onPress={() => set('about')} />
-        <Chip label="In the story" pressed={reading === 'in'} onPress={() => set('in')} />
+        {/* an in-story council always has a year: offered once one is known, never as a chip that does nothing */}
+        {(typeof year === 'number' || reading === 'in') && <Chip label="In the story" pressed={reading === 'in'} onPress={() => set('in')} />}
       </div>
       <p class="fs-quiet">Set in</p>
       <div class="fs-seats" role="group" aria-label="Set in">

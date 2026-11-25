@@ -113,7 +113,9 @@ describe('what travels from a world', () => {
     expect(await outbox()).toEqual([`messages ${r.message!.id}`]);
     let b = (await readBatch(h, WORLD))!;
     expect(b.envelopes).toHaveLength(1);
-    expect(b.envelopes[0].row).toMatchObject({ id: r.message!.id, text: 'She keeps it for a year', kind: 'kept', date: r.page.createdAt, year: null, chips: { characterIds: [], placeIds: [] } });
+    expect(b.envelopes[0].row).toMatchObject({ id: r.message!.id, text: 'She keeps it for a year', kind: 'kept', date: r.page.createdAt, chips: { characterIds: [], placeIds: [] } });
+    // no year worn when it was written: no year is sent (null would say the whole book; W4 review finding 4)
+    expect(b.envelopes[0].row).not.toHaveProperty('year');
     // never the page or its other lines
     expect(b.envelopes[0].row).not.toHaveProperty('pageId');
     expect(b.body).not.toContain('Another line');

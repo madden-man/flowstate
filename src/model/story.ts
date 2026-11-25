@@ -41,7 +41,9 @@ export async function pocketWorn(): Promise<NovelPocket | undefined> {
 /** The bible's timeline from its first year to its last: the pocket's span, else the lives, chapters and events it
  *  holds, else a year either side of the story year. Undefined when the pocket gives no year at all. */
 export function spanOf(p: NovelPocket): { from: number; to: number } | undefined {
-  if (p.span && p.span.to >= p.span.from) return p.span;
+  // a span of no length (one year) is widened a year each side, so the dial always has a line to stand on
+  if (p.span && p.span.to > p.span.from) return p.span;
+  if (p.span && p.span.to === p.span.from) return { from: p.span.from - 1, to: p.span.to + 1 };
   const ys = [
     ...p.characters.flatMap(c => [c.born, c.died]), ...p.chapters.map(c => c.year), ...p.events.map(e => e.year), p.storyYear,
   ].filter((y): y is number => typeof y === 'number' && Number.isFinite(y));
@@ -112,19 +114,35 @@ export const characterOf = (p: NovelPocket | undefined, voiceId: string): Pocket
 // ---------------------------------------------------------------- names in the text
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/** Whether a name stands in a text as a whole word, as written (case kept: "Dawn" is Dawn Li, "dawn" is the morning). */
-function names(text: string, name: string | undefined): boolean {
-  const n = name?.trim();
-  if (!n) return false;
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${escape(n)}(?=$|[^\\p{L}\\p{N}])`, 'u').test(text);
-}
+/** Scripts written without spaces between words: a name in them is found anywhere in the text, with no boundary. */
+const UNSPACED = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+/** A name as a pattern: in a script with word spacing it must stand as a whole word, as written (case kept: "Dawn" is
+ *  Dawn Li, "dawn" is the morning); in one without, wherever it is written. */
+const patternOf = (n: string) => (UNSPACED.test(n)
+  ? new RegExp(escape(n), 'gu')
+  : new RegExp(`(?<![\\p{L}\\p{N}])${escape(n)}(?![\\p{L}\\p{N}])`, 'gu'));
 
 /** The characters and places a text names, found on the phone from the bible's lists: a character by full name,
- *  first name or Chinese name, a place by its name. In the pocket's order. */
+ *  first name or Chinese name, a place by its name. The longest names are looked for first and each match is taken
+ *  once, so "Dawn Li" names Dawn Li and not Mrs. Li (first name Li) as well. In the pocket's order. */
 export function namedIn(text: string, p: NovelPocket): { characterIds: string[]; placeIds: string[] } {
+  type Name = { kind: 'c' | 'p'; id: string; name: string };
+  const all: Name[] = [
+    ...p.characters.flatMap(c => [c.fullName, c.firstName, c.chineseName].map(name => ({ kind: 'c' as const, id: c.id, name: name?.trim() ?? '' }))),
+    ...p.places.map(pl => ({ kind: 'p' as const, id: pl.id, name: pl.name?.trim() ?? '' })),
+  ].filter(n => n.name).sort((a, b) => b.name.length - a.name.length);
+  let left = text;
+  const found = new Set<string>();
+  for (const n of all) {
+    const re = patternOf(n.name);
+    if (!re.test(left)) continue;
+    found.add(`${n.kind} ${n.id}`);
+    // taken: written over with a mark that is no letter, so a shorter name cannot be found inside it
+    left = left.replace(patternOf(n.name), m => '\u0000'.repeat(m.length));
+  }
   return {
-    characterIds: p.characters.filter(c => names(text, c.fullName) || names(text, c.firstName) || names(text, c.chineseName)).map(c => c.id),
-    placeIds: p.places.filter(pl => names(text, pl.name)).map(pl => pl.id),
+    characterIds: p.characters.filter(c => found.has(`c ${c.id}`)).map(c => c.id),
+    placeIds: p.places.filter(pl => found.has(`p ${pl.id}`)).map(pl => pl.id),
   };
 }
 

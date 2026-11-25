@@ -82,6 +82,20 @@ describe('names in the text (pure)', () => {
     expect(namedIn('Up at dawn, Siyuanese food', POCKET)).toEqual({ characterIds: [], placeIds: [] });
     expect(namedIn('李 waits', { ...POCKET, characters: [{ id: 'li', fullName: 'Li Wei', firstName: 'Wei', chineseName: '李' }] }).characterIds).toEqual(['li']);
   });
+  it('longest names first, each match taken once: "Dawn Li" is Dawn Li, not Mrs. Li too (review finding 2)', () => {
+    const p: NovelPocket = { ...POCKET, characters: [
+      { id: 'li', fullName: 'Mrs. Li', firstName: 'Li', born: 2033 },
+      { id: 'dawn', fullName: 'Dawn Li', firstName: 'Dawn', born: 2062 },
+    ] };
+    expect(namedIn('He tells nobody but Dawn Li.', p).characterIds).toEqual(['dawn']);
+    expect(namedIn('Li waits for Dawn Li.', p).characterIds).toEqual(['li', 'dawn']);
+  });
+  it('a Chinese name is found in Chinese prose, which has no spaces (review finding 3)', () => {
+    const p: NovelPocket = { ...POCKET, characters: [{ id: 'ming', fullName: 'Li Ming', firstName: 'Ming', chineseName: '李明' }], places: [{ id: 'he', name: '河边' }] };
+    expect(namedIn('李明在河边等她。', p)).toEqual({ characterIds: ['ming'], placeIds: ['he'] });
+    // a Latin name still needs its word boundary
+    expect(namedIn('Mingle at dawn', p).characterIds).toEqual([]);
+  });
   it('a kept line\'s chips: the page\'s, plus every name its lines use', () => {
     const page = { chips: { characterIds: ['siyuan'], placeIds: [] } };
     const lines = [{ text: 'He tells nobody but Dawn.' }, { text: 'She is nine and keeps it for a year.' }];
@@ -264,5 +278,61 @@ describe('the pocket is the worn world\'s only', () => {
     expect(pocketFor(s, 'eastwinds')).toBeTruthy();
     expect(pocketFor(s, 'other')).toBeUndefined();
     expect(pocketFor(s, null)).toBeUndefined();
+  });
+});
+
+describe('a kept line\'s year as it goes up (review finding 4)', () => {
+  it('absent when the page has no year, null only for the whole book, the year when it has one', async () => {
+    const { h } = await worldDB();
+    noteYearWorn(undefined);
+    const a = (await writeLine(undefined, undefined, { text: 'Written before the first pocket.' }))!;
+    expect(a.page.year).toBeUndefined();
+    await keepLine(a.message!.id, true);
+    let row = (await readBatch(h, 'eastwinds'))!.envelopes.find(e => e.id === a.message!.id)!.row!;
+    expect('year' in row).toBe(false);
+    await setPageYear(a.page.id, null);
+    row = (await readBatch(h, 'eastwinds'))!.envelopes.find(e => e.id === a.message!.id)!.row!;
+    expect(row.year).toBeNull();
+    await setPageYear(a.page.id, 2071);
+    row = (await readBatch(h, 'eastwinds'))!.envelopes.find(e => e.id === a.message!.id)!.row!;
+    expect(row.year).toBe(2071);
+  });
+});
+
+describe('review finding 7: what the first tests would have let through', () => {
+  it('a chip changed on a kept line sends the line again (the outbox cleared first)', async () => {
+    const { db, h } = await worldDB();
+    noteYearWorn({ year: 2071 });
+    await keepPocket();
+    const a = (await writeLine(undefined, undefined, { text: 'She keeps it for a year.' }))!;
+    await keepLine(a.message!.id, true);
+    await db.outbox.clear();
+    await setLineChips(a.message!.id, { characterIds: ['dawn'], placeIds: ['gate'] });
+    const b = (await readBatch(h, 'eastwinds'))!;
+    expect(b.envelopes.map(e => `${e.table} ${e.id}`)).toEqual([`messages ${a.message!.id}`]);
+    expect(b.envelopes[0].row).toMatchObject({ chips: { characterIds: ['dawn'], placeIds: ['gate'] } });
+  });
+
+  it('the year starts once through the real carry path; a later pocket with another story year leaves his year alone', async () => {
+    const { carry, saveBridgeToken } = await import('../../src/model/carry');
+    const { setWorldYear } = await import('../../src/model/story');
+    await worldDB();
+    await store.put('settings', defaultSettings(1));
+    let stamp = 's1', storyYear = 2071;
+    const fetcher = (async (input: RequestInfo | URL) => {
+      const q = new URL(String(input), 'http://x').searchParams;
+      const json = q.get('op') === 'worlds' ? { worlds: [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }] }
+        : q.get('op') === 'pocket' ? (q.get('stamp') === stamp ? { world: 'eastwinds', stamp, unchanged: true } : { world: 'eastwinds', stamp, pocket: { ...POCKET, storyYear } })
+        : { acks: [] };
+      return new Response(JSON.stringify(json), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    await saveBridgeToken('t', fetcher);
+    expect(await carry({ fetcher })).toBe('carried');
+    expect((await store.get('settings', 'app'))!.year).toBe(2071);
+    await setWorldYear('eastwinds', 2065);
+    stamp = 's2'; storyYear = 2050;
+    expect(await carry({ fetcher })).toBe('carried');
+    expect((await store.get('settings', 'app'))!.bridge?.pocket?.stamp).toBe('s2');
+    expect((await store.get('settings', 'app'))!.year).toBe(2065);
   });
 });
