@@ -497,19 +497,34 @@ async function keepLock(db: FlowDB, s: Settings): Promise<Settings> {
   return next;
 }
 
+/**
+ * A notebook's cover is dress()'s alone to change (PLAN-WORLDS.md section 4): a settings write from elsewhere carries a
+ * copy read before the last dress, so it keeps the cover stored on the row it lands on, plain paper included. A drawing
+ * lives in the sealed secret, so the stored row is opened to find it. A row not yet stored takes the cover given.
+ * A backup import writes its rows whole (backup.ts), so a file's cover still comes in.
+ */
+async function keepCover(db: FlowDB, s: Settings): Promise<Settings> {
+  const stored = await db.settings.get(s.id);
+  if (!stored) return s;
+  const { cover } = await opened('settings', stored, key);
+  const next = { ...s };
+  if (cover) next.cover = cover; else delete next.cover;
+  return next;
+}
+
 /** What a settings write puts where: one row when nothing is worn; with a world worn, home's row (its own book fields
  *  kept as they are) and the world's row (its stamp kept). Each comes back ready to seal. */
 async function settingsWrites(given: Settings): Promise<[FlowDB, Settings][]> {
   // the notebook worn is the layer's to say (don, doff): a copy read before a world was put on never takes it off
   const s = { ...given };
   if (wornId) s.world = wornId; else delete s.world;
-  if (!split()) return [[homeDb, await keepLock(homeDb, s)]];
+  if (!split()) return [[homeDb, await keepLock(homeDb, await keepCover(homeDb, s))]];
   const h = await homeDb.settings.get('app');
   const ho = h ? strip(await fromStored('settings', h, key)) : undefined;
   const homeRow = { ...(ho ? bookPart(ho as Row) : {}), ...homePart(s as Row), id: 'app' } as Settings;
   const b = await bookDb.settings.get('app');
   const bookRow = { ...bookPart(s as Row), id: 'app', lock: b?.lock ?? stampOf(h?.lock) } as Settings;
-  return [[homeDb, await keepLock(homeDb, homeRow)], [bookDb, await keepLock(bookDb, bookRow)]];
+  return [[homeDb, await keepLock(homeDb, homeRow)], [bookDb, await keepLock(bookDb, await keepCover(bookDb, bookRow))]];
 }
 
 function writable() {
