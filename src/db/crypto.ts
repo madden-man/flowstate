@@ -28,16 +28,29 @@ export function randomSalt(bytes = 16): string {
   return toB64(crypto.getRandomValues(new Uint8Array(bytes)));
 }
 
-/** The PIN is never stored. Only the salt, the iteration count and a verifier are (settings.lock). */
+/** The PIN is never stored. Only the salt, the iteration count and a verifier are (settings.lock).
+ *  The key can be exported (PLAN-WORLDS.md section 3, W1): a PIN change seals the old key under the new one and the new
+ *  under the old in home's row while it rewrites every notebook, so a stop halfway is finished by either PIN
+ *  (fields.ts setKey). It is only ever exported to be sealed again, never stored or sent as it is. */
 export async function deriveKey(pin: string, salt: string, iterations = PBKDF2_ITERATIONS): Promise<CryptoKey> {
   const base = await crypto.subtle.importKey('raw', enc.encode(pin.normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
     { name: 'PBKDF2', hash: 'SHA-256', salt: fromB64(salt), iterations },
     base,
     { name: 'AES-GCM', length: 256 },
-    false,
+    true,
     ['encrypt', 'decrypt'],
   );
+}
+
+/** A key's bytes as base64, to be sealed under another key (fields.ts setKey). */
+export async function rawKey(key: CryptoKey): Promise<string> {
+  return toB64(new Uint8Array(await crypto.subtle.exportKey('raw', key)));
+}
+
+/** A key from the bytes rawKey gave, as deriveKey would make it. */
+export function keyFromRaw(b64: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey('raw', fromB64(b64), { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
 }
 
 export async function seal(key: CryptoKey, value: unknown, aad: string): Promise<Sealed> {

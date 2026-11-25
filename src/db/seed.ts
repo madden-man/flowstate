@@ -5,7 +5,7 @@
 // Every line here is the notebook's own; nothing is generated.
 import { valueFromParadox, type Fixation, type Flow, type Item, type Message, type Page, type Paradox, type Settings, type Value, type Voice, type VoiceColour } from './schema';
 import type { Read } from './fields';
-import { store, keyState } from './fields';
+import { store, keyState, worn } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
 import { PICKS } from './seed/picks';
 import { DOCTOR_LINE, DOCTOR_STEP, DOCTOR_TIP } from './seed/energize';
@@ -129,6 +129,8 @@ export const seedValues = (): Value[] => seedParadoxes().paradoxes.map((p, order
  *  No pages: the journal opens empty (Tommy, 2026-11-08, PLAN-V2.md section 2). No paradoxes (PLAN-VALUES.md section 5):
  *  the two values instead, and the values pass marked done (defaultSettings). */
 export async function ensureSeeded(now = Date.now()): Promise<boolean> {
+  // a world seeds nothing (PLAN-WORLDS.md section 3): no pantheon, no paradoxes, no flows; fields.ts made its row
+  if (worn() !== null) return false;
   if (await store.get('settings', 'app')) return false;
   await store.many({ voices: seedVoices(), values: seedValues(), flows: SEED_FLOWS.map(f => seedFlow(f)), settings: [defaultSettings(now)] });
   return true;
@@ -147,6 +149,8 @@ let flowsPass: Promise<string[] | null> | null = null;
  */
 export function seedFlowsOnce(): Promise<string[] | null> {
   flowsPass ??= (async () => {
+    // a world seeds nothing (PLAN-WORLDS.md section 3)
+    if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
     const s = await store.get('settings', 'app');
     if (!s || s.locked) return null;
@@ -216,6 +220,8 @@ let picksPass: Promise<string[] | null> | null = null;
  */
 export function seedPicksOnce(): Promise<string[] | null> {
   picksPass ??= (async () => {
+    // a world seeds nothing (PLAN-WORLDS.md section 3)
+    if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
     const s = await store.get('settings', 'app');
     if (!s || s.locked) return null;
@@ -292,6 +298,8 @@ let fixationsPass: Promise<string[] | null> | null = null;
  */
 export function seedFixationsOnce(now = Date.now()): Promise<string[] | null> {
   fixationsPass ??= (async () => {
+    // a world seeds nothing (PLAN-WORLDS.md section 3)
+    if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
     const s = await store.get('settings', 'app');
     if (!s || s.locked) return null;
@@ -322,6 +330,8 @@ let valuesPass: Promise<string[] | null> | null = null;
  */
 export function valuesFromParadoxesOnce(): Promise<string[] | null> {
   valuesPass ??= (async () => {
+    // a world seeds nothing (PLAN-WORLDS.md section 3)
+    if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
     const s = await store.get('settings', 'app');
     if (!s || s.locked) return null;
@@ -356,6 +366,8 @@ let doctorPass: Promise<boolean | null> | null = null;
  */
 export function moveDoctorLineOnce(): Promise<boolean | null> {
   doctorPass ??= (async () => {
+    // a world seeds nothing (PLAN-WORLDS.md section 3)
+    if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
     const s = await store.get('settings', 'app');
     if (!s || s.locked) return null;
@@ -417,6 +429,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.strin
  * or null when it did not run (done before, a fresh journal, or locked), so the caller reloads settings only once.
  */
 export async function cleanSeedPages(): Promise<string[] | null> {
+  if (worn() !== null) return null;
   const s = await store.get('settings', 'app');
   if (!s || s.locked || s.cleaned?.includes(SEED_PAGES_PASS)) return null;
   const removed: string[] = [];

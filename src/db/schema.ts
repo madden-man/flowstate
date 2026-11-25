@@ -9,6 +9,7 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 import type { Inquiry, Paper } from '../research/types';
+import { notebookWrites } from './writes';
 
 export { POEMS_ID, POEMS_NAME };
 
@@ -43,6 +44,9 @@ export type Sealed = { v: 1; iv: string; ct: string };
 
 export type LightPin = 'sky' | 'day' | 'night';
 export type Place = { lat: number; lon: number; name: string };
+/** A lock as a notebook keeps it: home's is the lock itself; a world's is a copy of the lock its rows are sealed with. */
+export type LockFields = { salt: string; iterations: number; verifier: Sealed; digits?: number };
+export type LockMove = LockFields & { was: LockFields; wrapNew: Sealed; wrapOld: Sealed };
 /** name (package 7) is the account's display name for "Connected as"; it rides in the sealed tokens. */
 export type SpotifyTokens = { accessToken: string; refreshToken: string; expiresAt: number; name?: string };
 
@@ -60,6 +64,9 @@ export type Settings = {
     /** Not in PLAN.md section 4 (package 6): how many digits the PIN has, so the lock screen opens on the
      *  last one instead of asking for a separate "open" tap. It tells a stranger the length, nothing more. */
     digits?: number;
+    /** PLAN-WORLDS.md section 3 (W1): a PIN change still under way across the notebooks (fields.ts setKey). The new
+     *  lock, the old one (was), and each key sealed under the other, so a stop halfway is finished by either PIN. */
+    moving?: LockMove;
   };
   lastBackupAt?: Millis;
   seededAt?: Millis;
@@ -102,8 +109,34 @@ export type Settings = {
    *  rest of settings, and optional, so it needs no Dexie version. An absent key, or the whole field absent, is the
    *  default: the three tiers open, Resting and Legacy folded (ui/be/tiers.ts isFolded). */
   beFolded?: Partial<Record<BePlaceKey, boolean>>;
+  /** PLAN-WORLDS.md section 3 (W1), on home's row: the world worn, by id, so the app reopens in it; absent is his own
+   *  pages. Clear, like every id; written by fields.ts wear() even while locked (the door takes the notebook off). */
+  world?: string;
+  /** PLAN-WORLDS.md section 3 (W1), on home's row: the registry of worlds as last fetched (W2's bridge fills it; W1's
+   *  tests put a fixture here). Clear: names and kinds only, nothing he wrote. */
+  worlds?: WorldEntry[];
+  /** PLAN-WORLDS.md section 9 (W1), on each notebook's own row: the year worn (W4 sets it). */
+  year?: number;
+  /** PLAN-WORLDS.md section 9 (W1), on each notebook's own row, his own included: what the cover wears, up to five
+   *  album uris in the order worn, or a drawing he uploaded, sealed with the rest of the row's secrets (fields.ts). */
+  cover?: Cover;
   sealed?: Sealed;
 };
+
+/** One world on the shelf (PLAN-WORLDS.md section 5, bridge_worlds): its id (the database is flowstate-w-<id>), its
+ *  name in the serif, and its kind. hue is the voice hue on its spine; absent, the shelf gives one by its place. */
+export type WorldEntry = { id: string; name: string; kind: 'novel' | 'songs'; hue?: number };
+
+/** What a cover wears (decision 16): albums (at most five uris, first chosen first), or his drawing. Neither is plain paper. */
+export type Cover = { albums: string[] } | { drawing: Blob };
+/** At most this many albums on a cover. */
+export const COVER_MAX = 5;
+
+/** The settings fields that are the notebook's own (PLAN-WORLDS.md section 3): each notebook's database keeps these on
+ *  its own row. Every other field is home's, and stays on the personal notebook's row whatever is worn. flowsSeeded is
+ *  the seed passes' memory, so it is the book's too (a world seeds nothing). */
+export const BOOK_KEYS = ['seededAt', 'cleaned', 'deleted', 'echo', 'beFolded', 'lastBackupAt', 'year', 'cover', 'flowsSeeded'] as const;
+export type BookKey = typeof BOOK_KEYS[number];
 
 /** A Be place as settings and the DOM name it (ui/be/tiers.ts placeKey): the three tiers, then the two shelves. */
 export type BePlaceKey = '1' | '2' | '3' | 'resting' | 'legacy';
@@ -722,8 +755,14 @@ export type FlowDB = Dexie & {
   papers: EntityTable<Paper, 'id'>;
 };
 
+/** A world's database (PLAN-WORLDS.md section 3): the personal notebook's name, then -w- and the world's id, so the
+ *  phone's are flowstate-w-eastwinds and flowstate-w-songbook, and a test's world sits beside its own test database. */
+export const worldDbName = (home: string, worldId: string) => `${home}-w-${worldId}`;
+
 export function openDB(name = DB_NAME): FlowDB {
   const db = new Dexie(name) as FlowDB;
+  // every write to this notebook passes one place (writes.ts), where W2's outbox listens
+  db.use(notebookWrites(name));
   db.version(1).stores(STORES_V1);
   // Version 2: every ordered album becomes a shelf row of the Poems playlist, and the playlist itself is written
   // ticked, so the music line has its shelf before the first read. The albums rows are not touched.
