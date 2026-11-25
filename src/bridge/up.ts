@@ -41,6 +41,8 @@ async function build(h: Handed, world: string, o: OutboxRow): Promise<Built> {
     return { envelope: { ...base, row: pick(p, PAGE) } };
   }
   if (o.table === 'messages') {
+    // the bible's own decision line never goes back (src/db/outbox.ts never records it; an older outbox might have)
+    if (o.id.startsWith('d:')) return { drop: true };
     const m = await h.get('messages', o.id);
     if (!m) return gone();
     if (m.locked) return { wait: true };
@@ -57,7 +59,8 @@ async function build(h: Handed, world: string, o: OutboxRow): Promise<Built> {
             ...pick(m, ['id', 'at', 'updatedAt', 'text', 'wise', 'kept']),
             kind: 'kept',
             date: page?.createdAt ?? m.at,
-            year: page?.year ?? null,
+            // null is the whole book; a page with no year known (written before the world's first pocket) sends none
+            ...(page && page.year !== undefined ? { year: page.year } : {}),
             chips: m.chips ?? { characterIds: [], placeIds: [] },
           },
         },

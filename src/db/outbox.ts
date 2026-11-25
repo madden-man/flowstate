@@ -106,6 +106,9 @@ async function decide(down: DBCore, trans: DBCoreTransaction, table: TravelTable
   for (let i = 0; i < keys.length; i++) {
     const line = after[i] ?? before[i];
     if (!line) continue;
+    // the bible's own decision line (d:<questionId>, src/bridge/down.ts) came down and never goes back up, whatever is
+    // written to it here; taking a decision back goes up as its page, open
+    if (keys[i].startsWith('d:')) continue;
     const page = pages.get(pageIds[i]);
     const inThread = !!page && page.kind !== 'entry';
     // kept now, or kept before (a line no longer kept, or a kept line deleted, goes up as a delete)

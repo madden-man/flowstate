@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FlowState: in a world</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* Page chrome. The phones below are live: they use design/tokens.css unchanged, the file package 0 ships. */
+:root{--bg:#ECE8DE;--fg:#2A2724;--muted:#6F7378;--rail:#F6F1E4;--line:#DCD6C8;--accent:#3B6FBF} /* design-lint: allow */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark}} /* design-lint: allow */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);padding:16px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+header.top{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0}
+header.top .counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
+.lights{margin-left:auto;display:flex;gap:4px;background:var(--rail);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lights button,.ctl button{font:500 13px var(--sans);padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--fg);cursor:pointer;min-height:36px}
+.lights button[aria-pressed="true"]{background:var(--fg);color:var(--rail)}
+.lights button:focus-visible,.ctl button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+nav.rail{background:var(--rail);border:1px solid var(--line);border-radius:14px;padding:8px;align-self:start;position:sticky;top:12px}
+nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.rail a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:13px}
+nav.rail a .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-variant-numeric:tabular-nums;flex:none}
+nav.rail a[aria-current]{background:var(--bg)}
+nav.rail a[aria-current] .n{background:var(--fg);color:var(--rail);border-color:var(--fg)}
+@media (max-width:760px){nav.rail{position:static}nav.rail ol{display:flex;overflow-x:auto;gap:6px}nav.rail a .t{display:none}}
+main{min-width:0}
+.step{display:none}
+.step.on{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
+.step>h2{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,30px);margin:0;text-align:center;text-wrap:balance}
+.step p.line{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;max-width:48ch}
+.ctl{display:flex;gap:10px;justify-content:center}
+.ctl button{border-color:var(--line);background:var(--rail);min-height:44px;padding:9px 18px;font-size:14px}
+details{width:100%;max-width:560px;border:1px dashed var(--line);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
+summary{cursor:pointer;color:var(--fg)}
+details table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+details td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
+details td:first-child{color:var(--fg);white-space:nowrap}
+details code{font-size:12px}
+
+/* ---------- the phone ---------- */
+.phone{width:min(100%,380px);aspect-ratio:390/800;background:#0B0B0E;border-radius:48px;padding:11px;box-shadow:0 20px 50px #00000040;position:relative;user-select:none;-webkit-user-select:none} /* design-lint: allow */
+.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--page);color:var(--ink);font-family:var(--serif);font-size:var(--fs-ink);line-height:var(--lh-ink);transition:background-color var(--t-light) var(--ease),color var(--t-light) var(--ease)}
+.screen::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 45% at 12% -5%,var(--lamp),transparent 70%);pointer-events:none;transition:opacity var(--t-light)}
+.screen>*{position:relative}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0B0B0E;border-radius:20px;z-index:3} /* design-lint: allow */
+.status{display:flex;justify-content:space-between;padding:15px 28px 0;font-family:var(--sans);font-size:12px;color:var(--print)}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;padding:10px var(--gutter) 0;font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print);min-height:46px}
+.hdr .r{text-align:right;display:grid;gap:2px}
+.hdr .r b{font-family:var(--serif);font-weight:400;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}
+[data-light="still"] .hdr .no{display:none}
+.sw{width:34px;height:34px;display:grid;place-items:center;margin:0 0 -2px -10px;cursor:pointer}
+.moon{width:14px;height:14px;border-radius:50%;box-shadow:inset -4px -1px 0 0 var(--print);transition:box-shadow var(--t-light)}
+.moon.glow{box-shadow:inset -4px -1px 0 0 var(--v-blue),0 0 12px var(--v-blue)}
+.ring{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--print);animation:breathe var(--t-breath) var(--ease) infinite;flex:none}
+@keyframes breathe{0%{transform:scale(.7);opacity:.55}40%{transform:scale(1);opacity:1}100%{transform:scale(.7);opacity:.55}}
+[data-light="still"] .sw .moon{display:none}
+.sw .ring{display:none}
+[data-light="still"] .sw .ring{display:block}
+.pg{flex:1;padding:6px var(--gutter) 0;overflow:hidden;background-image:repeating-linear-gradient(to bottom,transparent 0 calc(var(--lh-ink) - 1px),var(--rule) calc(var(--lh-ink) - 1px) var(--lh-ink));background-position:0 6px;outline:none;transition:opacity var(--t-page) var(--ease)}
+.pg p{margin:0;min-height:var(--lh-ink)}
+.pg[contenteditable]{cursor:text;user-select:text;-webkit-user-select:text}
+.pg:focus-within .caret{display:none}
+.q{font-size:var(--fs-title)}
+.wise{font-style:italic}
+.caret{display:inline-block;width:1.5px;height:20px;background:var(--ink);vertical-align:-4px;animation:blink calc(var(--t-breath)/9) steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+.v{--vc:var(--ink);border-left:3px solid var(--vc);background:color-mix(in oklch,var(--vc) var(--tint),transparent);padding-left:10px;margin-left:-13px;transition:background-color var(--t-light)}
+.v.deep{border-left-style:double;border-left-width:5px}
+.sp{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--vc);line-height:var(--lh-ink);font-style:normal;display:block}
+.empty{color:var(--print);font-style:italic}
+.kept{position:relative}
+.kept::after{content:"kept";position:absolute;right:0;top:-2px;font-family:var(--sans);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--print)}
+.chips{display:flex;gap:6px;overflow:hidden;padding:8px var(--gutter);font-family:var(--sans);font-size:var(--fs-chip);line-height:1}
+.chip{--vc:var(--ink);display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--seam);color:var(--ink);white-space:nowrap;cursor:pointer;transition:background-color var(--t-ui),color var(--t-ui)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--vc)}
+.chip.on{background:var(--ink);color:var(--page)}
+.chip.add{border-style:dashed;color:var(--print)}
+[data-light="still"] .chip.deep{display:none}
+.composer{margin:0 var(--gutter) 6px;border-top:1px solid var(--seam);padding-top:8px;color:var(--print);font-style:italic;font-size:15px;display:flex;gap:10px;align-items:center}
+.composer input{flex:1;border:0;background:transparent;font:italic 15px var(--serif);color:var(--ink);outline:none;min-width:0}
+.composer input::placeholder{color:var(--print)}
+.composer button{font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:transparent;border:1px solid var(--seam);border-radius:999px;padding:6px 10px;cursor:pointer}
+.tabs{display:flex;justify-content:space-around;padding:12px 8px 26px;font-family:var(--sans);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--print);border-top:1px solid var(--seam);line-height:1}
+.tabs .on{color:var(--ink)}
+.seg{display:flex;gap:16px;padding:6px var(--gutter) 0;font-family:var(--sans);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--print);line-height:1}
+.seg .on{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:3px}
+.echo{font-style:italic;color:var(--print);font-size:15px;line-height:22px;padding:8px var(--gutter) 0;display:flex;gap:10px;align-items:flex-start;cursor:pointer;touch-action:pan-y;transition:transform var(--t-page) var(--ease),opacity var(--t-page)}
+.echo i{font-style:normal;font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding-top:5px;flex:none}
+/* lists (flow, settings) */
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.row small{font-family:var(--sans);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--print);text-align:right}
+.row[data-set]{cursor:pointer}
+[data-light="still"] .count{visibility:hidden}
+.box{display:inline-block;width:17px;height:17px;border:1.5px solid var(--ink);border-radius:3px;vertical-align:-3px;margin-right:8px;position:relative;cursor:pointer}
+.box.done::after{content:"";position:absolute;left:3px;top:-6px;width:7px;height:14px;border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(40deg)}
+.lean{position:relative;height:var(--lh-ink);margin:0 4px;cursor:grab;touch-action:none}
+.lean::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--print)}
+.lean i{position:absolute;top:50%;width:5px;height:5px;border-radius:50%;background:var(--print);transform:translate(-50%,-50%)}
+.lean b{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--page);border:1.5px solid var(--ink);transform:translate(-50%,-50%)}
+/* spread */
+.spread{position:relative;margin:8px var(--gutter) 0;aspect-ratio:1/1.12;overflow:hidden;font-family:var(--serif);touch-action:none}
+.spread::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom right,transparent calc(50% - .5px),var(--seam) calc(50% - .5px) calc(50% + .5px),transparent calc(50% + .5px))}
+.ct{position:absolute;width:150px;height:1px;background:var(--ink)}
+.ct.a{top:36px;left:-44px;transform:rotate(-45deg)}
+.ct.b{bottom:44px;right:-36px;transform:rotate(-45deg)}
+.ct span{position:absolute;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+.ct.a span{top:-20px;left:48px}
+.ct.b span{top:4px;left:48px}
+.it{position:absolute;font-size:12.5px;line-height:16px;width:42%;cursor:grab;transition:transform var(--t-ui)}
+.it[data-pole="b"]{text-align:right}
+.it.ghost{border:1px dashed var(--print);color:var(--print);font-style:italic;padding:3px 6px;border-radius:4px;cursor:pointer}
+.arrows path.pair{stroke-dasharray:2 4;opacity:.75}
+.addgoal{align-self:flex-start;margin:6px var(--gutter) 0;font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);border:1px solid var(--seam);border-radius:999px;padding:8px 12px;display:inline-block;cursor:pointer;line-height:1}
+.field{display:grid;gap:0;padding:4px 0;border-top:1px solid var(--seam)}
+.field small{font-family:var(--sans);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--print)}
+.field input{border:0;background:transparent;font:17px var(--serif);color:var(--ink);outline:none;line-height:var(--lh-ink)}
+.field input::placeholder{color:var(--print);font-style:italic}
+.cad{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--sans);font-size:11px;line-height:1;padding:6px 0}
+.cad span{padding:6px 9px;border-radius:999px;border:1px solid var(--seam);color:var(--print);cursor:pointer}
+.cad span.on{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.sheet .acts{display:flex;justify-content:space-between;font-family:var(--sans);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding-top:10px;line-height:1}
+.sheet .acts span{cursor:pointer}
+.sheet .acts .go{color:var(--ink)}
+.sheet .acts .quiet{color:var(--print)}
+.it.lift{transform:translateY(-2px);cursor:grabbing}
+.it u{text-decoration:none;border-bottom:1px solid var(--ink)}
+.mid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-42deg);font-style:italic;color:var(--print);font-size:12px;white-space:nowrap;background:var(--page);padding:0 6px;transition:background-color var(--t-light)}
+.arrows{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.arrows path{fill:none;stroke:currentColor;stroke-width:1.2}
+.strike{position:relative;color:var(--print)}
+.strike::after{content:"";position:absolute;left:-2px;right:-2px;top:52%;height:2px;background:var(--ink);transform:rotate(-1.5deg);opacity:.8}
+.versions{font-family:var(--sans);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--print);padding:4px var(--gutter) 0;line-height:1.4}
+/* threshold */
+.thr{flex:1;display:grid;align-content:center;justify-items:center;gap:6px;padding:0 var(--gutter) 10px;text-align:center;transition:opacity var(--t-page) var(--ease)}
+.thr.out{opacity:0;pointer-events:none}
+.thr .title{font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--print);line-height:1}
+.thr .man{font-size:var(--fs-manifesto);line-height:1.35;animation:glow var(--t-breath) var(--ease) infinite;max-width:22ch}
+@keyframes glow{0%{opacity:.5}40%{opacity:1}100%{opacity:.5}}
+.dots{display:flex;gap:14px;justify-content:center;margin:14px 0 18px}
+.dots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--ink);transition:background-color var(--t-ui)}
+.dots i.on{background:var(--ink)}
+.keys{display:grid;grid-template-columns:repeat(3,64px);gap:10px 18px;justify-content:center}
+.key{height:64px;border-radius:50%;border:1px solid var(--seam);display:grid;place-content:center;text-align:center;line-height:1;cursor:pointer;transition:background-color var(--t-ui)}
+.key:active{background:color-mix(in oklch,var(--ink) 12%,transparent)}
+.key b{font-size:24px;font-weight:400}
+.key small{font-family:var(--sans);font-size:8px;letter-spacing:.16em;color:var(--print);margin-top:3px}
+.after{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity var(--t-light) var(--ease) var(--t-ui)}
+.after.in{opacity:1;pointer-events:auto}
+/* sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--page);border-top:1px solid var(--seam);border-radius:24px 24px 38px 38px;padding:10px var(--gutter) 30px;box-shadow:var(--shadow-sheet);display:grid;animation:rise var(--t-page) var(--ease);z-index:4}
+@keyframes rise{from{transform:translateY(100%)}}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--seam);margin:0 auto 6px}
+.sheet .opt{padding:0;display:flex;justify-content:space-between;align-items:baseline;cursor:pointer;margin:0;line-height:var(--lh-ink)}
+.sheet .opt small{font-family:var(--sans);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--print)}
+.sheet a{color:inherit;text-decoration:none}
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:3}
+@media (prefers-reduced-motion:reduce){.ring,.thr .man,.caret{animation:none}}
+</style>
+<!-- The app's own page parts (src/ui/parts/parts.css, copied here by npm run tokens:check's fix line). Every Journal, Council and Be step is built from them. -->
+<link rel="stylesheet" href="parts.css">
+<link rel="stylesheet" href="shelf.css">
+<link rel="stylesheet" href="world.css">
+<style>
+/* the Flow step's canvases are stills, one per light: the screen's light picks which shows */
+.screen:not([data-light="day"]) img[data-l="day"],.screen:not([data-light="night"]) img[data-l="night"],.screen:not([data-light="still"]) img[data-l="still"]{display:none}
+</style>
+<style>
+/* a real .fs-app inside a mock phone: the status bar above stands in for the safe area */
+.screen:not([data-light="still"]) .fs-moon .fs-ring-mark{display:none}
+.screen .fs-threshold.locked{animation:none}
+.screen .fs-threshold{position:absolute;border-radius:inherit;animation:thr-out var(--t-page) var(--ease) var(--t-breath) forwards}
+@keyframes thr-out{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.screen .fs-threshold{display:none}}
+.screen .fs-app{flex:1;min-height:0;--safe-top:0px;--safe-bottom:14px;background:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: in a world</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight every screen"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button><button id="snd" aria-pressed="true">Sound on</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+<!-- script/snap-world-sections.mjs: the real app in a world, PLAN-WORLDS.md W4 -->
+<section class="step" id="dial" data-name="Drag the year">
+  <h2>Drag the year</h2>
+  <p class="line">Everyone alive then is on the line.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="dial"><div class="island"></div>
+    <div class="status"><span>21:30</span><span>Flow</span></div>
+    <div class="fs-app" data-lamp="" style="--lamp-voice: oklch(var(--voice-l) calc(var(--voice-c) * 1) 250);"><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26</span><span class="fs-list-line">Trying the leaving again. Maybe it is quieter than I had it.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-hdr-label">Flow</span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><div class="fl-shelfwrap"><div class="fl-shelf" role="group" aria-label="Notebooks" style="overflow: hidden;"><a class="fl-cover" data-book="own" draggable="false" style="--wc: var(--v-black); --s: -1.000; --d: 1.000; margin-left: -216px;"><span class="fl-cover-name">My own pages</span><span class="fl-cover-foot"><small>Who to Be, How to Flow</small></span></a><a class="fl-cover" data-book="eastwinds" data-front="" draggable="false" aria-current="true" style="--wc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 250); --s: 0.000; --d: 0.000;"><span class="fl-cover-name">East Winds</span><span class="fl-cover-foot"><span class="wd-dial"><span class="wd-track" role="slider" tabindex="-1" aria-label="Story year" aria-valuemin="2040" aria-valuemax="2080" aria-valuenow="2071" data-year="2071"><span class="wd-lives" aria-hidden="true"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 66); margin-left: 0%; margin-right: 27.5%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 304); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 24); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261); margin-left: 2.5%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151); margin-left: 55%; margin-right: 0%;"></i></span><b class="wd-now" aria-hidden="true" style="left: 77.5%;"></b></span><span class="wd-ends" aria-hidden="true"><small>2040</small><output>2071</output><small>2080</small></span></span><small>Open</small></span></a></div></div><div class="fs-sheetof fs-rules fs-flows fl-under" data-for="eastwinds"><p class="wd-ages" data-year="2071">Mrs. Li 38 · Sydney 34 · Siyuan 30 · Dawn Li 9</p><p class="fs-from wd-waiting"><small>Waiting</small> <a class="wd-wait">Who raises Dawn after 2065?</a></p><p class="fs-quiet fl-lastline" data-read=""><small>11 / 25 / 26</small> Not sure about the coat yet.</p><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Research</span><small class="fs-list-meta">A question, and the papers on both sides</small></a></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 293.96875px; --mark-y: 39.5px; --mark-w: 37.703125;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="year" data-name="Tap the year">
+  <h2>Tap the year</h2>
+  <p class="line">Its chapters and events are marked.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="year"><div class="island"></div>
+    <div class="status"><span>21:31</span><span>Flow</span></div>
+    <div class="fs-app" data-lamp="" style="--lamp-voice: oklch(var(--voice-l) calc(var(--voice-c) * 1) 250);"><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26</span><span class="fs-list-line">Trying the leaving again. Maybe it is quieter than I had it.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-hdr-label">Flow</span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><div class="fl-shelfwrap"><div class="fl-shelf" role="group" aria-label="Notebooks" style="overflow: hidden;"><a class="fl-cover" data-book="own" draggable="false" style="--wc: var(--v-black); --s: -1.000; --d: 1.000; margin-left: -216px;"><span class="fl-cover-name">My own pages</span><span class="fl-cover-foot"><small>Who to Be, How to Flow</small></span></a><a class="fl-cover" data-book="eastwinds" data-front="" draggable="false" aria-current="true" style="--wc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 250); --s: 0.000; --d: 0.000;"><span class="fl-cover-name">East Winds</span><span class="fl-cover-foot"><span class="wd-dial"><span class="wd-track" role="slider" tabindex="-1" aria-label="Story year" aria-valuemin="2040" aria-valuemax="2080" aria-valuenow="2071" data-year="2071"><span class="wd-lives" aria-hidden="true"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 66); margin-left: 0%; margin-right: 27.5%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 304); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 24); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261); margin-left: 2.5%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151); margin-left: 55%; margin-right: 0%;"></i></span><b class="wd-now" aria-hidden="true" style="left: 77.5%;"></b></span><span class="wd-ends" aria-hidden="true"><small>2040</small><output>2071</output><small>2080</small></span></span><small>Open</small></span></a></div></div><div class="fs-sheetof fs-rules fs-flows fl-under" data-for="eastwinds"><p class="wd-ages" data-year="2071">Mrs. Li 38 · Sydney 34 · Siyuan 30 · Dawn Li 9</p><p class="fs-from wd-waiting"><small>Waiting</small> <a class="wd-wait">Who raises Dawn after 2065?</a></p><p class="fs-quiet fl-lastline" data-read=""><small>11 / 25 / 26</small> Not sure about the coat yet.</p><a class="fs-row fs-list-row fl-flow"><span class="fs-list-line">Research</span><small class="fs-list-meta">A question, and the papers on both sides</small></a></div></section><div class="fs-scrim"></div><section class="fs-sheet" aria-label="The year" tabindex="-1" data-sheet="The year"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>The year</h2><span class="fs-sheet-words"><button type="button" class="fs-word">Done</button></span></div></div><div class="fs-sheet-body"><div class="wd-sheet"><span class="wd-dial" data-marks=""><span class="wd-track" role="slider" tabindex="-1" aria-label="Story year" aria-valuemin="2040" aria-valuemax="2080" aria-valuenow="2071" data-year="2071"><span class="wd-lives" aria-hidden="true"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 66); margin-left: 0%; margin-right: 27.5%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 304); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 24); margin-left: 0%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261); margin-left: 2.5%; margin-right: 0%;"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151); margin-left: 55%; margin-right: 0%;"></i></span><b class="wd-mark" aria-hidden="true" style="left: 77.5%;"></b><b class="wd-mark" aria-hidden="true" style="left: 77.5%;"></b><b class="wd-now" aria-hidden="true" style="left: 77.5%;"></b></span><span class="wd-ends" aria-hidden="true"><small>2040</small><output>2071</output><small>2080</small></span></span><p class="fs-from wd-inyear"><small>Chapter</small> <span>The flood</span></p><p class="fs-from wd-inyear"><small>Event</small> <span>The spring flood</span></p></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab" aria-current="page">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 293.96875px; --mark-y: 39.5px; --mark-w: 37.703125;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="journal" data-name="Write about the book">
+  <h2>Write about the book</h2>
+  <p class="line">Only kept lines go to the bible.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-step="journal"><div class="island"></div>
+    <div class="status"><span>09:40</span><span>Journal</span></div>
+    <div class="fs-app" style=""><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><a class="fs-word fs-notstill">Pages</a><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-count">No. <b>1</b></span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-proxy" aria-hidden="true" tabindex="-1"></textarea><div class="fs-block"><div class="fs-msg cur" data-line="m1"><button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded="false"></button><textarea class="fs-edit" aria-label="This line" spellcheck="true" rows="1" data-saved="true" style="height: 56px;" tabindex="-1">Trying the leaving again. Maybe it is quieter than I had it.</textarea></div></div><div class="fs-block"><div class="fs-msg" data-line="m2"><small class="fs-kept">kept</small><p>Siyuan leaves the temple in 2071, the spring after the flood.</p></div></div><div class="fs-block"><div class="fs-msg" data-line="m3"><small class="fs-kept">kept</small><p>He tells nobody but Dawn. She is nine and keeps it for a year.</p></div></div><div class="fs-block"><div class="fs-msg" data-line="m4"><p>Not sure about the coat yet.</p></div></div><div class="fs-block"><div class="fs-msg" data-line="debe48d7-c321-475d-9070-f3e1a744a2b5"><textarea class="fs-edit" aria-label="Today's page" spellcheck="true" rows="1" data-saved="true" style="height: 28px;" tabindex="-1"></textarea></div></div></div><div class="fs-composer-wrap wd-pagechips fs-notstill"><div class="fs-chips" role="group" aria-label="What this page is about"><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><i></i>Siyuan</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><i></i>Dawn Li</button><button type="button" class="fs-chip" aria-pressed="true" aria-label="Year 2071">2071</button><button type="button" class="fs-chip add">+ place</button></div></div></section><div class="fs-quietline" data-install-line="true"><button type="button" class="fs-quietline-tap">Share, then Add to Home Screen</button></div></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 13.703125px; --mark-y: 39.5px; --mark-w: 62.9375;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="kept" data-name="Keep a line">
+  <h2>Keep a line</h2>
+  <p class="line">It carries its own chips.</p>
+  <div class="phone" data-mock><div class="screen" data-light="day" data-step="kept"><div class="island"></div>
+    <div class="status"><span>09:41</span><span>Journal</span></div>
+    <div class="fs-app" style=""><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><a class="fs-word fs-notstill">Pages</a><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-count">No. <b>1</b></span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-proxy" aria-hidden="true" tabindex="-1"></textarea><div class="fs-block"><div class="fs-msg cur" data-line="m1"><button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded="false"></button><textarea class="fs-edit" aria-label="This line" spellcheck="true" rows="1" data-saved="true" style="height: 56px;" tabindex="-1">Trying the leaving again. Maybe it is quieter than I had it.</textarea></div></div><div class="fs-block"><div class="fs-msg" data-line="m2"><small class="fs-kept">kept</small><p>Siyuan leaves the temple in 2071, the spring after the flood.</p></div></div><div class="fs-block"><div class="fs-msg held" data-line="m3"><small class="fs-kept">kept</small><p>He tells nobody but Dawn. She is nine and keeps it for a year.</p></div></div><div class="fs-block"><div class="fs-msg" data-line="m4"><p>Not sure about the coat yet.</p></div></div><div class="fs-block"><div class="fs-msg" data-line="debe48d7-c321-475d-9070-f3e1a744a2b5"><textarea class="fs-edit" aria-label="Today's page" spellcheck="true" rows="1" data-saved="true" style="height: 28px;" tabindex="-1"></textarea></div></div></div><div class="fs-composer-wrap wd-pagechips fs-notstill"><div class="fs-chips" role="group" aria-label="What this page is about"><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><i></i>Siyuan</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><i></i>Dawn Li</button><button type="button" class="fs-chip" aria-pressed="true" aria-label="Year 2071">2071</button><button type="button" class="fs-chip add">+ place</button></div></div><div class="fs-scrim"></div><section class="fs-sheet" aria-label="This line" tabindex="-1" data-sheet="This line"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>This line</h2><span class="fs-sheet-words"><button type="button" class="fs-word">Done</button></span></div></div><div class="fs-sheet-body"><p class="fs-held">He tells nobody but Dawn. She is nine and keeps it for a year.</p><div class="fs-rows"><button type="button" class="fs-row" role="switch" aria-checked="true"><span>Keep close</span><small>Kept</small></button><div class="wd-picker"><p class="fs-month">Characters</p><div class="fs-chips" role="group" aria-label="Characters"><button type="button" class="fs-chip" aria-pressed="false" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 66);"><i></i>Abbot Ren</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 304);"><i></i>Mrs. Li</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 24);"><i></i>Sydney</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><i></i>Siyuan</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><i></i>Dawn Li</button></div><p class="fs-month">Places</p><div class="fs-chips" role="group" aria-label="Places"><button type="button" class="fs-chip" aria-pressed="false">the temple gate</button><button type="button" class="fs-chip" aria-pressed="false">the river</button></div></div><button type="button" class="fs-row" aria-expanded="false"><span>Speak as…</span><small>Ink</small></button><button type="button" class="fs-row"><span>Ask this</span><small>A question page</small></button><button type="button" class="fs-row"><span>Take to the council</span></button><button type="button" class="fs-row" aria-expanded="false"><span>Link a page</span><small>Related</small></button></div></div></section></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab" aria-current="page">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 13.703125px; --mark-y: 39.5px; --mark-w: 62.9375;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="seats" data-name="Seat the characters">
+  <h2>Seat the characters</h2>
+  <p class="line">Each at their age that year.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="seats"><div class="island"></div>
+    <div class="status"><span>22:10</span><span>Council</span></div>
+    <div class="fs-app" style=""><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26</span><span class="fs-list-line">Trying the leaving again. Maybe it is quieter than I had it.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-hdr-label">Council</span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><nav class="fs-seg" aria-label="Council"><a>Councils</a><a>Voices</a></nav><div class="fs-council" data-council="da88b399-d235-4756-a3fb-356f4d58678f"><div class="fs-sheetof fs-rules"><p class="fs-quiet">Who sits?</p><div class="fs-seats" role="group" aria-label="Who sits"><button type="button" class="fs-chip" aria-pressed="false" data-gone="" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 66);"><i></i>Abbot Ren, d. 2069</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 304);"><i></i>Mrs. Li, 38</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 24);"><i></i>Sydney, 34</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><i></i>Siyuan, 30</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><i></i>Dawn Li, 9</button><button type="button" class="fs-chip add">+ voice</button></div><p class="fs-quiet">This council is</p><div class="fs-seats" role="group" aria-label="This council is"><button type="button" class="fs-chip" aria-pressed="true">About the story</button><button type="button" class="fs-chip" aria-pressed="false">In the story</button></div><p class="fs-quiet">Set in</p><div class="fs-seats" role="group" aria-label="Set in"><button type="button" class="fs-chip" aria-pressed="true" aria-label="Year 2071">2071</button><button type="button" class="fs-chip" aria-pressed="false">The whole book</button></div></div><div class="fs-composer-wrap"><button type="button" class="fs-new">Begin</button></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 89.046875px; --mark-y: 39.5px; --mark-w: 60.9375;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="in" data-name="Or set it in the story">
+  <h2>Or set it in the story</h2>
+  <p class="line">Dialogue is never offered as fact.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="in"><div class="island"></div>
+    <div class="status"><span>22:31</span><span>Council</span></div>
+    <div class="fs-app" style="--lamp-voice: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);" data-lamp=""><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26</span><span class="fs-list-line">Trying the leaving again. Maybe it is quieter than I had it.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"><span class="fs-hdr-label">Council</span></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 25 / 26</b></span></div></header><nav class="fs-seg" aria-label="Council"><a>Councils</a><a>Voices</a></nav><div class="fs-council" data-council="pg-in"><div class="fs-chat fs-rules"><p class="fs-from wd-reading"><small>In the story</small> <a>2071</a></p><div class="fs-msg fs-v" data-id="c1" data-voice="Dawn Li" data-press="" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><button type="button" class="fs-sp fs-sp-tap" aria-expanded="false" aria-label="Dawn: show the role">Dawn</button><p>You packed the grey coat. You only wear that one to leave.</p></div><div class="fs-msg fs-v" data-id="c2" data-voice="Siyuan" data-press="" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><span class="fs-sp">Siyuan</span><p>I am walking to the river and back.</p></div><div class="fs-msg fs-v" data-id="c3" data-voice="Dawn Li" data-press="" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><button type="button" class="fs-sp fs-sp-tap" aria-expanded="false" aria-label="Dawn: show the role">Dawn</button><p>Then leave the coat.</p></div><div class="fs-msg fs-v" data-id="c4" data-voice="Siyuan" data-press="" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><span class="fs-sp">Siyuan</span><p>Keep this for me. One year.</p></div></div><div class="fs-composer-wrap"><div class="fs-chips" role="group" aria-label="Who speaks next"><button type="button" class="fs-chip" aria-pressed="false" aria-label="Plain ink">Ink</button><button type="button" class="fs-chip" aria-pressed="true" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"><i></i>Dawn</button><button type="button" class="fs-chip" aria-pressed="false" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"><i></i>Siyuan</button><button type="button" class="fs-chip add">+ seat</button></div><div class="fs-composer"><textarea rows="1" aria-label="Message" enterkeyhint="send" placeholder="Dawn speaks…" style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151); height: 28px;" tabindex="-1"></textarea></div></div></div></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab" aria-current="page">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 89.046875px; --mark-y: 39.5px; --mark-w: 60.9375;"></span></nav></div>
+  </div></div>
+</section>
+<section class="step" id="answer" data-name="Answer the bible's question">
+  <h2>Answer the bible's question</h2>
+  <p class="line">Research this carries it further.</p>
+  <div class="phone" data-mock><div class="screen" data-light="night" data-step="answer"><div class="island"></div>
+    <div class="status"><span>21:40</span><span>Questions</span></div>
+    <div class="fs-app" style=""><main class="fs-main"><section class="fs-page"><nav class="fs-earlier fs-rules" aria-label="Earlier pages" aria-hidden="true" inert=""><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26 · council <span class="fs-spoke" aria-label="Dawn, Siyuan"><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 151);"></i><i style="--vc: oklch(var(--voice-l) calc(var(--voice-c) * 1) 261);"></i></span></span><span class="fs-list-line">You packed the grey coat. You only wear that one to leave.</span></a><a class="fs-list-row"><span class="fs-list-meta">11 / 25 / 26</span><span class="fs-list-line">Trying the leaving again. Maybe it is quieter than I had it.</span></a><a class="fs-list-row fs-earlier-all">All pages</a></nav><header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon glow" aria-label="Still" aria-pressed="false"><i></i><span class="fs-ring-mark"></span></button><a class="fs-word">Questions</a><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-top"></span><span class="fs-hdr-world"><span class="fs-hdr-wname">East Winds</span> · <button type="button" class="fs-hdr-year" aria-label="Story year 2071">2071</button></span><span>Date: <b>11 / 11 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-proxy" aria-hidden="true" tabindex="-1"></textarea><div class="fs-qtitle"><textarea class="fs-edit fs-q" aria-label="Question" spellcheck="true" rows="1" style="height: 57px;" tabindex="-1"></textarea><button type="button" role="checkbox" aria-checked="true" aria-label="Resolved" class="fs-resolve fs-notstill done"><span class="fs-resolve-word" aria-hidden="true">Resolve</span><svg class="fs-resolve-mark" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path class="fs-check-ink" pathLength="1" d="M5.2 10.6 L8.6 14 L17.6 2.6"></path></svg></button></div><div class="fs-block"><small class="fs-dated">11 / 25 / 26</small><div class="fs-msg" data-line="a1"><p>Before is cleaner. After is truer to him.</p></div></div><div class="fs-block"><div class="fs-msg fs-wise" data-line="a2"><p>After. He stays one season too long, and that is the wound.</p></div></div><div class="fs-block"><div class="fs-msg cur" data-line="75506337-15c9-4728-9534-d814417904d0"><button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded="false"></button><textarea class="fs-edit" aria-label="This page" spellcheck="true" rows="1" data-saved="true" style="height: 28px;" tabindex="-1"></textarea></div></div></div><nav class="fs-ask fs-walk" aria-label="The open questions"><button type="button" class="fs-word">Research this</button></nav></section></main><nav class="fs-tabs" aria-label="Sections"><a class="fs-tab">Journal</a><a class="fs-tab">Council</a><a class="fs-tab fs-tab-q" aria-label="Questions" aria-current="page">?</a><a class="fs-tab">Be</a><a class="fs-tab">Flow</a><span class="fs-tab-mark" aria-hidden="true" style="--mark-x: 174.53125px; --mark-y: 42.5px; --mark-w: 8.9375;"></span></nav></div>
+  </div></div>
+  <p class="line"><a href="walkthrough.html#worn">Back to the shelf</a></p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Year</td><td><code>model/story.ts</code>: started once from the pocket's story year, then the phone's own; stamped on every new page and council.</td></tr>
+    <tr><td>Chips</td><td>Filled at keeping from the page's chips and every name its lines use (<code>keepLine</code>).</td></tr>
+    <tr><td>Up</td><td>The outbox as built: a question page and its wise line, a council with <code>reading</code> and <code>year</code>.</td></tr>
+  </table></details>
+</section>
+
+<div class="ctl"><button id="prev">Previous</button><button id="next">Next</button></div>
+
+</main>
+</div>
+<script>
+(function(){
+  /* ---- walkthrough rail ---- */
+  var steps=[].slice.call(document.querySelectorAll('.step'));
+  var rail=document.getElementById('rail'),counter=document.getElementById('counter');
+  var initial=steps.map(function(s){return s.innerHTML});
+  var i=0, GLOBAL='design';
+  steps.forEach(function(s,k){var li=document.createElement('li');var a=document.createElement('a');a.href='#'+s.id;a.innerHTML='<span class="n">'+(k+1)+'</span><span class="t">'+s.dataset.name+'</span>';a.addEventListener('click',function(e){e.preventDefault();go(k);});li.appendChild(a);rail.appendChild(li);});
+  function go(k){i=(k+steps.length)%steps.length;steps.forEach(function(s,j){var on=j===i;if(on&&!s.classList.contains('on')){s.innerHTML=initial[j];initScreens(s);}s.classList.toggle('on',on);});[].slice.call(rail.querySelectorAll('a')).forEach(function(a,j){if(j===i)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});counter.textContent='Step '+(i+1)+' of '+steps.length;requestAnimationFrame(function(){steps[i].querySelectorAll('.spread').forEach(layoutSpread);});try{history.replaceState(null,'','#'+steps[i].id);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+  document.getElementById('prev').addEventListener('click',function(){go(i-1);});
+  document.getElementById('next').addEventListener('click',function(){go(i+1);});
+  document.addEventListener('keydown',function(e){if(e.target.closest&&e.target.closest('[contenteditable],input'))return;if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
+
+  /* ---- sound and touch ---- */
+  var SOUND=true, AC=null;
+  function ctx(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC;} /* design-lint: allow: this is the walkthrough's stand-in for parts/Sound and parts/Haptic */
+  function bell(f,d,g){if(!SOUND)return;var a=ctx();if(!a)return;var t=a.currentTime;var o=a.createOscillator(),o2=a.createOscillator(),v=a.createGain();o.type='sine';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*2.76;var v2=a.createGain();v2.gain.value=.18;o2.connect(v2);v2.connect(v);o.connect(v);v.connect(a.destination);v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g||.18,t+.012);v.gain.exponentialRampToValueAtTime(.0008,t+d);o.start(t);o2.start(t);o.stop(t+d);o2.stop(t+d);}
+  function low(){if(!SOUND)return;var a=ctx();if(!a)return;var t=a.currentTime;var o=a.createOscillator(),v=a.createGain();o.type='sine';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(82,t+3);o.connect(v);v.connect(a.destination);v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(.16,t+.4);v.gain.exponentialRampToValueAtTime(.0008,t+3.2);o.start(t);o.stop(t+3.3);}
+  function tick(){try{navigator.vibrate&&navigator.vibrate(8);}catch(e){}} /* design-lint: allow: this is the walkthrough's stand-in for parts/Sound and parts/Haptic */
+  var snd=document.getElementById('snd');
+  function setSound(on){SOUND=on;snd.setAttribute('aria-pressed',String(on));snd.textContent=on?'Sound on':'Sound off';document.querySelectorAll('[data-set="sounds"] small,[data-toggle="sounds"] small').forEach(function(s){s.textContent=on?'On · bells only':'Off';});}
+  snd.addEventListener('click',function(){setSound(!SOUND);});
+
+  /* ---- lights ---- */
+  function setLight(screen,l){screen.dataset.light=l;}
+  function relight(mode){GLOBAL=mode;var pinOf={design:'sky',day:'day',night:'night'};document.querySelectorAll('.fs-opt[data-pin]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.pin===pinOf[mode]));});document.querySelectorAll('.lights [data-light]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.light===mode));});document.querySelectorAll('.screen').forEach(function(s){setLight(s,mode==='design'?s.dataset.lightDefault:mode);});}
+  document.querySelectorAll('.lights [data-light]').forEach(function(b){b.addEventListener('click',function(){relight(b.dataset.light);});});
+  /* the pull (V6): the rail of earlier pages open above the page, the page held at the rail's height */
+  function setPull(pg,open){var r=pg.querySelector('.fs-earlier');if(open)pg.dataset.open='1';else delete pg.dataset.open;pg.style.transform=open&&r?'translateY('+r.offsetHeight+'px)':'';}
+  function initScreens(root){requestAnimationFrame(function(){root.querySelectorAll('[data-step="pull"] .fs-page').forEach(function(pg){setPull(pg,true);});});root.querySelectorAll('[data-scroll]').forEach(function(el){requestAnimationFrame(function(){el.scrollTop=+el.dataset.scroll;});});requestAnimationFrame(function(){root.querySelectorAll('.fs-spread-pages[data-w]').forEach(function(el){var w=el.parentNode.clientWidth;el.style.zoom=w&&w<+el.dataset.w?String(w/el.dataset.w):'';});});root.querySelectorAll('.screen').forEach(function(s){if(!s.dataset.lightDefault)s.dataset.lightDefault=s.dataset.light;if(GLOBAL!=='design')setLight(s,GLOBAL);});root.querySelectorAll('.spread').forEach(function(sp){layoutSpread(sp);if(window.ResizeObserver)new ResizeObserver(function(){layoutSpread(sp);}).observe(sp);});}
+  function toggleStill(screen){var still=screen.dataset.light==='still';if(still){setLight(screen,GLOBAL==='design'||GLOBAL==='still'?(screen.dataset.lightDefault==='still'?'night':screen.dataset.lightDefault):GLOBAL);bell(660,1.2,.1);}else{setLight(screen,'still');low();tick();}}
+
+  /* ---- editor ---- */
+  function activeVoice(screen){var c=screen.querySelector('.chips .chip.on');return c&&c.dataset.voice?{name:c.dataset.voice,vc:c.style.getPropertyValue('--vc'),deep:c.classList.contains('deep')}:null;}
+  function blockOf(node,pg){while(node&&node!==pg){if(node.parentNode===pg)return node;node=node.parentNode;}return null;}
+  function newBlock(screen,pg,after){var v=activeVoice(screen),p=document.createElement('p');p.innerHTML='<br>';var el=p;if(v){el=document.createElement('div');el.className='v'+(v.deep?' deep':'');el.style.setProperty('--vc',v.vc);var sp=document.createElement('span');sp.className='sp';sp.contentEditable='false';sp.textContent=v.name;el.appendChild(sp);el.appendChild(p);}if(after&&after.nextSibling)pg.insertBefore(el,after.nextSibling);else pg.appendChild(el);var r=document.createRange();r.setStart(p,0);r.collapse(true);var sel=getSelection();sel.removeAllRanges();sel.addRange(r);}
+  document.addEventListener('keydown',function(e){var pg=e.target.closest&&e.target.closest('.pg[contenteditable]');if(pg&&e.key==='Enter'){e.preventDefault();var sel=getSelection();var b=sel.anchorNode?blockOf(sel.anchorNode,pg):null;newBlock(pg.closest('.screen'),pg,b);}
+    var inp=e.target.closest&&e.target.closest('input.compose');if(inp&&e.key==='Enter'){e.preventDefault();var screen=inp.closest('.screen'),v=activeVoice(screen),pg2=screen.querySelector('.pg');if(!inp.value.trim())return;var el=document.createElement('div');el.className='v'+(v&&v.deep?' deep':'');el.style.setProperty('--vc',v?v.vc:'var(--ink)');el.innerHTML='<span class="sp"></span><p></p>';el.querySelector('.sp').textContent=v?v.name:'Ink';el.querySelector('p').textContent=inp.value;pg2.appendChild(el);if(v)screen.style.setProperty('--lamp','color-mix(in oklch,'+v.vc+' 35%,var(--page))');inp.value='';tick();while(pg2.scrollHeight>pg2.clientHeight&&pg2.children.length>2)pg2.removeChild(pg2.children[1]);}});
+  document.addEventListener('focusin',function(e){var pg=e.target.closest&&e.target.closest('.pg[contenteditable]');if(pg)pg.querySelectorAll('.caret').forEach(function(c){c.remove();});});
+
+  /* ---- clicks ---- */
+  var main=document.getElementById('main');
+  main.addEventListener('mousedown',function(e){if(e.target.closest('.chip'))e.preventDefault();});
+  main.addEventListener('click',function(e){
+    var t=e.target, screen=t.closest('.screen'); if(!screen) return;
+    var chip=t.closest('.chip');
+    if(chip&&!chip.classList.contains('add')){chip.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});chip.classList.add('on');var inp=screen.querySelector('input.compose');if(inp)inp.placeholder=(chip.dataset.voice||'Ink')+' speaks…';tick();return;}
+    if(t.closest('.sw')||t.closest('.fs-moon')){toggleStill(screen);return;}
+    var pinb=t.closest('.fs-opt[data-pin]'); if(pinb){relight({sky:'design',day:'day',night:'night'}[pinb.dataset.pin]);tick();return;}
+    var tg=t.closest('[data-toggle]'); if(tg){if(tg.dataset.toggle==='sounds')setSound(!SOUND);else{var ts=tg.querySelector('small');ts.textContent=ts.textContent==='On'?'Off':'On';}tick();return;}
+    var key=t.closest('.key');
+    if(key){var dots=screen.querySelectorAll('.dots i'),n=screen.querySelectorAll('.dots i.on').length;if(n<4){dots[n].classList.add('on');tick();bell(523+n*60,.35,.05);}if(n===3){setTimeout(function(){bell(880,1.8,.16);tick();screen.querySelector('.thr').classList.add('out');screen.querySelector('.after').classList.add('in');},250);}return;}
+    if(t.closest('.after .status')){screen.querySelector('.after').classList.remove('in');screen.querySelector('.thr').classList.remove('out');screen.querySelectorAll('.dots i').forEach(function(d){d.classList.remove('on');});return;}
+    var box=t.closest('.box'); if(box){box.classList.toggle('done');tick();if(box.classList.contains('done'))bell(784,.5,.06);return;}
+    var echo=t.closest('.echo'); if(echo&&!echo.dataset.moved){var pg=screen.querySelector('.pg'),p=document.createElement('p');p.className='empty';p.textContent='Related: '+echo.querySelector('span').textContent;pg.appendChild(p);echo.style.opacity='0';setTimeout(function(){echo.remove();},300);tick();return;}
+    var act=t.closest('[data-act]'); if(act){var a=act.dataset.act;
+      if(a==='turn'){var pg3=screen.querySelector('.pg'),q=pg3.querySelector('[data-question]');if(q){q.classList.add('q');screen.querySelectorAll('.seg span').forEach(function(s){s.classList.toggle('on');});var ans=document.createElement('p');ans.className='wise';ans.innerHTML='<br>';pg3.appendChild(ans);act.remove();screen.querySelector('.composer input').placeholder='Add a later reading…';var r=document.createRange();r.setStart(ans,0);r.collapse(true);var sel=getSelection();sel.removeAllRanges();sel.addRange(r);pg3.focus();tick();bell(660,.8,.08);}return;}
+      if(a==='dismiss'){closeSheet(screen);return;}
+      if(a==='settings'||a==='sheet'){closeSheet(screen);var tp=screen.querySelector('template.fs-sheet-tpl');if(tp){screen.querySelector('.fs-main').appendChild(tp.content.cloneNode(true));tick();}return;}
+      if(a==='close-page'){var pg4=screen.querySelector('.pg');pg4.style.opacity='0';setTimeout(function(){pg4.innerHTML='<p><br></p>';pg4.style.opacity='1';},600);closeSheet(screen);low();tick();return;}
+      if(a==='keep'){var line=screen.querySelector('[data-pressed]');if(line){line.classList.add('kept');line.removeAttribute('data-pressed');}closeSheet(screen);bell(988,.9,.07);tick();return;}
+      if(a==='tile'){var cur=act.getAttribute('aria-pressed')==='true';var mt=act.parentNode.querySelectorAll('.fs-tile');mt.forEach(function(x){x.setAttribute('aria-pressed','false');});act.setAttribute('aria-pressed','true');var tim=act.querySelector('img'),mini=screen.querySelector('.fs-mini');if(mini){mini.innerHTML=tim?'<img alt="">':'<span></span>';var nm=mini.firstChild;if(tim)nm.src=tim.src;else nm.setAttribute('style',act.querySelector('span').getAttribute('style'));}var tp2=screen.querySelector('template.fs-sheet-tpl');if(tp2){tp2.content.querySelectorAll('.fs-tile').forEach(function(x,i){x.setAttribute('aria-pressed',String([].indexOf.call(mt,act)===i));});}tick();bell(660,.6,.06);if(!cur)setTimeout(function(){closeSheet(screen);},500);return;}
+      if(a==='music-sheet'||a==='add-goal'){openSheet(screen);return;}
+      if(a==='save-goal'){var inp=screen.querySelector('.sheet input[data-side="b"]'),txt=inp&&inp.value.trim();var sp=screen.querySelector('.spread'),ghost=sp.querySelector('.it.ghost');if(txt){if(ghost){ghost.classList.remove('ghost');ghost.removeAttribute('data-act');ghost.textContent=txt;}else{var a2=sp.querySelector('[data-id="a2"]');if(!a2){a2=document.createElement('div');a2.className='it';a2.dataset.id='a2';a2.dataset.pole='a';a2.dataset.t='.62';a2.textContent=screen.querySelector('.sheet input:not([data-side])').value;sp.appendChild(a2);}var b2=document.createElement('div');b2.className='it';b2.dataset.id='b2';b2.dataset.pole='b';b2.dataset.t='.62';b2.textContent=txt;sp.appendChild(b2);var pth=document.createElementNS('http://www.w3.org/2000/svg','path');pth.setAttribute('class','pair');pth.dataset.from='a2';pth.dataset.to='b2';sp.querySelector('.arrows').appendChild(pth);}layoutSpread(sp);bell(784,.6,.07);}closeSheet(screen);tick();return;}
+    }
+    var cad=t.closest('.cad span'); if(cad){cad.parentNode.querySelectorAll('span').forEach(function(c){c.classList.remove('on');});cad.classList.add('on');tick();return;}
+    var row=t.closest('[data-set]'); if(row){var sm=row.querySelector('small'),k=row.dataset.set;
+      if(k==='light'){var seq=['design','day','night','still'],lab={design:'Follow the sky',day:'Day',night:'Night',still:'Still'};var nx=seq[(seq.indexOf(GLOBAL)+1)%seq.length];relight(nx);sm.textContent=lab[nx];}
+      if(k==='sounds'){setSound(!SOUND);}
+      if(k==='midnight'){sm.textContent=sm.textContent==='Offer'?'Never':'Offer';}
+      if(k==='haptics'){sm.textContent=sm.textContent==='On'?'Off':'On';}
+      tick();return;}
+  });
+  function closeSheet(screen){screen.querySelectorAll('.scrim,.sheet,.fs-scrim,.fs-sheet').forEach(function(x){x.remove();});}
+  function openSheet(screen){closeSheet(screen);var tpl=screen.querySelector('template.sheet-tpl');if(tpl){screen.appendChild(tpl.content.cloneNode(true));tick();}}
+
+  /* ---- pointer: spread, lean, pull, echo swipe, long press ---- */
+  var drag=null, press=null;
+  function layoutSpread(sp){var w=sp.clientWidth,h=sp.clientHeight;if(!w||!h)return;sp.querySelectorAll('.it').forEach(function(it){var t=parseFloat(it.dataset.t)||.5,b=it.dataset.pole==='b',iw=it.offsetWidth,ih=it.offsetHeight;it.style.left=(b?w-iw:0)+'px';it.style.top=Math.max(0,Math.min(h-ih,t*h-ih/2))+'px';});sp.querySelectorAll('.arrows path').forEach(function(path){var A=sp.querySelector('[data-id="'+path.dataset.from+'"]'),B=sp.querySelector('[data-id="'+path.dataset.to+'"]');if(!A||!B){path.setAttribute('d','');return;}var x1,y1,x2,y2;if(path.classList.contains('pair')){x1=A.offsetLeft+A.offsetWidth+4;y1=A.offsetTop+A.offsetHeight/2;x2=B.offsetLeft-4;y2=B.offsetTop+B.offsetHeight/2;path.setAttribute('d','M'+x1+' '+y1+' C'+(x1+28)+' '+y1+' '+(x2-28)+' '+y2+' '+x2+' '+y2);}else{x1=A.offsetLeft+A.offsetWidth*.5;y1=A.offsetTop+A.offsetHeight+2;x2=B.offsetLeft+B.offsetWidth*.5;y2=B.offsetTop-3;path.setAttribute('d','M'+x1+' '+y1+' Q'+((x1+x2)/2+14)+' '+((y1+y2)/2)+' '+x2+' '+y2+' m-6 -2 l6 2 l-3 -6');}});}
+  window.addEventListener('resize',function(){document.querySelectorAll('.spread').forEach(layoutSpread);});
+  main.addEventListener('pointerdown',function(e){
+    var t=e.target, screen=t.closest('.screen'); if(!screen) return;
+    var it=t.closest('.it:not(.ghost)'); if(it){drag={kind:'it',el:it,sp:it.closest('.spread'),screen:screen};it.classList.add('lift');e.preventDefault();return;}
+    var lean=t.closest('.lean'); if(lean){drag={kind:'lean',el:lean,screen:screen,last:null};moveLean(lean,e);e.preventDefault();return;}
+    var echo=t.closest('.echo'); if(echo){drag={kind:'echo',el:echo,x0:e.clientX,dx:0};return;}
+    if(screen.dataset.step==='pull'&&screen.dataset.light!=='still'&&t.closest('.fs-page')&&!t.closest('.fs-earlier')){var pp=screen.querySelector('.fs-page'),rl=screen.querySelector('.fs-earlier');drag={kind:'pull',screen:screen,y0:e.clientY,dy:0,rail:rl,push:pp,from:pp.dataset.open?rl.offsetHeight:0};pp.classList.add('fs-pulling');e.preventDefault();return;}
+    var line=t.closest('[data-press]'); if(line){press={el:line,screen:screen,x:e.clientX,y:e.clientY,timer:setTimeout(function(){line.setAttribute('data-pressed','');openSheet(screen);press=null;},500)};}
+  });
+  function moveLean(lean,e){var r=lean.getBoundingClientRect(),x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));var det=[0,.5,1],snap=null;det.forEach(function(d){if(Math.abs(x-d)<.07){x=d;snap=d;}});lean.querySelector('b').style.left=(x*100)+'%';if(snap!==null&&drag&&drag.last!==snap){drag.last=snap;tick();if(snap!==.5)bell(snap===0?440:587,.5,.05);}if(snap===null&&drag)drag.last=null;}
+  document.addEventListener('pointermove',function(e){if(!drag)return;
+    if(drag.kind==='it'){var sp=drag.sp,r=sp.getBoundingClientRect();var t=Math.max(.06,Math.min(.94,(e.clientY-r.top)/r.height));drag.el.dataset.t=t;layoutSpread(sp);}
+    if(drag.kind==='lean')moveLean(drag.el,e);
+    if(drag.kind==='echo'){drag.dx=e.clientX-drag.x0;drag.el.style.transform='translateX('+drag.dx+'px)';drag.el.style.opacity=String(Math.max(.1,1-Math.abs(drag.dx)/140));if(Math.abs(drag.dx)>6)drag.el.dataset.moved='1';}
+    if(drag.kind==='pull'){var H=drag.push.clientHeight;drag.dy=e.clientY-drag.y0;var at=Math.max(0,Math.min(H*.45,drag.from+drag.dy));drag.push.style.transform=at?'translateY('+at+'px)':'';drag.rail.classList.toggle('ready',!drag.from&&drag.dy>=80);}
+    if(press&&(Math.abs(e.clientX-press.x)>8||Math.abs(e.clientY-press.y)>8)){clearTimeout(press.timer);press=null;}
+  });
+  function endDrag(e){if(press){clearTimeout(press.timer);press=null;}if(!drag)return;var d=drag;drag=null;
+    if(d.kind==='it'){d.el.classList.remove('lift');tick();}
+    if(d.kind==='echo'){if(Math.abs(d.dx)>70){d.el.style.transform='translateX('+(d.dx>0?400:-400)+'px)';d.el.style.opacity='0';setTimeout(function(){d.el.remove();},300);tick();}else{d.el.style.transform='';d.el.style.opacity='';setTimeout(function(){delete d.el.dataset.moved;},50);}}
+    if(d.kind==='pull'){d.push.classList.remove('fs-pulling');d.rail.classList.remove('ready');setPull(d.push,d.from?d.dy>-40&&Math.abs(d.dy)>4:d.dy>=80);}
+  }
+  document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
+
+  var h=(location.hash||'').replace('#','');var start=steps.findIndex(function(s){return s.id===h;});
+  go(start>=0?start:0);
+})();
+</script>
+<script>
+/* package 2 and V3: the council, seats, "+ voice" and Voices mocks are live (seats toggle, return speaks and
+   passes the turn to the next seat, a chip tap speaks for one line, the wheel turns) */
+(function(){
+  var main=document.getElementById('main');
+  var SEEN=[['Warrior',25,'red'],['Explorer',55,'orange'],['Engineer',60,'brown'],['Joker',95,'yellow'],['Architect',150,'green'],['Mystic',250,'blue'],['Meaning Maker',305,'purple'],['Sensualist',350,'pink']];
+  function dist(a,b){var d=Math.abs(((a-b)%360+360)%360);return d>180?360-d:d;}
+  main.addEventListener('keydown',function(e){
+    var ta=e.target.closest&&e.target.closest('[data-p2] .fs-composer textarea'); if(!ta) return;
+    e.stopPropagation();
+    if(e.key!=='Enter'||e.shiftKey) return;
+    e.preventDefault();
+    var t=ta.value.trim(); if(!t) return;
+    var scr=ta.closest('.screen'), on=scr.querySelector('.fs-chip[aria-pressed="true"]'), chat=scr.querySelector('.fs-chat');
+    var vc=on&&on.style.getPropertyValue('--vc'), who=on?on.textContent:'', d=document.createElement('div');
+    d.className='fs-msg'+(vc?' fs-v':'')+(on&&on.classList.contains('deep')?' deep':'');
+    if(vc){
+      d.style.setProperty('--vc',vc);
+      var last=chat.lastElementChild;
+      if(!last||last.getAttribute('data-who')!==who){var sp=document.createElement('span');sp.className='fs-sp';sp.textContent=who;d.appendChild(sp);}
+      var app=scr.querySelector('.fs-app');app.setAttribute('data-lamp','');app.style.setProperty('--lamp-voice',vc);
+    }
+    d.setAttribute('data-who',who);
+    var rq=scr.querySelector('.fs-replying');if(rq){d.appendChild(rq.querySelector('.fs-quote'));rq.remove();}
+    var p=document.createElement('p');p.textContent=t;d.appendChild(p);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;ta.value='';
+    // V3: at a seated council the turn goes on to the seat after whoever spoke; a line in ink takes no turn
+    if(scr.hasAttribute('data-turns')){
+      if(vc)scr.setAttribute('data-last',who);
+      var seats=[].slice.call(scr.querySelectorAll('.fs-chips .fs-chip:not(.add)')).filter(function(x){return x.style.getPropertyValue('--vc');});
+      var at=seats.findIndex(function(x){return x.textContent===scr.getAttribute('data-last');}),nx=seats[(at+1)%seats.length];
+      if(nx)pick(nx);
+    }
+  });
+  function pick(c){
+    c.parentNode.querySelectorAll('.fs-chip:not(.add)').forEach(function(x){x.setAttribute('aria-pressed',String(x===c));});
+    var ta=c.closest('.screen').querySelector('.fs-composer textarea'), vc=c.style.getPropertyValue('--vc');
+    if(ta){ta.placeholder=vc?c.textContent+' speaks…':'A line in ink…';ta.style.setProperty('--vc',vc||'transparent');}
+  }
+  main.addEventListener('click',function(e){
+    var c=e.target.closest&&e.target.closest('[data-p2] .fs-chip'); if(!c||c.classList.contains('add')) return;
+    // the seats screen: each chip toggles on its own
+    if(c.closest('.fs-seats')){c.setAttribute('aria-pressed',String(c.getAttribute('aria-pressed')!=='true'));return;}
+    pick(c);
+  });
+  // tap a message to reply: its quote rises above the composer
+  main.addEventListener('click',function(e){
+    var m=e.target.closest&&e.target.closest('[data-turns] .fs-chat .fs-msg'); if(!m) return;
+    var wrap=m.closest('.fs-council').querySelector('.fs-composer-wrap'),r=wrap.querySelector('.fs-replying');
+    if(!r){r=document.createElement('div');r.className='fs-replying';r.innerHTML='<span class="fs-quote"><b></b> <span></span></span><button type="button" class="fs-word">Cancel</button>';wrap.insertBefore(r,wrap.firstChild);r.querySelector('button').addEventListener('click',function(){r.remove();});}
+    var q=r.querySelector('.fs-quote');q.style.setProperty('--qc',m.style.getPropertyValue('--vc'));q.querySelector('b').textContent=m.getAttribute('data-who')||'Ink';q.querySelector('span').textContent=m.querySelector('p:last-of-type').textContent;
+  });
+  var wd=null;
+  function turn(w,e){
+    var r=w.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;
+    var h=Math.round((Math.atan2(dx,-dy)*180/Math.PI+360)%360), near=null;
+    w.style.setProperty('--h',h+'deg');w.style.setProperty('--vc','oklch(var(--voice-l) var(--voice-c) '+h+')');w.setAttribute('aria-valuenow',h);
+    SEEN.forEach(function(v){if(dist(h,v[1])<20&&(!near||dist(h,v[1])<dist(h,near[1])))near=v;});
+    var warn=w.parentNode.querySelector('.fs-warn');
+    if(warn){warn.textContent=near?'Close to the '+near[0]+"'s "+near[2]:'';warn.style.visibility=near?'visible':'hidden';}
+  }
+  main.addEventListener('pointerdown',function(e){var w=e.target.closest&&e.target.closest('[data-p2] .fs-wheel');if(w){wd=w;turn(w,e);e.preventDefault();}});
+  document.addEventListener('pointermove',function(e){if(wd)turn(wd,e);});
+  document.addEventListener('pointerup',function(){wd=null;});
+})();
+</script>
+<script>
+/* Journal steps (package 1, v2 V1): the page column is the editor, driven here the way src/ui/journal/PageView drives it.
+   Return makes the next paragraph; the margin dot steps out the chips for one paragraph; tap a paragraph to write in it;
+   hold one for its five things. */
+(function(){
+  function screenOf(t){return t.closest&&t.closest('.screen[data-j]');}
+  function esc(x){return x.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function inked(x){return esc(x).replace(/(#[\w-]+)/g,'<span class="fs-tagword">$1</span>');}
+  function grow(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
+  function closeSheet(sc){sc.querySelectorAll('.fs-main > .fs-scrim,.fs-main > .fs-sheet').forEach(function(x){x.remove();});sc.querySelectorAll('.held').forEach(function(x){x.classList.remove('held');});}
+  var DOT='<button type="button" class="fs-dot" aria-label="Who speaks this line" aria-expanded="false"></button>';
+  var SHEET='<div class="fs-scrim" data-j="close"></div><section class="fs-sheet" aria-label="This line"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>This line</h2><button type="button" class="fs-word" data-j="close">Done</button></div></div><div class="fs-sheet-body"><p class="fs-held"></p><div class="fs-rows"><button type="button" class="fs-row" data-j="keep"><span>Keep close</span><small>Echo · Still</small></button><button type="button" class="fs-row" data-j="close"><span>Speak as…</span><small>Ink</small></button><button type="button" class="fs-row" data-j="ask"><span>Ask this</span><small>A question page</small></button><button type="button" class="fs-row" data-j="close"><span>Take to the council</span></button><button type="button" class="fs-row" data-j="close"><span>Link a page</span><small>Related</small></button></div></div></section>';
+  /* the block you are on: a textarea with the margin dot; every other block is a paragraph */
+  function settle(m){var ta=m.querySelector('textarea');if(ta){var v=ta.value.trim();if(!v&&!m.closest('.fs-block').nextElementSibling){ta.value='';}else{var p=document.createElement('p');p.innerHTML=inked(ta.value);ta.replaceWith(p);}}
+    var d=m.querySelector('.fs-dot');if(d)d.remove();m.classList.remove('cur');var ch=m.parentNode.querySelector('.fs-inline');if(ch)ch.remove();
+    if(!m.querySelector('p')&&!m.querySelector('textarea'))m.closest('.fs-block').remove();}
+  function take(m,at){var sc=screenOf(m),cur=sc.querySelector('.fs-col .fs-msg.cur');if(cur&&cur!==m)settle(cur);
+    if(!m.classList.contains('cur')){m.classList.add('cur');m.insertAdjacentHTML('afterbegin',DOT);}
+    var p=m.querySelector('p');var ta=m.querySelector('textarea');
+    if(p){ta=document.createElement('textarea');ta.className='fs-edit';ta.rows=1;ta.spellcheck=false;ta.setAttribute('aria-label','This line');ta.value=p.textContent;p.replaceWith(ta);}
+    grow(ta);ta.focus({preventScroll:true});var n=at==null?ta.value.length:at;ta.setSelectionRange(n,n);return ta;}
+  function newBlock(after,text){var b=document.createElement('div');b.className='fs-block';b.innerHTML='<div class="fs-msg" data-j-line><p></p></div>';after.closest('.fs-block').after(b);var m=b.firstChild;m.querySelector('p').textContent=text;return m;}
+  document.querySelectorAll('.screen[data-j] .fs-col textarea.fs-edit').forEach(grow);
+  window.addEventListener('keydown',function(e){
+    var ta=e.target.closest&&e.target.closest('.screen[data-j] .fs-col textarea.fs-edit');if(!ta)return;
+    e.stopPropagation();
+    if(!ta.closest('.fs-msg')){if(e.key==='Enter'){e.preventDefault();ta.blur();}return;} /* the question's title: one line */
+    if(e.key!=='Enter'||e.shiftKey||e.isComposing)return;e.preventDefault();
+    var v=ta.value,pos=ta.selectionStart,before=v.slice(0,pos).replace(/\s+$/,''),after=v.slice(pos).replace(/^\s+/,'');if(!before)return;
+    var m=ta.closest('.fs-msg');ta.value=before;var n=newBlock(m,after);take(n,0);
+    var echo=screenOf(m).querySelector('.fs-echo');if(echo)echo.remove();
+  },true);
+  document.addEventListener('input',function(e){var ta=e.target.closest&&e.target.closest('.screen[data-j] .fs-col textarea.fs-edit');if(!ta)return;grow(ta);var echo=screenOf(ta).querySelector('.fs-echo');if(echo&&ta.value)echo.remove();});
+  document.addEventListener('mousedown',function(e){if(e.target.closest&&e.target.closest('.screen[data-j] .fs-dot, .screen[data-j] .fs-inline'))e.preventDefault();});
+  document.addEventListener('click',function(e){
+    var t=e.target,sc=screenOf(t);if(!sc)return;
+    var dot=t.closest('.fs-dot');
+    if(dot){var m=dot.closest('.fs-msg'),row=m.parentNode.querySelector('.fs-inline');
+      if(row){row.remove();dot.setAttribute('aria-expanded','false');return;}
+      var voiced=m.style.getPropertyValue('--vc');var names=['Skeptic','Mystic','Warrior','Architect'],VC={Skeptic:'--v-black',Mystic:'--v-blue',Warrior:'--v-red',Architect:'--v-green'};
+      var h='<div class="fs-inline"><div class="fs-chips" role="group" aria-label="Who speaks this line"><button type="button" class="fs-chip" aria-pressed="'+(!voiced)+'" aria-label="Plain ink">Ink</button>';
+      names.forEach(function(n){h+='<button type="button" class="fs-chip" aria-pressed="'+(voiced==='var('+VC[n]+')')+'" data-v="'+n+'" style="--vc:var('+VC[n]+')"><i></i>'+n+'</button>';});
+      m.insertAdjacentHTML('beforebegin',h+'<button type="button" class="fs-chip add" data-j="more">more</button></div></div>');dot.setAttribute('aria-expanded','true');return;}
+    var chip=t.closest('.fs-inline .fs-chip');
+    if(chip){var row2=chip.closest('.fs-inline'),m2=row2.parentNode.querySelector('.fs-msg');row2.remove();var d2=m2.querySelector('.fs-dot');if(d2)d2.setAttribute('aria-expanded','false');
+      if(chip.dataset.j==='more')return;
+      var sp=m2.querySelector('.fs-sp');if(sp)sp.remove();m2.classList.remove('fs-v','deep');m2.style.removeProperty('--vc');
+      if(chip.dataset.v){m2.classList.add('fs-v');m2.style.setProperty('--vc',chip.style.getPropertyValue('--vc'));sp=document.createElement('span');sp.className='fs-sp';sp.textContent=chip.dataset.v;m2.insertBefore(sp,m2.querySelector('textarea,p'));}
+      var ta2=m2.querySelector('textarea');if(ta2)ta2.focus({preventScroll:true});return;}
+    var j=t.closest('[data-j]');var a=j&&j.dataset.j;
+    if(a==='close'){closeSheet(sc);return;}
+    if(a==='keep'){var h2=sc.querySelector('.fs-msg.held');if(h2&&!h2.querySelector('.fs-kept')){var k=document.createElement('small');k.className='fs-kept';k.textContent='kept';h2.insertBefore(k,h2.querySelector('p'));}closeSheet(sc);return;}
+    if(a==='wise'){var hw=sc.querySelector('.fs-msg.held');closeSheet(sc);if(!hw)return;hw.classList.toggle('fs-wise');var cnt=sc.querySelector('.fs-hdr-r .fs-count');if(cnt)cnt.hidden=!!sc.querySelector('.fs-col .fs-wise');return;}
+    if(a==='ask'){var h3=sc.querySelector('.fs-msg.held');closeSheet(sc);if(!h3)return;var col=sc.querySelector('.fs-col'),nav=col.querySelector('.fs-links');
+      if(!nav){nav=document.createElement('nav');nav.className='fs-links';nav.setAttribute('aria-label','Linked pages');col.appendChild(nav);}
+      nav.insertAdjacentHTML('afterbegin','<a class="fs-link"><small>Asked · Questions</small><span>'+esc(h3.querySelector('p').textContent)+'</span></a>');return;}
+    if(a==='echo-link'){var ec=sc.querySelector('.fs-echo');if(!ec||ec.dataset.moved)return;var line=ec.querySelector('.fs-echo-line').textContent,date=ec.querySelector('.fs-echo-date').textContent;ec.remove();
+      sc.querySelector('.fs-col').insertAdjacentHTML('beforeend','<nav class="fs-links"><a class="fs-link"><small>Related · '+esc(date)+'</small><span>'+esc(line)+'</span></a></nav>');return;}
+    var para=t.closest('.fs-col .fs-msg');
+    if(para&&!para.classList.contains('cur')&&!para.dataset.fired){take(para);return;}
+    if(para)delete para.dataset.fired;
+    if(t.classList&&t.classList.contains('fs-col')){var last=t.querySelector('.fs-msg.cur textarea')||t.querySelector('.fs-block:last-of-type textarea');if(last)last.focus();}
+  });
+  /* long press: 500ms, then the paragraph lifts and its sheet rises */
+  var press=null;
+  document.addEventListener('pointerdown',function(e){var l=e.target.closest&&e.target.closest('.screen[data-j] [data-j-line]:not(.cur)');if(!l)return;var sc=screenOf(l);l.classList.add('holding');
+    press={el:l,x:e.clientX,y:e.clientY,t:setTimeout(function(){press=null;l.classList.remove('holding');l.dataset.fired='1';closeSheet(sc);l.classList.add('held');
+      var main=sc.querySelector('.fs-main');main.insertAdjacentHTML('beforeend',SHEET);
+      main.querySelector('.fs-held').textContent=l.querySelector('p').textContent;
+      /* a question page (V2): This answers it, or Not the answer on a line already wise */
+      if(sc.hasAttribute('data-q')){var ask=main.querySelector('[data-j="ask"]');ask.dataset.j='wise';ask.innerHTML='<span>'+(l.classList.contains('fs-wise')?'Not the answer':'This answers it')+'</span>';}
+    },500)};});
+  document.addEventListener('pointermove',function(e){if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>8){clearTimeout(press.t);press.el.classList.remove('holding');press=null;}});
+  function up(){if(press){clearTimeout(press.t);press.el.classList.remove('holding');press=null;}}
+  document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+  document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.screen[data-j] [data-j-line]'))e.preventDefault();});
+  /* the echo: swipe it away */
+  var sw=null;
+  document.addEventListener('pointerdown',function(e){var ec=e.target.closest&&e.target.closest('.screen[data-j] .fs-echo');if(ec){sw={el:ec,x0:e.clientX,dx:0};ec.classList.add('drag');}});
+  document.addEventListener('pointermove',function(e){if(!sw)return;sw.dx=e.clientX-sw.x0;if(Math.abs(sw.dx)>6)sw.el.dataset.moved='1';sw.el.style.transform='translateX('+sw.dx+'px)';sw.el.style.opacity=String(Math.max(.1,1-Math.abs(sw.dx)/160));});
+  document.addEventListener('pointerup',function(){if(!sw)return;var s=sw;sw=null;s.el.classList.remove('drag');if(Math.abs(s.dx)>70){s.el.style.transform='translateX('+(s.dx>0?480:-480)+'px)';s.el.style.opacity='0';setTimeout(function(){s.el.remove();},400);}else{s.el.style.transform='';s.el.style.opacity='';setTimeout(function(){delete s.el.dataset.moved;},50);}});
+})();
+</script>
+<script>
+/* package 5: tap the threshold's page to breathe again; "Close the page" and "Keep writing" answer the ring */
+(function(){
+  document.getElementById('main').addEventListener('click',function(e){
+    var scr=e.target.closest&&e.target.closest('.screen');if(!scr)return;
+    if(scr.dataset.step==='threshold'&&!e.target.closest('.fs-chips,.fs-col')){var th=scr.querySelector('.fs-threshold');if(th&&getComputedStyle(th).visibility==='hidden'){var n=th.cloneNode(true);th.replaceWith(n);}}
+    var b=e.target.closest('[data-enough]');if(!b)return;
+    var line=scr.querySelector('.fs-enough');if(line)line.remove();
+    if(b.dataset.enough==='close'){var c=scr.querySelector('.fs-col');c.style.transition='opacity var(--t-page) var(--ease)';c.style.opacity='0';setTimeout(function(){c.innerHTML='';c.style.opacity='';},600);}
+  });
+})();
+/* package 6: the lock step's keypad. 3569 spells FLOW; any other four say "Not that one" and the dots empty. */
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-step="unlock"] .fs-key, [data-step="unlock"] .fs-key-word');if(!t)return;
+  var pad=t.closest('.fs-keypad'),dots=pad.querySelectorAll('.fs-dots i'),note=pad.querySelector('.fs-keypad-note');
+  var v=pad.dataset.v||'';
+  if(t.classList.contains('fs-key-word'))v=v.slice(0,-1);else if(v.length<4){v+=t.querySelector('b').textContent;note.textContent='';}
+  pad.dataset.v=v;dots.forEach(function(d,k){d.classList.toggle('on',k<v.length);});
+  if(v.length===4){setTimeout(function(){note.textContent=v==='3569'?'':'Not that one';if(v==='3569'){pad.closest('.fs-threshold').classList.add('out');}pad.dataset.v='';dots.forEach(function(d){d.classList.remove('on');});},250);}
+});
+</script>
+</body>
+</html>

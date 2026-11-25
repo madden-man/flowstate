@@ -37,6 +37,16 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 **What a row holds** (`src/bridge/up.ts`, only the fields named there leave the phone): a council or question page (`id, kind, title, state, createdAt, updatedAt, answeredAt, resolvedByTap, seats, reading, chips, asked, year`); a council or question line (`id, pageId, at, updatedAt, voiceId, text, replyTo, kept, wise, paper`); a kept journal line alone (`id, at, updatedAt, text, wise, kept, kind: "kept", date, year, chips`: never its page, its title or its other lines); a question researched (`id, askedAt, question, state, pageId` and the picked papers' public record); a song (`id, createdAt, updatedAt, title, lyric, sections, key, bpm, characterIds`); a take without its audio.
 
+**How a question reads in the rows** (W4; no new table, only the page and line rows above):
+
+- Answered on the phone ("This answers it"): the question's page row with `state: "answered"` and `answeredAt`, and a line row with `pageId` the question's id, `wise: true` and `text` the decision. With more than one wise line, the newest by `at` is the decision.
+- Resolved on the phone (the word Resolve): `state: "answered"` and `resolvedByTap: true`; there may be no wise line (decided, no words).
+- Taken back: the same page again with `state: "open"`. That is also how the phone reopens a question the bible decided: "Not the answer" on the bible's own decision line sends the page open and nothing else.
+- Asked on the phone: a page row with `kind: "question"`, `state: "open"`, an id the bible does not have (a UUID), `title` the question and `year` the year worn.
+- The bible's own decision line (`d:<questionId>`) came down and is never sent back, whatever is written to it on the phone.
+- Down, the newer change wins: a question in the pocket sets the page's state only when its `changedAt` is at or after the page's own `updatedAt` on the phone (down writes `updatedAt` to that `changedAt`). So a pocket still saying decided after he took the decision back changes nothing until the bible changes the question again. Whenever the pocket sets a page answered, the decision line is wise again; whenever it reopens one, the line stays but is no longer wise.
+- A council carries `reading` (`"in"` or `"about"`, absent is about). On a page or a kept line, `year` is the story year; `null` means the whole book; absent means no year is known (written before the world's first pocket). A kept line carries `chips`. A question researched carries `pageId` on the inquiry and `asked.inquiryId` on the page.
+
 **The pocket** (`bridge_down`, `{ _id: <worldId>, stamp, pocket }`, written by Novel Companion in W3 and Music Companion in W7): for a novel `{ kind: "novel", characters: [{ id, fullName, firstName, chineseName?, familyColour?, born?, died? }], places, chapters, events, storyYear?, span?, questions: [{ id, question, state: "open" | "decided", decision?, changedAt }] }`; for Songbook `{ kind: "songs", songs: [{ id, title }] }`. The registry row: `{ _id: <worldId>, name, kind }`.
 
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)

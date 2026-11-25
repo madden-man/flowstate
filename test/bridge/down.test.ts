@@ -76,9 +76,9 @@ describe('questions from the bible', () => {
     expect((await store.get('messages', 'd:q1'))!.text).toBe('Only the edges, in a hard year');
     expect(await db.messages.count()).toBe(1);
   });
-  it('a question reworded in the bible is reworded here; one he answered on the phone is not reopened', async () => {
+  it('a question reworded in the bible is reworded here; one he answered on the phone since is not reopened by an older pocket', async () => {
     await applyPocket(h, pocket());
-    await store.put('pages', { ...(await store.get('pages', 'q1'))!, state: 'answered', answeredAt: 15 });
+    await store.put('pages', { ...(await store.get('pages', 'q1'))!, state: 'answered', answeredAt: 30, updatedAt: 30 });
     await applyPocket(h, pocket({ questions: [{ id: 'q1', question: 'Will the river freeze?', state: 'open', changedAt: 25 }] }));
     expect(await store.get('pages', 'q1')).toMatchObject({ title: 'Will the river freeze?', state: 'answered' });
   });
@@ -90,5 +90,55 @@ describe('questions from the bible', () => {
   it('a Songbook pocket writes nothing (W6 reads its songs from the pocket)', async () => {
     await applyPocket(h, { kind: 'songs', songs: [{ id: 's1', title: 'Low tide' }] });
     expect(await db.pages.count() + await db.voices.count()).toBe(0);
+  });
+});
+
+describe('a bible decision taken back on the phone (review of W4, finding 1)', () => {
+  const decided = (changedAt: number) => pocket({ questions: [{ id: 'q1', question: 'Does the river freeze?', state: 'decided', decision: 'Only at the edges', changedAt }] });
+  const opened = (changedAt: number) => pocket({ questions: [{ id: 'q1', question: 'Does the river freeze?', state: 'open', changedAt }] });
+  const outbox = async () => (await db.outbox.toArray()).map(o => `${o.table} ${o.id}`);
+
+  it('the d: line never goes up; the page goes up open; a stale pocket leaves it open; a fresh one opens or decides again', async () => {
+    const { answerWith } = await import('../../src/model/pages');
+    const { readBatch } = await import('../../src/bridge/up');
+    await applyPocket(h, decided(1_000));
+    const d = (await store.get('messages', 'd:q1'))!;
+    // taken back on the phone ("Not the answer" on the bible's own line)
+    await answerWith((await store.get('pages', 'q1'))!, d, false, 2_000);
+    await settled();
+    expect(await outbox()).toEqual(['pages q1']);
+    const b = (await readBatch(h, 'eastwinds'))!;
+    expect(b.envelopes.map(e => `${e.table} ${e.id}`)).toEqual(['pages q1']);
+    expect(b.envelopes[0].row).toMatchObject({ state: 'open' });
+    // the next pocket is stale (still decided, changed before he took it back): it undoes nothing
+    await applyPocket(h, decided(1_000), 3_000);
+    expect(await store.get('pages', 'q1')).toMatchObject({ state: 'open' });
+    expect((await store.get('messages', 'd:q1'))!.wise).toBeUndefined();
+    // the bible took the reopening: open, later
+    await applyPocket(h, opened(4_000), 4_100);
+    expect(await store.get('pages', 'q1')).toMatchObject({ state: 'open' });
+    // decided there again, later still: answered here, and the d: line is wise again
+    await applyPocket(h, decided(5_000), 5_100);
+    expect(await store.get('pages', 'q1')).toMatchObject({ state: 'answered', answeredAt: 5_000 });
+    expect(await store.get('messages', 'd:q1')).toMatchObject({ wise: true, text: 'Only at the edges' });
+    // and the bible reopening a question it had decided reopens it here, the d: line no longer wise
+    await applyPocket(h, opened(6_000), 6_100);
+    expect(await store.get('pages', 'q1')).toMatchObject({ state: 'open' });
+    expect((await store.get('pages', 'q1'))!.answeredAt).toBeUndefined();
+    expect((await store.get('messages', 'd:q1'))!.wise).toBeUndefined();
+    // none of that went back up: only the page he reopened is in the outbox
+    await settled();
+    expect(await outbox()).toEqual(['pages q1']);
+  });
+
+  it('a d: line written on the phone (edited, kept, made wise) never enters the outbox', async () => {
+    const { answerWith, setKept } = await import('../../src/model/pages');
+    await applyPocket(h, decided(1_000));
+    await db.outbox.clear();
+    const d = (await store.get('messages', 'd:q1'))!;
+    await setKept(d, true);
+    await answerWith((await store.get('pages', 'q1'))!, (await store.get('messages', 'd:q1'))!, true, 2_000);
+    await settled();
+    expect((await db.outbox.toArray()).some(o => o.id === 'd:q1')).toBe(false);
   });
 });

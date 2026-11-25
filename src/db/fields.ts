@@ -790,14 +790,25 @@ export async function peek<T>(worldId: string | null, fn: (r: Reader) => Promise
 /** Dresses a notebook's cover (PLAN-WORLDS.md section 4): albums, a drawing, or plain paper (undefined), on that
  *  notebook's own row whether it is worn or not, sealed like the rest of the row. Refuses while locked. */
 export function dress(worldId: string | null, cover: Settings['cover']): Promise<void> {
+  return ownRow(worldId, next => { if (cover) next.cover = cover; else delete next.cover; });
+}
+
+/** The year a world is worn with (PLAN-WORLDS.md section 4, W4), on that world's own row whether it is worn or not
+ *  (the dial on a cover moves it before stepping in). Never his own pages: they wear no year. Refuses while locked. */
+export function wearYear(worldId: string, year: number): Promise<void> {
+  if (!Number.isSafeInteger(year)) return Promise.reject(new Error('No year'));
+  return ownRow(worldId, next => { next.year = year; });
+}
+
+/** Changes a notebook's own settings row (a book key: the cover, the year) in the write queue, sealed like the rest. */
+function ownRow(worldId: string | null, change: (row: Settings) => void): Promise<void> {
   return serial(async () => {
     writable();
     const db = worldId === null ? homeDb : await openWorld(worldId);
     const row = await db.settings.get('app');
     if (!row) return;
-    const open = strip(await fromStored('settings', row, key)) as Settings;
-    const next = { ...open };
-    if (cover) next.cover = cover; else delete next.cover;
+    const next = { ...(strip(await fromStored('settings', row, key)) as Settings) };
+    change(next);
     await db.settings.put(await toStored('settings', next, key));
   });
 }

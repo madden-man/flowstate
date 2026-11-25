@@ -13,14 +13,19 @@ import { findPages, type Listed, type LinkKind } from '../../model/pages';
 import type { Read } from '../../db/fields';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
 import { voiceLabel } from '../../model/council';
+import { StoryChips } from '../world/Chips';
+import type { NovelPocket } from '../../bridge/protocol';
 
 type Acts = {
   keep: () => void; speak: (voiceId: string | undefined) => void; ask: () => void;
   link: (other: Read<PageRow>, how: LinkKind) => void; council: () => void; answer: () => void;
+  lineChip: (kind: 'character' | 'place', id: string) => void;
 };
 type Props = {
   held: Read<Message> | null; page?: Read<PageRow>; question?: boolean; voices: Read<Voice>[]; byId: Map<string, Read<Voice>>;
   acts: Acts; onClose: () => void;
+  /** a novel's lists (W4): a kept line on a journal page shows its own chips here, and they can be changed */
+  pocket?: NovelPocket;
 };
 
 function LinkPicker({ page, onPick }: { page: Read<PageRow>; onPick: (p: Read<PageRow>, how: LinkKind) => void }) {
@@ -50,7 +55,7 @@ function LinkPicker({ page, onPick }: { page: Read<PageRow>; onPick: (p: Read<Pa
   );
 }
 
-export function LineSheet({ held, page, question, voices, byId, acts, onClose }: Props) {
+export function LineSheet({ held, page, question, voices, byId, acts, onClose, pocket }: Props) {
   const open = openSheet.value === 'line' && !!held && !!page;
   const [more, setMore] = useState<'speak' | 'link' | null>(null);
   useEffect(() => { if (open) setMore(null); }, [open, held?.id]);
@@ -64,6 +69,8 @@ export function LineSheet({ held, page, question, voices, byId, acts, onClose }:
             <button type="button" class="fs-row" role="switch" aria-checked={held.kept} onClick={acts.keep}>
               <span>Keep close</span><small>{held.kept ? 'Kept' : 'Echo · Still'}</small>
             </button>
+            {/* in a novel the kept line goes to the bible alone, with chips of its own, filled at keeping (W4) */}
+            {held.kept && pocket && <StoryChips pocket={pocket} chips={held.chips} onToggle={acts.lineChip} />}
             <button type="button" class="fs-row" aria-expanded={more === 'speak'} onClick={() => setMore(more === 'speak' ? null : 'speak')}>
               <span>Speak as…</span><small>{voice ? voiceLabel(voice) : 'Ink'}</small>
             </button>

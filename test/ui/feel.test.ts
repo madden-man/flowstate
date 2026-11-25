@@ -46,7 +46,9 @@ const TICKS: Record<string, string[]> = {
     // PLAN-BLOCKERS.md K4: a long press on a Blockers row raises their sheet, and "+ blocker" the New flow sheet
     'src/ui/flow/chakra/BlockersSheet.tsx',
     // PLAN-WORLDS.md section 4 (W1): a hold on a cover raises what it wears
-    'src/ui/flow/Flow.tsx'],
+    'src/ui/flow/Flow.tsx',
+    // PLAN-WORLDS.md section 4 (W4): a chip under a journal page in a novel raises what the page is about
+    'src/ui/world/Chips.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],

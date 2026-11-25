@@ -10,7 +10,7 @@ export const COVER_MAX = 5;
 
 /** What one notebook shows on the shelf: what its cover wears (the kept album rows in the order worn, or his drawing),
  *  and the last line written in it. */
-export type NotebookShown = { albums: Album[]; drawing?: Blob; last: { text: string; at: number } | null };
+export type NotebookShown = { albums: Album[]; drawing?: Blob; last: { text: string; at: number } | null; year?: number };
 
 /** A notebook's cover as kept on its own row; undefined is plain paper (or a world not opened yet, or locked). */
 export async function coverOf(world: string | null): Promise<Cover | undefined> {
@@ -43,11 +43,13 @@ export async function notebookShown(world: string | null): Promise<NotebookShown
   const got = await peek(world, async r => ({ settings: await r.get('settings', 'app'), last: await lastLine(r) }));
   const cover = got?.settings && !got.settings.locked ? got.settings.cover : undefined;
   const last = got?.last ?? null;
-  if (cover && 'drawing' in cover && cover.drawing) return { albums: [], drawing: cover.drawing, last };
+  // the year a world is worn with (W4), on its own row: the dial on its cover stands there
+  const year = got?.settings && !got.settings.locked && typeof got.settings.year === 'number' ? got.settings.year : undefined;
+  if (cover && 'drawing' in cover && cover.drawing) return { albums: [], drawing: cover.drawing, last, year };
   const albums: Album[] = [];
   for (const uri of cover && 'albums' in cover ? cover.albums : []) {
     const row = await albumAnywhere(world, uri);
     if (row) albums.push(row);
   }
-  return { albums, last };
+  return { albums, last, year };
 }

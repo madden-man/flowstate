@@ -51,6 +51,10 @@ async function voicesFrom(h: Handed, pocket: NovelPocket, now: number): Promise<
   return out;
 }
 
+/** The bible's own decision line (d:<questionId>) is the bible's: it came down and never goes back up
+ *  (src/db/outbox.ts skips it). */
+export const isDecisionLine = (id: string) => id.startsWith('d:');
+
 async function questionsFrom(h: Handed, pocket: NovelPocket, now: number): Promise<{ pages: Page[]; messages: Message[] }> {
   const pages: Page[] = [];
   const messages: Message[] = [];
@@ -60,20 +64,36 @@ async function questionsFrom(h: Handed, pocket: NovelPocket, now: number): Promi
   pocket.questions.forEach((q, i) => {
     const was = have[i];
     if (was?.locked) return;
+    if (was && was.kind !== 'question') return; // an id the phone already uses for something else is left alone
     const at = q.changedAt || now;
     let page: Page = was
       ? (({ locked: _, ...p }) => p)(was as Page & { locked?: true })
       : { id: q.id, kind: 'question', createdAt: at, updatedAt: at, title: q.question, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] };
     let changed = !was;
-    if (was && was.kind !== 'question') return; // an id the phone already uses for something else is left alone
     if (was && was.title !== q.question) { page = { ...page, title: q.question, updatedAt: Math.max(page.updatedAt, at) }; changed = true; }
-    if (q.state === 'decided' && q.decision?.trim()) {
-      const line = lines[i];
+    // Whose state wins: the newer. A page changed on the phone after the bible last changed this question (answered,
+    // resolved, or a decision taken back) keeps its own state until the bible changes the question again; a pocket
+    // that is newer than the page sets it. Down writes the page's updatedAt to the question's changedAt, so a pocket
+    // read again changes nothing.
+    const fresh = !was || at >= was.updatedAt;
+    const line = lines[i] && !lines[i]!.locked ? lines[i]! : undefined;
+    if (fresh && q.state === 'decided' && q.decision?.trim()) {
       if (page.state === 'open') { page = { ...page, state: 'answered', answeredAt: at, updatedAt: Math.max(page.updatedAt, at) }; changed = true; }
-      if (!line || (!line.locked && line.text !== q.decision)) {
-        const m: Message = { id: decisionLineId(q.id), pageId: q.id, at, text: q.decision, kept: false, wise: true };
+      // the decision is the page's wise line whenever down sets it answered
+      if (!lines[i] || (line && (line.text !== q.decision || !line.wise))) {
+        const { locked: _, ...rest } = (line ?? {}) as Message & { locked?: true };
+        const m: Message = { ...rest, id: decisionLineId(q.id), pageId: q.id, at: line?.at ?? at, text: q.decision, kept: line?.kept ?? false, wise: true };
         if (line) m.updatedAt = now;
         messages.push(m);
+      }
+    } else if (fresh && q.state === 'open' && was && page.state !== 'open') {
+      // reopened in the bible, later than the phone last changed it
+      const { answeredAt: _a, resolvedByTap: _r, ...rest } = page;
+      page = { ...rest, state: 'open', updatedAt: Math.max(page.updatedAt, at) };
+      changed = true;
+      if (line?.wise) {
+        const { locked: _, wise: _w, ...m } = line as Message & { locked?: true };
+        messages.push({ ...m, updatedAt: now });
       }
     }
     if (changed) pages.push(page);
