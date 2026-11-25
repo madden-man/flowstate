@@ -18,6 +18,7 @@ import { notebookDate } from '../date';
 import { tick } from './Haptic';
 import { MusicLine, type MusicPage } from '../music/MusicLine';
 import { useDrawn } from '../turns';
+import { wornName } from '../notebook';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -87,6 +88,8 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, a
           {count && <span class="fs-count">{count}</span>}
           {label && <span class="fs-hdr-label" data-travel={travel}>{label}</span>}
         </span>
+        {/* the world worn, over the date, on every tab (PLAN-WORLDS.md section 4, rule 40): nothing else marks it */}
+        {wornName.value && <span class="fs-hdr-world">{wornName.value}</span>}
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>

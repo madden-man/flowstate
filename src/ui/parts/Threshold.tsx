@@ -7,6 +7,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { MANIFESTO } from '../../db/seed';
 import { RingMark } from './Ring';
+import { wornName } from '../notebook';
 
 const SEEN_KEY = 'fs-threshold';
 
@@ -52,6 +53,8 @@ export function Threshold({ onDone, keypad }: Props) {
       <div class="fs-threshold-words">
         <h1 class="fs-threshold-title">Who to Be, How to Flow</h1>
         <p class="fs-manifesto">{MANIFESTO[0]}<br />{MANIFESTO[1]}</p>
+        {/* locked in a world, the keypad says which notebook it opens (PLAN-WORLDS.md section 4) */}
+        {keypad && wornName.value && <p class="fs-threshold-world">{wornName.value}</p>}
         <RingMark />
       </div>
       {keypad && <div class="fs-threshold-keypad">{keypad}</div>}

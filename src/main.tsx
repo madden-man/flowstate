@@ -12,9 +12,12 @@ import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
 import { startPress } from './ui/parts/Press';
 import { startCarry } from './model/carry';
+import { syncWorn } from './ui/notebook';
 
 async function boot() {
+  // init opens the notebook left worn (PLAN-WORLDS.md decision 3), so the first page is drawn from it
   await init();
+  syncWorn();
   const firstRun = await ensureSeeded();
   await loadSettings();
   startLight();

@@ -64,13 +64,13 @@ const built = [
   ['Gone', 'The mountain, the signs, their pages, questions, albums and animations (PLAN-WORLDS.md 4.1). Their rows stay in the notebook and its backups, unread.'],
   ['Cover', '<code>ui/flow/Shelf.tsx</code>: name in the serif, a voice hue on the spine, paper in that hue. Still: paper and seam. A tap opens the Journal.'],
   ['Under it', 'The newest journal line (<code>model/pages.ts lastLine</code>); the three circles open their pages as before; Right now reaches every flow.'],
-  ['Next', 'W1 slides the worlds onto this shelf (<code>model/notebooks.ts</code>).'],
+  ['Worlds', 'W1: the worlds stand beside it (<code>model/notebooks.ts</code>), the next steps.'],
 ];
 const step = `<!-- shelf:start (script/snap-shelf-step.mjs: the real Flow tab, PLAN-WORLDS.md WF) -->
 <link rel="stylesheet" href="shelf.css">
-<section class="step" id="flow" data-name="Flow: your own pages">
-  <h2>Flow: your own pages</h2>
-  <p class="line">Your notebook in front, its ways in beneath.</p>
+<section class="step" id="flow" data-name="Your own pages">
+  <h2>Your own pages</h2>
+  <p class="line">Yours in front.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="flow"><div class="island"></div>
     <div class="status"><span>10:00</span><span>Flow</span></div>
     ${markup}

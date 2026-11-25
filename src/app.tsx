@@ -24,6 +24,8 @@ import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
+import { WearsSheet } from './ui/flow/WearsSheet';
+import { wear, wornWorld } from './ui/notebook';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
@@ -31,7 +33,7 @@ import { cleanSeedPages, moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, s
 import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, ComponentType } from 'preact';
 import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
@@ -126,8 +128,8 @@ function Frame() {
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
           {/* before /flow/:id, so no flow can ever be called "now" or "meditate" */}
-          <Route path="/flow/now" component={Now} />
-          <Route path="/flow/meditate" component={Meditate} />
+          <Route path="/flow/now" component={OwnNow} />
+          <Route path="/flow/meditate" component={OwnMeditate} />
           <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
           {/* Research (PLAN-RESEARCH.md section 5, Q4): the blank page, Asked, a question, a paper's page; before
               /flow/:id and /flow/:id/:step, so no flow is ever called "research" */}
@@ -137,11 +139,11 @@ function Frame() {
           <Route path="/flow/research/:id/:paper" component={ResearchPaper} />
           {/* where a sign's page was (PLAN-WORLDS.md section 4.1), before /flow/:id/:step so "c" is never read as a flow */}
           <Route path="/flow/c/*" component={() => <Redirect to="/flow" />} />
-          <Route path="/flow/:id" component={FlowRoute} />
+          <Route path="/flow/:id" component={OwnFlow} />
           {/* What stuck (PLAN-ENERGIZE.md X4), before /flow/:id/:step so it is never read as a step; behind the PIN only:
               the door frame has no such route and model/door.ts doorPasses lets no word step through */}
-          <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={Stuck} />
-          <Route path="/flow/:id/:step" component={FlowRoute} />
+          <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={OwnStuck} />
+          <Route path="/flow/:id/:step" component={OwnFlow} />
           <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
@@ -149,12 +151,23 @@ function Frame() {
         <MusicSheet />
         <AlbumPagesSheet />
         <PlaylistsSheet />
+        <WearsSheet />
         <QuietLine />
       </main>
       <Tabs />
     </div>
   );
 }
+
+/** His own pages only (PLAN-WORLDS.md section 3): Meditate, Energize, Right now and the flows are reached only from My
+ *  own pages, so with a world worn their routes go back to the shelf, where the circles under his cover put it on. */
+function own<P extends object>(C: ComponentType<P>) {
+  return (props: P) => (wornWorld.value !== null ? <Redirect to="/flow" /> : <C {...props} />);
+}
+const OwnNow = own(Now);
+const OwnMeditate = own(Meditate);
+const OwnFlow = own(FlowRoute);
+const OwnStuck = own(Stuck);
 
 /** The app opens on a live episode once per load, not on every unlock. */
 let openedOnce = false;
@@ -167,6 +180,11 @@ const DoorMeditate = () => <Meditate doorOnly />;
  *  tab bar and no sheet but the PIN's own; Meditate S3 adds #/flow/meditate, whose sit fades the frame as it does
  *  unlocked. Every other hash shows the keypad (the Gate). */
 function DoorFrame() {
+  // the door stays personal (PLAN-WORLDS.md section 3): whatever is worn, it opens his own Right now, so a world worn
+  // is taken off before anything of the door is drawn
+  const inWorld = wornWorld.value !== null;
+  useEffect(() => { if (inWorld) void wear(null); }, [inWorld]);
+  if (inWorld) return null;
   return (
     <div class="fs-app" data-door data-sitting={sitting.value ? 'true' : undefined}>
       <main class="fs-main">
@@ -247,7 +265,12 @@ function Gate({ children }: { children: ComponentChildren }) {
         <>
           <LockPad />
           {/* the door (F5): one word under the keypad, only with the door on in Settings */}
-          {doorOn && <a class="fs-word fl-door" href="#/flow/now">the ring</a>}
+          {doorOn && <a class="fs-word fl-door" href="#/flow/now" onClick={e => {
+            // the door opens his own Right now whatever is worn (PLAN-WORLDS.md section 3): the world comes off first
+            if (wornWorld.peek() === null) return;
+            e.preventDefault();
+            void wear(null).then(() => { location.hash = '#/flow/now'; });
+          }}>the ring</a>}
         </>
       } />
     );

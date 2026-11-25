@@ -411,3 +411,20 @@ describe('backup per notebook', () => {
     expect((await db.settings.get('app'))!.worlds).toEqual([WORLDS[0]]);
   });
 });
+
+describe('the shelf\'s reads (model/shelf.ts)', () => {
+  it('a cover wears five albums at most, found among the kept covers wherever they are, in the order worn', async () => {
+    const { dressCover, notebookShown, COVER_MAX } = await import('../../src/model/shelf');
+    const cover = new Uint8Array([1, 2, 3]).buffer;
+    // kept in his own notebook, where the ♪ they were picked from lives
+    await store.bulkPut('albums', ['a', 'b', 'c'].map(x => ({ albumUri: `spotify:album:${x}`, album: x, artist: 'x', cover })));
+    expect(COVER_MAX).toBe(5);
+    expect(() => dressCover('eastwinds', { albums: ['1', '2', '3', '4', '5', '6'] })).toThrow('Five at most');
+    await dressCover('eastwinds', { albums: ['spotify:album:c', 'spotify:album:gone', 'spotify:album:a'] });
+    const s = await notebookShown('eastwinds');
+    expect(s.albums.map(a => a.albumUri)).toEqual(['spotify:album:c', 'spotify:album:a']);
+    expect(s.last).toBeNull();
+    // a world never opened shows plain paper and no line
+    expect(await notebookShown('songbook')).toEqual({ albums: [], last: null });
+  });
+});

@@ -87,7 +87,7 @@ const built = [
 const step = `<!-- world:start (script/snap-world-step.mjs: the real Settings sheet, PLAN-WORLDS.md W2) -->
 <section class="step" id="world" data-name="Carry a world">
   <h2>Carry a world</h2>
-  <p class="line">Paste the token once; Carry now sends what waits.</p>
+  <p class="line">Paste the token.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="settings"><div class="island"></div>
     <div class="status"><span>10:20</span><span>Journal</span></div>
     ${markup}

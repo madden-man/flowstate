@@ -8,7 +8,11 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { LocationProvider } from 'preact-iso';
 import { ensureSeeded } from '../../src/db/seed';
-import { store } from '../../src/db/fields';
+import { store, home, worn } from '../../src/db/fields';
+import type { WorldEntry } from '../../src/db/schema';
+import { wear } from '../../src/ui/notebook';
+import { askTilt, lean, leanOf, resetTilt, LEAN_MAX } from '../../src/ui/flow/tilt';
+import WORLDS from '../fixtures/worlds.json';
 import { writeLine, askQuestion, lastLine } from '../../src/model/pages';
 import { newCouncil, speak } from '../../src/model/council';
 import { Flow } from '../../src/ui/flow/Flow';
@@ -52,7 +56,7 @@ describe('lastLine', () => {
 describe('the shelf', () => {
   it('has one cover today, his own, and takes a list so more drop in', () => {
     expect(notebooks()).toEqual([OWN]);
-    const other = { id: 'eastwinds', name: 'East Winds', sub: 'A novel', colour: { hue: 250 } };
+    const other = { id: 'eastwinds', name: 'East Winds', sub: 'A novel', colour: { hue: 250 }, world: 'eastwinds', kind: 'novel' as const };
     act(() => { render(h(Shelf, { books: [OWN, other], worn: OWN.id, front: OWN.id }), root); });
     const covers = [...root.querySelectorAll<HTMLAnchorElement>('.fl-cover')];
     expect(covers.map(c => c.querySelector('.fl-cover-name')!.textContent)).toEqual(['My own pages', 'East Winds']);
@@ -99,5 +103,78 @@ describe('the shelf', () => {
     expect(last.textContent).toBe('');
     expect(last.hasAttribute('data-read')).toBe(true);
     expect(await store.all('pages')).toEqual([]);
+  });
+});
+
+describe('the worlds on the shelf (PLAN-WORLDS.md W1, on test/fixtures/worlds.json)', () => {
+  it('his own first, then each world in the registry\'s order, each with its kind\'s line and a hue on its spine', () => {
+    const books = notebooks(WORLDS as WorldEntry[]);
+    expect(books.map(b => [b.id, b.name, b.sub, b.kind, b.world])).toEqual([
+      ['own', 'My own pages', 'Who to Be, How to Flow', 'own', null],
+      ['eastwinds', 'East Winds', 'A novel', 'novel', 'eastwinds'],
+      ['songbook', 'Songbook', 'Songs of no book', 'songs', 'songbook'],
+    ]);
+    expect(books.map(b => b.colour.hue)).toEqual([null, 250, 55]);
+    // a hue the registry gives is the one worn
+    expect(notebooks([{ id: 'x', name: 'X', kind: 'novel', hue: 150 }])[1].colour.hue).toBe(150);
+  });
+
+  it('with a world worn: its cover says Open and stands in front, its last line and its rows beneath, the header names it', async () => {
+    await home().settings.update('app', { worlds: WORLDS as WorldEntry[] });
+    await writeLine(undefined, undefined, { text: 'Mine.' }, at(20));
+    await wear('eastwinds');
+    await writeLine(undefined, undefined, { text: 'Siyuan leaves in the spring.' }, at(24));
+    act(() => { render(h(LocationProvider, null, h(Flow, null)), root); });
+    await flush();
+    const covers = [...root.querySelectorAll<HTMLAnchorElement>('.fl-cover')];
+    expect(covers.map(c => c.dataset.book)).toEqual(['own', 'eastwinds', 'songbook']);
+    expect(covers.map(c => c.querySelector('.fl-cover-foot')!.textContent)).toEqual(['Who to Be, How to Flow', 'Open', 'Songs of no book']);
+    expect(root.querySelector('.fl-cover[data-front]')!.getAttribute('data-book')).toBe('eastwinds');
+    expect(root.querySelector('.fl-lastline')!.textContent).toBe('11 / 24 / 26 Siyuan leaves in the spring.');
+    expect([...root.querySelectorAll<HTMLAnchorElement>('.fl-under a')].map(a => a.getAttribute('href'))).toEqual(['#/flow/research']);
+    expect(root.querySelector('.fs-hdr-world')!.textContent).toBe('East Winds');
+    expect(root.textContent).not.toContain('Mine.');
+    await wear(null);
+    expect(worn()).toBeNull();
+  });
+});
+
+describe('the lean (ui/flow/tilt.ts)', () => {
+  afterEach(() => { resetTilt(); delete (window as unknown as { DeviceOrientationEvent?: unknown }).DeviceOrientationEvent; });
+  it('is a few degrees with the phone, never past the most', () => {
+    expect(leanOf(0)).toBe(0);
+    expect(leanOf(10)).toBe(2);
+    expect(leanOf(-90)).toBe(-LEAN_MAX);
+    expect(leanOf(90)).toBe(LEAN_MAX);
+    expect(leanOf(null)).toBe(0);
+    expect(leanOf(Number.NaN)).toBe(0);
+  });
+  it('asks once; no, an error or no such event and nothing leans', async () => {
+    expect(await askTilt()).toBe(false);
+    resetTilt();
+    let asked = 0;
+    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => { asked++; return 'denied'; } });
+    expect(await askTilt()).toBe(false);
+    expect(await askTilt()).toBe(false);
+    expect(asked).toBe(1);
+    resetTilt();
+    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => { throw new Error('not from a tap'); } });
+    expect(await askTilt()).toBe(false);
+    const el = document.createElement('div');
+    const stop = lean(el);
+    dispatchEvent(Object.assign(new Event('deviceorientation'), { gamma: 30 }));
+    expect(el.style.getPropertyValue('--lean')).toBe('');
+    stop();
+  });
+  it('granted, the shelf leans with the phone', async () => {
+    (window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = Object.assign(function () { /* */ }, { requestPermission: async () => 'granted' });
+    const el = document.createElement('div');
+    const stop = lean(el);
+    expect(await askTilt()).toBe(true);
+    dispatchEvent(Object.assign(new Event('deviceorientation'), { gamma: 15 }));
+    await new Promise(r => requestAnimationFrame(() => r(undefined)));
+    expect(el.style.getPropertyValue('--lean')).toBe('3.00deg');
+    stop();
+    expect(el.style.getPropertyValue('--lean')).toBe('');
   });
 });

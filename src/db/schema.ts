@@ -141,8 +141,6 @@ export type WorldEntry = { id: string; name: string; kind: 'novel' | 'songs'; hu
 
 /** What a cover wears (decision 16): albums (at most five uris, first chosen first), or his drawing. Neither is plain paper. */
 export type Cover = { albums: string[] } | { drawing: Blob };
-/** At most this many albums on a cover. */
-export const COVER_MAX = 5;
 
 /** The settings fields that are the notebook's own (PLAN-WORLDS.md section 3): each notebook's database keeps these on
  *  its own row. Every other field is home's, and stays on the personal notebook's row whatever is worn. flowsSeeded is
