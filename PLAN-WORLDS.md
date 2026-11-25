@@ -13,8 +13,8 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 | 1 | A world is worn, not tagged: East Winds has its own pages, councils, questions and Be, parallel to the personal ones. |
 | 2 | Worlds are chosen in the Flow tab, and choosing one is what the tab is for (decision 14). |
 | 3 | The app reopens in the world it was left in. |
-| 4 | Everything written in a world goes to the bible, whole, and follows the phone afterwards: an edit or a delete on the phone reaches the bible's copy. |
-| 5 | Every clear fact in a page is offered to the bible as a change. |
+| 4 | What goes to the bible from a world: councils whole, questions and their answers, and from the Journal only the lines he keeps ("instead of porting over entire journal entries, let's just include 'kept' lines. councils are sent over wholesale still."). It follows the phone afterwards: an edit, a delete, or a line no longer kept reaches the bible's copy. |
+| 5 | Every clear fact in what crosses (a kept line, a council about the story) is offered to the bible as a change. |
 | 6 | A council is either in the story or about the story. It defaults to about. |
 | 7 | Be works in a world (themes as values, characters as champions) but maps to nothing in Novel Companion. |
 | 8 | There is a Songbook world for songs that belong to no novel. |
@@ -25,7 +25,7 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 | 13 | Be in a world has no copy but the backup file, and that is fine. |
 | 14 | Flow is made plain. "instead of keeping the whole mountain, let's greatly simplify the flow section. focus it around the world picker, and make that really dynamic and a cool ui. meditate, energize, and research should still show." And: "this means removing all the animations and the chakras and all the prompts and music album picks and all." |
 | 15 | A world is worn with a year. Every page and council takes it. It is its own setting on the phone, separate from Novel Companion's story year, and it goes to the bible with every page. |
-| 16 | A cover can wear the art of the album pinned to the world, or a drawing he uploads. Neither is required. |
+| 16 | A cover can wear the art of the album pinned to the world, or a drawing he uploads. Neither is required, and the app never draws one for him: with neither, the cover is plain paper in its hue. |
 | 17 | The shelf answers the hand: the lamp takes the hue of the cover in front, a tick as it lands, and the covers lean with the phone. |
 
 ## 2. What this breaks, and what it keeps
@@ -65,7 +65,7 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 - **Ages at the council.** The seats screen prints each character's age that year ("Dawn Li, 9"); one not yet born or already dead is dimmed and can still be seated. A council about the story may be set in "The whole book" instead of a year; an in-story council always has a year.
 - **Knowing where you are.** The notebook header prints the world's name and its year over the date on every tab. Nothing else changes: the same paper, the same three lights, the same tabs in the same places.
 - **Reopening.** The app opens in the world left. The lock screen prints the world's name under the manifesto line so the keypad says which notebook it opens.
-- **Journal.** Pages as today. Under the page, where the council keeps its voice chips, three chips: Character, Place, Year. They are filled from the bible's lists and say what the page is about. They are optional; names in the text are found anyway (section 7).
+- **Journal.** Pages as today, and they stay on the phone. A line he keeps (hold a line, "Keep close", as built) is what goes to the bible; the small "kept" mark on the line is the only sign. Under the page, where the council keeps its voice chips, three chips: Character, Place, Year. They are filled from the bible's lists and say what the page is about. They are optional; names in the text are found anyway (section 7).
 - **Council.** The voices are the bible's characters (section 5). The seats screen "Who sits?" gains one choice in print, two words: "About the story" and "In the story", About chosen. It can be changed later, and the bible follows. His own lines are plain ink (the Ink chip, which takes no turn); the bible reads an ink line as his.
 - **Questions.** The bible's open questions are the list. "This answers it" and Resolve decide the question in the bible. A question asked on the phone is a new open question there.
 - **Be.** Starts empty. Values, tiers, shadows and champions work as built, with the characters as the voices a champion can be. Nothing leaves the phone.
@@ -97,7 +97,7 @@ One Netlify function, `netlify/functions/bridge.mts`, with the MongoDB driver. T
 
 **On the phone, `src/bridge/`:**
 
-- **Outbox.** A new table. The one write path in `fields.ts` adds `{ table, id }` to it on every put and delete, only when `book` is a world and only for the tables that travel: `pages`, `messages`, `inquiries`, `songs`, `takes`. Values, voices and the music tables never enter it.
+- **Outbox.** A new table. The one write path in `fields.ts` adds `{ table, id }` to it on every put and delete, only when `book` is a world and only for what travels: a council page and its messages; a question page and its messages; a journal message while it is kept (with its page's date, year and chips, and never the page or its other lines); `inquiries`, `songs`, `takes`. A line no longer kept goes up as a delete. Values, voices and the music tables never enter it.
 - **Up.** Sent in batches when a write settles, when the app is hidden (`fetch` with `keepalive`), and on opening. A row leaves the outbox when the function acknowledges it. Offline, the outbox waits. Rows are unsealed to send, so nothing goes up while the app is locked.
 - **Down.** The pocket is fetched on donning and on opening, if its version stamp moved.
 - **Voices from characters.** One voice a character: id `c:<characterId>`, name the full name, given the first name, hue from the family colour, light, no twin. A character renamed in the bible is renamed here; one deleted there is archived here, so old councils still read.
@@ -116,22 +116,22 @@ In any world, Flow's Songs row lists that world's songs. In Songbook it is the f
 - **In a novel world**, a song takes the Character chip, so a theme can belong to someone.
 - **Data.** `songs`: `{ id, createdAt, updatedAt, title, lyric, sections, key?, bpm?, characterIds? }`, title and lyric sealed. `takes`: `{ id, songId?, at, seconds, audio (blob), pitch (number[]), key?, bpm?, lineId? }`, the audio sealed like everything private. A take is capped at three minutes.
 
-## 7. Novel Companion: how a page becomes part of the bible
+## 7. Novel Companion: how it becomes part of the bible
 
-A page is never a loose journal entry there. It lands in two layers.
+Nothing arrives as a loose journal entry. A journal page never arrives at all: only its kept lines do, each on its own. Councils and question threads arrive whole. What arrives lands in two layers.
 
-**Layer one: the page lands whole, attached to what it is about.** No approval; it is his writing and contradicts nothing.
+**Layer one: it lands as written, attached to what it is about.** No approval; it is his writing and contradicts nothing.
 
-- A new entry collection, `notebookPages`, written through the one write path, read-only on the desktop because it follows the phone (every field a system field). Its id is the phone page's id. It holds the kind (entry, council, question thread, research), the council's reading, the title, the date, the story year (or none for the whole book), the lines (id, speaker's character id or none for ink, text, wise, kept), and the chips.
+- A new entry collection, `notebookPages`, written through the one write path, read-only on the desktop because it follows the phone (every field a system field). Its id is the phone page's id. It holds the kind (kept line, council, question thread, research; a kept line is a row of one line, its id the line's id), the council's reading, the title, the date, the story year (or none for the whole book), the lines (id, speaker's character id or none for ink, text, wise, kept), and the chips.
 - A bridge service in main pulls `bridge_up` when a bible opens, when the window comes to the front, and every ten minutes. Each line goes through the Capture Router's free stages (CR-1 to CR-4: parse, resolve names, score) against the bible's `RouterIndex`. The page is linked to every character, place, chapter and year its chips and its text name.
-- Each character, place and chapter screen gains a Notebook list: date and first line, captioned by kind. A row opens the page across the screen (the A49 pattern). Search finds pages.
+- Each character, place and chapter screen gains a Notebook list: date and first line, captioned by kind and story year. A kept line is its own row and is all there is to read; a council or thread opens across the screen (the A49 pattern). Search finds them.
 - Relevant to Session gains a "From the notebook" group: pages whose cast, place or year match the section being written. They are for him to read. A page goes into a Claude brief only when he ticks it (SB-9).
-- **Follows the phone.** A newer `rev` replaces the page and its links are read again. A deleted page goes to the trash (ED-5).
+- **Follows the phone.** A newer `rev` replaces the row and its links are read again. A deleted council or thread, or a line no longer kept, goes to the trash (ED-5).
 
 **Layer two: every clear fact is offered.**
 
-- A line the router sends on Route A (CR-5) is drafted as a bible change. The drafts wait in a tray, "From the notebook", grouped by page, each as the ED-7 diff with its chips, as the capture box shows them (CR-6).
-- "File it" writes a page's ticked drafts as one undo step, status idea, source note "From the notebook page of <date>." Nothing is written before File it.
+- A line the router sends on Route A (CR-5) is drafted as a bible change. The drafts wait in a tray, "From the notebook", grouped by the day's kept lines or by council, each as the ED-7 diff with its chips, as the capture box shows them (CR-6).
+- "File it" writes a group's ticked drafts as one undo step, status idea, source note "From the notebook, <date>." Nothing is written before File it.
 - A line that needs judgment (Route B or C) waits as a card with "Send to Claude". Nothing is sent, and nothing is spent, until he presses it.
 - A draft dismissed stays dismissed. Its key is the line's id and the text it had, so an edited line is offered again and an untouched one never is.
 - When a line changes on the phone, its unfiled drafts are redrawn. A change already filed stays; it is the bible's now.
@@ -140,11 +140,12 @@ A page is never a loose journal entry there. It lands in two layers.
 
 | From the phone | In Novel Companion |
 |---|---|
-| Journal page | Layers one and two. |
+| Kept journal line | Layers one and two, the line alone. Unkept on the phone: it leaves the bible, and its unfiled drafts go with it. |
+| Journal page, the rest | Stays on the phone. |
 | Council, about the story | Layers one and two. Attached to the question, chapter or characters it names. Nothing is recorded as a character's voice. |
 | Council, in the story | Layer one. Each character's lines are listed on that character under Voice, by story year from the Year chip. No facts are offered from dialogue (decision 12). |
 | Question and its answer | The open question itself, written directly as one undo step: the wise line fills Decision and sets Decided. Taking the answer back reopens it. The thread is a notebook page linked to the question. |
-| Research | A notebook page linked to the question it was asked from: each paper's title, journal, year, side and DOI. A page written with "Write about it" offers its facts with provenance researched. |
+| Research | A notebook page linked to the question it was asked from: each paper's title, journal, year, side and DOI. A line kept on a page written with "Write about it" is offered with provenance researched. |
 | Song | A stub on each character it names: the title, and that it lives in Music Companion. |
 
 ## 8. Music Companion: sketches
@@ -172,7 +173,7 @@ A page is never a loose journal entry there. It lands in two layers.
 | WF | FlowState | Flow made plain | Section 4.1: the mountain, the signs and everything under them out of the routes, the code, the lints and the main walkthrough; the shelf with one cover, My own pages, and its circles and Right now beneath; Meditate, Energize and Research reached from it. Tests for the removed screens go with them. No schema change. |
 | W1 | FlowState | Two notebooks | Home and book in `fields.ts`; `don` and `doff`; the settings split; the other covers on the shelf, sliding and settling, with the lamp, the tick and the lean; a cover's album or uploaded drawing; the last line and the rows under each; the header's name; reopening in the world left; no seeds in a world; the door stays personal; backup per notebook. Works with no bridge, on a fixture registry. The no-leak test of section 3. |
 | W2 | FlowState | The bridge and its fence | The function, its token check and its four collections; `src/bridge/` with the outbox, up and down; DL21 and `check-dist` amended; the Settings World row; schema 10. Tests on a stubbed function. E2E: with no token, nothing leaves the origin anywhere in the app. |
-| W3 | Novel Companion | The pocket and the notebook (A50) | The registry row and the pocket published on open and on change; the bridge service; `notebookPages` and migration 012; pages land, link, follow the phone and trash; the Notebook list on character, place and chapter; the page across the screen; search. |
+| W3 | Novel Companion | The pocket and the notebook (A50) | The registry row and the pocket published on open and on change; the bridge service; `notebookPages` and migration 012; kept lines, councils and threads land, link, follow the phone and trash; the Notebook list on character, place and chapter; the page across the screen; search. |
 | W4 | FlowState | The sections in a world | The year worn: the dial on the cover and as a sheet from the header, the stamp on each page, ages and dimming on the seats screen, "The whole book"; the waiting question under the cover; voices from characters; questions both ways; the council's reading on the seats screen; the three chips; Research from a question. |
 | W5 | Novel Companion | Facts and questions (A51) | The "From the notebook" tray; drafts grouped by page; File it as one undo step; dismissed stays dismissed; Route B and C cards wait; questions written directly; in-story lines under Voice; the Relevant to Session group; research provenance. |
 | W6 | FlowState | Songs | The song page, sections, hold to hum, the pitch line, the key guess, tap tempo, loose hums, the Character chip, the Songbook world. |
