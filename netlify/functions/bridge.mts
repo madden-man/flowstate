@@ -1,8 +1,8 @@
 // The bridge (PLAN-WORLDS.md section 5, W2): the one Netlify function on the FlowState site, and the only thing on the
 // web that holds the Atlas string. The phone reaches it same origin at /.netlify/functions/bridge.
 //
-// Environment (set on the site, for functions): BRIDGE_MONGODB_URI, an Atlas user that may read and write only the
-// `bridge_` collections of novel_companion and music_companion (docs/BRIDGE.md has the role, unverified), and
+// Environment (set on the site, for functions): BRIDGE_MONGODB_URI, an Atlas user that may read and write only the four
+// `bridge_` collections of the one shared database, flowstate_bridge (docs/BRIDGE.md has the role, unverified), and
 // BRIDGE_TOKEN, the bearer the phone pastes in Settings. Without the token every answer is 401 and nothing is touched.
 //
 // The handler is netlify/lib/bridge.ts; the protocol is src/bridge/protocol.ts.

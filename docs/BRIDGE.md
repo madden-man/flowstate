@@ -1,4 +1,4 @@
-# The bridge (PLAN-WORLDS.md section 5, W2)
+# The bridge (PLAN-WORLDS.md section 5, W2; one shared database since 2026-11-25)
 
 One Netlify function, `bridge`, on the FlowState site. The phone reaches it same origin at `/.netlify/functions/bridge`, only from `src/bridge/`, and only once a bridge token is pasted in Settings and a world is worn. It is the only thing on the web that holds the Atlas string.
 
@@ -7,16 +7,16 @@ One Netlify function, `bridge`, on the FlowState site. The phone reaches it same
 
 ## What it may touch
 
-The two databases `novel_companion` and `music_companion`, and in them only:
+One database, `flowstate_bridge` (`BRIDGE_DB` in `src/bridge/protocol.ts`; Tommy, 2026-11-25: one shared database), and in it only these four collections:
 
-| Collection | In | Written by | The function |
+| Collection | Written by | The function | Read by |
 |---|---|---|---|
-| `bridge_worlds` | both | the desktop apps | reads (the registry) |
-| `bridge_down` | both | the desktop apps | reads (a world's pocket) |
-| `bridge_up` | both | the function | reads and writes (envelopes) |
-| `bridge_clips` | `music_companion` | the function | reads and writes (a hum's audio, W6) |
+| `bridge_worlds` | the desktop apps: Novel Companion a row a bible, Music Companion Songbook's | reads (the registry) | the function |
+| `bridge_down` | the desktop apps, each its own worlds' pockets | reads (a world's pocket) | the function |
+| `bridge_up` | the function | reads and writes (envelopes) | Novel Companion: its own worlds' `pages`, `messages`, `inquiries` and `songs` (a stub on each character a song names). Music Companion: `songs` and `takes` from every world. |
+| `bridge_clips` | the function | reads and writes (a take's audio, W6) | Music Companion, every clip, any world; it removes a clip once pulled |
 
-`coll()` in the handler refuses any other database, any name without the `bridge_` prefix, and clips anywhere but `music_companion`. A world lives in the database whose `bridge_worlds` holds it with a kind that belongs there (`novel` in `novel_companion`, `songs` in `music_companion`); a row with the wrong kind for its database is no world, and an id claimed by both is refused. An envelope is only ever written to its world's own database.
+`coll()` in the handler refuses any other database (Novel Companion's `novel_companion` and Music Companion's `music_companion` included: neither is reachable through the function) and any other collection name. A world is a `bridge_worlds` row with a kind it knows (`novel` or `songs`); its kind says which app writes its pocket and no longer picks a database. An unknown world is refused (`404`), and nothing is read or written for it. Every stored envelope carries its `world` and `table`, which is how each app finds its own: a song written in East Winds is one row in `bridge_up`, read by Music Companion whole and by Novel Companion for its stub.
 
 ## The protocol
 
@@ -24,10 +24,10 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 | Request | Answer |
 |---|---|
-| `GET ?op=worlds` | `{ worlds: [{ id, name, kind }] }` from both registries |
+| `GET ?op=worlds` | `{ worlds: [{ id, name, kind }] }` from the one registry |
 | `GET ?op=pocket&world=<id>&stamp=<s>` | `{ world, stamp, unchanged: true }` when the phone's stamp is the pocket's; else `{ world, stamp, pocket }`; `404` for no world or no pocket yet |
 | `POST ?op=up`, body `{ world, envelopes }` | `{ acks }`, one an envelope, in order |
-| `POST ?op=clip&world=<id>&take=<id>&rev=<n>`, body the audio, `content-type: audio/*` | `{ take, result }` (W6 sends these; the shape and the guard are built) |
+| `POST ?op=clip&world=<id>&take=<id>&rev=<n>`, body the audio, `content-type: audio/*` | `{ take, result }`; stored in `bridge_clips` as `{ _id: "<world>:<take>", world, take, rev, type, bytes, audio, at }` |
 
 **Envelope:** `{ world, table, id, rev, deleted?, row? }`. `table` is one of `pages`, `messages`, `inquiries`, `songs`, `takes`; `id` matches `[A-Za-z0-9._:-]{1,120}`; `rev` a positive whole number; `row.id` equals `id`; a delete carries no row. Stored in `bridge_up` as `{ _id: "<world>:<table>:<id>", world, table, id, rev, deleted, row, at }`.
 
@@ -47,7 +47,7 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 - Down, the newer change wins: a question in the pocket sets the page's state only when its `changedAt` is at or after the page's own `updatedAt` on the phone (down writes `updatedAt` to that `changedAt`). So a pocket still saying decided after he took the decision back changes nothing until the bible changes the question again. Whenever the pocket sets a page answered, the decision line is wise again; whenever it reopens one, the line stays but is no longer wise.
 - A council carries `reading` (`"in"` or `"about"`, absent is about). On a page or a kept line, `year` is the story year; `null` means the whole book; absent means no year is known (written before the world's first pocket). A kept line carries `chips`. A question researched carries `pageId` on the inquiry and `asked.inquiryId` on the page.
 
-**The pocket** (`bridge_down`, `{ _id: <worldId>, stamp, pocket }`, written by Novel Companion in W3 and Music Companion in W7): for a novel `{ kind: "novel", characters: [{ id, fullName, firstName, chineseName?, familyColour?, born?, died? }], places, chapters, events, storyYear?, span?, questions: [{ id, question, state: "open" | "decided", decision?, changedAt }] }`; for Songbook `{ kind: "songs", songs: [{ id, title }] }`. The registry row: `{ _id: <worldId>, name, kind }`.
+**The pocket** (`flowstate_bridge.bridge_down`, `{ _id: <worldId>, stamp, pocket }`, written by Novel Companion in W3 for each bible and Music Companion in W7 for Songbook): for a novel `{ kind: "novel", characters: [{ id, fullName, firstName, chineseName?, familyColour?, born?, died? }], places, chapters, events, storyYear?, span?, questions: [{ id, question, state: "open" | "decided", decision?, changedAt }] }`; for Songbook `{ kind: "songs", songs: [{ id, title }] }`. The registry row (`flowstate_bridge.bridge_worlds`): `{ _id: <worldId>, name, kind }`, kind `novel` or `songs`. World ids are unique across both apps (one collection).
 
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)
 
@@ -57,33 +57,33 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 ## A custom role for the one Atlas user (UNVERIFIED)
 
-Plan section 13 asks whether one Atlas user can be limited to the `bridge_` collections of two databases. Atlas custom roles take privileges on a database and a named collection; they do not take a prefix, so each collection is named. The function needs only these actions (it never deletes, and the desktop apps write `bridge_worlds` and `bridge_down` with their own users):
+Atlas custom roles take privileges on a database and a named collection. The function needs only these, all in `flowstate_bridge`, and it never deletes (Music Companion removes a clip after pulling it, with its own user):
 
 | Resource | Actions |
 |---|---|
-| `novel_companion.bridge_worlds`, `music_companion.bridge_worlds` | `FIND` |
-| `novel_companion.bridge_down`, `music_companion.bridge_down` | `FIND` |
-| `novel_companion.bridge_up`, `music_companion.bridge_up` | `FIND`, `INSERT`, `UPDATE` |
-| `music_companion.bridge_clips` | `FIND`, `INSERT`, `UPDATE` |
+| `flowstate_bridge.bridge_worlds` | `FIND` |
+| `flowstate_bridge.bridge_down` | `FIND` |
+| `flowstate_bridge.bridge_up` | `FIND`, `INSERT`, `UPDATE` |
+| `flowstate_bridge.bridge_clips` | `FIND`, `INSERT`, `UPDATE` |
 
 With the Atlas CLI (syntax from its documentation as I know it; not run, and not checked against this project's Atlas):
 
 ```
 atlas customDbRoles create flowstateBridge \
-  --privilege 'FIND@novel_companion.bridge_worlds,FIND@music_companion.bridge_worlds' \
-  --privilege 'FIND@novel_companion.bridge_down,FIND@music_companion.bridge_down' \
-  --privilege 'FIND@novel_companion.bridge_up,INSERT@novel_companion.bridge_up,UPDATE@novel_companion.bridge_up' \
-  --privilege 'FIND@music_companion.bridge_up,INSERT@music_companion.bridge_up,UPDATE@music_companion.bridge_up' \
-  --privilege 'FIND@music_companion.bridge_clips,INSERT@music_companion.bridge_clips,UPDATE@music_companion.bridge_clips'
+  --privilege 'FIND@flowstate_bridge.bridge_worlds,FIND@flowstate_bridge.bridge_down' \
+  --privilege 'FIND@flowstate_bridge.bridge_up,INSERT@flowstate_bridge.bridge_up,UPDATE@flowstate_bridge.bridge_up' \
+  --privilege 'FIND@flowstate_bridge.bridge_clips,INSERT@flowstate_bridge.bridge_clips,UPDATE@flowstate_bridge.bridge_clips'
 atlas dbusers create --username flowstate-bridge --password '<generated>' --role flowstateBridge
 ```
 
 Or in the Atlas UI: Database Access, Custom Roles, Add New Custom Role, one Collection Actions row a line of the table above, then a database user with only that role.
 
-To check it once made (nothing here has been checked): with that user's string, a `find` on `novel_companion.characters` and an `insert` into `novel_companion.bridge_worlds` must both fail with "not authorized", and an `insert` into `music_companion.bridge_up` must pass. Novel Companion and Music Companion read `bridge_up` and write `bridge_worlds` and `bridge_down` with their own users (W3, W7).
+The desktop apps' own Atlas users need read and write on `flowstate_bridge`'s collections besides their own database: each writes its registry rows and pockets (`bridge_worlds`, `bridge_down`) and reads `bridge_up`; Music Companion also reads and removes `bridge_clips`.
+
+To check it once made (nothing here has been checked): with the function's string, a `find` on `novel_companion.characters` and an `insert` into `flowstate_bridge.bridge_worlds` must both fail with "not authorized", and an `insert` into `flowstate_bridge.bridge_up` must pass.
 
 ## Not verified
 
-- The custom role above, and that Atlas accepts it as written.
+- The custom role above, and that Atlas accepts it as written; that the desktop apps' own users have been given `flowstate_bridge`.
 - A real MongoDB: every test runs against `test/bridge/fake-mongo.ts`. The duplicate key code (11000) on a guarded insert, the `$lt` guarded update and the driver's bundling on Netlify (`external_node_modules = ["mongodb"]`) are as documented, not run.
 - The phone: a keepalive send as iOS hides the installed app (W0), and the function's request limit for clips.

@@ -38,7 +38,7 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 | "No network outside `src/music/` and `src/research/`" (CLAUDE.md rule 6, DESIGN.md rule 22, lint DL21, `check-dist`) | A third fenced place, `src/bridge/`, opt-in: nothing is sent until a bridge token is pasted in Settings and a world is donned. The requests are same origin (`/.netlify/functions/bridge`), so `check-dist` gains no host. |
 | "Nothing of Tommy's stored anywhere but the phone" | Kept for the personal notebook, by construction (section 3). A world's pages are stored in Atlas in the clear, as the bible already is. |
 | "No model-written text anywhere" | Kept. Every council line is his. Nothing a model writes is shown on the phone. |
-| Novel Companion ARCH-8, Music Companion ARCH-2: one database each, never another | Kept. The bridge's collections live inside `novel_companion` and `music_companion`, prefixed `bridge_`. |
+| Novel Companion ARCH-8, Music Companion ARCH-2: one database each, never another | Kept for each app's own database. The bridge's four collections live in one shared database of their own, `flowstate_bridge` (Tommy, 2026-11-25), which both apps read and write besides their own; the function reaches no other. |
 | Novel Companion: every entry is written through the one write path | Kept. The function writes only `bridge_` collections. Novel Companion itself files what arrives. |
 
 ## 3. The core move: a world is a second notebook
@@ -88,14 +88,14 @@ Taken out of the app's screens: the mountain and its drawing, the stream and the
 
 ## 5. The bridge
 
-One Netlify function, `netlify/functions/bridge.mts`, with the MongoDB driver. Two environment values: `BRIDGE_MONGODB_URI` (an Atlas user that can read and write only the `bridge_` collections of the two databases) and `BRIDGE_TOKEN`. The phone sends the token as a bearer; without it the function answers 401 and touches nothing.
+One Netlify function, `netlify/functions/bridge.mts`, with the MongoDB driver. Two environment values: `BRIDGE_MONGODB_URI` (an Atlas user that can read and write only the four `bridge_` collections of `flowstate_bridge`, the one shared database) and `BRIDGE_TOKEN`. The phone sends the token as a bearer; without it the function answers 401 and touches nothing.
 
 | Collection | In | Written by | Holds |
 |---|---|---|---|
-| `bridge_worlds` | both databases | the desktop apps | One row a world: id, name, kind (`novel` or `songs`). Novel Companion writes one a bible; Music Companion writes Songbook. |
-| `bridge_down` | both | the desktop apps | The pocket: what the phone needs to wear the world. One row a world, with a version stamp. |
-| `bridge_up` | both | the function | Envelopes from the phone: `{ world, table, id, rev, deleted?, row }`. Newest `rev` for an id wins. |
-| `bridge_clips` | `music_companion` | the function | A hum's audio as binary, until Music Companion has pulled it to disk, then removed. |
+| `bridge_worlds` | `flowstate_bridge` | the desktop apps | One row a world: id, name, kind (`novel` or `songs`). Novel Companion writes one a bible; Music Companion writes Songbook. |
+| `bridge_down` | `flowstate_bridge` | the desktop apps | The pocket: what the phone needs to wear the world. One row a world, with a version stamp. |
+| `bridge_up` | `flowstate_bridge` | the function | Envelopes from the phone: `{ world, table, id, rev, deleted?, row }`. Newest `rev` for an id wins. Each app reads by `world` and `table`: Novel Companion its own worlds' rows, Music Companion every world's songs and takes. |
+| `bridge_clips` | `flowstate_bridge` | the function | A hum's audio as binary, until Music Companion has pulled it to disk, then removed. |
 
 **The pocket for a novel:** characters (id, full name, first name, Chinese name, family colour, the years born and died), places (id, name, community), chapters (id, title, story year), world events (id, title, year), the story year (the phone's year starts from it once) and the timeline's ends, and every open question (id, question, state, decision, last changed). **For Songbook:** song ids and titles.
 
@@ -154,7 +154,7 @@ Nothing arrives as a loose journal entry. A journal page never arrives at all: o
 
 ## 8. Music Companion: sketches
 
-- The bridge service pulls song and take envelopes from its own `bridge_up`. A take's audio is fetched from `bridge_clips`, written to `audio/sketches/<take id>.m4a` beside the songs' recordings, and removed from Atlas, so the rule that no audio stays in Atlas holds.
+- The bridge service pulls song and take envelopes of every world from `flowstate_bridge.bridge_up`. A take's audio is fetched from `bridge_clips`, written to `audio/sketches/<take id>.m4a` beside the songs' recordings, and removed from Atlas, so the rule that no audio stays in Atlas holds.
 - A new collection, `sketches`: `{ _id, songId?, recordedAt, seconds, pitch, key?, bpm?, lineText?, world? }`. A song keeps its one recording; it gains a list of sketches under it. Loose hums are their own list.
 - A phone song becomes a `songs` row. Its title is given the work date in front, as the title rule requires. Lyrics follow the newest edit on either side (question 5).
 
@@ -215,4 +215,4 @@ Order: W0 and WF; then W1 and W2 together; then W3; then W4 and W5 together; the
 - That a pitch line drawn from a phone hum is good enough to read a melody from (W0).
 - That Novel Companion's field manifest can make a whole entry collection read-only (W3 confirms, or `notebookPages` is kept outside the entry collections with its own reader).
 - How many of a real page's lines the router sends on Route A. Journal prose is looser than a Cmd+K line; the tray may run thin or noisy until the thresholds are tuned on real pages.
-- That one Atlas user can be limited to the `bridge_` collections of two databases (a custom role; checked in W2).
+- That one Atlas user can be limited to the four `bridge_` collections of `flowstate_bridge` (a custom role; docs/BRIDGE.md).

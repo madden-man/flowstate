@@ -47,7 +47,7 @@ Checks as last run:
 
 ## The contract, as it stands after W3 and W4
 
-`docs/BRIDGE.md` and `src/bridge/protocol.ts` are the contract; neither package changed a shape. What each side now relies on:
+`docs/BRIDGE.md` and `src/bridge/protocol.ts` are the contract; neither package changed a shape. Since 2026-11-25 (Tommy) the four `bridge_` collections live in one shared database, `flowstate_bridge`, not inside `novel_companion` and `music_companion`; the function reaches no other database, and each app reads `bridge_up` by `world` and `table` (W6, flowstate PR #112). What each side now relies on:
 
 - **Year.** A number is that year. `null` is "The whole book". An absent `year` is no year known (a page written before the first pocket). Both sides read it so.
 - **Questions going up.** "This answers it": the question page with `state: "answered"` and `answeredAt`, and a line with `wise: true` whose text is the decision (several wise lines: the newest by `at`). Resolve: `state: "answered"`, `resolvedByTap: true`, maybe no wise line. Taken back: the page again with `state: "open"`. Asked on the phone: a question page with an id the bible does not know. W5 writes these into the bible's open questions; W3 only files the thread.
@@ -62,7 +62,7 @@ Checks as last run:
 - W4's choices: Research this shows only in a world, at the foot beside Previous and Next; the chips under a journal page appear once it has a word; a council's year is the year worn or The whole book; "In the story" is not offered until a year is worn; seats print full names, conversation chips first names; no haptic tick on the dial.
 - From W1 and W2, still open: "+ flow" went with the mountain, so there is no way to make a flow; the Settings World row has Replace and Remove beside Carry now; the outbox drains only for the world worn.
 - Plan section 12's seven questions and section 13's phone checks (W0).
-- Not verified anywhere: a real round trip through the deployed function and a real MongoDB; the Atlas custom role; whether Novel Companion's own Atlas user may write `bridge_worlds` and `bridge_down`; the dial and the header's year under a real thumb.
+- Not verified anywhere: a real round trip through the deployed function and a real MongoDB; the Atlas custom role; whether the desktop apps' own Atlas users have been given `flowstate_bridge` (the one shared database since 2026-11-25; docs/BRIDGE.md); the dial and the header's year under a real thumb.
 
 ## Walkthroughs
 
@@ -79,4 +79,4 @@ Checks as last run:
 
 ---
 
-E2E on `worlds-plan` at 9be7b95 (the merge): a run was in progress when this was written and its result is not recorded here. The W4 branch itself ran 127 passed and check-dist PASS before the merge. W5 (`~/dev/nc-worlds-w5`, `worlds-w5`) and W6 (`~/dev/flowstate-w6`, `worlds-w6`) were started 2026-11-25 on Tommy's word; W7 and W8 were not.
+E2E on `worlds-plan` at 9be7b95 (the merge): 126 passed, 1 failed. The failure was `test/e2e/worlds.spec.ts` "the shelf slides under a thumb and settles one cover at a time", a flake that W1's runs also hit. The cause, measured on the W6 branch: CDP stamps each touch when it is dispatched, so on a loaded machine Chromium's velocity tracker read the lift as a fling the wrong way and the shelf snapped back (a lift past halfway returned to the first cover). It failed 7 times in 20 repeats. Fixed on `worlds-w6` (flowstate draft PR #112): the test's thumb stamps every touch 16 ms apart and waits on the shelf's own `data-settled`. `Shelf.tsx` no longer settles while a finger is on the shelf, which was a real bug of its own (a pause mid-slide ticked and lit the lamp under the held thumb), and a new e2e covers that. W5, W6 and W7 are all in progress on draft PRs: NovelCompanion #2, flowstate #112, MusicCompanion #1.

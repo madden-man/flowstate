@@ -4,6 +4,9 @@ Branch `worlds-w6` from `worlds-plan` (9be7b95, plus the WORLDS-HANDOFF docs com
 
 ## Done
 
+- **One shared database (Tommy, 2026-11-25):** the function reaches only `flowstate_bridge` (`BRIDGE_DB`) and its four collections; `novel_companion` and `music_companion` are unreachable through it. Tests, docs/BRIDGE.md, PLAN-WORLDS.md sections 2 and 5 and WORLDS-HANDOFF updated. Nothing on the phone changed.
+- The key finder (`src/model/keyfinder.ts`, `theory.ts`) copied unchanged with its 30 known-answer tests (`test/model/keyfinder/`, fixtures made in memory). Uncommitted until the next checkpoint.
+
 - Nothing of Songs itself yet. Only reading and design notes so far (below).
 - The flake job from the coordinator, `test/e2e/worlds.spec.ts` "the shelf slides under a thumb and settles one cover at a time" (126 passed, 1 failed on `worlds-plan` at 9be7b95), is fixed in code but **not yet proven** (see Half done).
 
@@ -32,3 +35,9 @@ Songs row and list, Hum row, song page (ruled, sections from chips), hold to hum
 ## How to resume
 
 `cd ~/dev/flowstate-w6`. Run `PORT=4386 npx playwright test test/e2e/worlds.spec.ts -g "settles one cover at a time" --repeat-each 20 --workers 4`, then `npm test` and the two lints. Then correct `docs/WORLDS-HANDOFF.md`'s last paragraph, and start W6 from the notes above.
+
+## Added scope since the first checkpoint
+
+- Move a song to another world (Tommy, "sure, add it"): coordinator message of 2026-11-25; see the PR body when built.
+- W7 asks: what `lineId` is, take ids as file names, the clip's real content type, written into docs/BRIDGE.md.
+- Flake job: the shelf test still failed 2 of 40 after the touch fix, on "the one beside it is smaller and fainter" (side cover opacity read as 1). Being diagnosed.

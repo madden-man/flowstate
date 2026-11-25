@@ -1,15 +1,16 @@
 // The bridge's handler (PLAN-WORLDS.md section 5, W2), apart from the MongoDB driver so tests run it against a fake
 // (test/bridge/function.test.ts). netlify/functions/bridge.mts hands it the real client.
 //
-// What it may touch, and nothing else: the four `bridge_` collections of `novel_companion` and `music_companion`, through
-// coll() below, which refuses any other database or any name without the prefix. A world's kind decides its database
-// (KIND_DB), and an envelope is only ever written to the database its world was found in.
+// What it may touch, and nothing else: the four `bridge_` collections of the one shared database, `flowstate_bridge`
+// (BRIDGE_DB), through coll() below, which refuses any other database and any other name. Novel Companion's and Music
+// Companion's own databases are not reachable from here at all. Every stored envelope carries its world and table, and
+// the desktop apps read by those: Novel Companion its own worlds' rows, Music Companion every world's songs and takes.
 //
 // The protocol is src/bridge/protocol.ts, shared with the phone.
 import { createHash, timingSafeEqual } from 'node:crypto';
 import {
-  BODY_MAX_BYTES, BATCH_MAX, CLIP_MAX_BYTES, CLIPS_DB, COLLECTIONS, DATABASES, KIND_DB, PREFIX, ROW_ID, STAMP, WORLD_ID,
-  envelopeProblem, type Ack, type AckResult, type CollectionName, type DatabaseName, type Envelope, type WorldKind, type WorldRow,
+  BODY_MAX_BYTES, BATCH_MAX, BRIDGE_DB, CLIP_MAX_BYTES, COLLECTIONS, PREFIX, ROW_ID, STAMP, WORLD_ID,
+  envelopeProblem, type Ack, type AckResult, type CollectionName, type Envelope, type WorldKind, type WorldRow,
 } from '../../src/bridge/protocol.ts';
 
 type Doc = Record<string, unknown>;
@@ -26,13 +27,13 @@ export type Deps = { env: Env; client: () => Promise<ClientLike>; now?: () => nu
 
 export class Confined extends Error {}
 
-/** The only way to a collection: one of the two databases, one of the four `bridge_` names. */
-export function coll(client: ClientLike, db: DatabaseName, name: CollectionName): CollLike {
-  if (!(DATABASES as readonly string[]).includes(db)) throw new Confined(`database ${db}`);
+/** The only way to a collection: the one database, one of the four `bridge_` names. */
+export function coll(client: ClientLike, db: string, name: CollectionName): CollLike {
+  if (db !== BRIDGE_DB) throw new Confined(`database ${db}`);
   if (!name.startsWith(PREFIX) || !(COLLECTIONS as readonly string[]).includes(name)) throw new Confined(`collection ${name}`);
-  if (name === 'bridge_clips' && db !== CLIPS_DB) throw new Confined('clips live in music_companion');
   return client.db(db).collection(name);
 }
+const bridge = (client: ClientLike, name: CollectionName) => coll(client, BRIDGE_DB, name);
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -48,27 +49,20 @@ export function authorised(req: Request, token: string | undefined): boolean {
 
 const isKind = (k: unknown): k is WorldKind => k === 'novel' || k === 'songs';
 
-/** Every world in both registries. A row whose kind does not belong to the database it sits in is left out. */
+/** Every world in the registry. A row with no usable id or kind is left out. */
 async function worlds(client: ClientLike): Promise<WorldRow[]> {
   const out: WorldRow[] = [];
-  for (const db of DATABASES) {
-    for (const r of await coll(client, db, 'bridge_worlds').find({}).toArray()) {
-      if (typeof r._id !== 'string' || !WORLD_ID.test(r._id) || !isKind(r.kind) || KIND_DB[r.kind] !== db) continue;
-      out.push({ id: r._id, name: typeof r.name === 'string' ? r.name : r._id, kind: r.kind });
-    }
+  for (const r of await bridge(client, 'bridge_worlds').find({}).toArray()) {
+    if (typeof r._id !== 'string' || !WORLD_ID.test(r._id) || !isKind(r.kind)) continue;
+    out.push({ id: r._id, name: typeof r.name === 'string' ? r.name : r._id, kind: r.kind });
   }
   return out;
 }
 
-/** The database a world lives in: the one whose registry has it with a kind that belongs there. Unknown, or claimed by
- *  both, is null: nothing is written for it. */
-async function homeOf(client: ClientLike, world: string): Promise<DatabaseName | null> {
-  const found: DatabaseName[] = [];
-  for (const db of DATABASES) {
-    const r = await coll(client, db, 'bridge_worlds').findOne({ _id: world });
-    if (r && isKind(r.kind) && KIND_DB[r.kind] === db) found.push(db);
-  }
-  return found.length === 1 ? found[0] : null;
+/** A world the registry holds with a kind it knows. Nothing is read or written for any other. */
+async function known(client: ClientLike, world: string): Promise<boolean> {
+  const r = await bridge(client, 'bridge_worlds').findOne({ _id: world });
+  return !!r && isKind(r.kind);
 }
 
 /** Newest rev wins: write only over an older rev, insert when there is none; a duplicate key means one is there. */
@@ -108,9 +102,8 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     const stamp = url.searchParams.get('stamp');
     if (!WORLD_ID.test(world) || (stamp !== null && !STAMP.test(stamp))) return json(400, { error: 'world or stamp' });
     const client = await deps.client();
-    const db = await homeOf(client, world);
-    if (!db) return json(404, { error: 'no world' });
-    const row = await coll(client, db, 'bridge_down').findOne({ _id: world });
+    if (!(await known(client, world))) return json(404, { error: 'no world' });
+    const row = await bridge(client, 'bridge_down').findOne({ _id: world });
     if (!row || typeof row.stamp !== 'string') return json(404, { error: 'no pocket' });
     if (stamp === row.stamp) return json(200, { world, stamp: row.stamp, unchanged: true });
     return json(200, { world, stamp: row.stamp, pocket: row.pocket });
@@ -125,9 +118,8 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     if (!b || typeof b.world !== 'string' || !WORLD_ID.test(b.world)) return json(400, { error: 'world' });
     if (!Array.isArray(b.envelopes) || b.envelopes.length > BATCH_MAX) return json(400, { error: 'envelopes' });
     const client = await deps.client();
-    const db = await homeOf(client, b.world);
-    if (!db) return json(404, { error: 'no world' });
-    const up = coll(client, db, 'bridge_up');
+    if (!(await known(client, b.world))) return json(404, { error: 'no world' });
+    const up = bridge(client, 'bridge_up');
     const acks: Ack[] = [];
     for (const e of b.envelopes as unknown[]) {
       const problem = envelopeProblem(e, b.world);
@@ -150,8 +142,8 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     const raw = await readBody(req, CLIP_MAX_BYTES);
     if (!raw) return json(413, { error: 'too large' });
     const client = await deps.client();
-    if (!(await homeOf(client, world))) return json(404, { error: 'no world' });
-    const result = await newest(coll(client, CLIPS_DB, 'bridge_clips'), `${world}:${take}`, rev,
+    if (!(await known(client, world))) return json(404, { error: 'no world' });
+    const result = await newest(bridge(client, 'bridge_clips'), `${world}:${take}`, rev,
       { world, take, rev, type, bytes: raw.byteLength, audio: Buffer.from(raw), at: now() });
     return json(200, { take, result });
   }
