@@ -24,6 +24,9 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 | 12 | An in-story council offers no facts: dialogue is not canon. |
 | 13 | Be in a world has no copy but the backup file, and that is fine. |
 | 14 | Flow is made plain. "instead of keeping the whole mountain, let's greatly simplify the flow section. focus it around the world picker, and make that really dynamic and a cool ui. meditate, energize, and research should still show." And: "this means removing all the animations and the chakras and all the prompts and music album picks and all." |
+| 15 | A world is worn with a year. Every page and council takes it. It is its own setting on the phone, separate from Novel Companion's story year, and it goes to the bible with every page. |
+| 16 | A cover can wear the art of the album pinned to the world, or a drawing he uploads. Neither is required. |
+| 17 | The shelf answers the hand: the lamp takes the hue of the cover in front, a tick as it lands, and the covers lean with the phone. |
 
 ## 2. What this breaks, and what it keeps
 
@@ -52,10 +55,15 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 ## 4. The shape on the phone
 
 - **Flow is the shelf.** The mountain is gone (section 4.1). The Flow tab is one view: a shelf of notebooks across the top, and under it what the notebook in front has to offer.
-- **The shelf.** Each notebook is a cover: "My own pages" first, then East Winds, then Songbook. A cover carries the notebook's name in the serif, one hue on its spine, and for a novel a row of dots in its characters' colours. The covers slide sideways under the thumb and settle one at a time in the middle, the ones beside it smaller and fainter. The one being worn says "Open" in print.
-- **Under the shelf**, for the cover in front: the last line written in that notebook, in the quiet italic with its date, then that notebook's rows. My own pages: Meditate, Energize and Research as three drawn circles in a row, and Right now. East Winds: Songs and Research. Songbook: Songs.
-- **Donning.** A tap on the cover in front, or on any of its rows, puts that notebook on: the cover opens as a page turns (rule 29) and the Journal, or the row tapped, is there. Sliding only looks; nothing is worn until a tap.
-- **Knowing where you are.** The notebook header prints the world's name over the date on every tab. Nothing else changes: the same paper, the same three lights, the same tabs in the same places.
+- **The shelf.** Each notebook is a cover: "My own pages" first, then East Winds, then Songbook. A cover carries the notebook's name in the serif and one hue on its spine. The covers slide sideways under the thumb and settle one at a time in the middle, the ones beside it smaller and fainter. The one being worn says "Open" in print.
+- **What a cover wears.** Plain paper in its hue, or the art of the album pinned to the world (the ♪ line's own tile, from its cached cover), or a drawing he uploads from Photos or Files. The drawing is kept in that notebook, sealed, and is in its backup; it never leaves the phone.
+- **The year on the cover.** A novel's cover carries a dial along its foot: the bible's timeline from its first year to its last, each character a thin line from birth to death in their colour, and one upright stroke at the year worn. Dragging the dial moves the year before stepping in.
+- **Under the shelf**, for the cover in front: who is alive that year and how old, in print; one open question from the bible, "Waiting"; the last line written in that notebook, in the quiet italic with its date; then that notebook's rows. My own pages: Meditate, Energize and Research as three drawn circles in a row, and Right now. East Winds: Songs and Research. Songbook: Songs.
+- **Lamp, tick and tilt.** When a cover settles in front, the lamp takes its hue by the same mix the council uses for its last speaker (`--lamp-voice`, none by day), and one `check` tick sounds through `parts/Haptic`. The covers lean a few degrees with the phone's own tilt. Nothing moves unless the hand or the phone does. Reduce Motion: no lean. Still: no hue, no lifelines' colour, no lean.
+- **Donning.** A tap on the cover in front, on the waiting question, or on any of its rows puts that notebook on: the cover opens as a page turns (rule 29), with the soft bell through `parts/Sound`, and the Journal, the question or the row tapped is there. Sliding only looks; nothing is worn until a tap.
+- **The year worn.** The header prints "East Winds · 2071" over the date on every tab. A tap on the year raises the same dial as a sheet, with the bible's chapters and world events marked on it. A new page or council takes the year worn; the Year chip changes one page alone.
+- **Ages at the council.** The seats screen prints each character's age that year ("Dawn Li, 9"); one not yet born or already dead is dimmed and can still be seated. A council about the story may be set in "The whole book" instead of a year; an in-story council always has a year.
+- **Knowing where you are.** The notebook header prints the world's name and its year over the date on every tab. Nothing else changes: the same paper, the same three lights, the same tabs in the same places.
 - **Reopening.** The app opens in the world left. The lock screen prints the world's name under the manifesto line so the keypad says which notebook it opens.
 - **Journal.** Pages as today. Under the page, where the council keeps its voice chips, three chips: Character, Place, Year. They are filled from the bible's lists and say what the page is about. They are optional; names in the text are found anyway (section 7).
 - **Council.** The voices are the bible's characters (section 5). The seats screen "Who sits?" gains one choice in print, two words: "About the story" and "In the story", About chosen. It can be changed later, and the bible follows. His own lines are plain ink (the Ink chip, which takes no turn); the bible reads an ink line as his.
@@ -85,7 +93,7 @@ One Netlify function, `netlify/functions/bridge.mts`, with the MongoDB driver. T
 | `bridge_up` | both | the function | Envelopes from the phone: `{ world, table, id, rev, deleted?, row }`. Newest `rev` for an id wins. |
 | `bridge_clips` | `music_companion` | the function | A hum's audio as binary, until Music Companion has pulled it to disk, then removed. |
 
-**The pocket for a novel:** characters (id, full name, first name, Chinese name, family colour), places (id, name, community), chapters (id, title, story year), the story year and the timeline's ends, and every open question (id, question, state, decision, last changed). **For Songbook:** song ids and titles.
+**The pocket for a novel:** characters (id, full name, first name, Chinese name, family colour, the years born and died), places (id, name, community), chapters (id, title, story year), world events (id, title, year), the story year (the phone's year starts from it once) and the timeline's ends, and every open question (id, question, state, decision, last changed). **For Songbook:** song ids and titles.
 
 **On the phone, `src/bridge/`:**
 
@@ -114,7 +122,7 @@ A page is never a loose journal entry there. It lands in two layers.
 
 **Layer one: the page lands whole, attached to what it is about.** No approval; it is his writing and contradicts nothing.
 
-- A new entry collection, `notebookPages`, written through the one write path, read-only on the desktop because it follows the phone (every field a system field). Its id is the phone page's id. It holds the kind (entry, council, question thread, research), the council's reading, the title, the date, the lines (id, speaker's character id or none for ink, text, wise, kept), and the chips.
+- A new entry collection, `notebookPages`, written through the one write path, read-only on the desktop because it follows the phone (every field a system field). Its id is the phone page's id. It holds the kind (entry, council, question thread, research), the council's reading, the title, the date, the story year (or none for the whole book), the lines (id, speaker's character id or none for ink, text, wise, kept), and the chips.
 - A bridge service in main pulls `bridge_up` when a bible opens, when the window comes to the front, and every ten minutes. Each line goes through the Capture Router's free stages (CR-1 to CR-4: parse, resolve names, score) against the bible's `RouterIndex`. The page is linked to every character, place, chapter and year its chips and its text name.
 - Each character, place and chapter screen gains a Notebook list: date and first line, captioned by kind. A row opens the page across the screen (the A49 pattern). Search finds pages.
 - Relevant to Session gains a "From the notebook" group: pages whose cast, place or year match the section being written. They are for him to read. A page goes into a Claude brief only when he ticks it (SB-9).
@@ -149,6 +157,8 @@ A page is never a loose journal entry there. It lands in two layers.
 
 - New tables in every notebook: `outbox` (`++n, [table+id]`), `songs` (`id, updatedAt`), `takes` (`id, songId, at`).
 - `Page` gains `reading?: 'in' | 'about'` (absent is about), `chips?: { characterIds, placeIds, year }` and `asked?: { inquiryId }` on a question page. `Inquiry` gains `pageId?`. All optional and unindexed.
+- A world notebook's own settings row gains `year?` (the year worn) and `cover?: { kind: 'album', albumUri } | { kind: 'drawing', image }`, the image sealed.
+- `Page` gains `year?: number | null` (null is the whole book), set from the year worn when the page is made.
 - `Settings` gains `world?`, `worlds?` and `bridge?: { token, upAt, downAt, pocket }` on home's row, the token sealed.
 - `SCHEMA_VERSION` 10. The upgrade writes nothing. **Once this is on main, never deploy a dist built from an older tree.**
 - Routes: `#/flow/songs`, `#/flow/songs/:id`, `#/flow/hum`. `#/flow` is the shelf, opening on the cover of the notebook worn. `#/flow/c/:chakra` and the sign routes are removed.
@@ -158,12 +168,12 @@ A page is never a loose journal entry there. It lands in two layers.
 
 | # | Repo | Package | Done when |
 |---|---|---|---|
-| W0 | FlowState | The spike, on the phone | On a branch deploy, from the installed Home Screen app: a hum recorded with `MediaRecorder`, its size and format; a pitch line drawn from it; one round trip to a function with a token; a send with `keepalive` as the app is hidden. Findings written into section 12. Nothing merges. |
+| W0 | FlowState | The spike, on the phone | On a branch deploy, from the installed Home Screen app: a hum recorded with `MediaRecorder`, its size and format; a pitch line drawn from it; one round trip to a function with a token; a send with `keepalive` as the app is hidden; the phone's tilt read after the one permission tap iOS asks for. Findings written into section 12. Nothing merges. |
 | WF | FlowState | Flow made plain | Section 4.1: the mountain, the signs and everything under them out of the routes, the code, the lints and the main walkthrough; the shelf with one cover, My own pages, and its circles and Right now beneath; Meditate, Energize and Research reached from it. Tests for the removed screens go with them. No schema change. |
-| W1 | FlowState | Two notebooks | Home and book in `fields.ts`; `don` and `doff`; the settings split; the other covers on the shelf, sliding and settling; the last line and the rows under each; the header's name; reopening in the world left; no seeds in a world; the door stays personal; backup per notebook. Works with no bridge, on a fixture registry. The no-leak test of section 3. |
+| W1 | FlowState | Two notebooks | Home and book in `fields.ts`; `don` and `doff`; the settings split; the other covers on the shelf, sliding and settling, with the lamp, the tick and the lean; a cover's album or uploaded drawing; the last line and the rows under each; the header's name; reopening in the world left; no seeds in a world; the door stays personal; backup per notebook. Works with no bridge, on a fixture registry. The no-leak test of section 3. |
 | W2 | FlowState | The bridge and its fence | The function, its token check and its four collections; `src/bridge/` with the outbox, up and down; DL21 and `check-dist` amended; the Settings World row; schema 10. Tests on a stubbed function. E2E: with no token, nothing leaves the origin anywhere in the app. |
 | W3 | Novel Companion | The pocket and the notebook (A50) | The registry row and the pocket published on open and on change; the bridge service; `notebookPages` and migration 012; pages land, link, follow the phone and trash; the Notebook list on character, place and chapter; the page across the screen; search. |
-| W4 | FlowState | The sections in a world | Voices from characters; questions both ways; the council's reading on the seats screen; the three chips; Research from a question. |
+| W4 | FlowState | The sections in a world | The year worn: the dial on the cover and as a sheet from the header, the stamp on each page, ages and dimming on the seats screen, "The whole book"; the waiting question under the cover; voices from characters; questions both ways; the council's reading on the seats screen; the three chips; Research from a question. |
 | W5 | Novel Companion | Facts and questions (A51) | The "From the notebook" tray; drafts grouped by page; File it as one undo step; dismissed stays dismissed; Route B and C cards wait; questions written directly; in-story lines under Voice; the Relevant to Session group; research provenance. |
 | W6 | FlowState | Songs | The song page, sections, hold to hum, the pitch line, the key guess, tap tempo, loose hums, the Character chip, the Songbook world. |
 | W7 | Music Companion | Sketches | The registry row and pocket; the bridge service; clips pulled to disk and removed from Atlas; `sketches`; phone songs as songs; the stub sent on for Novel Companion. |
@@ -175,7 +185,7 @@ Order: W0 and WF; then W1 and W2 together; then W3; then W4 and W5 together; the
 
 - **CLAUDE.md rule 6 and DESIGN.md rule 22:** a third fenced place, `src/bridge/`, same origin only, opt-in by token.
 - **PLAN.md section 2 and netlify.toml:** one function; the site is no longer static files only.
-- **New rule 40, a world is worn (review):** the header names the world on every screen; nothing else marks it there, no new colour, no badge. On the shelf a cover takes one voice hue for its spine and no other; in Still the covers are paper and seam, no hue. The shelf moves only under the thumb and when a cover opens; nothing on it breathes or drifts. The personal notebook and a world never show each other's pages.
+- **New rule 40, a world is worn (review):** the header names the world on every screen; nothing else marks it there, no new colour, no badge. On the shelf a cover takes one voice hue for its spine and no other; in Still the covers are paper and seam, no hue. The shelf moves only with the thumb, with the phone's own tilt, and when a cover opens; nothing on it breathes or drifts. The lamp takes the front cover's hue by the council's own mix, so by day there is none. The personal notebook and a world never show each other's pages.
 - **Rule 15:** no count of pages carried, drafts waiting or questions open. **Rule 13:** Still as built. **Rule 27:** the pitch line is drawn as it is sung. **Rules for the mountain and the signs:** retired (section 4.1).
 - **Tokens:** none new expected.
 
@@ -190,6 +200,8 @@ Order: W0 and WF; then W1 and W2 together; then W3; then W4 and W5 together; the
 7. **A hum's length.** Default: three minutes at most.
 
 ## 13. Not verified
+
+- That the installed app can read the phone's tilt (iOS asks once, from a tap; W0). Without it the covers simply do not lean.
 
 - That `MediaRecorder` and the microphone work in the installed Home Screen app on his iPhone without asking again on every open (W0).
 - A hum's size, and that it fits a Netlify function's request limit (W0).
