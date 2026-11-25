@@ -91,32 +91,55 @@ export function Shelf({ books, worn, front, looks = {}, dials = {}, onSettle, on
     const el = shelf.current;
     const c = el?.querySelector<HTMLElement>(`.fl-cover[data-book="${CSS.escape(front)}"]`);
     if (el && c) el.scrollLeft = c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2;
-    measure();
+    const near = measure();
+    if (el && near) el.dataset.settled = near;
   }, [books.length]);
 
   useEffect(() => {
     const el = shelf.current;
     if (!el) return;
     let frame = 0, timer: ReturnType<typeof setTimeout> | undefined;
+    // fingers on the shelf: nothing settles under a held finger, however long it rests mid-slide (a pause longer than
+    // SETTLE_MS used to settle there, with the tick and the lamp, while the thumb was still down)
+    let fingers = 0;
     const settle = () => {
       clearTimeout(timer);
+      if (fingers > 0) return;
       delete el.dataset.sliding;
       const near = measure();
+      // the shelf's own word that it has come to rest, and on which cover (the e2e waits on it, never on time)
+      if (near) el.dataset.settled = near;
       if (near && near !== shown.current) hear.current?.(near);
     };
     const onScroll = () => {
       el.dataset.sliding = '';
+      delete el.dataset.settled;
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; measure(); });
+      clearTimeout(timer);
+      timer = setTimeout(settle, SETTLE_MS);
+    };
+    const down = (e: TouchEvent) => { fingers = e.touches.length; };
+    // lifted: the covers carry on to their stop and settle there (scrollend, or the fallback); a lift that moved nothing
+    // settles where it is
+    const up = (e: TouchEvent) => {
+      fingers = e.touches.length;
+      if (fingers) return;
       clearTimeout(timer);
       timer = setTimeout(settle, SETTLE_MS);
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     el.addEventListener('scrollend', settle);
+    el.addEventListener('touchstart', down, { passive: true });
+    el.addEventListener('touchend', up, { passive: true });
+    el.addEventListener('touchcancel', up, { passive: true });
     addEventListener('resize', measure);
     const stop = lean(el);
     return () => {
       el.removeEventListener('scroll', onScroll);
       el.removeEventListener('scrollend', settle);
+      el.removeEventListener('touchstart', down);
+      el.removeEventListener('touchend', up);
+      el.removeEventListener('touchcancel', up);
       removeEventListener('resize', measure);
       cancelAnimationFrame(frame);
       clearTimeout(timer);

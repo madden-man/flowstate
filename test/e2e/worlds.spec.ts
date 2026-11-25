@@ -62,25 +62,26 @@ async function seedHome(page: Page, extra: { music?: boolean } = {}) {
 async function thumb(page: Page, context: BrowserContext) {
   const cdp = await context.newCDPSession(page);
   const box = async () => (await page.locator('.fl-shelf').boundingBox())!;
+  // Every touch carries its own timestamp, a steady 16 ms apart. Without one, CDP stamps each event when it is
+  // dispatched, and under a loaded machine the gaps jitter enough that Chromium's velocity tracker reads the lift as a
+  // fling the wrong way: a lift past halfway snapped back, one nearer the next cover returned (the flake this fixes).
+  let clock = Date.now() / 1000;
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number, y?: number) =>
-    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y: y! }] });
+    cdp.send('Input.dispatchTouchEvent', { type, timestamp: (clock += 0.016), touchPoints: x === undefined ? [] : [{ x, y: y! }] });
+  const shelf = page.locator('.fl-shelf');
   return {
     /** Slides the shelf by dx (negative: the covers go left, the next one comes to the middle), and lifts. */
     async slide(dx: number) {
       const b = await box();
       const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
+      clock = Math.max(clock, Date.now() / 1000);
       await touch('touchStart', x0, y);
       const step = 8 * Math.sign(dx);
-      for (let d = step; Math.abs(d) <= Math.abs(dx); d += step) { await touch('touchMove', x0 + d, y); await page.waitForTimeout(8); }
+      for (let d = step; Math.abs(d) <= Math.abs(dx); d += step) await touch('touchMove', x0 + d, y);
       await touch('touchEnd');
-      // the covers carry on to their place and stop there; a tap while they still move only stops them, as on a phone
-      let was = -1;
-      for (let i = 0; i < 40; i++) {
-        const now = await page.locator('.fl-shelf').evaluate(el => el.scrollLeft);
-        if (now === was) break;
-        was = now;
-        await page.waitForTimeout(120);
-      }
+      // the covers carry on to their stop; the shelf says when it has come to rest (Shelf.tsx data-settled), so the
+      // wait is on the app's own state, never on time
+      await expect(shelf).toHaveAttribute('data-settled', /./);
     },
     /** Holds a finger on the cover in front past a long press, and lifts. */
     async hold() {
