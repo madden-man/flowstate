@@ -27,7 +27,7 @@ export function CheckinLineField() {
     if (next !== line) void saveCheckin({ line: next });
   };
   return (
-    <input class="fs-input" type="text" value={draft} aria-label="The question" placeholder={CHECKIN_LINE} autocomplete="off" spellcheck enterKeyHint="done"
+    <input class="fs-input" type="text" value={draft} aria-label="What it asks" placeholder={CHECKIN_LINE} autocomplete="off" spellcheck enterKeyHint="done"
       data-checkin-question
       onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setDraft(e.currentTarget.value)}
       onBlur={commit}

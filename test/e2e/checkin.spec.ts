@@ -55,10 +55,17 @@ test('Sunday 10:01: the line shows once, lands on today\'s page asked, and is go
   await expect(line(page)).toHaveCount(0);
   // the export is due too (no export, and a seed date long past), so the question has to win the day
   // (last Sunday's question counts as asked, so the older seed date asks nothing before this Sunday)
-  await put(page, 'settings', {
-    ...(await settingsRow(page)), seededAt: SAT.getTime() - 30 * 86_400_000,
-    checkin: { on: true, weekday: 0, hour: 10, minute: 0, line: LINE, lastShownWeek: '2026-11-15' },
-  });
+  // (the app may write its settings row just after load: put again until the write holds over a fresh open)
+  const old = SAT.getTime() - 30 * 86_400_000;
+  await expect.poll(async () => {
+    await put(page, 'settings', {
+      ...(await settingsRow(page)), seededAt: old,
+      checkin: { on: true, weekday: 0, hour: 10, minute: 0, line: LINE, lastShownWeek: '2026-11-15' },
+    });
+    await enter(page, '/#/journal');
+    await page.locator('.fs-page').first().waitFor();
+    return (await settingsRow(page)).seededAt;
+  }).toBe(old);
 
   await page.clock.setSystemTime(new Date(2026, 10, 22, 9, 59));
   await enter(page, '/#/journal');
@@ -111,14 +118,12 @@ test('Sunday 10:01: the line shows once, lands on today\'s page asked, and is go
 test('never in Still: the line waits until Still is left', async ({ page }) => {
   await page.clock.install({ time: SAT });
   await enter(page, '/#/journal');
-  await expect(page.locator('.fs-page').first()).toBeVisible();
+  // Night, pinned in Settings on Saturday
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const settings = page.locator('[data-sheet="Settings"]');
+  await settings.getByRole('button', { name: 'Night' }).click();
+  await settings.getByRole('button', { name: 'Done' }).click();
   await page.clock.setSystemTime(SUN);
-  await enter(page, '/#/journal');
-  await expect(line(page)).toBeVisible();
-  // put it back as never shown (once its showing is stored), pin Night, and open again: then into Still
-  await expect.poll(async () => ((await settingsRow(page)).checkin as { lastShownWeek?: string } | undefined)?.lastShownWeek).toBe('2026-11-22');
-  const s = await settingsRow(page);
-  await put(page, 'settings', { ...s, light: 'night', checkin: { ...(s.checkin as object), lastShownWeek: undefined } });
   await enter(page, '/#/journal');
   await expect(page.locator('html')).toHaveAttribute('data-light', 'night');
   await expect(line(page)).toBeVisible();
@@ -127,6 +132,9 @@ test('never in Still: the line waits until Still is left', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(line(page)).toHaveCount(0);
   await page.screenshot({ path: 'test-results/checkin-line-still.png' });
+  await page.getByRole('button', { name: 'Leave Still' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-light', 'night');
+  await expect(line(page)).toBeVisible();
 });
 
 test('#/journal?ask=checkin lands on today\'s page asked, and the address loses its query', async ({ page }) => {
@@ -190,7 +198,7 @@ test('Settings: the Sunday question row, its line and time, kept; three lights',
   // under the sounds and haptics, above Storage
   const order = await settings.locator('.fs-rows > *').evaluateAll(els => els.map(e => (e.matches('[data-checkin]') ? 'checkin' : e.matches('[data-storage]') ? 'storage' : e.textContent?.startsWith('Haptics') ? 'haptics' : '')).filter(Boolean));
   expect(order).toEqual(['haptics', 'checkin', 'storage']);
-  const q = row.getByRole('textbox', { name: 'The question' });
+  const q = row.getByRole('textbox', { name: 'What it asks' });
   await expect(q).toHaveValue(LINE);
   await expect(row.locator('[data-checkin-time]')).toHaveValue('10:00');
   await row.scrollIntoViewIfNeeded();
