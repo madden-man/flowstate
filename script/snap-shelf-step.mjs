@@ -68,9 +68,9 @@ const built = [
 ];
 const step = `<!-- shelf:start (script/snap-shelf-step.mjs: the real Flow tab, PLAN-WORLDS.md WF) -->
 <link rel="stylesheet" href="shelf.css">
-<section class="step" id="flow" data-name="Flow: your own pages">
-  <h2>Flow: your own pages</h2>
-  <p class="line">Yours in front, its ways beneath.</p>
+<section class="step" id="flow" data-name="Your own pages">
+  <h2>Your own pages</h2>
+  <p class="line">Yours in front.</p>
   <div class="phone" data-mock><div class="screen" data-light="day" data-step="flow"><div class="island"></div>
     <div class="status"><span>10:00</span><span>Flow</span></div>
     ${markup}

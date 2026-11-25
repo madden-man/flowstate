@@ -117,9 +117,9 @@ server.close();
 // one sentence a step, and the engineering behind the last step's one disclosure (the page's word budget is shared by
 // every step of the main walkthrough)
 const STEPS = [
-  { id: 'worlds', name: 'Slide the shelf', line: 'The lamp takes its colour.', light: 'night', time: '21:30', tab: 'Flow', html: shots.slide },
+  { id: 'worlds', name: 'Slide the shelf', line: 'The lamp follows.', light: 'night', time: '21:30', tab: 'Flow', html: shots.slide },
   { id: 'wears', name: 'Hold a cover', line: 'Albums, or a drawing.', light: 'night', time: '21:31', tab: 'Flow', html: shots.wears },
-  { id: 'worn', name: 'Tap to put it on', line: 'Its name over the date.', light: 'day', time: '10:31', tab: 'Journal', html: shots.worn, built: [
+  { id: 'worn', name: 'Tap to wear', line: 'Named above the date.', light: 'day', time: '10:31', tab: 'Journal', html: shots.worn, built: [
     ['Shelf', '<code>ui/flow/Shelf.tsx</code>: scroll snap, one cover a stop; each cover\'s distance from the middle (<code>--d</code>, <code>--s</code>) makes it smaller, fainter, turned. Settling: one <code>check</code> tick, and the lamp takes the cover\'s hue by the council\'s mix (none by day, none in Still). The phone\'s tilt leans it (<code>tilt.ts</code>, asked on the first tap).'],
     ['Worlds', 'From <code>settings.worlds</code> on home\'s row (the bridge, W2). With none, his cover alone.'],
     ['Wears', 'Hold a cover: the ticked ♪ playlists\' kept covers, offline, five at most in the order tapped; or a drawing, sealed in that notebook\'s row and its backup; or plain paper.'],

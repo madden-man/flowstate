@@ -25,7 +25,7 @@ Date: 2026-11-07. Status: packages 0 to 8 built, 2026-11-07; the 2026-11-08 revi
 
 ## 2. Principles
 
-- **Local only, and offline first.** No server, no accounts, no analytics, no network after the first load. Every built file, fonts included, is precached by the service worker; fonts are self-hosted so nothing loads from Google at runtime. The app must open and work in airplane mode, and package 0 is not done until that is shown on the phone. Research is the second opt-in exception after Spotify (section 8.1): with a key pasted in Settings, a question asked goes to the Anthropic API and the paper indexes straight from the phone, still with no server, and nothing else leaves (`PLAN-RESEARCH.md`).
+- **Local only, and offline first.** No server, no accounts, no analytics, no network after the first load. Every built file, fonts included, is precached by the service worker; fonts are self-hosted so nothing loads from Google at runtime. The app must open and work in airplane mode, and package 0 is not done until that is shown on the phone. Research is the second opt-in exception after Spotify (section 8.1): with a key pasted in Settings, a question asked goes to the Anthropic API and the paper indexes straight from the phone, still with no server, and nothing else leaves (`PLAN-RESEARCH.md`). The bridge is the third, and the one server (`PLAN-WORLDS.md` section 5): one Netlify function, `bridge`, on this site, reached same origin at `/.netlify/functions/bridge` and only from `src/bridge/`, holding the one Atlas string. Nothing is sent until a bridge token is pasted in Settings and a world is worn, and then only that world's councils, questions, kept lines, questions researched, songs and takes; the personal notebook never reaches it.
 - **The data is the product.** Export and import from day one.
 - **Mutable by design.** Principle 3 in the notebook: identities and flow states must stay mutable. Every paradox and voice keeps its revision history; nothing is final and nothing is lost.
 - **No model voices.** The council is you talking to you. There is no setting for this; it is simply not built.
@@ -42,7 +42,7 @@ Date: 2026-11-07. Status: packages 0 to 8 built, 2026-11-07; the 2026-11-08 revi
 | PWA | `vite-plugin-pwa` (Workbox) | Manifest, precache, update prompt |
 | Crypto | WebCrypto (PBKDF2 + AES-GCM) | Built in, works in Safari standalone |
 | Tests | Vitest + `fake-indexeddb`; one Playwright smoke | Data layer tested without a browser |
-| Hosting | Netlify site `flowstate-journal` (flowstate.netlify.app was taken), https://flowstate-journal.netlify.app/ (registered as the Spotify redirect URI by Tommy, 2026-11-07); `netlify deploy --build --prod` | Static files only, same recipe as japan-trip |
+| Hosting | Netlify site `flowstate-journal` (flowstate.netlify.app was taken), https://flowstate-journal.netlify.app/ (registered as the Spotify redirect URI by Tommy, 2026-11-07); `netlify deploy --build --prod` | Static files and one function, `bridge` (`netlify/functions/bridge.mts`, `PLAN-WORLDS.md` section 5); same recipe as japan-trip |
 
 ## 4. Data model (Dexie tables)
 

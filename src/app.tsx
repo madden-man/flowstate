@@ -37,6 +37,7 @@ import type { ComponentChildren, ComponentType } from 'preact';
 import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
+import { carryOnOpen } from './model/carry';
 
 // the bar's words live with the turns now (ui/turns.ts), which turn by their order
 export { TABS };
@@ -208,6 +209,9 @@ function Gate({ children }: { children: ComponentChildren }) {
   const locked = gateState() === 'locked';
   // the locked threshold was the breath: once the PIN opens the app, the page comes straight up
   useEffect(() => { if (locked) setBreath(false); }, [locked]);
+  // once it is open, a world worn is carried (PLAN-WORLDS.md section 5, W2): what waits goes up, the pocket comes down;
+  // with no token, or his own pages worn, nothing is asked for
+  useEffect(() => { if (!locked) void carryOnOpen(); }, [locked]);
   // once it is open, a journal seeded before V5 loses the seed pages it never wrote on (seed.ts cleanSeedPages)
   useEffect(() => {
     if (locked) return;

@@ -11,6 +11,7 @@ import { startUpdates, countLaunch } from './pwa/install';
 import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
 import { startPress } from './ui/parts/Press';
+import { startCarry } from './model/carry';
 import { syncWorn } from './ui/notebook';
 
 async function boot() {
@@ -26,6 +27,8 @@ async function boot() {
   if (firstRun) void persistNow();
   countLaunch();
   startUpdates();
+  // the bridge (PLAN-WORLDS.md section 5, W2) listens before the relock does, so a hide sends what is ready first
+  startCarry();
   render(<App />, document.getElementById('app')!);
 }
 

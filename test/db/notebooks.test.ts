@@ -55,6 +55,9 @@ function rowsFor(tag: string): { [K in TableName]?: Tables[K][] } {
     days: [{ id: `${tag}-day`, basics: ['ate'], updatedAt: at }],
     inquiries: [{ id: `${tag}-q`, question: `${tag} question?`, askedAt: at, state: 'done', picks: [] } as unknown as Tables['inquiries']],
     papers: [{ id: `${tag}-paper`, title: `${tag} paper` } as unknown as Tables['papers']],
+    // schema 10 (W2): the songs and takes; the outbox is written by the write path itself in a world, never by hand
+    songs: [{ id: `${tag}-song`, createdAt: at, updatedAt: at, title: `${tag} song`, lyric: `${tag} lyric`, sections: [] }],
+    takes: [{ id: `${tag}-take`, songId: `${tag}-song`, at, seconds: 1, audio: new Uint8Array([1]).buffer, pitch: [] }],
   };
 }
 async function writeEverything(tag: string) {
@@ -209,7 +212,10 @@ describe('the no-leak test, structurally (PLAN-WORLDS.md section 3)', () => {
     expect(await rawJSON(world('songbook'))).toBe(sb);
     // and every table of the world took its row
     const c = await counts(world('eastwinds'));
-    for (const t of TABLES) expect(c[t], t).toBe(1);
+    for (const t of TABLES.filter(t => t !== 'outbox')) expect(c[t], t).toBe(1);
+    // the outbox is the write path's own: the kept line, the question asked, the song and the take (W2, src/db/outbox.ts)
+    expect(c.outbox).toBe(4);
+    expect(mine.outbox).toBe(0);
   });
 });
 
