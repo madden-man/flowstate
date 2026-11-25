@@ -1,6 +1,8 @@
 # The Sunday question: push setup
 
-How the weekly check-in reaches the phone when the app is closed. Companion to `PLAN-PUSH.md` section 5. The server half is package N2, the phone half N3; the walkthrough is N4.
+How the weekly check-in reaches the phone when the app is closed, in one place: the server half (N2), the phone half (N3), how to deploy it, and what only the iPhone can tell. `PLAN-PUSH.md` is the why; this is the how. The walkthrough (N4) shows every screen: `npm run walkthrough:push` builds it into `design/push/dist/`.
+
+In order: what the server keeps, the env, the deploy, the routes, the hourly run, the phone, the iPhone checklist, sending a test, the walkthrough.
 
 The code: `netlify/functions/push.mts` (the four routes), `netlify/functions/checkin.mts` (the hourly run), `netlify/functions/lib/` (`due.mts` the wall clock, `routes.mts` the checks, `store.mts` the Blobs store, `send.mts` the push, `checkin.mts` the run itself). Tests: `test/push/`.
 
@@ -51,6 +53,19 @@ netlify env:set VAPID_SUBJECT "mailto:<your address>"
 Keep the pair: a new pair silently breaks every stored subscription (each phone has to turn the switch off and on again). Without the env, `GET /api/push/key` answers 503 and the hourly run logs a line and sends nothing.
 
 Netlify Blobs needs no setting: it is on for every site, and functions get its credentials from the runtime. `netlify dev` uses a local sandbox store under `.netlify/` (ignored by git).
+
+## Deploy, in this order
+
+1. Set the three VAPID values above (`netlify env:set`, once). A deploy without them still works, but Notify me answers "Not set up yet" and the hourly run sends nothing.
+2. Once `push-plan` is merged to main, deploy from `~/dev/flowstate` only (the linked checkout, on main; a worktree deploy makes a stray site):
+
+   ```
+   cd ~/dev/flowstate && git pull && netlify deploy --build --prod
+   ```
+
+   The build bundles the two functions with the app (`netlify.toml` `functions = "netlify/functions"`); nothing else changes in the deploy.
+3. Check the server answers: `curl -s https://flowstate-journal.netlify.app/api/push/key` gives `{"key":"..."}`, not 503.
+4. On the iPhone, open the home-screen app once so the new service worker (with `importScripts("/push-sw.js")`) takes over, then work through the checklist below.
 
 ## The routes
 
@@ -126,3 +141,8 @@ curl -s -X POST https://flowstate-journal.netlify.app/api/push/test \
 ```
 
 Locally, `netlify dev` answers the routes (with the three env values exported in the shell), and `curl -X POST http://localhost:8888/.netlify/functions/checkin` runs the hourly pass once.
+
+## The walkthrough
+
+`npm run walkthrough:push` builds the real app with example data into `design/push/dist/` (eight steps: the Settings row, Notify me and iOS's question, Send one now, the lock screen, the PIN, the landing, the quiet line, Safari) and runs the artifact lint and check-dist on it. The lock screen, iOS's permission question and Safari's bar are drawn, since they are the phone's and not FlowState's; every FlowState screen is the app itself, its storage in memory and its network refused. The push rows' state comes from a build-time seam (`design/push/vite.config.ts`), because the artifact host has no service worker. The spec is `test/e2e/walkthrough-push.spec.ts`.
+

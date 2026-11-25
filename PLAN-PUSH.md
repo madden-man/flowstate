@@ -2,7 +2,7 @@
 
 Planned 2026-11-25 at Tommy's ask: "make a plan for push notifications in flow state (you can mimic the architecture for it in semper dulce or make options for simplifying) so i can set up weekly check ins on sunday mornings that ask me if there's anything on my mind."
 
-Status: planned 2026-11-25; being built the same day on `push-plan` (draft PR), packages N0 to N4. Decided by Tommy: 10:00 Sunday. The other three defaults in section 8 stand until he overturns them.
+Status: N0 to N4 built 2026-11-25: N0 and N1 in PR #101, N2 in #102, N3 in #104, N4 (the walkthrough, `npm run walkthrough:push`, and `docs/PUSH.md`) in #105, all on `push-plan` (draft PR #100). Nothing is on main and nothing is deployed; the VAPID env is not set. Decided by Tommy: 10:00 Sunday. The defaults in section 8 and the choices in section 9 stand until he overturns them.
 
 ## 1. The idea
 
@@ -141,3 +141,16 @@ Deploy is unchanged (`netlify deploy --build --prod` from `~/dev/flowstate` only
 3. **Still.** The server cannot know the light. Default: the push still comes on Sunday morning (Still is a night thing), and the in-app line stays out of Still.
 4. **More than one.** The stored shape is a list, so a Wednesday question or a monthly one is a later row in Settings, not a rebuild. Only Sunday is built now. Want a second from the start?
 5. **A stopgap this Sunday.** Option D (a repeating Calendar event) takes a minute by hand if he wants the question before any of this is built.
+6. **A tap, then the export's line.** A notification tap lands on the question directly, so the Journal's quiet line never showed that day, and if an export is due its line can still show under the page after the landing. The question wins only when both would be the quiet line. Leave it, or keep the export's line away on a landing day too?
+
+## 9. Taken while building (for Tommy to overturn)
+
+1. **In the app on, push off.** The Sunday question itself is on by default (absent `settings.checkin` reads as on, Sunday 10:00, his line); the push is off until he taps Notify me.
+2. **Put away with Later, no swipe.** Section 4 said a swipe puts the line away; the quiet line has a Later word instead, as the backup line does. Either way it is gone until next Sunday.
+3. **The question wins the day.** If the backup line is due on the same open, the question shows and the backup line takes its once-a-day and shows tomorrow.
+4. **The question in the handwriting.** On the quiet line his line is set in the serif ink, not the small capitals the other quiet lines use, because it is his words.
+5. **A missed Sunday is skipped.** A phone that was off all Sunday is not pushed on Monday; the in-app line still asks on the first open of the week.
+6. **Apple errors other than 404 and 410 keep the phone.** Only "gone" deletes a stored subscription; anything else is logged and tried again on the next run that day.
+7. **An import keeps this phone's switch.** `checkin.push` describes this phone's subscription, so importing a backup never turns push on or off.
+8. **The line is mirrored for the worker only while push is on.** The `fs-push` store holds his line only with push on; turning push off empties it.
+
