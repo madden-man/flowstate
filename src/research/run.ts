@@ -84,10 +84,12 @@ export function linesOfSnapshot(snap: RunSnapshot): Line[] {
 const picksOf = (lines: Line[]): Pick[] => lines.filter(l => !l.lifted).map(({ paperId, side, tier, seq }) => ({ paperId, side, tier, seq }));
 
 /** A new question, written and running; the page it opens on begins the run. Nothing is sent here. */
-export async function ask(question: string, now = Date.now()): Promise<Inquiry> {
+export async function ask(question: string, now = Date.now(), from?: { pageId: string }): Promise<Inquiry> {
   const q = question.replace(/\s+/g, ' ').trim();
   if (!q) throw new Error('No question');
   const inquiry: Inquiry = { id: crypto.randomUUID(), askedAt: now, question: q, state: 'running', picks: [] };
+  // "Research this" on a question page (PLAN-WORLDS.md section 4, W4): the question remembers the page it came from
+  if (from?.pageId) inquiry.pageId = from.pageId;
   await putInquiry(inquiry);
   return inquiry;
 }

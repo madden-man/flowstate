@@ -38,11 +38,15 @@ import { hrefOf } from './href';
 import { JournalLink } from '../flow/JournalLink';
 import { PaperLine, ResearchFrom } from '../flow/PaperLine';
 import {
-  today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, resolveQuestion, linkPages, takeToCouncil,
+  today, entryCount, pageById, messagesOf, linksOf, writeLine, speakAs, askThis, answerWith, resolveQuestion, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
   type Draft, type PageLink, type Kept, type LinkKind, type LinkLabel, type Walk,
 } from '../../model/pages';
 import type { Read } from '../../db/fields';
+import { PageChips, AboutSheet } from '../world/Chips';
+import { getInquiry } from '../../research/store';
+import { wornWorld, wornYear } from '../notebook';
+import { keepLine, pocketFor, setLineChips, setPageChips, setPageYear, toggleChip } from '../../model/story';
 import type { Message, Page as PageRow, Voice } from '../../db/schema';
 
 const SAVE_AFTER_MS = 300;
@@ -466,11 +470,21 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   };
   const putMessage = (next: Read<Message>) => setData(d => (d ? { ...d, messages: d.messages.map(x => (x.id === next.id ? next : x)) } : d));
   const acts = {
+    // in a novel world a kept line takes chips of its own at this moment (W4, model/story.ts keepLine)
     keep: () => withHeld(async m => {
-      const next = await setKept(m, !m.kept);
+      const next = await keepLine(m.id, !m.kept);
+      if (!next || next.locked) return;
       if (next.kept) { tick('keep'); bell('keep'); }
       putMessage(next);
       closeSheet();
+    }),
+    // a kept line's own chips, changed on its sheet
+    lineChip: (kind: 'character' | 'place', cid: string) => withHeld(async m => {
+      const cur = (data?.messages ?? []).find(x => x.id === m.id) ?? m;
+      const next = await setLineChips(m.id, toggleChip(cur.chips, kind, cid));
+      if (!next || next.locked) return;
+      putMessage(next);
+      setHeld(next);
     }),
     speak: (voiceId: string | undefined) => withHeld(async m => {
       voiceRef.current = { ...voiceRef.current, [m.id]: voiceId };
@@ -506,6 +520,22 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
       closeSheet();
     }),
   };
+
+  // ---- what the page is about, in a novel (W4): its chips and its own year, written behind the page's queued saves ----
+  const pocket = pocketFor(settings.value, wornWorld.value);
+  const pageWrite = (change: (p: Read<PageRow>) => Promise<Read<PageRow> | undefined>) => {
+    void flush();
+    chain.current = chain.current.then(async () => {
+      const p = pageRef.current;
+      if (!p) return;
+      const np = await change(p);
+      if (!np || np.locked) return;
+      pageRef.current = np;
+      setData(d => (d ? { ...d, page: np } : d));
+    }).catch(() => setSaved(false));
+  };
+  const aboutToggle = (k: 'character' | 'place', cid: string) => pageWrite(p => setPageChips(p.id, toggleChip(p.chips, k, cid)));
+  const aboutYear = (y: number) => pageWrite(p => setPageYear(p.id, y));
 
   // ---- the echo ----
   const echoLink = async () => {
@@ -543,6 +573,15 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     setData(d => (d ? { ...d, page: np } : d));
   };
 
+  // "Research this" (PLAN-WORLDS.md section 4, W4): on a question page in a world; researched before, it goes back there
+  const researchable = kind === 'question' && !!page && wornWorld.value !== null && !still;
+  const researchThis = async () => {
+    await flush();
+    const p = pageRef.current;
+    if (!p) return;
+    const was = p.asked?.inquiryId ? await getInquiry(p.asked.inquiryId).catch(() => undefined) : undefined;
+    route(was ? `/flow/research/${was.id}` : `/flow/research?from=${encodeURIComponent(p.id)}`);
+  };
   const walk = data?.walk;
   const walkTo = (qid: string) => route(`/questions/${qid}`);
   const swipe = useSwipe(walk, walkTo);
@@ -654,13 +693,18 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
           </nav>
         )}
       </div>
-      {walk && (
+      {pocket && kind === 'entry' && page && <PageChips pocket={pocket} page={page} />}
+      {(walk || researchable) && (
         <nav class="fs-ask fs-walk" aria-label="The open questions">
-          <button type="button" class="fs-word" onClick={() => walkTo(walk.prev)}>‹ Previous</button>
-          <button type="button" class="fs-word" onClick={() => walkTo(walk.next)}>Next ›</button>
+          {/* in a world (W4): the question carried to the Research page, the link kept both ways */}
+          {researchable && <button type="button" class="fs-word" onClick={() => void researchThis()}>Research this</button>}
+          {walk && <button type="button" class="fs-word" onClick={() => walkTo(walk.prev)}>‹ Previous</button>}
+          {walk && <button type="button" class="fs-word" onClick={() => walkTo(walk.next)}>Next ›</button>}
         </nav>
       )}
+      <AboutSheet pocket={pocket} page={kind === 'entry' ? page : undefined} worn={wornYear.value} onToggle={aboutToggle} onYear={aboutYear} />
       <LineSheet held={held} page={page} question={isQuestion} voices={vs.chips} byId={vs.byId} acts={acts}
+        pocket={kind === 'entry' ? pocket : undefined}
         onClose={() => { openSheet.value = null; }} />
       <SpokeForSheet />
       <SpeakSheet voices={vs.chips} current={cur ? voiceFor(cur) : undefined}

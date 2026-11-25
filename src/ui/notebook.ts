@@ -22,6 +22,15 @@ export const wornName = computed(() => {
   return settings.value.worlds?.find(w => w.id === id)?.name ?? id;
 });
 
+/** The year the world worn is worn with (PLAN-WORLDS.md section 4, W4): a novel's, once its pocket has come; null for
+ *  his own pages, Songbook, or a novel with no year yet. */
+export const wornYear = computed(() => {
+  const id = wornWorld.value;
+  if (id === null || settings.value.worlds?.find(w => w.id === id)?.kind === 'songs') return null;
+  const y = settings.value.year;
+  return typeof y === 'number' ? y : null;
+});
+
 /** Puts a notebook on (a world's id) or takes the world off (null). Nothing happens when it is already worn. */
 export async function wear(world: string | null): Promise<void> {
   if (world === worn()) { wornWorld.value = world; return; }

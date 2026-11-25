@@ -25,6 +25,7 @@ import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { WearsSheet } from './ui/flow/WearsSheet';
+import { YearSheet } from './ui/world/YearSheet';
 import { wear, wornWorld } from './ui/notebook';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
@@ -37,7 +38,7 @@ import type { ComponentChildren, ComponentType } from 'preact';
 import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
-import { carryOnOpen } from './model/carry';
+import { carryOnOpen, pocketVersion } from './model/carry';
 
 // the bar's words live with the turns now (ui/turns.ts), which turn by their order
 export { TABS };
@@ -152,6 +153,7 @@ function Frame() {
         <AlbumPagesSheet />
         <PlaylistsSheet />
         <WearsSheet />
+        <YearSheet />
         <QuietLine />
       </main>
       <Tabs />
@@ -212,6 +214,8 @@ function Gate({ children }: { children: ComponentChildren }) {
   // once it is open, a world worn is carried (PLAN-WORLDS.md section 5, W2): what waits goes up, the pocket comes down;
   // with no token, or his own pages worn, nothing is asked for
   useEffect(() => { if (!locked) void carryOnOpen(); }, [locked]);
+  // a pocket come down: the shelf, the header's year and the chips read the settings row again (W4)
+  useEffect(() => { if (pocketVersion.value) void loadSettings().catch(() => undefined); }, [pocketVersion.value]);
   // once it is open, a journal seeded before V5 loses the seed pages it never wrote on (seed.ts cleanSeedPages)
   useEffect(() => {
     if (locked) return;

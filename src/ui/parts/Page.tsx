@@ -18,7 +18,8 @@ import { notebookDate } from '../date';
 import { tick } from './Haptic';
 import { MusicLine, type MusicPage } from '../music/MusicLine';
 import { useDrawn } from '../turns';
-import { wornName } from '../notebook';
+import { wornName, wornYear } from '../notebook';
+import '../world/world.css';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -89,7 +90,13 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, a
           {label && <span class="fs-hdr-label" data-travel={travel}>{label}</span>}
         </span>
         {/* the world worn, over the date, on every tab (PLAN-WORLDS.md section 4, rule 40): nothing else marks it */}
-        {wornName.value && <span class="fs-hdr-world">{wornName.value}</span>}
+        {/* in a novel, its year worn beside it; a tap on the year raises the dial (W4, ui/world/YearSheet.tsx) */}
+        {wornName.value && (
+          <span class="fs-hdr-world"><span class="fs-hdr-wname">{wornName.value}</span>{wornYear.value !== null && (
+            <> · <button type="button" class="fs-hdr-year" aria-label={`Story year ${wornYear.value}`}
+              onClick={() => { openSheet.value = 'year'; tick('sheet'); }}>{wornYear.value}</button></>
+          )}</span>
+        )}
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>

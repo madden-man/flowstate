@@ -2,6 +2,7 @@
 // questions list and the voices; package 1 grows this into the full Journal (below the line).
 import type { EchoState, Message, Page, Voice } from '../db/schema';
 import { store, type Read, type Reader } from '../db/fields';
+import { stamped } from './story';
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - 1;
@@ -37,7 +38,7 @@ export async function writeToday(current: Today, text: string, now = Date.now())
   if (!current.page || !current.message) {
     const page: Page = current.page ?? {
       id: crypto.randomUUID(), kind: 'entry', createdAt: now, updatedAt: now, state: 'open',
-      tags: [], paradoxIds: [], linkedPageIds: [],
+      tags: [], paradoxIds: [], linkedPageIds: [], ...stamped(),
     };
     const message: Message = { id: crypto.randomUUID(), pageId: page.id, at: now, updatedAt: now, text, kept: false };
     await store.many({ pages: [{ ...page, updatedAt: now }], messages: [message] });
@@ -117,7 +118,8 @@ export function firstLine(page: Pick<Page, 'title'>, messages: { text: string }[
 }
 
 export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Page> = {}): Page {
-  return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...extra };
+  // in a novel world a new page takes the year worn (PLAN-WORLDS.md section 4); his own pages take none
+  return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...stamped(), ...extra };
 }
 
 /** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2), page.sit

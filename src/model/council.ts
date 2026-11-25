@@ -4,6 +4,7 @@
 import type { Champion, Message, Page, Value, ValueSide, Voice, VoiceColour } from '../db/schema';
 import { store, type Read } from '../db/fields';
 import { messagesOf, revise } from './pages';
+import { stamped } from './story';
 
 const startOfDay = (t: number) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
 const sameDay = (a: number, b: number) => startOfDay(a) === startOfDay(b);
@@ -39,7 +40,7 @@ export async function newCouncil(opts: { now?: number; linkedPageIds?: string[];
   const now = opts.now ?? Date.now();
   const page: Page = {
     id: uid(), kind: 'council', createdAt: now, updatedAt: now, state: 'open',
-    tags: [], paradoxIds: [], linkedPageIds: [...(opts.linkedPageIds ?? [])],
+    tags: [], paradoxIds: [], linkedPageIds: [...(opts.linkedPageIds ?? [])], ...stamped(),
   };
   if (opts.valueId) {
     const value = await store.get('values', opts.valueId);

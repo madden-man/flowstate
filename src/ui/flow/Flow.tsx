@@ -12,11 +12,12 @@
 //
 // Nothing here moves on its own (DESIGN.md rule 31). No counts anywhere (rule 15).
 import { useEffect, useState } from 'preact/hooks';
-import type { JSX } from 'preact';
+import type { ComponentChildren, JSX } from 'preact';
 import { Page } from '../parts/Page';
 import { StampAsk } from './Stamps';
 import { Shelf } from './Shelf';
 import { dataVersion, openSheet } from '../sheets';
+import { pocketVersion } from '../../model/carry';
 import { gate } from '../lock/pin';
 import { notebookDate } from '../date';
 import { settings } from '../settings';
@@ -29,6 +30,10 @@ import { notebooks, coverId, OWN, type Notebook } from '../../model/notebooks';
 import { FIXATION_FLOW } from '../../model/fixations';
 import { shownOf, type Shown } from './looks';
 import { shelfVersion, wearsFor } from './WearsSheet';
+import { Dial } from '../world/Dial';
+import { loadSettings } from '../settings';
+import { aliveIn, pocketFor, setWorldYear, waitingIn } from '../../model/story';
+import type { NovelPocket } from '../../bridge/protocol';
 import './shelf.css';
 
 /** The three circles under his own cover, in order. Each carries what travels to its page (rule 28): Meditate's circle
@@ -57,7 +62,7 @@ async function openInto(book: Notebook, href: string) {
 }
 
 /** A row under a cover: a link to its page that, for a notebook not worn, puts it on first. */
-function Into({ book, href, class: cls, children, ...rest }: { book: Notebook; href: string; class: string; children: JSX.Element | JSX.Element[] } & JSX.HTMLAttributes<HTMLAnchorElement>) {
+function Into({ book, href, class: cls, children, ...rest }: { book: Notebook; href: string; class: string; children: ComponentChildren } & JSX.HTMLAttributes<HTMLAnchorElement>) {
   return (
     <a {...rest} class={cls} href={href} onClick={e => {
       if (wornWorld.peek() === book.world) return;
@@ -108,6 +113,20 @@ function Rows({ book, worn }: { book: Notebook; worn: boolean }) {
   return null;
 }
 
+/** Under a novel's cover (W4): who is alive in the year on its dial and how old, in print, on one rule; then the one
+ *  open question from the bible, "Waiting", a tap on which puts the world on and opens it. */
+function Story({ book, pocket, year, waiting }: { book: Notebook; pocket: NovelPocket; year?: number; waiting?: { id: string; question: string } }) {
+  const ages = year === undefined ? [] : aliveIn(pocket, year);
+  return (
+    <>
+      <p class="wd-ages" data-year={year}>{ages.map(a => `${a.name} ${a.age}`).join(' · ')}</p>
+      {waiting && (
+        <p class="fs-from wd-waiting"><small>Waiting</small> <Into book={book} class="wd-wait" href={`#/questions/${waiting.id}`}>{waiting.question}</Into></p>
+      )}
+    </>
+  );
+}
+
 export function Flow() {
   const books = notebooks(settings.value.worlds ?? []);
   const worn = coverId(wornWorld.value);
@@ -123,7 +142,7 @@ export function Flow() {
     void Promise.all(books.map(async b => [b.id, await shownOf(b).catch((): Shown => ({ looks: null, last: null }))] as const))
       .then(rows => { if (on) setShown(Object.fromEntries(rows)); });
     return () => { on = false; };
-  }, [dataVersion.value, locked, shelfVersion.value, ids]);
+  }, [dataVersion.value, locked, shelfVersion.value, ids, pocketVersion.value]);
 
   // the lamp takes the cover in front's hue, by the council's own mix (nothing by day: --lamp-mix is 0%); none in Still
   const lampColour = light.value === 'still' ? null : voiceColour(book.colour, 'light');
@@ -135,18 +154,46 @@ export function Flow() {
     return () => { delete app.dataset.lamp; app.style.removeProperty('--lamp-voice'); };
   }, [lampColour]);
 
+  // a novel's pocket (the bible's lives, chapters and questions), kept on home's row for the world it was fetched for
+  const pocketOf = (b: Notebook) => (b.kind === 'novel' ? pocketFor(settings.value, b.world) : undefined);
+  // the year on each novel's dial while a finger moves it, before it is written
+  const [moving, setMoving] = useState<Record<string, number>>({});
+  const yearOf = (b: Notebook) => moving[b.id] ?? shown?.[b.id]?.year;
+  const dials = Object.fromEntries(books.map(b => {
+    // the dial stands on the year written; the finger's year (moving) is the ages' alone
+    const p = pocketOf(b), y = shown?.[b.id]?.year;
+    if (!p || y === undefined || !b.world) return [b.id, undefined];
+    const world = b.world;
+    return [b.id, <Dial pocket={p} year={y} onMove={v => setMoving(m => ({ ...m, [b.id]: v }))}
+      onYear={v => void setWorldYear(world, v)
+        .then(async () => { if (wornWorld.peek() === world) await loadSettings(); shelfVersion.value++; })
+        .catch(() => undefined)} />];
+  }));
+  // the waiting question under the cover in front, read from that world's notebook
+  const pocket = pocketOf(book);
+  const [waiting, setWaiting] = useState<{ id: string; question: string } | undefined>(undefined);
+  useEffect(() => {
+    let on = true;
+    setWaiting(undefined);
+    if (pocket && book.world) void waitingIn(book.world, pocket).then(w => { if (on) setWaiting(w); }).catch(() => undefined);
+    return () => { on = false; };
+  }, [book.id, pocket, dataVersion.value, locked]);
+  // once written, the year read back stands, and the finger's is let go
+  useEffect(() => { setMoving({}); }, [shown]);
+
   const here = shown?.[book.id];
   const last = here?.last;
   const looks = Object.fromEntries(books.map(b => [b.id, shown?.[b.id]?.looks ?? undefined]));
 
   return (
     <Page label="Flow" drawn={shown !== undefined}>
-      <Shelf books={books} worn={worn} front={front} looks={looks}
+      <Shelf books={books} worn={worn} front={front} looks={looks} dials={dials}
         onSettle={id => { setFront(id); tick('check'); }}
         onOpen={b => void openInto(b, '#/journal')}
         onHold={b => { wearsFor.value = b; openSheet.value = 'wears'; tick('sheet'); }} />
       <div class="fs-sheetof fs-rules fs-flows fl-under" data-for={book.id} key={book.id}>
         {/* the last line written in this notebook, holding its rule from first paint so nothing under it moves */}
+        {pocket && <Story book={book} pocket={pocket} year={yearOf(book)} waiting={waiting} />}
         <p class="fs-quiet fl-lastline" data-read={shown === undefined ? undefined : ''}>
           {last && <><small>{notebookDate(new Date(last.at))}</small> {last.text}</>}
         </p>

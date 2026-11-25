@@ -8,7 +8,7 @@ import { urlOf } from '../music/state';
 /** A cover's face: the album covers it wears, in the order worn, or his drawing; null is plain paper. */
 export type Looks = { albums: { uri: string; src: string }[] } | { drawing: string } | null;
 /** What the shelf shows for one notebook. */
-export type Shown = { looks: Looks; last: { text: string; at: number } | null };
+export type Shown = { looks: Looks; last: { text: string; at: number } | null; year?: number };
 
 /** One object URL a notebook's drawing, made again only when the drawing changes. */
 const drawn = new Map<string, { blob: Blob; url: string }>();
@@ -24,7 +24,7 @@ function drawingUrl(id: string, blob: Blob): string {
 /** Reads what one notebook shows on the shelf. */
 export async function shownOf(book: Notebook): Promise<Shown> {
   const s = await notebookShown(book.world);
-  if (s.drawing) return { looks: { drawing: drawingUrl(book.id, s.drawing) }, last: s.last };
+  if (s.drawing) return { looks: { drawing: drawingUrl(book.id, s.drawing) }, last: s.last, year: s.year };
   const albums = s.albums.flatMap(a => { const src = urlOf(a); return src ? [{ uri: a.albumUri, src }] : []; });
-  return { looks: albums.length ? { albums } : null, last: s.last };
+  return { looks: albums.length ? { albums } : null, last: s.last, year: s.year };
 }

@@ -17,6 +17,10 @@ import { readBatch, sendBatch, drain, type Batch } from '../bridge/up';
 import { getPocket, listWorlds, BridgeError } from '../bridge/net';
 import { applyPocket } from '../bridge/down';
 import { KEEPALIVE_MAX_BYTES } from '../bridge/protocol';
+import { startYearOnce } from './story';
+
+/** Bumped when a pocket has come down and been written: the UI reads the settings row again (the pocket, the year). */
+export const pocketVersion = signal(0);
 
 /** When a batch was last acknowledged, for the Settings row's "Carried"; undefined before the first, or locked. */
 export const carriedAt = signal<number | undefined>(undefined);
@@ -117,6 +121,9 @@ async function carryDown(fetcher?: Fetcher): Promise<void> {
   if (worn() !== t.world) return; // taken off while it was on its way
   await applyPocket(t.h, r.pocket);
   await stamp({ downAt: Date.now(), pocket: { world: t.world, stamp: r.stamp, pocket: r.pocket } });
+  // the phone's year starts once from the bible's story year (PLAN-WORLDS.md section 4, W4); after that it is his
+  if (r.pocket.kind === 'novel') await startYearOnce(t.world, r.pocket).catch(() => undefined);
+  pocketVersion.value++;
 }
 
 export type Carried = 'idle' | 'carried' | 'offline' | 'failed';

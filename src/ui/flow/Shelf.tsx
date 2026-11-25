@@ -35,8 +35,8 @@ function Band({ looks }: { looks: Looks | undefined }) {
 }
 
 /** One notebook's cover. */
-export function Cover({ book, worn, front, looks, onTap, onHold }: {
-  book: Notebook; worn: boolean; front: boolean; looks?: Looks; onTap?: (e: MouseEvent) => void; onHold?: () => void;
+export function Cover({ book, worn, front, looks, dial, onTap, onHold }: {
+  book: Notebook; worn: boolean; front: boolean; looks?: Looks; dial?: JSX.Element; onTap?: (e: MouseEvent) => void; onHold?: () => void;
 }) {
   const style = { '--wc': voiceColour(book.colour, 'light') } as JSX.CSSProperties;
   const hold = useHold(() => onHold?.(), e => onTap?.(e));
@@ -45,7 +45,8 @@ export function Cover({ book, worn, front, looks, onTap, onHold }: {
       aria-current={worn ? 'true' : undefined} style={style} {...hold}>
       <Band looks={looks} />
       <span class="fl-cover-name">{book.name}</span>
-      <small class="fl-cover-foot">{worn ? 'Open' : book.sub}</small>
+      {/* a novel's year dial along its foot (W4, ui/world/Dial.tsx): it takes its own touches */}
+      <span class="fl-cover-foot">{dial}<small>{worn ? 'Open' : book.sub}</small></span>
     </a>
   );
 }
@@ -53,11 +54,12 @@ export function Cover({ book, worn, front, looks, onTap, onHold }: {
 type Props = {
   books: readonly Notebook[]; worn: string; front: string;
   looks?: Record<string, Looks | undefined>;
+  dials?: Record<string, JSX.Element | undefined>;
   onSettle?: (id: string) => void; onOpen?: (book: Notebook) => void; onHold?: (book: Notebook) => void;
 };
 
 /** The covers in a row, the one in front in the middle. */
-export function Shelf({ books, worn, front, looks = {}, onSettle, onOpen, onHold }: Props) {
+export function Shelf({ books, worn, front, looks = {}, dials = {}, onSettle, onOpen, onHold }: Props) {
   const shelf = useRef<HTMLDivElement>(null);
   const shown = useRef(front);
   shown.current = front;
@@ -137,7 +139,7 @@ export function Shelf({ books, worn, front, looks = {}, onSettle, onOpen, onHold
       <div ref={shelf} class="fl-shelf" role="group" aria-label="Notebooks"
         onPointerDownCapture={() => { pressedAt.current = shelf.current?.scrollLeft ?? 0; void askTilt(); }}>
         {books.map(b => (
-          <Cover key={b.id} book={b} worn={b.id === worn} front={b.id === front} looks={looks[b.id]}
+          <Cover key={b.id} book={b} worn={b.id === worn} front={b.id === front} looks={looks[b.id]} dial={dials[b.id]}
             onHold={() => {
               // a finger that slid the shelf was not holding a cover, whatever the timer says (a press handed on
               // from a turn, ui/turns.ts, never hears the slide that followed it)

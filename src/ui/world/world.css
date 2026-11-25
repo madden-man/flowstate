@@ -1,0 +1,56 @@
+/* The sections in a world (PLAN-WORLDS.md section 4, W4). Tokens only; no animation, nothing moves by itself.
+   The dial (Dial.tsx): lifelines in their voice's hue, one upright stroke at the year, the ends and the year in print. */
+.wd-dial { position: relative; display: block; font-family: var(--sans); }
+.wd-track {
+  position: relative; display: block; padding: 6px 0; cursor: ew-resize;
+  /* the dial is the finger's: a drag here moves the year, never the shelf or the page */
+  touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+}
+.wd-track:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+.wd-lives { position: relative; display: grid; gap: 3px; min-height: 2px; }
+.wd-lives i { display: block; height: 2px; border-radius: 1px; background: var(--vc); }
+.wd-now { position: absolute; top: 0; bottom: 0; width: 1.5px; margin-left: -.75px; background: var(--ink); }
+.wd-mark { position: absolute; bottom: 0; height: 5px; width: 1px; margin-left: -.5px; background: var(--print); }
+.wd-ends {
+  display: flex; justify-content: space-between; align-items: baseline; font-variant-numeric: tabular-nums;
+  font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); line-height: var(--lh-ink);
+}
+.wd-ends output { font-family: var(--serif); font-size: var(--fs-ink); letter-spacing: 0; color: var(--ink); }
+[data-light="still"] .wd-lives i { background: var(--seam); }
+
+/* on a cover's foot, above its print line */
+.fl-cover-foot .wd-dial { margin-bottom: 2px; }
+/* the year sheet: the dial at the page's width, and the year's chapters and events in print under it */
+.wd-sheet .wd-dial { margin: var(--s1) 0 var(--s2); }
+.wd-sheet .wd-track { padding: var(--s1) 0; }
+.wd-sheet .wd-lives { gap: 4px; }
+.wd-sheet .wd-mark { height: 8px; }
+.wd-sheet .wd-ends output { font-size: var(--fs-title); }
+
+/* under a novel's cover: who is alive that year and how old, in print, on one rule */
+.wd-ages {
+  margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--print); line-height: var(--lh-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fl-under .fs-from { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* the header's year: a word in the serif, a tap raising the year sheet */
+.fs-hdr-year { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; font-family: var(--serif); font-size: var(--fs-ink); letter-spacing: 0; cursor: pointer; }
+
+/* a seat for one not yet born or already dead that year: dimmed, still seatable (section 4) */
+.fs-chip[data-gone] { opacity: .45; }
+.fs-chip[data-gone][aria-pressed="true"] { opacity: .7; }
+
+/* the chips under a journal page: Character, Place and Year (section 4), where the council keeps its voice chips */
+.wd-pagechips { flex: none; }
+.wd-pagechips .fs-chips { padding-top: var(--s1); }
+.wd-picker .fs-month { margin: var(--s1) 0 0; }
+.wd-picker .fs-chips { flex-wrap: wrap; }
+.fl-cover-foot { display: flex; flex-direction: column; }
+/* the seat row in a novel's council: the seats, then how it is read and when it is set, in one column beside Done */
+.wd-seatcol { flex: 1; min-width: 0; }
+.wd-seatcol > .fs-quiet { margin: 0; line-height: var(--lh-ink); }
+/* the header's world line: the name gives way (an ellipsis) before the year does */
+.fs-hdr-r > .fs-hdr-world:has(.fs-hdr-year) { display: flex; align-items: baseline; justify-content: flex-end; gap: .35em; max-width: 14em; }
+.fs-hdr-wname { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fs-hdr-year { flex: none; }

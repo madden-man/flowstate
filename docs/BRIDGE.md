@@ -37,6 +37,15 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 **What a row holds** (`src/bridge/up.ts`, only the fields named there leave the phone): a council or question page (`id, kind, title, state, createdAt, updatedAt, answeredAt, resolvedByTap, seats, reading, chips, asked, year`); a council or question line (`id, pageId, at, updatedAt, voiceId, text, replyTo, kept, wise, paper`); a kept journal line alone (`id, at, updatedAt, text, wise, kept, kind: "kept", date, year, chips`: never its page, its title or its other lines); a question researched (`id, askedAt, question, state, pageId` and the picked papers' public record); a song (`id, createdAt, updatedAt, title, lyric, sections, key, bpm, characterIds`); a take without its audio.
 
+**How a question reads in the rows** (W4; no new table, only the page and line rows above):
+
+- Answered on the phone ("This answers it"): the question's page row with `state: "answered"` and `answeredAt`, and a line row with `pageId` the question's id, `wise: true` and `text` the decision. With more than one wise line, the newest by `at` is the decision.
+- Resolved on the phone (the word Resolve): `state: "answered"` and `resolvedByTap: true`; there may be no wise line (decided, no words).
+- Taken back: the same page again with `state: "open"`.
+- Asked on the phone: a page row with `kind: "question"`, `state: "open"`, an id the bible does not have (a UUID), `title` the question and `year` the year worn.
+- The bible's own decision line (`d:<questionId>`) came down and is never sent back.
+- A council carries `reading` (`"in"` or `"about"`, absent is about) and `year` (`null`: the whole book). A kept line carries `chips` and `year`. A question researched carries `pageId` on the inquiry and `asked.inquiryId` on the page.
+
 **The pocket** (`bridge_down`, `{ _id: <worldId>, stamp, pocket }`, written by Novel Companion in W3 and Music Companion in W7): for a novel `{ kind: "novel", characters: [{ id, fullName, firstName, chineseName?, familyColour?, born?, died? }], places, chapters, events, storyYear?, span?, questions: [{ id, question, state: "open" | "decided", decision?, changedAt }] }`; for Songbook `{ kind: "songs", songs: [{ id, title }] }`. The registry row: `{ _id: <worldId>, name, kind }`.
 
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)

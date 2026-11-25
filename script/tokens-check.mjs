@@ -9,6 +9,8 @@ const pairs = [
   ['src/ui/parts/parts.css', 'design/parts.css', 'cp src/ui/parts/parts.css design/parts.css'],
   // PLAN-WORLDS.md WF: the Flow tab's shelf, for the walkthrough's Flow step
   ['src/ui/flow/shelf.css', 'design/shelf.css', 'cp src/ui/flow/shelf.css design/shelf.css'],
+  // PLAN-WORLDS.md W4: the sections in a world, for design/in-a-world.html
+  ['src/ui/world/world.css', 'design/world.css', 'cp src/ui/world/world.css design/world.css'],
   ['design/walkthrough.html', 'design/index.html', 'cp design/walkthrough.html design/index.html'],
 ];
 let bad = 0;
