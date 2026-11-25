@@ -33,6 +33,7 @@
     "@anthropic-ai/sdk": "^1.8.0",
     "@preact/signals": "^2.11.4",
     "dexie": "^4.4.7",
+    "mongodb": "^6.22.0",
     "preact": "^10.29.8",
     "preact-iso": "^2.12.2"
   },

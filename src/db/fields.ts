@@ -10,13 +10,17 @@
 //   (PLAN-MOUNTAIN.md section 8, R0; of and at stay clear for the [of+at] index); signShelves: picks, asks, deck and line; marks: text and
 //   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear); inquiries: question
 //   and runs whole (the agents' messages carry the question; PLAN-RESEARCH.md section 5, Q2; ids, state, picks and dates
-//   stay clear). papers are not sealed: a paper's words are an index's public record, not his.
+//   stay clear). papers are not sealed: a paper's words are an index's public record, not his. settings.bridge (the
+//   bridge's token and the pocket, PLAN-WORLDS.md section 9, W2); songs: title and lyric; takes: the audio.
+// In a world's notebook every write here also holds the outbox, pages and messages (scope below), so src/db/outbox.ts
+// records what travels in the same transaction; quiet() writes what came down from the bible without them.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
 // secret fields are sealed together with AES-GCM, and setKey() re-encrypts every existing row in place.
 // Ids, dates, tags, colours and voice names stay clear so lists can render before unlock.
 import type { Collection, IndexableType, Table } from 'dexie';
-import { db as defaultDb, type FlowDB, type OnPick, type Settings, type TableName, type Tables, TABLES, type Sealed } from './schema';
-import { seal, unseal, makeVerifier, checkVerifier, isSealed } from './crypto';
+import { db as defaultDb, type FlowDB, type OnPick, type Settings, type TableName, type Tables, type Sealed } from './schema';
+import { seal, unseal, makeVerifier, checkVerifier, isSealed, toB64, fromB64 } from './crypto';
+import { isWorldDB, WRITE_SCOPE } from './outbox';
 
 export class LockedError extends Error {
   constructor() { super('The journal is locked'); this.name = 'LockedError'; }
@@ -92,21 +96,25 @@ const paradoxSpec: Spec<Tables['paradoxes']> = {
  *  secret is the tokens alone (or null), as it always was, so a row sealed before Research reads unchanged; with one
  *  it is `{ s, research }`, told apart by its research field (a tokens object never has one). The clear copy keeps no
  *  research field at all, so a locked journal shows no key and no sign of one. */
+// The bridge (PLAN-WORLDS.md section 9, W2) rides in the same object, `{ s, research?, bridge? }`, told apart by either
+// field, and is sealed whole like Research's key: a locked journal shows no token, no pocket and no sign of either.
 type Tokens = NonNullable<Settings['spotify']>['tokens'];
-type SSecret = Tokens | null | { s: Tokens | null; research: NonNullable<Settings['research']> };
+type SObj = { s: Tokens | null; research?: NonNullable<Settings['research']>; bridge?: NonNullable<Settings['bridge']> };
+type SSecret = Tokens | null | SObj;
 const settingsSpec: Spec<Settings> = {
   take: row => {
-    const { spotify, research, ...rest } = row;
+    const { spotify, research, bridge, ...rest } = row;
     const clear: Settings = spotify ? { ...rest, spotify: { connectedAt: spotify.connectedAt } } : { ...rest };
     const tokens = spotify?.tokens ?? null;
-    return { clear, secret: (research ? { s: tokens, research } : tokens) satisfies SSecret };
+    const secret: SSecret = research || bridge ? { s: tokens, ...(research ? { research } : {}), ...(bridge ? { bridge } : {}) } : tokens;
+    return { clear, secret };
   },
   give: (clear, raw) => {
     const s = (raw ?? null) as SSecret;
-    const both = s && typeof s === 'object' && 'research' in s ? s : null;
+    const both = s && typeof s === 'object' && ('research' in s || 'bridge' in s) ? s as SObj : null;
     const tokens = both ? both.s : (s as Tokens | null);
     const out: Settings = tokens ? { ...clear, spotify: { ...clear.spotify, tokens } } : clear;
-    return both ? { ...out, research: both.research } : out;
+    return { ...out, ...(both?.research ? { research: both.research } : {}), ...(both?.bridge ? { bridge: both.bridge } : {}) };
   },
 };
 
@@ -279,6 +287,26 @@ const inquirySpec: Spec<Tables['inquiries']> = {
   },
 };
 
+/** A song seals its title and lyric (PLAN-WORLDS.md section 6); sections, key, tempo and dates stay clear. */
+type SgSecret = { title: string; lyric: string };
+const songSpec: Spec<Tables['songs']> = {
+  take: row => ({ clear: { ...row, title: '', lyric: '' }, secret: { title: row.title, lyric: row.lyric } satisfies SgSecret }),
+  give: (clear, raw) => {
+    const s = (raw ?? { title: '', lyric: '' }) as SgSecret;
+    return { ...clear, title: String(s.title ?? ''), lyric: String(s.lyric ?? '') };
+  },
+};
+
+/** A take seals its audio (PLAN-WORLDS.md section 6), as base64 inside the envelope; the pitch line and the rest stay
+ *  clear, so a list can draw the line before unlock and nothing of his voice can be played. */
+const takeSpec: Spec<Tables['takes']> = {
+  take: row => ({ clear: { ...row, audio: new ArrayBuffer(0) }, secret: toB64(new Uint8Array(row.audio)) }),
+  give: (clear, raw) => {
+    const b = fromB64(typeof raw === 'string' ? raw : '');
+    return { ...clear, audio: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) };
+  },
+};
+
 /** Which tables carry secret fields. The rest are stored as they are. */
 const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   settings: settingsSpec,
@@ -296,6 +324,8 @@ const SPECS: Partial<{ [K in TableName]: Spec<Tables[K]> }> = {
   marks: markSpec,
   days: daySpec,
   inquiries: inquirySpec,
+  songs: songSpec,
+  takes: takeSpec,
 };
 export const SECRET_TABLES = Object.keys(SPECS) as TableName[];
 
@@ -322,6 +352,13 @@ export const pkOf = <K extends TableName>(t: K, row: Tables[K]): string => {
 };
 const aad = (t: TableName, pk: string) => `${t}:${pk}`;
 const table = <K extends TableName>(t: K) => database.table(t) as unknown as Table<Tables[K], string>;
+
+/** The tables a write opens its transaction over: its own, and in a world's notebook the outbox and what the outbox
+ *  reads (src/db/outbox.ts), so what travels is recorded in the same transaction as the write. */
+const scope = (tables: TableName[]): TableName[] => [...new Set([...tables, ...(isWorldDB(database.name) ? WRITE_SCOPE : [])])];
+/** Runs fn in one read-write transaction over scope(tables). */
+const within = <T>(tables: TableName[], fn: () => Promise<T>): Promise<T> =>
+  database.transaction('rw', scope(tables).map(t => database.table(t)), fn) as Promise<T>;
 
 function strip<T>(row: T): T {
   const copy = { ...(row as Record<string, unknown>) };
@@ -402,12 +439,13 @@ const direct = {
   async put<K extends TableName>(t: K, row: Tables[K]): Promise<void> {
     writable();
     const [kept] = await keepLock(t, [row]);
-    await table(t).put(await toStored(t, kept, key));
+    const stored = await toStored(t, kept, key);
+    await within([t], () => table(t).put(stored));
   },
   async bulkPut<K extends TableName>(t: K, rows: Tables[K][]): Promise<void> {
     writable();
     const stored = await Promise.all((await keepLock(t, rows)).map(r => toStored(t, r, key)));
-    await table(t).bulkPut(stored);
+    await within([t], () => table(t).bulkPut(stored));
   },
 };
 export type Unit = typeof direct;
@@ -450,14 +488,14 @@ export const store = {
   delete(t: TableName, id: string): Promise<void> {
     return serial(async () => {
       writable();
-      await table(t).delete(id);
+      await within([t], () => table(t).delete(id));
     });
   },
   /** Deletes by primary key; a compound key (a shelf row, V7) is an array. */
   bulkDelete(t: TableName, keys: IndexableType[]): Promise<void> {
     return serial(async () => {
       writable();
-      await (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys);
+      await within([t], () => (database.table(t) as Table<unknown, IndexableType>).bulkDelete(keys));
     });
   },
   /** Reads and writes of clear fields as one unit (PLAN-SELF.md section 4): fn runs in the write queue, inside one
@@ -468,7 +506,7 @@ export const store = {
   tx<T>(tables: TableName[], fn: (tb: TxTables) => Promise<T>): Promise<T> {
     return serial(async () => {
       writable();
-      return database.transaction('rw', tables.map(t => database.table(t)), () => fn(table));
+      return database.transaction('rw', scope(tables).map(t => database.table(t)), () => fn(table));
     });
   },
   /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
@@ -482,13 +520,55 @@ export const store = {
       const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
       const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
       if (!tables.length) return;
-      await database.transaction('rw', tables.map(t => database.table(t)), async () => {
+      await database.transaction('rw', scope(tables).map(t => database.table(t)), async () => {
         for (const [t, rows] of prepared) await database.table(t).bulkPut(rows);
         for (const t of gone) await database.table(t).bulkDelete(drops[t]!);
       });
     });
   },
 };
+
+/**
+ * A notebook handed to the bridge (PLAN-WORLDS.md section 5, W2): reads come back opened with the key in memory, and
+ * writeDown writes what came DOWN from the bible (voices from characters, question pages from its questions) sealed like
+ * any write, in the write queue, but in a transaction over its own tables only, never the outbox: what the bible sent
+ * is never sent back as if he wrote it (src/db/outbox.ts acts only in a transaction that holds the outbox). Locked, the
+ * reads come back marked locked and writeDown throws LockedError. src/bridge is given one of these for a world's
+ * notebook and never the personal one.
+ */
+export function handed(target: FlowDB) {
+  const tb = <K extends TableName>(t: K) => target.table(t) as unknown as Table<Tables[K], string>;
+  return {
+    name: target.name,
+    db: target,
+    async get<K extends TableName>(t: K, id: string): Promise<Read<Tables[K]> | undefined> {
+      const row = await tb(t).get(id);
+      return row && fromStored(t, row, key);
+    },
+    async many<K extends TableName>(t: K, ids: string[]): Promise<(Read<Tables[K]> | undefined)[]> {
+      const rows = await tb(t).bulkGet(ids);
+      return Promise.all(rows.map(r => (r ? fromStored(t, r, key) : undefined)));
+    },
+    async query<K extends TableName>(t: K, build: (tb: Table<Tables[K], string>) => Collection<Tables[K], string>): Promise<Read<Tables[K]>[]> {
+      const rows = await build(tb(t)).toArray();
+      return Promise.all(rows.map(r => fromStored(t, r, key)));
+    },
+    open: () => keyState() !== 'locked',
+    writeDown(writes: { [K in TableName]?: Tables[K][] }): Promise<void> {
+      return serial(async () => {
+        writable();
+        const tables = (Object.keys(writes) as TableName[]).filter(t => writes[t]?.length);
+        if (tables.includes('outbox')) throw new Error('writeDown never writes the outbox');
+        const prepared = await Promise.all(tables.map(async t => [t, await Promise.all((writes[t] as Tables[TableName][]).map(r => toStored(t, r as never, key)))] as const));
+        if (!prepared.length) return;
+        await target.transaction('rw', tables.map(t => target.table(t)), async () => {
+          for (const [t, rows] of prepared) await target.table(t).bulkPut(rows);
+        });
+      });
+    },
+  };
+}
+export type Handed = ReturnType<typeof handed>;
 
 /** Re-reads every secret row with the current key and writes it back sealed with next (or plain when next is null). */
 async function rewriteAll(next: CryptoKey | null, settingsPatch: (s: Settings) => Settings): Promise<void> {
@@ -503,7 +583,8 @@ async function rewriteAll(next: CryptoKey | null, settingsPatch: (s: Settings) =
     }
     prepared.push([t, out]);
   }
-  await database.transaction('rw', TABLES.map(t => database.table(t)), async () => {
+  // over the sealed tables only, never the outbox: a PIN change re-seals rows, it is not a write of his to send
+  await database.transaction('rw', prepared.map(([t]) => database.table(t)), async () => {
     for (const [t, rows] of prepared) await database.table(t).bulkPut(rows);
   });
 }

@@ -51,6 +51,9 @@ export default defineConfig({
         // Every built file is precached: the app must open in airplane mode (PLAN.md section 2).
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,ico,txt}'],
         navigateFallback: '/index.html',
+        // PLAN-WORLDS.md section 5 (W2): the bridge function is never answered from the cache or with the app's page;
+        // nothing under /.netlify/ is precached (globPatterns reads dist, where it never is) and no runtime route is set.
+        navigateFallbackDenylist: [/^\/\.netlify\//],
         cleanupOutdatedCaches: true,
       },
     }),

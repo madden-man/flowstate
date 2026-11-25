@@ -72,6 +72,9 @@ export interface Inquiry {
    *  opening too. A run cut off by the connection stays 'running', its runs kept, and carries 'offline' until it goes
    *  on (Q4). */
   why?: RunResult['why'];
+  /** PLAN-WORLDS.md section 9 (schema 10, W4 sets it): the question page this was asked from ("Research this"). An id,
+   *  clear; optional and unindexed. */
+  pageId?: string;
 }
 
 // ---- the indexes (Q1: src/research/indexes.ts exports `search: Search` and `lookup`) ----

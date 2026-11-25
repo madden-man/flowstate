@@ -13,12 +13,13 @@ beforeEach(async () => { db = await freshDB(); });
 const roundTrip = async (from: FlowDB) => parseBackup(JSON.stringify(await exportData(from, 1000)));
 
 describe('export', () => {
-  it('writes every table, the schema version and exportedAt', async () => {
+  it('writes every table but the outbox, the schema version and exportedAt', async () => {
     const f = await exportData(db, 1234);
     expect(f.app).toBe('flowstate');
     expect(f.schemaVersion).toBe(SCHEMA_VERSION);
     expect(f.exportedAt).toBe(1234);
-    expect(Object.keys(f.tables).sort()).toEqual(db.tables.map(t => t.name).sort());
+    // the outbox is sends this phone owes the bridge, never a file's (PLAN-WORLDS.md section 9, W2)
+    expect(Object.keys(f.tables).sort()).toEqual(db.tables.map(t => t.name).filter(t => t !== 'outbox').sort());
   });
 
   it('names the file by date', () => {
