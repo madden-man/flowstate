@@ -132,6 +132,59 @@ describe('POST /api/push/subscribe', () => {
   });
 });
 
+describe('POST /api/push/subscribe with replaces', () => {
+  const NEW = 'https://web.push.apple.com/NewAddress';
+
+  it('takes the old address\'s week stamp and deletes its blob', async () => {
+    const { call, store } = setup({ [keyFor(APPLE)]: device(APPLE, { lastSentWeek: '2026-11-22' }) });
+    expect(await call('POST', '/api/push/subscribe', { ...body(NEW), replaces: APPLE })).toEqual({ status: 200, json: { ok: true } });
+    expect(store.data.has(keyFor(APPLE))).toBe(false);
+    expect(store.data.get(keyFor(NEW))).toMatchObject({ subscription: { endpoint: NEW }, lastSentWeek: '2026-11-22' });
+    expect(store.data.size).toBe(1);
+  });
+
+  it('does not count the old address toward the cap', async () => {
+    const seed = Object.fromEntries([1, 2, 3, 4].map(i => [keyFor(`${APPLE}${i}`), device(`${APPLE}${i}`)]));
+    const { call, store } = setup(seed);
+    expect(await call('POST', '/api/push/subscribe', { ...body(NEW), replaces: `${APPLE}3` })).toEqual({ status: 200, json: { ok: true } });
+    expect(store.data.size).toBe(4);
+    expect(store.data.has(keyFor(`${APPLE}3`))).toBe(false);
+  });
+
+  it('is a plain subscribe when the old address is not stored, cap and all', async () => {
+    const seed = Object.fromEntries([1, 2, 3, 4].map(i => [keyFor(`${APPLE}${i}`), device(`${APPLE}${i}`)]));
+    const { call, store } = setup(seed);
+    expect(await call('POST', '/api/push/subscribe', { ...body(NEW), replaces: `${APPLE}9` })).toEqual({ status: 409, json: { error: 'too_many_devices' } });
+    expect(store.data.size).toBe(4);
+    const one = setup();
+    expect(await one.call('POST', '/api/push/subscribe', { ...body(NEW), replaces: APPLE })).toEqual({ status: 200, json: { ok: true } });
+    expect(one.store.data.get(keyFor(NEW))?.lastSentWeek).toBeUndefined();
+  });
+
+  it('keeps the later stamp when both addresses are stored', async () => {
+    const { call, store } = setup({
+      [keyFor(APPLE)]: device(APPLE, { lastSentWeek: '2026-11-22' }),
+      [keyFor(NEW)]: device(NEW, { lastSentWeek: '2026-11-15' }),
+    });
+    await call('POST', '/api/push/subscribe', { ...body(NEW), replaces: APPLE });
+    expect(store.data.get(keyFor(NEW))?.lastSentWeek).toBe('2026-11-22');
+    expect(store.data.size).toBe(1);
+  });
+
+  it('replacing itself changes nothing else', async () => {
+    const { call, store } = setup({ [keyFor(APPLE)]: device(APPLE, { lastSentWeek: '2026-11-22' }) });
+    expect((await call('POST', '/api/push/subscribe', { ...body(APPLE), replaces: APPLE })).status).toBe(200);
+    expect(store.data.get(keyFor(APPLE))?.lastSentWeek).toBe('2026-11-22');
+  });
+
+  it('refuses a replaces that is not a push address, and stores nothing', async () => {
+    const { call, store } = setup({ [keyFor(APPLE)]: device(APPLE) });
+    expect(await call('POST', '/api/push/subscribe', { ...body(NEW), replaces: 'https://example.com/x' })).toEqual({ status: 400, json: { error: 'invalid', field: 'replaces' } });
+    expect(store.data.size).toBe(1);
+    expect(store.data.has(keyFor(APPLE))).toBe(true);
+  });
+});
+
 describe('POST /api/push/unsubscribe', () => {
   it('deletes the device', async () => {
     const { call, store } = setup({ [keyFor(APPLE)]: device(APPLE) });

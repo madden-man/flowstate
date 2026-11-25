@@ -12,7 +12,11 @@ export type CheckinSchedule = { weekday: number; hour: number; minute: number };
 /** settings.checkin (PLAN-PUSH.md section 5): the switch for the question itself, when it asks, his line, and the
  *  week it was last shown or answered (weekKey). Clear, like the rest of settings: it is one sentence he chose to
  *  show, and N3's service worker reads a copy of it with no key. */
-export type Checkin = CheckinSchedule & { on: boolean; line: string; lastShownWeek?: string };
+export type Checkin = CheckinSchedule & {
+  on: boolean; line: string; lastShownWeek?: string;
+  /** N3: he switched the push on, on this phone (push/push.ts). Absent is off. An import keeps this phone's own value. */
+  push?: boolean;
+};
 
 /** His own sentence from the ask (PLAN-PUSH.md section 1). */
 export const CHECKIN_LINE = 'Is there anything on your mind?';

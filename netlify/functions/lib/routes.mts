@@ -86,6 +86,13 @@ function readSubscribe(body: Record<string, unknown>): Omit<Device, 'updatedAt' 
   };
 }
 
+/** subscribe's optional replaces: the address this phone posted last, when iOS has since given it a new one. */
+function readReplaces(body: Record<string, unknown>): string | null {
+  if (body.replaces === undefined || body.replaces === null) return null;
+  if (!isPushEndpoint(body.replaces)) throw new BadRequest(400, 'invalid', 'replaces');
+  return body.replaces;
+}
+
 function readEndpoint(body: Record<string, unknown>): string {
   if (!isPushEndpoint(body.endpoint)) throw new BadRequest(400, 'invalid', 'endpoint');
   return body.endpoint;
@@ -105,18 +112,26 @@ export function makePushHandler(deps: RouteDeps) {
         }
 
         case 'POST /api/push/subscribe': {
-          const device = readSubscribe(await readBody(req));
+          const body = await readBody(req);
+          const device = readSubscribe(body);
+          const replaces = readReplaces(body);
           const store = await deps.store();
           const key = keyFor(device.subscription.endpoint);
           const existing = await store.get(key);
-          if (!existing) {
+          // iOS gave the phone a new push address: the old one's blob is the same phone, so it hands over its week
+          // stamp and goes, and it does not count toward the cap (N3, resubscribeIfMoved).
+          const oldKey = replaces && replaces !== device.subscription.endpoint ? keyFor(replaces) : null;
+          const old = oldKey ? await store.get(oldKey) : null;
+          if (!existing && !old) {
             const count = (await store.keys()).length;
             if (count >= MAX_DEVICES) return fail(409, 'too_many_devices');
           }
           // An update keeps the week stamp, so a re-subscribe never earns a second push that week.
           const next: Device = { ...device, updatedAt: now().toISOString() };
-          if (existing?.lastSentWeek) next.lastSentWeek = existing.lastSentWeek;
+          const week = [existing?.lastSentWeek, old?.lastSentWeek].filter((w): w is string => !!w).sort().pop();
+          if (week) next.lastSentWeek = week;
           await store.set(key, next);
+          if (oldKey && old) await store.delete(oldKey);
           return json(200, { ok: true });
         }
 
