@@ -49,6 +49,27 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 **The pocket** (`flowstate_bridge.bridge_down`, `{ _id: <worldId>, stamp, pocket }`, written by Novel Companion in W3 for each bible and Music Companion in W7 for Songbook): for a novel `{ kind: "novel", characters: [{ id, fullName, firstName, chineseName?, familyColour?, born?, died? }], places, chapters, events, storyYear?, span?, questions: [{ id, question, state: "open" | "decided", decision?, changedAt }] }`; for Songbook `{ kind: "songs", songs: [{ id, title }] }`. The registry row (`flowstate_bridge.bridge_worlds`): `{ _id: <worldId>, name, kind }`, kind `novel` or `songs`. World ids are unique across both apps (one collection).
 
+## Songs, takes and clips (W6; what Music Companion reads, W7)
+
+**A song row** (`table: "songs"`): `{ id, createdAt, updatedAt, title, lyric, sections, key?, bpm?, characterIds? }`. `lyric` is the whole lyric, lines separated by `\n`; a blank line starts a section. `sections` is `[{ line, name }]`, `line` the 0-based index in `lyric.split("\n")` of a section's first line and `name` one of `Verse`, `Chorus`, `Bridge`; an unnamed section is not listed. `key` is unused so far (a take carries its own). `bpm` is the tempo he tapped, a whole number from 30 to 300. `characterIds` only in a novel world, ids from that bible's pocket.
+
+**A take row** (`table: "takes"`), without its audio: `{ id, songId?, at, seconds, audioType, pitch, key?, bpm?, lineId?, lineText? }`.
+
+- `songId` absent: a loose hum. A loose hum given a title becomes a song: a new song row, and the take sent again with `songId`.
+- `at` is when it was recorded (epoch ms). `seconds` its length, to a tenth, at most 180.
+- `pitch`: one number every 0.05 s, evenly over `seconds`: a MIDI note number (69 is A4, 57 is A3) to two decimals, `0` where no pitch was heard. Three minutes is 3600 numbers.
+- `key`: print such as `"G minor"` or `"F# major"` (tonic as Music Companion's key finder spells it, then `major` or `minor`); absent when the key finder's confidence was under 0.15 or less than two seconds was sung.
+- **`lineId` is the 0-based index of the lyric line the take is pinned to, in `lyric.split("\n")`, written as a decimal string** (`"0"` is the first line), as the song stood when this take row was sent. `lineText` is that line's text at the same moment, so a reader can show the line without the lyric, and can find it again if the lyric it holds is newer or older than the take (the index can be stale against a different lyric version; the text is the safer key). The phone keeps both current: when lines come or go above a pinned take, the take is re-pinned and sent again. Both absent: loose on its song.
+- `audioType` is the clip's type, parameters dropped: see below.
+
+**Ids.** A song's and a take's id is a UUID from `crypto.randomUUID()` (36 characters, `[0-9a-f-]`), safe as a file name on every platform; nothing else is ever used as an id for them. **A song or take keeps its id for life.** A song moved to another world (W6, "Move to") arrives under the new world with the same ids, its takes too; the old world sends a delete for each. **The same id arriving under another world is the same song moved: Music Companion must not read the delete under the old world as the song's end** (order is not guaranteed: the delete may come before or after the new world's row). A song is gone only when its id is deleted under every world that sent it, or under the world that sent it last.
+
+**Clips.** `POST ?op=clip&world=<id>&take=<id>&rev=<take.at>`, sent only after the take's row was acknowledged, once (the phone marks it; a take moved to another world is not sent again if its clip already went, and one still owing goes under the new world). The body is the bytes as `MediaRecorder` made them; the `content-type` header is the recorder's type and the function stores it without parameters as `type`:
+
+- **iPhone (Safari, the installed app): `audio/mp4`, AAC in an MP4 container**, the first type the phone asks for. File it as `.m4a`. Not yet confirmed on Tommy's phone (W0's findings are unanswered); Safari 14.1 and later record this.
+- **Chromium (Chrome, the e2e): `audio/webm`, Opus in WebM** (Chromium records no MP4). File it as `.webm`. Seen only in tests and a desktop browser.
+- Anything else `audio/*` is possible from another browser; take the extension from `type`, never assume `.m4a`.
+
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)
 
 1. In Atlas, the custom role and user below.
