@@ -26,6 +26,7 @@ Tommy's ask: "we should have a 'creative mode' for flowstate where i don the wor
 | 14 | Flow is made plain. "instead of keeping the whole mountain, let's greatly simplify the flow section. focus it around the world picker, and make that really dynamic and a cool ui. meditate, energize, and research should still show." And: "this means removing all the animations and the chakras and all the prompts and music album picks and all." |
 | 15 | A world is worn with a year. Every page and council takes it. It is its own setting on the phone, separate from Novel Companion's story year, and it goes to the bible with every page. |
 | 16 | Every notebook, his own included, can wear up to five album covers he picks through the Spotify tie-in, or a drawing he uploads. Neither is required, and the app never draws one for him: with neither, the cover is plain paper in its hue. |
+| 19 | A cover's albums come from the playlists already ticked under ♪. No search box. |
 | 18 | A kept line goes to the bridge with the chips and context it needs to be understood on its own. |
 | 17 | The shelf answers the hand: the lamp takes the hue of the cover in front, a tick as it lands, and the covers lean with the phone. |
 
@@ -202,8 +203,7 @@ Order: W0 and WF; then W1 and W2 together; then W3; then W4 and W5 together; the
 4. **Notebook pages in Claude's briefs.** Default: only the ones he ticks.
 5. **A lyric edited on the phone and on the Mac.** Default: the newest edit wins, and Music Companion's daily snapshot is the way back.
 6. **Which bible questions come down.** Default: every open one, and any decided after the world was first donned.
-7. **Where the albums come from.** Default: the playlists already ticked under ♪, no new Spotify request. The other choice adds a search box (Spotify's search needs no new permission).
-8. **A hum's length.** Default: three minutes at most.
+7. **A hum's length.** Default: three minutes at most.
 
 ## 13. Not verified
 
