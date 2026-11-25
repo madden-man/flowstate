@@ -171,7 +171,9 @@ export function carryOnHide(fetcher?: Fetcher): void {
   const r = ready;
   ready = null;
   if (r && worn() === r.world) {
-    void sendBatch(r.h, r.batch, token, { keepalive: true, fetcher }).then(() => stamp({ upAt: Date.now() })).catch(() => undefined);
+    void sendBatch(r.h, r.batch, token, { keepalive: true, fetcher })
+      .then(() => { const at = Date.now(); carriedAt.value = at; return stamp({ upAt: at }); })
+      .catch(() => undefined);
     return;
   }
   const t = target();

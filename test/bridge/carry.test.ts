@@ -5,7 +5,7 @@ import { store, don, doff, home, book, setKey, lock, handed } from '../../src/db
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import { defaultSettings } from '../../src/db/seed';
 import { newCouncil, speak } from '../../src/model/council';
-import { carry, carryNow, carryOnOpen, saveBridgeToken, removeBridgeToken, bridgeToken, carriedAt, startCarry } from '../../src/model/carry';
+import { carry, carryNow, carryOnOpen, saveBridgeToken, removeBridgeToken, bridgeToken, carriedAt, startCarry, carryOnHide } from '../../src/model/carry';
 import { BRIDGE_PATH, type Ack, type Envelope, type NovelPocket } from '../../src/bridge/protocol';
 import { freshDB } from '../db/helpers';
 
@@ -110,6 +110,29 @@ describe('opt-in: a token AND a world worn', () => {
     await store.put('settings', { ...(await store.get('settings', 'app'))!, worlds: [{ id: 'eastwinds', name: 'Old', kind: 'novel', hue: 140 }] });
     await saveBridgeToken('tok', s.fetcher);
     expect((await store.get('settings', 'app'))!.worlds![0]).toEqual({ id: 'eastwinds', name: 'East Winds', kind: 'novel', hue: 140 });
+  });
+});
+
+describe('as the app is hidden', () => {
+  it('the batch read after the last write goes at once with keepalive, before the debounced send', async () => {
+    const s = site();
+    const inits: RequestInit[] = [];
+    fetchSpy.mockImplementation(((u: RequestInfo | URL, init?: RequestInit) => { inits.push(init ?? {}); return s.fetcher(u, init); }) as never);
+    await saveBridgeToken('tok');
+    await don('eastwinds');
+    await carryOnOpen();
+    const stop = startCarry();
+    try {
+      const c = await newCouncil();
+      await speak(c.id, 'written just before the phone went dark');
+      await new Promise(r => setTimeout(r, 600)); // read (300 ms), not yet sent (1.2 s)
+      const before = s.up.length;
+      carryOnHide();
+      await vi.waitFor(() => expect(s.up.length).toBeGreaterThan(before));
+      expect(s.up.some(e => e.row?.text === 'written just before the phone went dark')).toBe(true);
+      expect(inits.at(-1)!.keepalive).toBe(true);
+      await vi.waitFor(async () => expect(await book().outbox.count()).toBe(0));
+    } finally { stop(); }
   });
 });
 
