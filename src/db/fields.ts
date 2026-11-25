@@ -380,6 +380,10 @@ let wornId: string | null = null;
 const openWorlds = new Map<string, FlowDB>();
 let key: CryptoKey | null = null;
 let lockEnabled = false;
+/** A PIN change stopped partway in this session after home was rewritten (setKey): the key in memory is already the
+ *  new one, a world may still be sealed with the old (or plain, a first PIN), and the next job in the write queue tries
+ *  to finish it (catchUp). null otherwise; a restart forgets it and the next unlock finishes the move instead. */
+let stopped: { old: CryptoKey | null; next: CryptoKey; target: Settings['lock'] } | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 
 /** The personal notebook's database, whatever is worn. */
@@ -397,7 +401,8 @@ const split = () => bookDb !== homeDb;
 
 /** Writes and the re-encrypt pass run one at a time, so no write lands between a read and its rewrite. */
 function serial<T>(fn: () => Promise<T>): Promise<T> {
-  const run = queue.then(fn, fn);
+  const job = async () => { await catchUp(); return fn(); };
+  const run = queue.then(job, job);
   queue = run.catch(() => undefined);
   return run;
 }
@@ -445,8 +450,13 @@ async function opened<K extends TableName>(t: K, stored: Tables[K], withKey: Cry
   if (!isSealed(env)) return stored;
   const spec = SPECS[t] as Spec<Tables[K]>;
   const clear = strip(stored);
-  if (!withKey) return { ...clear, locked: true } as Read<Tables[K]>;
-  return spec.give(clear, await unseal(withKey, env, aad(t, pkOf(t, clear))));
+  // with a PIN change stopped partway, a world's row may still be sealed with the other key of the move, so both open it
+  const keys = [withKey, ...(stopped ? [stopped.next, stopped.old] : [])].filter((k, i, a): k is CryptoKey => !!k && a.indexOf(k) === i);
+  if (!keys.length) return { ...clear, locked: true } as Read<Tables[K]>;
+  for (const [i, k] of keys.entries()) {
+    try { return spec.give(clear, await unseal(k, env, aad(t, pkOf(t, clear)))); } catch (e) { if (i === keys.length - 1) throw e; }
+  }
+  throw new Error('unreachable');
 }
 
 export type KeyState = 'plain' | 'locked' | 'open';
@@ -753,6 +763,7 @@ export async function init(target: FlowDB = defaultDb): Promise<void> {
   bookDb = target;
   wornId = null;
   key = null;
+  stopped = null;
   queue = Promise.resolve();
   const s = await target.settings.get('app');
   lockEnabled = !!s?.lock.enabled;
@@ -921,10 +932,27 @@ export function setKey(next: CryptoKey, lock: LockSpec): Promise<void> {
       await homeDb.settings.update('app', { 'lock.moving': moving } as never);
       target.moving = moving;
     }
-    await finishMove(old, next, target);
+    try {
+      await finishMove(old, next, target);
+    } catch (e) {
+      // stopped at a world after home was rewritten: home opens only with the new key now, so the session goes on with
+      // it, and the worlds left behind are read with either key and finished by the next write (catchUp)
+      if ((await keyOpening(homeDb, [next])) === next) { key = next; lockEnabled = true; stopped = { old, next, target }; }
+      throw e;
+    }
     key = next;
     lockEnabled = true;
   }));
+}
+
+/** Tries again to finish a PIN change stopped partway in this session (stopped); a stop again leaves it for the next job. */
+async function catchUp(): Promise<void> {
+  const s = stopped;
+  if (!s || key !== s.next) return;
+  try {
+    await unheard(() => finishMove(s.old, s.next, s.target));
+    stopped = null;
+  } catch { /* still stopped: the next job tries again, and a restart's unlock finishes it */ }
 }
 
 /** Turns the lock off: every row of every notebook is written back as plain text, the worlds first and home last. */
@@ -1002,4 +1030,5 @@ export async function storedForm<K extends TableName>(t: K, row: Tables[K]): Pro
 /** Drops the key from memory (relock). Rows stay sealed in every notebook; reads come back marked locked. */
 export function lock(): void {
   key = null;
+  stopped = null;
 }

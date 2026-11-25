@@ -344,6 +344,43 @@ describe('one PIN across every notebook', () => {
     }
   }
 
+  // the session goes on after a stop, with no restart: home was rewritten with the new key, so the key in memory is
+  // the new one, a world still under the old key still reads, and the next write finishes the change
+  for (const worn of [null, 'songbook'] as const) {
+    it(`a PIN change stopped at a world leaves the running session whole${worn ? ', worn in that world' : ''}`, async () => {
+      await threeNotebooks();
+      const s1 = randomSalt(), k1 = await pinKey('1111', s1);
+      await setKey(k1, { salt: s1, iterations: FAST });
+      if (worn) await don(worn);
+      const stop = stopAt(`${db.name}-w-songbook`);
+      const s2 = randomSalt(), k2 = await pinKey('2222', s2);
+      await expect(setKey(k2, { salt: s2, iterations: FAST })).rejects.toThrow('stopped');
+      expect(keyState()).toBe('open');
+      expect((await peek(null, r => r.get('messages', 'own-m')))!.text).toBe('own line');
+      expect((await peek('eastwinds', r => r.get('messages', 'ew-m')))!.text).toBe('ew line');
+      expect((await peek('songbook', r => r.get('messages', 'sb-m')))!.text).toBe('sb line');
+      expect((await store.get('messages', worn ? 'sb-m' : 'own-m'))!.text).toBe(worn ? 'sb line' : 'own line');
+      // still stopped (Songbook takes no write while it is): a write in his own pages lands all the same and reads back
+      if (!worn) {
+        await store.put('messages', { ...rowsFor('late').messages![0], pageId: 'own-p' });
+        expect((await store.get('messages', 'late-m'))!.text).toBe('late line');
+      }
+      stop.mockRestore();
+      // the next write finishes the change: every notebook on the new key, the move cleared
+      await store.put('messages', { ...rowsFor('later').messages![0], pageId: worn ? 'sb-p' : 'own-p' });
+      expect((await db.settings.get('app'))!.lock.moving).toBeUndefined();
+      for (const id of ['eastwinds', 'songbook']) expect((await world(id).settings.get('app'))!.lock.salt).toBe(s2);
+      expect((await store.get('messages', 'later-m'))!.text).toBe('later line');
+      // and a fresh start opens it all with the new PIN alone
+      lock();
+      await init(db);
+      expect(await unlock(k1)).toBe(false);
+      expect(await unlock(k2)).toBe(true);
+      expect((await peek('songbook', r => r.get('messages', 'sb-m')))!.text).toBe('sb line');
+      expect((await peek(worn, r => r.get('messages', 'later-m')))!.text).toBe('later line');
+    });
+  }
+
   it('the PIN turned on and stopped before a world was sealed: the next unlock seals it', async () => {
     await threeNotebooks();
     const stop = stopAt(`${db.name}-w-songbook`);
