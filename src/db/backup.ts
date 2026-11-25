@@ -4,9 +4,12 @@
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
 // A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
+// Per notebook (PLAN-WORLDS.md section 3, W1): export and import act on the notebook worn (fields.ts book), the file
+// says which notebook it is (notebook, absent for his own pages) and its name says so too, and a file is only ever
+// imported into its own notebook, so his own pages can never be carried into a world, nor a world's into his.
+import { type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
-import { keyState, LockedError, openRow, storedForm } from './fields';
+import { book, keyState, LockedError, notebookOf, openRow, storedForm } from './fields';
 
 export const BACKUP_APP = 'flowstate';
 
@@ -20,6 +23,8 @@ export type BackupFile = {
   iterations?: number;
   verifier?: Sealed;
   digits?: number;
+  /** PLAN-WORLDS.md section 3 (W1): the world this file is the notebook of, by id; absent for his own pages. */
+  notebook?: string;
   tables: { [K in TableName]: unknown[] };
   /** Set by parseBackup on a file older than this version: the version it was made at, so importData can give it what
    *  only an open journal can (a version 5 file's paradoxes as values, PLAN-VALUES.md section 5). Never exported. */
@@ -66,7 +71,7 @@ async function coverOut(c: Blob | ArrayBuffer, type?: string): Promise<CoverJSON
 }
 const coverIn = (c: CoverJSON) => { const b = fromB64(c.b64); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer; };
 
-export async function exportData(database: FlowDB = defaultDb, now = Date.now()): Promise<BackupFile> {
+export async function exportData(database: FlowDB = book(), now = Date.now()): Promise<BackupFile> {
   const tables = {} as BackupFile['tables'];
   await database.transaction('r', TABLES.map(t => database.table(t)), async () => {
     for (const t of TABLES) tables[t] = await database.table(t).toArray();
@@ -79,7 +84,8 @@ export async function exportData(database: FlowDB = defaultDb, now = Date.now())
   const header = lock?.enabled && lock.salt && lock.verifier && sealedRows
     ? { encrypted: true as const, salt: lock.salt, iterations: lock.iterations ?? 0, verifier: lock.verifier, ...(lock.digits ? { digits: lock.digits } : {}) }
     : {};
-  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, ...header, tables };
+  const notebook = notebookOf(database);
+  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, ...header, ...(notebook ? { notebook } : {}), tables };
 }
 
 /** The file's lock when any of its rows are sealed; null for a plain file. A sealed file with no usable header is damaged. */
@@ -97,8 +103,9 @@ export async function fileKeyFits(file: BackupFile, fileKey: CryptoKey): Promise
   return !!fl && checkVerifier(fileKey, fl.verifier);
 }
 
-export const fileName = (now = new Date()) =>
-  `flowstate-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`;
+/** The file's name: flowstate-2026-11-25.json for his own pages, flowstate-eastwinds-2026-11-25.json for a world's. */
+export const fileName = (now = new Date(), notebook?: string | null) =>
+  `flowstate-${notebook ? `${notebook}-` : ''}${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`;
 
 /** Validates the shape and the version. Throws BackupError with a plain reason. */
 export function parseBackup(text: string): BackupFile {
@@ -108,6 +115,7 @@ export function parseBackup(text: string): BackupFile {
   if (!f || f.app !== BACKUP_APP || typeof f.tables !== 'object' || !f.tables) throw new BackupError('Not a FlowState file');
   if (typeof f.schemaVersion !== 'number' || !Number.isInteger(f.schemaVersion) || f.schemaVersion < 1) throw new BackupError('No schema version');
   if (f.schemaVersion > SCHEMA_VERSION) throw new BackupError('Made by a newer FlowState');
+  if (f.notebook !== undefined && typeof f.notebook !== 'string') throw new BackupError('Not a FlowState file');
   for (const t of TABLES) {
     const rows = (f.tables as Record<string, unknown>)[t];
     if (rows === undefined) (f.tables as Record<string, unknown[]>)[t] = [];
@@ -176,9 +184,11 @@ export type ImportResult = { added: number; updated: number; kept: number };
  * not merged: merge never deletes this phone's rows, so the list only guards against older files. Replace takes the
  * file's list with the rest of its settings row, and a file with no settings row clears it: the file's rows come back.
  */
-export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
+export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = book(), fileKey?: CryptoKey): Promise<ImportResult> {
   // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
   if (keyState() === 'locked') throw new LockedError();
+  // a file goes back only into its own notebook (PLAN-WORLDS.md section 3): never his pages into a world, nor back
+  if ((file.notebook ?? null) !== notebookOf(database)) throw new BackupError('This file is from another notebook');
   const fl = fileLock(file);
   if (fl) {
     if (!fileKey) throw new NeedsPinError();
@@ -199,6 +209,10 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       if (t === 'paradoxes') openedParadoxes.push(opened as Tables['paradoxes']);
       if (t === 'settings') {
         opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
+        // the notebook worn and the registry are this phone's now, whatever the file was made with (PLAN-WORLDS.md)
+        delete opened.world; delete opened.worlds;
+        if (mine?.world) opened.world = mine.world;
+        if (mine?.worlds) opened.worlds = mine.worlds;
       }
       row = (await storedForm(t, opened as never)) as Record<string, unknown>;
       rows.push(row);
@@ -260,7 +274,7 @@ function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string
 /** Hands the file to the share sheet (Files, iCloud Drive, AirDrop); falls back to a download. */
 export async function shareOrDownload(data: BackupFile, now = new Date()): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const json = JSON.stringify(data);
-  const name = fileName(now);
+  const name = fileName(now, data.notebook);
   const file = new File([json], name, { type: 'application/json' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
@@ -283,7 +297,7 @@ export async function shareOrDownload(data: BackupFile, now = new Date()): Promi
 }
 
 /** Export, share, and on success log it (backups table, settings.lastBackupAt). */
-export async function backupNow(database: FlowDB = defaultDb): Promise<'shared' | 'downloaded' | 'cancelled'> {
+export async function backupNow(database: FlowDB = book()): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const now = Date.now();
   const data = await exportData(database, now);
   const outcome = await shareOrDownload(data, new Date(now));

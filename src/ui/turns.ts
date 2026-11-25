@@ -193,8 +193,10 @@ function takeBackPaper() {
 //   Meditate     md-circle         the circle under the shelf, and the Meditate page's circle
 //   Energize     fs-drawing        the circle under the shelf, and the drawing on its flow page
 //   Research     rs-name           the word under its circle, and the same word on its page's header (Q4)
+//   a cover      fl-world          the name on the cover opened, and the world's name over the header's date (W1)
 
 let named: HTMLElement[] = [];
+const WORLD = 'fl-world';
 let generation = 0;
 
 function name(el: Element | null | undefined, n: string): boolean {
@@ -244,12 +246,17 @@ export async function turnBetween(from: string, to: string, go: () => void): Pro
   const outOf = kind === 'close' && rowsOn(to) ? travelName(from) : undefined;
   const n = into ?? outOf;
   const paired = !!n && name(into ? onShelf(n, to) : onPage(n), n);
+  // a cover opened on the shelf (PLAN-WORLDS.md section 4): its name travels to the world's name in the header
+  const opened = rowsOn(from) && name(document.querySelector('.fl-cover[data-opening] .fl-cover-name'), WORLD);
   await turn(kind, go, {
     vars: lendPaper(),
     ready: pageDrawn,
     settle: () => {
       const html = document.documentElement;
       for (const [k, v] of Object.entries(lendPaper())) html.style.setProperty(k, v);
+      if (opened && !name(document.querySelector('.fs-hdr-world'), WORLD)) {
+        for (const el of named) if (el.style.getPropertyValue('view-transition-name') === WORLD) el.style.removeProperty('view-transition-name');
+      }
       if (!paired || !n) return;
       // a name on one side only would fade where it stood: both sides or neither
       if (!name(into ? onPage(n) : onShelf(n, from), n)) {

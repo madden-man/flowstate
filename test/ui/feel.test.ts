@@ -28,7 +28,8 @@ const TICKS: Record<string, string[]> = {
   // F6: the person row is a drawn check that is also a link (Person.tsx); a stamp the morning after draws one (Stamps.tsx)
   // PLAN-RESEARCH.md section 2 (Q4): a title landing on Research as it is written in
   // PLAN-BLOCKERS.md K1: the drawn check standing in for the word Resolve (parts/Resolve.tsx)
-  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx', 'src/ui/parts/Resolve.tsx'],
+  // PLAN-WORLDS.md section 4 (W1): a cover settling in front on the shelf
+  check: ['src/ui/parts/Check.tsx', 'src/ui/flow/Person.tsx', 'src/ui/flow/Stamps.tsx', 'src/ui/flow/Research.tsx', 'src/ui/parts/Resolve.tsx', 'src/ui/flow/Flow.tsx'],
   // PLAN-TASKS.md T5: a cover or line set down on a sign's shelf (moved, or taken off it)
   drop: ['src/ui/voices/Voices.tsx', 'src/ui/be/Be.tsx', 'src/ui/flow/StepSheet.tsx', 'src/ui/flow/chakra/SignShelf.tsx'],
   detent: ['src/ui/parts/Cycle.tsx'],
@@ -43,7 +44,9 @@ const TICKS: Record<string, string[]> = {
     // rule 37: a sign's questions' Edit raises the sheet to rewrite them
     'src/ui/flow/chakra/Asks.tsx',
     // PLAN-BLOCKERS.md K4: a long press on a Blockers row raises their sheet, and "+ blocker" the New flow sheet
-    'src/ui/flow/chakra/BlockersSheet.tsx'],
+    'src/ui/flow/chakra/BlockersSheet.tsx',
+    // PLAN-WORLDS.md section 4 (W1): a hold on a cover raises what it wears
+    'src/ui/flow/Flow.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],
@@ -66,7 +69,8 @@ const TICKS: Record<string, string[]> = {
 // the bell that closes a sit with an end (Meditate, S2), the rising fifth on a swap (PLAN-ENERGIZE.md X3).
 const BELLS: Record<string, string[]> = {
   settle: ['src/ui/still.ts'],
-  keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx'],
+  // PLAN-WORLDS.md section 4 (W1): the soft bell as a notebook is put on from the shelf
+  keep: ['src/ui/journal/PageView.tsx', 'src/ui/council/MessageSheet.tsx', 'src/ui/flow/Flow.tsx'],
   album: ['src/ui/music/'],
   unlock: ['src/ui/lock/Lock.tsx'],
   breathIn: ['src/ui/flow/breath.ts'],
