@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "icons": "node script/make-icons.mjs",
+    "vapid": "node script/vapid.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint:design": "node script/design-lint.mjs src design",
     "lint:artifact": "node $HOME/.claude/hooks/artifact-lint.mjs design/walkthrough.html",
@@ -27,22 +28,27 @@
     "walkthrough:folds": "node script/build-folds-walkthrough.mjs",
     "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
     "walkthrough:research": "node script/build-research-walkthrough.mjs",
-    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs"
+    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs",
+    "walkthrough:push": "node script/build-push-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@netlify/blobs": "^11.1.11",
     "@preact/signals": "^2.11.4",
     "dexie": "^4.4.7",
     "preact": "^10.29.8",
-    "preact-iso": "^2.12.2"
+    "preact-iso": "^2.12.2",
+    "web-push": "^4.0.0"
   },
   "devDependencies": {
+    "@netlify/functions": "^6.1.2",
     "@playwright/test": "^1.65.0",
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^22.20.5",
+    "@types/web-push": "^3.6.4",
     "fake-indexeddb": "^6.2.7",
     "jsdom": "^31.0.0",
     "typescript": "~5.9",

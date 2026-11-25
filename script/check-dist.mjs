@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// The built app makes no network request after the first load except from src/music and src/research, each opt-in
-// (DESIGN.md rule 22, PLAN.md section 2).
+// The built app makes no network request after the first load except from src/music, src/research and src/push, each
+// opt-in (DESIGN.md rule 22, PLAN.md section 2). src/push (PLAN-PUSH.md, N0) reaches no other host at all: only this
+// app's own origin, under /api/push/, so it is named below in SAME_ORIGIN, not in INERT.
 // This scans dist/ for any http(s) URL. A few strings are inert text inside libraries (XML namespaces,
 // links inside error messages that are never fetched); they are listed here by name, with the reason.
 // Anything else fails. The Playwright smoke test proves the runtime half: no request leaves the origin.
@@ -45,12 +46,19 @@ const INERT = [
   [/^https:\/\/platform\.claude\.com\/docs\/en\/build-with-claude\/adaptive-thinking$/, '@anthropic-ai/sdk: text of a thinking-config warning'],
   [/^https:\/\/platform\.claude\.com\/docs\/en\/cli-sdks-libraries\/sdks\/typescript#(streaming-responses|long-requests)$/, '@anthropic-ai/sdk: text of a long-request error'],
 ];
+// Same-origin paths under /api/ are a server's: a quoted string beginning /api/ anywhere in the build is checked here,
+// and only those named pass. Anything else under /api/ fails, as an unnamed host does.
+const SAME_ORIGIN = [
+  // The Sunday question's push (PLAN-PUSH.md section 5): GET key, POST subscribe, unsubscribe and test, opt-in, from
+  // src/push only (lint DL21). Its paths may be a template on one base ("/api/push/${route}").
+  [/^\/api\/push(\/[\w${}./-]*)?$/, 'src/push: the Sunday question\'s Web Push, same origin, opt-in'],
+];
 const dir = process.argv[2] || 'dist';
 if (!fs.existsSync(dir)) { console.error(`${dir} not found: run npm run build first`); process.exit(2); }
 const files = [];
 const walk = p => fs.statSync(p).isDirectory() ? fs.readdirSync(p).forEach(n => walk(path.join(p, n))) : files.push(p);
 walk(dir);
-let bad = 0, inert = 0;
+let bad = 0, inert = 0, same = 0;
 for (const f of files.filter(f => /\.(html|js|css|json|webmanifest|svg|txt)$/.test(f))) {
   const text = fs.readFileSync(f, 'utf8');
   for (const m of text.matchAll(/https?:\/\/[^\s"'`)<>\\]+/g)) {
@@ -59,6 +67,12 @@ for (const f of files.filter(f => /\.(html|js|css|json|webmanifest|svg|txt)$/.te
     bad++;
     console.log(`${f}: ${url}`);
   }
+  for (const m of text.matchAll(/["'`](\/api\/[^"'`\s]*)/g)) {
+    const p = m[1];
+    if (SAME_ORIGIN.some(([re]) => re.test(p))) { same++; continue; }
+    bad++;
+    console.log(`${f}: ${p} (same origin, not named)`);
+  }
 }
-console.log(`${bad ? 'FAIL' : 'PASS'}  check-dist: ${files.length} files, ${bad} external URL${bad === 1 ? '' : 's'} (${inert} inert library strings allowed by name)`);
+console.log(`${bad ? 'FAIL' : 'PASS'}  check-dist: ${files.length} files, ${bad} external URL${bad === 1 ? '' : 's'} or unnamed /api/ path${bad === 1 ? '' : 's'} (${inert} inert library strings allowed by name, ${same} same-origin /api/push/ path${same === 1 ? '' : 's'})`);
 process.exit(bad ? 1 : 0);

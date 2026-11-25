@@ -20,6 +20,8 @@ import { DoorRows } from '../flow/DoorRows';
 import { gateState } from '../lock/pin';
 import { researchKey, saveResearchKey, removeResearchKey } from '../../research/store';
 import type { ResearchKey } from '../../db/schema';
+import { CheckinRow } from './CheckinRow';
+import { PushRows } from './PushRows';
 
 const PINS: [LightPin, string][] = [['sky', 'Follow the sky'], ['day', 'Day'], ['night', 'Night']];
 
@@ -254,6 +256,8 @@ function SettingsBody() {
       {/* Meditate (S1): a sit is media, so its sound plays with the ringer off; not behind Sounds (the Quiet chip is its switch) */}
       <Toggle label="Sit sounds with the ringer off" on={s.sitThroughSilent ?? true} set={v => void saveSettings({ sitThroughSilent: v })} />
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
+      {/* PLAN-PUSH.md N1: the Sunday question, under Sounds and above Storage; N3's push half rides in as children */}
+      <CheckinRow><PushRows /></CheckinRow>
       <MusicRows />
       <ResearchRow />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>

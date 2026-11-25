@@ -223,6 +223,11 @@ function TitleEdit({ page, onSave }: { page: Read<PageRow>; onSave: (title: stri
   );
 }
 
+/** The open page's writes, so a landing that writes on today's page (journal/checkin.tsx) can wait for what he was
+ *  typing to be filed first and never be overwritten by a stale copy of the page. */
+let openFlush: (() => Promise<void>) | null = null;
+export const flushOpenPage = (): Promise<void> => openFlush?.() ?? Promise.resolve();
+
 export function PageView({ id, section = 'journal', fresh = false }: { id?: string; section?: Section; fresh?: boolean }) {
   const isToday = !id;
   const { route } = useLocation();
@@ -336,9 +341,11 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     const onHide = () => document.visibilityState === 'hidden' && void flush();
     document.addEventListener('visibilitychange', onHide);
     addEventListener('pagehide', flush);
+    openFlush = flush;
     return () => {
       document.removeEventListener('visibilitychange', onHide);
       removeEventListener('pagehide', flush);
+      if (openFlush === flush) openFlush = null;
       void flush();
     };
   }, []);

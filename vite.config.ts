@@ -52,6 +52,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,ico,txt}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
+        // The Sunday question's push and notificationclick handlers (PLAN-PUSH.md section 5, N3): public/push-sw.js,
+        // copied to the root of dist and precached with the rest, pulled into the generated worker by name.
+        importScripts: ['/push-sw.js'],
       },
     }),
   ],

@@ -199,6 +199,13 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
       if (t === 'paradoxes') openedParadoxes.push(opened as Tables['paradoxes']);
       if (t === 'settings') {
         opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
+        // Push is this phone's subscription (PLAN-PUSH.md N3): a file never switches it on or off here.
+        const theirs = opened.checkin as Settings['checkin'];
+        const ours = mine?.checkin;
+        if (theirs) {
+          const { push: _theirPush, ...rest } = theirs;
+          opened = { ...opened, checkin: ours?.push ? { ...rest, push: true } : rest };
+        } else if (ours?.push) opened = { ...opened, checkin: ours };
       }
       row = (await storedForm(t, opened as never)) as Record<string, unknown>;
       rows.push(row);

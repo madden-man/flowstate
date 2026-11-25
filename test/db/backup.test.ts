@@ -26,6 +26,24 @@ describe('export', () => {
   });
 });
 
+describe('the Sunday question\'s push (PLAN-PUSH.md N3)', () => {
+  const checkin = (push?: boolean) => ({ on: true, weekday: 0, hour: 10, minute: 0, line: 'From the file', ...(push === undefined ? {} : { push }) });
+  it('a replace import keeps this phone\'s push switch, whatever the file says', async () => {
+    await ensureSeeded(7);
+    await db.settings.update('app', { checkin: checkin(true) });
+    const file = await roundTrip(db);
+    const other = await freshDB();
+    await ensureSeeded(7);
+    await importData(file, 'replace', other);
+    expect((await other.settings.get('app'))!.checkin).toEqual(checkin());
+
+    await other.settings.update('app', { checkin: { ...checkin(true), line: 'Mine' } });
+    await db.settings.update('app', { checkin: checkin(false) });
+    await importData(await roundTrip(db), 'replace', other);
+    expect((await other.settings.get('app'))!.checkin).toEqual(checkin(true));
+  });
+});
+
 describe('round trip', () => {
   it('an empty database round-trips', async () => {
     const file = await roundTrip(db);
