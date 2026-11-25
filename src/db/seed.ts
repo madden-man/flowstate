@@ -152,23 +152,27 @@ export function seedFlowsOnce(): Promise<string[] | null> {
     // a world seeds nothing (PLAN-WORLDS.md section 3)
     if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    const done = new Set(s.flowsSeeded ?? []);
-    const todo = SEED_FLOWS.filter(f => !done.has(f.id));
-    const tips = SEED_TIPS_LATER.filter(id => !done.has(tipMark(id)));
-    if (!todo.length && !tips.length) return [];
-    const stored = await store.all('flows');
-    const have = new Set(stored.map(f => f.id));
-    const write = todo.filter(f => !have.has(f.id)).map(f => seedFlow(f));
-    // a tip added to a seed flow later: into each stored flow (not one just written, which has it), once
-    const fresh = new Set(write.map(f => f.id));
-    const grown = stored.filter(f => !fresh.has(f.id)).flatMap(f => withLaterTips(f, tips));
-    await store.many({
-      flows: [...write, ...grown],
-      settings: [{ ...s, flowsSeeded: [...done, ...todo.map(f => f.id), ...tips.map(tipMark)] }],
+    // read and written in the write queue (store.unit), so no write lands between: a settings row read before
+    // another write (the echo the journal picks as it opens) never goes back over it
+    return store.unit(async u => {
+      const s = await u.get('settings', 'app');
+      if (!s || s.locked) return null;
+      const done = new Set(s.flowsSeeded ?? []);
+      const todo = SEED_FLOWS.filter(f => !done.has(f.id));
+      const tips = SEED_TIPS_LATER.filter(id => !done.has(tipMark(id)));
+      if (!todo.length && !tips.length) return [];
+      const stored = await store.all('flows');
+      const have = new Set(stored.map(f => f.id));
+      const write = todo.filter(f => !have.has(f.id)).map(f => seedFlow(f));
+      // a tip added to a seed flow later: into each stored flow (not one just written, which has it), once
+      const fresh = new Set(write.map(f => f.id));
+      const grown = stored.filter(f => !fresh.has(f.id)).flatMap(f => withLaterTips(f, tips));
+      await u.many({
+        flows: [...write, ...grown],
+        settings: [{ ...s, flowsSeeded: [...done, ...todo.map(f => f.id), ...tips.map(tipMark)] }],
+      });
+      return write.map(f => f.id);
     });
-    return write.map(f => f.id);
   })().finally(() => { flowsPass = null; });
   return flowsPass;
 }
@@ -223,35 +227,39 @@ export function seedPicksOnce(): Promise<string[] | null> {
     // a world seeds nothing (PLAN-WORLDS.md section 3)
     if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    const done = new Set(s.flowsSeeded ?? []);
-    const todo = PICKS.filter(p => !done.has(picksMark(p.stepId)));
-    if (!todo.length) return [];
-    const stored = await store.all('flows');
-    if (stored.some(f => f.locked)) return null;
-    const given: string[] = [];
-    const at = Date.now();
-    const grown: Flow[] = [];
-    for (const flow of stored) {
-      let changed = false;
-      const steps = flow.steps.map(st => {
-        const p = todo.find(x => x.stepId === st.id);
-        const row = p && st.tips.find(t => t.id === p.tipId);
-        if (!p || !row || row.struck) return st;
-        const helper = row.helper === undefined || row.helper === 'music' ? 'on' : row.helper;
-        const tips = helper === row.helper ? st.tips : st.tips.map(t => (t.id === row.id ? { ...t, helper } : t));
-        const picks = st.picks ?? structuredClone(p.picks);
-        const onLine = st.onLine ?? p.onLine;
-        if (tips === st.tips && picks === st.picks && onLine === st.onLine) return st;
-        changed = true;
-        given.push(st.id);
-        return { ...st, tips, picks, ...(onLine !== undefined ? { onLine } : {}) };
-      });
-      if (changed) grown.push({ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] });
-    }
-    await store.many({ flows: grown, settings: [{ ...s, flowsSeeded: [...done, ...todo.map(p => picksMark(p.stepId))] }] });
-    return given;
+    // read and written in the write queue (store.unit), so no write lands between: a settings row read before
+    // another write (the echo the journal picks as it opens) never goes back over it
+    return store.unit(async u => {
+      const s = await u.get('settings', 'app');
+      if (!s || s.locked) return null;
+      const done = new Set(s.flowsSeeded ?? []);
+      const todo = PICKS.filter(p => !done.has(picksMark(p.stepId)));
+      if (!todo.length) return [];
+      const stored = await store.all('flows');
+      if (stored.some(f => f.locked)) return null;
+      const given: string[] = [];
+      const at = Date.now();
+      const grown: Flow[] = [];
+      for (const flow of stored) {
+        let changed = false;
+        const steps = flow.steps.map(st => {
+          const p = todo.find(x => x.stepId === st.id);
+          const row = p && st.tips.find(t => t.id === p.tipId);
+          if (!p || !row || row.struck) return st;
+          const helper = row.helper === undefined || row.helper === 'music' ? 'on' : row.helper;
+          const tips = helper === row.helper ? st.tips : st.tips.map(t => (t.id === row.id ? { ...t, helper } : t));
+          const picks = st.picks ?? structuredClone(p.picks);
+          const onLine = st.onLine ?? p.onLine;
+          if (tips === st.tips && picks === st.picks && onLine === st.onLine) return st;
+          changed = true;
+          given.push(st.id);
+          return { ...st, tips, picks, ...(onLine !== undefined ? { onLine } : {}) };
+        });
+        if (changed) grown.push({ ...flow, steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] });
+      }
+      await u.many({ flows: grown, settings: [{ ...s, flowsSeeded: [...done, ...todo.map(p => picksMark(p.stepId))] }] });
+      return given;
+    });
   })().finally(() => { picksPass = null; });
   return picksPass;
 }
@@ -301,13 +309,17 @@ export function seedFixationsOnce(now = Date.now()): Promise<string[] | null> {
     // a world seeds nothing (PLAN-WORLDS.md section 3)
     if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    if (s.cleaned?.includes(FIXATIONS_PASS)) return [];
-    const have = new Set((await store.all('fixations')).map(f => f.id));
-    const write = seedFixations(now).filter(f => !have.has(f.id));
-    await store.many({ fixations: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), FIXATIONS_PASS] }] });
-    return write.map(f => f.id);
+    // read and written in the write queue (store.unit), so no write lands between: a settings row read before
+    // another write (the echo the journal picks as it opens) never goes back over it
+    return store.unit(async u => {
+      const s = await u.get('settings', 'app');
+      if (!s || s.locked) return null;
+      if (s.cleaned?.includes(FIXATIONS_PASS)) return [];
+      const have = new Set((await store.all('fixations')).map(f => f.id));
+      const write = seedFixations(now).filter(f => !have.has(f.id));
+      await u.many({ fixations: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), FIXATIONS_PASS] }] });
+      return write.map(f => f.id);
+    });
   })().finally(() => { fixationsPass = null; });
   return fixationsPass;
 }
@@ -333,17 +345,21 @@ export function valuesFromParadoxesOnce(): Promise<string[] | null> {
     // a world seeds nothing (PLAN-WORLDS.md section 3)
     if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    if (s.cleaned?.includes(VALUES_PASS)) return [];
-    const paradoxes = await store.all('paradoxes');
-    if (paradoxes.some(p => p.locked)) return null;
-    const values = await store.all('values');
-    const have = new Set(values.flatMap(v => [v.id, v.fromParadoxId]).filter(Boolean));
-    const gone = new Set(s.deleted ?? []);
-    const write = paradoxes.map(p => valueFromParadox(p)).filter(v => !have.has(v.fromParadoxId) && !have.has(v.id) && !gone.has(v.id));
-    await store.many({ values: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), VALUES_PASS] }] });
-    return write.map(v => v.id);
+    // read and written in the write queue (store.unit), so no write lands between: a settings row read before
+    // another write (the echo the journal picks as it opens) never goes back over it
+    return store.unit(async u => {
+      const s = await u.get('settings', 'app');
+      if (!s || s.locked) return null;
+      if (s.cleaned?.includes(VALUES_PASS)) return [];
+      const paradoxes = await store.all('paradoxes');
+      if (paradoxes.some(p => p.locked)) return null;
+      const values = await store.all('values');
+      const have = new Set(values.flatMap(v => [v.id, v.fromParadoxId]).filter(Boolean));
+      const gone = new Set(s.deleted ?? []);
+      const write = paradoxes.map(p => valueFromParadox(p)).filter(v => !have.has(v.fromParadoxId) && !have.has(v.id) && !gone.has(v.id));
+      await u.many({ values: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), VALUES_PASS] }] });
+      return write.map(v => v.id);
+    });
   })().finally(() => { valuesPass = null; });
   return valuesPass;
 }
@@ -369,24 +385,28 @@ export function moveDoctorLineOnce(): Promise<boolean | null> {
     // a world seeds nothing (PLAN-WORLDS.md section 3)
     if (worn() !== null) return null;
     if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    if (s.cleaned?.includes(DOCTOR_PASS)) return false;
-    const done = { ...s, cleaned: [...(s.cleaned ?? []), DOCTOR_PASS] };
-    const flow = await store.get('flows', 'energize');
-    if (flow?.locked) return null;
-    const step = flow?.steps.find(st => st.id === DOCTOR_STEP);
-    if (!flow || !step) { await store.put('settings', done); return false; }
-    const there = step.tips.some(t => t.id === DOCTOR_TIP || t.text.trim() === DOCTOR_LINE);
-    const clear = flow.restLine?.trim() === DOCTOR_LINE;
-    if (there && !clear) { await store.put('settings', done); return false; }
-    const steps = there ? flow.steps : flow.steps.map(st => (st.id === DOCTOR_STEP
-      ? { ...st, tips: [...st.tips, { id: DOCTOR_TIP, text: DOCTOR_LINE, print: true }] } : st));
-    const { restLine: _was, ...rest } = flow;
-    const at = Date.now();
-    const row: Flow = { ...(clear ? rest : flow), steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] };
-    await store.many({ flows: [row], settings: [done] });
-    return true;
+    // read and written in the write queue (store.unit), so no write lands between: a settings row read before
+    // another write (the echo the journal picks as it opens) never goes back over it
+    return store.unit(async u => {
+      const s = await u.get('settings', 'app');
+      if (!s || s.locked) return null;
+      if (s.cleaned?.includes(DOCTOR_PASS)) return false;
+      const done = { ...s, cleaned: [...(s.cleaned ?? []), DOCTOR_PASS] };
+      const flow = await store.get('flows', 'energize');
+      if (flow?.locked) return null;
+      const step = flow?.steps.find(st => st.id === DOCTOR_STEP);
+      if (!flow || !step) { await u.put('settings', done); return false; }
+      const there = step.tips.some(t => t.id === DOCTOR_TIP || t.text.trim() === DOCTOR_LINE);
+      const clear = flow.restLine?.trim() === DOCTOR_LINE;
+      if (there && !clear) { await u.put('settings', done); return false; }
+      const steps = there ? flow.steps : flow.steps.map(st => (st.id === DOCTOR_STEP
+        ? { ...st, tips: [...st.tips, { id: DOCTOR_TIP, text: DOCTOR_LINE, print: true }] } : st));
+      const { restLine: _was, ...rest } = flow;
+      const at = Date.now();
+      const row: Flow = { ...(clear ? rest : flow), steps, updatedAt: at, revisions: [...flow.revisions, { at, name: flow.name, steps: structuredClone(steps) }] };
+      await u.many({ flows: [row], settings: [done] });
+      return true;
+    });
   })().finally(() => { doctorPass = null; });
   return doctorPass;
 }

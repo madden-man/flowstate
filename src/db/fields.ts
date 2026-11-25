@@ -583,6 +583,34 @@ const direct = {
     const stored = await Promise.all(rows.map(r => toStored(t, r, key)));
     await within([t], () => table(t).bulkPut(stored));
   },
+  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
+   *  drops are primary keys deleted in that same transaction, after the writes. With a world worn, a settings row's
+   *  home fields are written to home's row just after (a second database cannot join the transaction). */
+  async many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
+    writable();
+    const db = bookDb;
+    const after: Settings[] = [];
+    const prepared = await Promise.all(
+      (Object.keys(writes) as TableName[]).map(async t => {
+        let rows = writes[t] as Tables[TableName][];
+        if (t === 'settings') {
+          const parts = (await Promise.all((rows as Settings[]).map(settingsWrites))).flat();
+          after.push(...parts.filter(([d]) => d !== db).map(([, r]) => r));
+          rows = parts.filter(([d]) => d === db).map(([, r]) => r) as Tables[TableName][];
+        }
+        return [t, await Promise.all(rows.map(r => toStored(t, r as never, key)))] as const;
+      }),
+    );
+    const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
+    const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
+    if (tables.length) {
+      await db.transaction('rw', scope(tables).map(t => db.table(t)), async () => {
+        for (const [t, rows] of prepared) await db.table(t).bulkPut(rows);
+        for (const t of gone) await db.table(t).bulkDelete(drops[t]!);
+      });
+    }
+    for (const r of after) await homeDb.settings.put(await toStored('settings', r, key));
+  },
 };
 export type Unit = typeof direct;
 
@@ -648,35 +676,9 @@ export const store = {
       return db.transaction('rw', scope(tables).map(t => db.table(t)), () => fn(<K extends TableName>(t: K) => tableOf(db, t)));
     });
   },
-  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
-   *  drops are primary keys deleted in that same transaction, after the writes. With a world worn, a settings row's
-   *  home fields are written to home's row just after (a second database cannot join the transaction). */
+  /** Several writes in one transaction, all sealed first (direct.many), in the write queue. */
   many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
-    return serial(async () => {
-      writable();
-      const db = bookDb;
-      const after: Settings[] = [];
-      const prepared = await Promise.all(
-        (Object.keys(writes) as TableName[]).map(async t => {
-          let rows = writes[t] as Tables[TableName][];
-          if (t === 'settings') {
-            const parts = (await Promise.all((rows as Settings[]).map(settingsWrites))).flat();
-            after.push(...parts.filter(([d]) => d !== db).map(([, r]) => r));
-            rows = parts.filter(([d]) => d === db).map(([, r]) => r) as Tables[TableName][];
-          }
-          return [t, await Promise.all(rows.map(r => toStored(t, r as never, key)))] as const;
-        }),
-      );
-      const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
-      const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
-      if (tables.length) {
-        await db.transaction('rw', scope(tables).map(t => db.table(t)), async () => {
-          for (const [t, rows] of prepared) await db.table(t).bulkPut(rows);
-          for (const t of gone) await db.table(t).bulkDelete(drops[t]!);
-        });
-      }
-      for (const r of after) await homeDb.settings.put(await toStored('settings', r, key));
-    });
+    return serial(() => direct.many(writes, drops));
   },
 };
 
