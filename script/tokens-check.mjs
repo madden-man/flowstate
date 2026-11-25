@@ -11,6 +11,8 @@ const pairs = [
   ['src/ui/flow/shelf.css', 'design/shelf.css', 'cp src/ui/flow/shelf.css design/shelf.css'],
   // PLAN-WORLDS.md W4: the sections in a world, for design/in-a-world.html
   ['src/ui/world/world.css', 'design/world.css', 'cp src/ui/world/world.css design/world.css'],
+  // PLAN-WORLDS.md W6: the song page, for design/songs.html
+  ['src/ui/songs/songs.css', 'design/songs.css', 'cp src/ui/songs/songs.css design/songs.css'],
   ['design/walkthrough.html', 'design/index.html', 'cp design/walkthrough.html design/index.html'],
 ];
 let bad = 0;

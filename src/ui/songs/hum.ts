@@ -3,13 +3,15 @@
 // listen() so the line is drawn as it is sung (rule 27). Lifting stops it; so does a cancelled hold (pointercancel, the
 // capture lost, the page hidden) and the three-minute cap. A hold lifted before the microphone opened makes no take.
 //
-// The audio is kept as the recorder made it: audio/mp4 where the browser records it (Safari on the iPhone, AAC), else
-// WebM with Opus (Chromium). Its type travels with the take (audioType) and is the clip's content type.
+// The audio is kept as the recorder made it: AAC in MP4 where the browser records it (Safari on the iPhone; Chromium 126
+// and later), else WebM with Opus. Its type, parameters dropped, travels with the take (audioType) and is the clip's
+// content type: audio/mp4 or audio/webm.
 import { listen, type Listening } from '../parts/Sound';
 import { FRAME_S, TAKE_MAX_S, frameLength, frameOf, keyOfLine, yin } from '../../model/pitch';
 
-/** The recorder's types, in the order asked for: AAC in MP4 first (what Music Companion files as .m4a), then WebM. */
-export const TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
+/** The recorder's types, in the order asked for: AAC in MP4 first, named so (what Music Companion files as .m4a; Chromium
+ *  records MP4 too since about version 126 and may choose Opus for it unless AAC is named), then any MP4, then WebM. */
+export const TYPES = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
 
 export function chooseType(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined;

@@ -146,12 +146,12 @@ describe('in a world', () => {
 });
 
 describe('Songbook\'s list, tolerant of its pocket', () => {
-  it('the phone\'s songs first, newest first, then the pocket\'s it does not hold; a song listed twice, untitled or already here shows once', async () => {
+  it('the phone\'s songs first, newest first, then the pocket\'s it does not hold (its work date taken off the title); a song listed twice, untitled or already here shows once', async () => {
     await worldDB('songbook');
     await saveSong(blankSong('a', 'Mine, older'));
     await new Promise(r => setTimeout(r, 3));
     await saveSong(blankSong('b', 'Mine, newer'));
-    const s = { bridge: { token: 't', pocket: { world: 'songbook', stamp: 's', pocket: { kind: 'songs' as const, songs: [{ id: 'b', title: 'Old name' }, { id: 'm1', title: 'From the Mac' }, { id: 'm1', title: 'From the Mac' }, { id: 'm2' } as never, null as never] } } } } as Pick<Settings, 'bridge'>;
+    const s = { bridge: { token: 't', pocket: { world: 'songbook', stamp: 's', pocket: { kind: 'songs' as const, songs: [{ id: 'b', title: 'Old name' }, { id: 'm1', title: '2026-11-20 From the Mac' }, { id: 'm1', title: '2026-11-20 From the Mac' }, { id: 'm2' } as never, null as never] } } } } as Pick<Settings, 'bridge'>;
     const rows = await songList(s);
     expect(rows.map(r => [r.id, r.title, !!r.fromMac])).toEqual([['b', 'Mine, newer', false], ['a', 'Mine, older', false], ['m1', 'From the Mac', true], ['m2', '', true]]);
     // another world's pocket is never read as this one's

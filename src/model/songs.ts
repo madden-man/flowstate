@@ -83,6 +83,10 @@ export function follow(takes: readonly Take[], lyric: string): Take[] {
 
 const opened = <T extends object>(r: Read<T>): T => { const { locked: _, ...rest } = r as Read<T> & { locked?: true }; return rest as T; };
 
+/** Music Companion's titles begin with the work date ("2026-11-25 The grey coat", its title rule); the phone shows the
+ *  title without it, and a date at the start of a title sent up is dropped there (W7). */
+export const withoutDate = (title: string) => title.replace(/^\d{4}-\d{2}-\d{2}\s+/, '');
+
 /** A song as the list shows it: from this notebook, or only a title from Songbook's pocket (Music Companion's). */
 export type SongRow = { id: string; title: string; updatedAt?: number; fromMac?: true };
 
@@ -100,7 +104,7 @@ export async function songList(s?: Pick<Settings, 'bridge'>): Promise<SongRow[]>
     for (const ps of p.pocket.songs ?? []) {
       if (!ps || typeof ps.id !== 'string' || seen.has(ps.id)) continue;
       seen.add(ps.id);
-      out.push({ id: ps.id, title: typeof ps.title === 'string' ? ps.title : '', fromMac: true });
+      out.push({ id: ps.id, title: typeof ps.title === 'string' ? withoutDate(ps.title) : '', fromMac: true });
     }
   }
   return out;
@@ -125,9 +129,14 @@ export async function looseHums(): Promise<Take[]> {
   return (await store.all('takes')).filter(r => !r.locked && !r.songId).map(opened).sort((a, b) => b.at - a.at);
 }
 
-/** Writes a song: its sections read again from its lyric, and every pinned take kept on its line, in one unit. */
+/** A song with a new lyric: its sections carried over to the new lines (reSection). The page calls this on every edit
+ *  of the lyric, so a section chip always names a line of the lyric it sees. */
+export const withLyric = (song: Song, lyric: string): Song => ({ ...song, lyric, sections: reSection(song, lyric) });
+
+/** Writes a song as given (its sections already follow its lyric: withLyric), and every pinned take kept on its line
+ *  when the lyric changed since `was`, in one write. */
 export async function saveSong(song: Song, was?: Pick<Song, 'lyric' | 'sections'>): Promise<Song> {
-  const next: Song = { ...song, updatedAt: Date.now(), sections: was ? reSection(was, song.lyric) : song.sections };
+  const next: Song = { ...song, updatedAt: Date.now() };
   const moved = was && was.lyric !== song.lyric ? follow(await takesOf(song.id), song.lyric) : [];
   await store.many({ songs: [next], ...(moved.length ? { takes: moved } : {}) });
   return next;

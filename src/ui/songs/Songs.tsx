@@ -10,7 +10,7 @@
 //
 // No counts of any kind (rule 15): no syllables, no number of songs or takes. Still (rule 13): the chips, the key and the
 // length leave; the lines and the pitch lines stay. Nothing here writes a word for him.
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Fragment, type JSX } from 'preact';
 import { useLocation } from 'preact-iso';
 import { Page } from '../parts/Page';
@@ -25,7 +25,7 @@ import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
 import { hueOf } from '../../bridge/colour';
 import { pocketFor } from '../../model/story';
-import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songList, songOf, takesOf, type SongRow } from '../../model/songs';
+import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songList, songOf, takesOf, withLyric, withoutDate, type SongRow } from '../../model/songs';
 import { moveSong, settleMoves } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
 import { carryNow } from '../../model/carry';
@@ -119,7 +119,7 @@ export function SongPage({ id }: { id: string }) {
     exists.current = !!s;
     // a song Songbook's pocket names that the phone does not hold yet: its title, and nothing written until he writes
     const fromMac = settings.value.bridge?.pocket?.pocket.kind === 'songs' ? settings.value.bridge.pocket.pocket.songs.find(x => x?.id === id) : undefined;
-    const next = s ?? blankSong(id, typeof fromMac?.title === 'string' ? fromMac.title : '');
+    const next = s ?? blankSong(id, typeof fromMac?.title === 'string' ? withoutDate(fromMac.title) : '');
     saved.current = { lyric: next.lyric, sections: next.sections };
     latest.current = next;
     setSong(next);
@@ -127,22 +127,27 @@ export function SongPage({ id }: { id: string }) {
   };
   useEffect(() => { void read().catch(() => setSong(blankSong(id))); }, [id, dataVersion.value]);
 
+  // moved to another world (Move to): nothing more is written here
+  const gone = useRef(false);
   const flush = async () => {
     clearTimeout(timer.current);
     const s = latest.current;
-    if (!s) return;
+    if (!s || gone.current) return;
     if (!exists.current && !s.title.trim() && !s.lyric.trim()) return;
     const next = await saveSong(s, saved.current);
     exists.current = true;
     saved.current = { lyric: next.lyric, sections: next.sections };
-    latest.current = { ...latest.current!, sections: next.sections, updatedAt: next.updatedAt };
-    setSong(latest.current);
+    // only the time written comes back: anything changed while it was writing (a chip, a line) stays as it is now
+    latest.current = { ...latest.current!, updatedAt: next.updatedAt };
     setTakes(await takesOf(id));
   };
   useEffect(() => () => { void flush(); }, [id]);
 
   const change = (patch: Partial<Song>) => {
-    const next = { ...latest.current!, ...patch };
+    const { lyric, ...rest } = patch;
+    let next = { ...latest.current!, ...rest };
+    // the sections follow the lines as they come and go
+    if (lyric !== undefined && lyric !== next.lyric) next = withLyric(next, lyric);
     latest.current = next;
     setSong(next);
     clearTimeout(timer.current);
@@ -154,8 +159,8 @@ export function SongPage({ id }: { id: string }) {
   const nameAt = (i: number) => song?.sections.find(s => s.line === i)?.name;
   const setLine = (i: number, text: string) => { const ls = [...lines]; ls[i] = text; change({ lyric: ls.join('\n') }); };
 
-  // after a split or a join, the caret goes where the pen would be
-  useEffect(() => {
+  // after a split or a join, the caret goes where the pen would be, before the next paint
+  useLayoutEffect(() => {
     const f = focusNext.current;
     if (!f) return;
     focusNext.current = null;
@@ -255,7 +260,9 @@ export function SongPage({ id }: { id: string }) {
         const ids = song.characterIds ?? [];
         change({ characterIds: ids.includes(cid) ? ids.filter(x => x !== cid) : [...ids, cid] });
       }} />}
-      <MoveSheet song={song} onMoved={() => route('/flow/songs')} beforeMove={flush} />
+      <MoveSheet song={song} onMoved={() => route('/flow/songs')}
+        beforeMove={async () => { await flush(); gone.current = true; clearTimeout(timer.current); }}
+        onFailed={() => { gone.current = false; }} />
     </Page>
   );
 }
@@ -283,7 +290,7 @@ function SongAboutSheet({ pocket, song, onToggle }: { pocket: NovelPocket; song:
 }
 
 /** "Move to": the other worlds on the shelf, novels and Songbook; never his own pages, which have no Songs. */
-function MoveSheet({ song, onMoved, beforeMove }: { song: Song; onMoved: () => void; beforeMove: () => Promise<void> }) {
+function MoveSheet({ song, onMoved, beforeMove, onFailed }: { song: Song; onMoved: () => void; beforeMove: () => Promise<void>; onFailed: () => void }) {
   const from = wornWorld.value;
   const others = (settings.value.worlds ?? []).filter(w => w.id !== from);
   const [busy, setBusy] = useState(false);
@@ -296,6 +303,9 @@ function MoveSheet({ song, onMoved, beforeMove }: { song: Song; onMoved: () => v
       openSheet.value = null;
       void carryNow().catch(() => undefined);
       onMoved();
+    } catch {
+      // the song stays here (a stop halfway is finished by settleMoves on the next Songs list)
+      onFailed();
     } finally { setBusy(false); }
   };
   return (
@@ -321,9 +331,12 @@ export function Hums() {
   const [titles, setTitles] = useState<Record<string, string>>({});
   const read = async () => setHums(await looseHums());
   useEffect(() => { void read().catch(() => setHums([])); }, [dataVersion.value]);
+  const named = useRef(new Set<string>());
   const name = async (t: Take) => {
     const title = (titles[t.id] ?? '').trim();
-    if (!title) return;
+    // once only: Enter names it and the page turns, and the blur that follows must not name it again
+    if (!title || named.current.has(t.id)) return;
+    named.current.add(t.id);
     const s = await songFromHum(t, title);
     route(`/flow/songs/${s.id}`);
   };

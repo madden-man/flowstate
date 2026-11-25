@@ -9,7 +9,8 @@
 //      the one key, in one transaction on that notebook, its outbox recording them as rows of the new world;
 //   2. it is read back and checked: the song and every take there, each take's audio the same length;
 //   3. the source's song and takes are deleted in one transaction on that notebook, its outbox recording the deletes;
-//   4. the mark is cleared, quietly (it never travels).
+//   4. the destination's song (its mark cleared) and takes are written once more, so their revs under the new world are
+//      newer than the deletes under the old: a reader that sees the id under both worlds takes the newest rev.
 // A stop after 1 or 2 leaves the song in both notebooks, never in neither. settleMoves finishes any such move (on the
 // Songs list, and before a move), and running a move again is the same move: every step is idempotent.
 //
@@ -21,7 +22,7 @@
 // by take id); one whose clip had not gone up yet sends it under the new world, once its row there is acknowledged.
 // The old world's deletes wait in the old world's outbox; model/carry.ts drains every world's outbox, worn or not, so
 // they are not stranded if he never wears that world again.
-import { handedWorld, into, type Read } from '../db/fields';
+import { into, type Read } from '../db/fields';
 import type { Song, Take } from '../db/schema';
 
 const opened = <T extends object>(r: Read<T>): T => { const { locked: _, ...rest } = r as Read<T> & { locked?: true }; return rest as T; };
@@ -71,7 +72,9 @@ export async function moveSong(songId: string, from: string, to: string): Promis
   await finish(songId, from, to, takes.map(t => t.id));
 }
 
-/** Deletes the source's copy and clears the mark. Idempotent. */
+/** Deletes the source's copy, then writes the destination's song (its mark cleared) and takes once more, so their
+ *  envelopes under the new world carry revs newer than the deletes under the old (Music Companion resolves a song seen
+ *  under two worlds to the newest rev: a half-finished move ends in the new world). Idempotent. */
 async function finish(songId: string, from: string, to: string, takeIds: string[]) {
   const src = into(from), dst = into(to);
   const leftRows = await src.query('takes', t => t.where('songId').equals(songId));
@@ -80,19 +83,13 @@ async function finish(songId: string, from: string, to: string, takeIds: string[
   const late = leftRows.filter(t => !have.has(t.id));
   if (late.some(t => t.locked)) throw new MoveError('Locked');
   if (late.length) await dst.many({ takes: late.map(t => opened(t) as Take) });
-  const left = leftRows.map(t => t.id);
-  const ids = [...new Set([...takeIds, ...left])];
-  if ((await src.get('songs', songId)) || ids.length) await src.many({}, { songs: [songId], takes: ids });
-  await clearMark(to, songId);
-}
-
-/** The movedFrom mark taken off without sending the song again: a quiet write, outside the outbox. */
-async function clearMark(world: string, songId: string) {
-  const h = await handedWorld(world);
-  const r = await h?.get('songs', songId);
-  if (!h || !r || r.locked || !r.movedFrom) return;
-  const { movedFrom: _m, ...rest } = opened(r) as Song;
-  await h.writeDown({ songs: [rest] });
+  const ids = [...new Set([...takeIds, ...leftRows.map(t => t.id)])];
+  if ((await src.get('songs', songId)) || leftRows.length) await src.many({}, { songs: [songId], takes: ids });
+  const song = await dst.get('songs', songId);
+  if (!song || song.locked) return;
+  const { movedFrom: _m, ...rest } = opened(song) as Song;
+  const takes = (await dst.query('takes', t => t.where('songId').equals(songId))).filter(t => !t.locked).map(t => opened(t) as Take);
+  await dst.many({ songs: [rest], takes });
 }
 
 /** Finishes every move into this world that stopped halfway: a song here marked movedFrom a world that still holds its

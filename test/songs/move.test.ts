@@ -114,6 +114,10 @@ describe('moving a song', () => {
     const of = (w: string) => s.up.filter(e => e.world === w).map(e => [e.table, e.id, e.deleted ? 'deleted' : 'row']).sort();
     expect(of('eastwinds')).toEqual([['songs', 's-grey', 'deleted'], ['takes', 't-owed', 'deleted'], ['takes', 't-sent', 'deleted']]);
     expect(of('songbook')).toEqual([['songs', 's-grey', 'row'], ['takes', 't-owed', 'row'], ['takes', 't-sent', 'row']]);
+    // every row under the new world is newer than every delete under the old, so a half-seen move resolves to the new
+    const oldest = Math.min(...s.up.filter(e => e.world === 'songbook').map(e => e.rev));
+    const newestDelete = Math.max(...s.up.filter(e => e.world === 'eastwinds' && e.deleted).map(e => e.rev));
+    expect(oldest).toBeGreaterThan(newestDelete);
     const songRow = s.up.find(e => e.world === 'songbook' && e.table === 'songs')!.row!;
     expect(songRow).not.toHaveProperty('characterIds');
     expect(songRow).not.toHaveProperty('tucked');
