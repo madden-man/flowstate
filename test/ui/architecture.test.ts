@@ -29,9 +29,15 @@ describe('layers', () => {
     expect(journal).toMatch(/questions\(\)/);
     expect(fs.readFileSync('src/model/pages.ts', 'utf8')).toMatch(/export async function questions[\s\S]*?store\.query\('pages'/);
   });
-  it('no file outside src/music and src/research fetches (DESIGN.md rule 22)', () => {
-    const fenced = (f: string) => f.startsWith(path.join('src', 'music')) || f.startsWith(path.join('src', 'research'));
+  it('no file outside src/music, src/research and src/push fetches (DESIGN.md rule 22)', () => {
+    const fenced = (f: string) => f.startsWith(path.join('src', 'music')) || f.startsWith(path.join('src', 'research')) || f.startsWith(path.join('src', 'push'));
     for (const [f, text] of src('src').filter(([f]) => !fenced(f))) expect(text, f).not.toMatch(/\bfetch\s*\(/);
+  });
+  it('src/push fetches only its own origin\'s /api/push/ (PLAN-PUSH.md section 5)', () => {
+    for (const [f, text] of src('src/push')) {
+      expect(text, f).not.toMatch(/https?:\/\//);
+      for (const m of text.matchAll(/\bfetch\s*\(([^,)]*)/g)) expect(m[1].trim(), f).toMatch(/^`\$\{API\}|^API\b|^url$/);
+    }
   });
   it('papers are an index\'s public record and stay clear; the questions are sealed (PLAN-RESEARCH.md section 5)', () => {
     expect(SECRET_TABLES).toContain('inquiries');

@@ -16,8 +16,10 @@ import { settings, saveSettings } from '../settings';
 import { dataVersion } from '../sheets';
 import { pageCarry } from '../flow/chakra/carry';
 import { flushOpenPage } from './PageView';
+import { pushKnock } from '../../push/push';
 
-/** The query N3's notification opens the app with: `#/journal?ask=checkin`. */
+/** The query N3's notification opens the app with: `#/journal?ask=checkin`. public/push-sw.js keeps its value as
+ *  CHECKIN_URL ('/' + CHECKIN_HASH); test/push/push-sw.test.ts reads both files to keep them in step. */
 export const ASK_CHECKIN = 'checkin';
 export const CHECKIN_HASH = `#/journal?ask=${ASK_CHECKIN}`;
 
@@ -64,14 +66,18 @@ export function landCheckin(route: (to: string, replace?: boolean) => void, now 
   return landing;
 }
 
-/** In the frame (app.tsx), so it only runs with the journal open: lands when the address asks for the question. */
+/** In the frame (app.tsx), so it only runs with the journal open: lands when the address asks for the question, or
+ *  when the service worker's message says the notification was tapped (N3, push/push.ts pushKnock: on iOS the
+ *  address may never change for an app already open). A knock while locked waits here until the PIN opens it. */
 export function CheckinAsk() {
   const { query, route } = useLocation();
   const asked = query.ask === ASK_CHECKIN;
+  const knocked = pushKnock.value;
   useEffect(() => {
-    if (!asked) return;
+    if (!asked && !knocked) return;
+    pushKnock.value = false;
     // a locked journal refuses the write: the address stays, and the next open lands
     landCheckin(route).catch(() => { checkinLanded = false; });
-  }, [asked]);
+  }, [asked, knocked]);
   return null;
 }

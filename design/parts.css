@@ -218,6 +218,9 @@ button.fs-row, label.fs-row { cursor: pointer; }
 /* its Settings row (ui/settings/CheckinRow.tsx): the question on a rule, then the time, under the switch */
 .fs-checkin { display: grid; gap: var(--s1); padding: 0 0 var(--s1); }
 .fs-checkin .fs-input[type="time"] { width: auto; justify-self: start; font-family: var(--serif); }
+/* N3: the push half under the time (ui/settings/PushRows.tsx): the switch, Send one now, the print lines */
+.fs-checkin [data-push] { display: grid; }
+.fs-checkin .fs-push-send { justify-self: start; margin-left: calc(var(--s1) * -1); }
 
 @media (prefers-reduced-motion: reduce) {
   .fs-sheet, .fs-scrim { animation: none; }

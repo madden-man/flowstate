@@ -11,6 +11,7 @@ import { startUpdates, countLaunch } from './pwa/install';
 import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
 import { startPress } from './ui/parts/Press';
+import { startPush } from './push/push';
 
 async function boot() {
   await init();
@@ -23,6 +24,8 @@ async function boot() {
   if (firstRun) void persistNow();
   countLaunch();
   startUpdates();
+  // the Sunday question's push (PLAN-PUSH.md N3): nothing is sent unless he switched it on and something moved
+  startPush();
   render(<App />, document.getElementById('app')!);
 }
 
