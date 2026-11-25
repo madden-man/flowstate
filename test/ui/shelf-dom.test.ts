@@ -131,7 +131,7 @@ describe('the worlds on the shelf (PLAN-WORLDS.md W1, on test/fixtures/worlds.js
     expect(covers.map(c => c.querySelector('.fl-cover-foot')!.textContent)).toEqual(['Who to Be, How to Flow', 'Open', 'Songs of no book']);
     expect(root.querySelector('.fl-cover[data-front]')!.getAttribute('data-book')).toBe('eastwinds');
     expect(root.querySelector('.fl-lastline')!.textContent).toBe('11 / 24 / 26 Siyuan leaves in the spring.');
-    expect([...root.querySelectorAll<HTMLAnchorElement>('.fl-under a')].map(a => a.getAttribute('href'))).toEqual(['#/flow/research']);
+    expect([...root.querySelectorAll<HTMLAnchorElement>('.fl-under a')].map(a => a.getAttribute('href'))).toEqual(['#/flow/songs', '#/flow/research']);
     expect(root.querySelector('.fs-hdr-world')!.textContent).toBe('East Winds');
     expect(root.textContent).not.toContain('Mine.');
     await wear(null);

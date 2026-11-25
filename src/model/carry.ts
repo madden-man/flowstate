@@ -10,12 +10,13 @@
 // the outbox still holds every entry), and on opening. Down is the pocket, on donning and on opening, if its stamp moved.
 // Locked, nothing is read and nothing goes; the token itself is sealed in the settings row.
 import { signal } from '@preact/signals';
-import { book, handed, keyState, onWorn, store, worn, type Handed } from '../db/fields';
+import { book, handed, handedWorld, keyState, onWorn, store, worldsOnPhone, worn, type Handed } from '../db/fields';
 import { onOutbox } from '../db/outbox';
 import type { BridgeSettings, Settings, WorldEntry } from '../db/schema';
 import { readBatch, sendBatch, drain, type Batch } from '../bridge/up';
 import { getPocket, listWorlds, BridgeError } from '../bridge/net';
 import { applyPocket } from '../bridge/down';
+import { sendClips } from '../bridge/clips';
 import { KEEPALIVE_MAX_BYTES } from '../bridge/protocol';
 import { startYearOnce } from './story';
 
@@ -101,12 +102,37 @@ const stamp = async (patch: Partial<BridgeSettings>) => {
   await writeBridge(b => (b ? { ...b, ...patch } : b)).catch(() => undefined);
 };
 
-/** Up: every entry the outbox holds, in batches. */
+/** Up: every entry the worn world's outbox holds, in batches, then the clips its acknowledged takes still owe (W6);
+ *  then the same for every other world on the phone that the registry knows and that has something waiting (W6: a song
+ *  moved out of a world leaves its deletes in that world's outbox, which must not wait for him to wear it again). Each
+ *  other world is handed alone, never home; one that fails is left for the next carry and the rest still go. */
 async function carryUp(fetcher?: Fetcher): Promise<number> {
   const t = target();
   if (!t) return 0;
-  const sent = await drain(t.h, t.world, token!, fetcher);
+  let sent = await drain(t.h, t.world, token!, fetcher);
+  sent += await sendClips(t.h, t.world, token!, fetcher);
+  sent += await carryOthers(t.world, fetcher);
   if (sent) { const at = Date.now(); carriedAt.value = at; await stamp({ upAt: at }); }
+  return sent;
+}
+
+/** The other worlds' outboxes and clips (see carryUp). Offline stops it (the worn world's send already found the
+ *  function); any other failure is that world's alone. */
+async function carryOthers(wornWorld: string, fetcher?: Fetcher): Promise<number> {
+  const s = await store.get('settings', 'app');
+  const known = new Set((s?.worlds ?? []).map(w => w.id));
+  let sent = 0;
+  for (const world of await worldsOnPhone()) {
+    if (world === wornWorld || !known.has(world) || !token || !open()) continue;
+    const h = await handedWorld(world);
+    if (!h) continue;
+    try {
+      sent += await drain(h, world, token, fetcher);
+      sent += await sendClips(h, world, token, fetcher);
+    } catch (e) {
+      if (e instanceof BridgeError && e.status === 'offline') throw e;
+    }
+  }
   return sent;
 }
 

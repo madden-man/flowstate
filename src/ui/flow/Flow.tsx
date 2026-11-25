@@ -3,7 +3,7 @@
 // page's rules: the last line written in it, in the quiet italic with its date; then its rows. His own pages: Meditate,
 // Energize and Research as three drawn circles in a row, each opening its own page as it always has, and Right now,
 // the door's page (PLAN-FLOWS.md 3.7), from which every flow is reached; the morning after a worry the What if ask
-// (StampAsk, F6) stands at the foot. A novel: Research. Songbook: nothing yet (Songs is W6).
+// (StampAsk, F6) stands at the foot. A novel: Songs and Research. Songbook: Songs (W6).
 //
 // When a cover settles in front, the lamp takes its hue by the council's own mix (--lamp-voice; none by day, none in
 // Still) and one check tick sounds. A tap on the cover in front, or on one of its rows, puts that notebook on (wear):
@@ -104,13 +104,23 @@ function Rows({ book, worn }: { book: Notebook; worn: boolean }) {
       {worn && <StampAsk />}
     </>
   );
-  if (book.kind === 'novel') return (
-    <Into book={book} class="fs-row fs-list-row fl-flow" href="#/flow/research">
-      <span class="fs-list-line">Research</span>
-      <small class="fs-list-meta">A question, and the papers on both sides</small>
+  // a world's songs (W6): in a novel beside Research, in Songbook the first thing and the only row
+  const songs = (
+    <Into book={book} class="fs-row fs-list-row fl-flow" href="#/flow/songs">
+      <span class="fs-list-line">Songs</span>
+      <small class="fs-list-meta">Lyrics and hums</small>
     </Into>
   );
-  return null;
+  if (book.kind === 'novel') return (
+    <>
+      {songs}
+      <Into book={book} class="fs-row fs-list-row fl-flow" href="#/flow/research">
+        <span class="fs-list-line">Research</span>
+        <small class="fs-list-meta">A question, and the papers on both sides</small>
+      </Into>
+    </>
+  );
+  return songs;
 }
 
 /** Under a novel's cover (W4): who is alive in the year on its dial and how old, in print, on one rule; then the one

@@ -17,9 +17,17 @@ Branch `worlds-w6` from `worlds-plan` (9be7b95, plus the WORLDS-HANDOFF docs com
 - App fix: `Shelf.tsx` never settles under a held finger (a pause over 120 ms used to tick and light the lamp under the thumb). Fingers are heard on the document (a touch begun during a page turn lands on `<html>` and still slides the shelf), counting only touches begun on the shelf or the page itself. New e2e: "nothing settles under a held finger".
 - Proof: `--repeat-each 20` on both tests, 4 workers: 40 passed. worlds, world-sections and flow-shelf specs: 17 passed. Before: 7 of 20 failed.
 
-## Not started (all of W6 proper)
+## Songs: built so far (committed, unit-tested; no e2e, walkthrough or screenshots yet)
 
-Songs row and list, Hum row, song page (ruled, sections from chips), hold to hum, live pitch line, key guess, Tap tempo, Character chip, Songbook rows, clips after ack, tests, walkthrough `design/songs.html`, three-lights screenshots.
+- Model: `src/model/pitch.ts` (YIN, the stored line, the key guess over Music Companion's key finder), `tempo.ts` (Tap tempo), `songs.ts` (lines, sections named by chips, takes kept on their line, loose hums, the list tolerant of Songbook's pocket), `move.ts` (a song moved between worlds, safe to stop halfway; `settleMoves`).
+- fields.ts: `into(world)` (a world's notebook written worn or not, with its outbox), `worldsOnPhone`, `handedWorld`; a take's `lineText` sealed with its audio.
+- Bridge, phone side: `postClip` in net.ts (still the one fetcher), `src/bridge/clips.ts` (a clip after its row is acknowledged, rev = take.at, marked through writeDown). `carry.ts` drains every registered world on the phone, worn or not, and their clips.
+- UI: `src/ui/songs/` (Songs list, song page, loose hums, Hold to hum with pointer capture, Move to sheet, Whose song sheet), routes in app.tsx (a world's only), Songs rows under a novel and Songbook in Flow.tsx; `parts/Sound` listen() and play(); DESIGN.md rule 21 sentence.
+- Tests: test/songs (29), feel and shelf-dom updated. `npm test`: 1104 passed.
+
+## Not started
+
+- e2e (hold with CDP touches and a stubbed microphone, the move sheet, his notebook offering none), `design/songs.html` walkthrough from the real app, three-lights screenshots, docs/BRIDGE.md rules for W7 (lineId, ids as file names, content types, a song keeps its id for life), the full e2e run, the PR body.
 
 ## Decisions and findings so far (for whoever resumes)
 

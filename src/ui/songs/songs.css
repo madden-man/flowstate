@@ -1,0 +1,32 @@
+/* Songs (PLAN-WORLDS.md section 6, W6): what the song page adds to parts.css, on tokens only. The page is a journal page
+   (fs-sheetof fs-rules fs-col, fs-msg lines, fs-composer-wrap with the chips and fs-new under the thumb); the approved
+   mock is design/worlds/index.html step "song", whose wd-sec, wd-take and wd-pitch are these. */
+
+/* a section's name, print on its own rule above the section's first line */
+.wd-sec { margin: 0; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); line-height: var(--lh-ink); }
+
+/* a take: its pitch line across two rules, the key and its length in print beside it; a tap plays it */
+.wd-take {
+  appearance: none; display: flex; align-items: center; gap: var(--s1); width: 100%; height: calc(var(--lh-ink) * 2);
+  margin: 0; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.wd-take small { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase; color: var(--print); white-space: nowrap; }
+.wd-pitch { flex: 1; min-width: 0; height: calc(var(--lh-ink) * 1.6); }
+.wd-pitch path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.wd-take[data-playing] .wd-pitch path { stroke-width: 2.4; }
+.wd-take:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--s1); }
+
+/* the line the caret is on: where a take is pinned */
+.sg-page .sg-line.cur::before {
+  content: ''; position: absolute; left: calc(var(--s2) * -1); top: calc(var(--lh-ink) / 2 - 2px); width: 4px; height: 4px; border-radius: 50%; background: var(--print);
+}
+.sg-page .fs-edit::placeholder { color: var(--print); font-style: italic; }
+.sg-said { margin: 0; line-height: var(--lh-ink); }
+
+/* Hold to hum: held, it reads "Lift to stop" and fills, down instant (rule 26) */
+.sg-hum { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.sg-hum[data-humming] { background: var(--ink); color: var(--page); transition: none; }
+
+/* a loose hum: its line, then a rule for its title */
+.sg-hum-row { margin-bottom: var(--lh-ink); }

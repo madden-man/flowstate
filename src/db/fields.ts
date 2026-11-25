@@ -11,7 +11,7 @@
 //   struck; days: basics (PLAN-TASKS.md section 7, T0; ids, signs, touches and dates stay clear); inquiries: question
 //   and runs whole (the agents' messages carry the question; PLAN-RESEARCH.md section 5, Q2; ids, state, picks and dates
 //   stay clear). papers are not sealed: a paper's words are an index's public record, not his. settings.bridge (the
-//   bridge's token and the pocket, PLAN-WORLDS.md section 9, W2); songs: title and lyric; takes: the audio.
+//   bridge's token and the pocket, PLAN-WORLDS.md section 9, W2); songs: title and lyric; takes: the audio and the line pinned to.
 // In a world's notebook every write here also holds the outbox, pages and messages (scope below), so src/db/outbox.ts
 // records what travels in the same transaction; quiet() writes what came down from the bible without them.
 // With no key the layer stores plain text. Once a key is set (package 6 adds the keypad) each record's
@@ -334,13 +334,22 @@ const songSpec: Spec<Tables['songs']> = {
   },
 };
 
-/** A take seals its audio (PLAN-WORLDS.md section 6), as base64 inside the envelope; the pitch line and the rest stay
- *  clear, so a list can draw the line before unlock and nothing of his voice can be played. */
+/** A take seals its audio (PLAN-WORLDS.md section 6), as base64 inside the envelope, and the lyric line it is pinned to
+ *  (lineText, W6: his words, as the song's lyric is); the pitch line and the rest stay clear, so a list can draw the line
+ *  before unlock and nothing of his voice can be played. A take with no lineText seals the bare base64 string. */
+type TkSecret = string | { a: string; l: string };
 const takeSpec: Spec<Tables['takes']> = {
-  take: row => ({ clear: { ...row, audio: new ArrayBuffer(0) }, secret: toB64(new Uint8Array(row.audio)) }),
+  take: row => {
+    const { lineText, ...rest } = row;
+    const a = toB64(new Uint8Array(row.audio));
+    return { clear: { ...rest, audio: new ArrayBuffer(0) }, secret: (lineText !== undefined ? { a, l: lineText } : a) satisfies TkSecret };
+  },
   give: (clear, raw) => {
-    const b = fromB64(typeof raw === 'string' ? raw : '');
-    return { ...clear, audio: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) };
+    const s = raw as TkSecret | null | undefined;
+    const b = fromB64(typeof s === 'string' ? s : s && typeof s === 'object' ? s.a : '');
+    const out = { ...clear, audio: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer };
+    if (s && typeof s === 'object' && typeof s.l === 'string') out.lineText = s.l;
+    return out;
   },
 };
 
@@ -785,6 +794,56 @@ export async function peek<T>(worldId: string | null, fn: (r: Reader) => Promise
   if (worldId !== null && name !== bookDb.name && !(await worldNames()).includes(name)) return undefined;
   const db = worldId === null ? homeDb : await dbNamed(name);
   return fn(readerOf(db, false));
+}
+
+/**
+ * A world's notebook written whether it is worn or not (W6: a song moved from one world to another). Never his own
+ * pages: worldId is a world's id. Writes are sealed with the key in memory and run in the write queue, in one
+ * transaction over their tables and the outbox's scope (WRITE_SCOPE), so what travels is recorded in THAT world's
+ * outbox exactly as if it were worn. Reads come back opened. A world with no database yet is made, as donning makes it.
+ */
+export function into(worldId: string) {
+  if (!worldId || worldId === homeDb.name) throw new Error('into() takes a world, never his own pages');
+  const target = () => openWorld(worldId);
+  return {
+    world: worldId,
+    async get<K extends TableName>(t: K, id: string): Promise<Read<Tables[K]> | undefined> {
+      return readerOf(await target(), false).get(t, id);
+    },
+    async query<K extends TableName>(t: K, build: (tb: Table<Tables[K], string>) => Collection<Tables[K], string>): Promise<Read<Tables[K]>[]> {
+      return readerOf(await target(), false).query(t, build);
+    },
+    /** Puts and deletes in one transaction on that world's notebook, the outbox recording what travels. */
+    many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
+      return serial(async () => {
+        writable();
+        const db = await target();
+        const prepared = await Promise.all((Object.keys(writes) as TableName[]).filter(t => t !== 'settings' && writes[t]?.length)
+          .map(async t => [t, await Promise.all((writes[t] as Tables[TableName][]).map(r => toStored(t, r as never, key)))] as const));
+        const gone = (Object.keys(drops) as TableName[]).filter(t => t !== 'settings' && drops[t]?.length);
+        const tables = [...new Set([...prepared.map(([t]) => t), ...gone, ...WRITE_SCOPE])];
+        await db.transaction('rw', tables.map(t => db.table(t)), async () => {
+          for (const [t, rows] of prepared) await db.table(t).bulkPut(rows);
+          for (const t of gone) await db.table(t).bulkDelete(drops[t]!);
+        });
+      });
+    },
+  };
+}
+
+/** The worlds that have a notebook on this phone, by id (worn or not, in the registry or not). */
+export async function worldsOnPhone(): Promise<string[]> {
+  const pre = worldDbName(homeDb.name, '');
+  return (await worldNames()).map(n => n.slice(pre.length));
+}
+
+/** A world's notebook handed to the bridge (as handed()), whether worn or not; undefined when it has no database. Never
+ *  his own pages. */
+export async function handedWorld(worldId: string): Promise<Handed | undefined> {
+  if (!worldId) return undefined;
+  const name = worldDbName(homeDb.name, worldId);
+  if (name !== bookDb.name && !(await worldNames()).includes(name)) return undefined;
+  return handed(await dbNamed(name));
 }
 
 /** Dresses a notebook's cover (PLAN-WORLDS.md section 4): albums, a drawing, or plain paper (undefined), on that

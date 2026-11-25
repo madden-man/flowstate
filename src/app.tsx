@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step. #/flow is the shelf (PLAN-WORLDS.md section 4); #/flow/c/:chakra, the signs' pages, left with the mountain (section 4.1) and goes back to #/flow. The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/songs, #/flow/songs/:id, #/flow/hum (W6, a world's only), #/flow/energize/stuck (X4), #/flow/:id/:step. #/flow is the shelf (PLAN-WORLDS.md section 4); #/flow/c/:chakra, the signs' pages, left with the mountain (section 4.1) and goes back to #/flow. The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -15,6 +15,7 @@ import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
 import { ResearchAsk, ResearchAsked, ResearchInquiry, ResearchPaper } from './ui/flow/Research';
+import { SongsList, SongPage, NewSong, Hums } from './ui/songs/Songs';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
@@ -138,6 +139,11 @@ function Frame() {
           <Route path="/flow/research/asked" component={ResearchAsked} />
           <Route path="/flow/research/:id" component={ResearchInquiry} />
           <Route path="/flow/research/:id/:paper" component={ResearchPaper} />
+          {/* Songs (PLAN-WORLDS.md section 6, W6), in a world only; before /flow/:id so no flow is ever called "songs" */}
+          <Route path="/flow/songs" component={WorldSongs} />
+          <Route path="/flow/songs/new" component={WorldNewSong} />
+          <Route path="/flow/songs/:id" component={WorldSong} />
+          <Route path="/flow/hum" component={WorldHums} />
           {/* where a sign's page was (PLAN-WORLDS.md section 4.1), before /flow/:id/:step so "c" is never read as a flow */}
           <Route path="/flow/c/*" component={() => <Redirect to="/flow" />} />
           <Route path="/flow/:id" component={OwnFlow} />
@@ -170,6 +176,16 @@ const OwnNow = own(Now);
 const OwnMeditate = own(Meditate);
 const OwnFlow = own(FlowRoute);
 const OwnStuck = own(Stuck);
+
+/** A world's only (PLAN-WORLDS.md sections 4 and 6, W6): Songs live in a world; with his own pages worn their routes go
+ *  back to the shelf (his notebook has no Songs row). */
+function inWorld<P extends object>(C: ComponentType<P>) {
+  return (props: P) => (wornWorld.value === null ? <Redirect to="/flow" /> : <C {...props} />);
+}
+const WorldSongs = inWorld(SongsList);
+const WorldNewSong = inWorld(NewSong);
+const WorldSong = inWorld(SongPage);
+const WorldHums = inWorld(Hums);
 
 /** The app opens on a live episode once per load, not on every unlock. */
 let openedOnce = false;

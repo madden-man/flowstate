@@ -470,3 +470,55 @@ export function scape(name: SitSound): Scape | null {
     },
   };
 }
+
+// ---- a hum (PLAN-WORLDS.md section 6, W6): the microphone listened to while a take is sung, and a take played back ----
+//
+// listen() is the one place the app hears the microphone: the stream the hold opened (ui/songs/hum.ts) goes through an
+// analyser, nothing goes out to the speaker, and read() hands back the newest samples for the pitch line, drawn as it
+// is sung. play() is a take played back, begun only by a tap on its line; it is his own voice, media like a sit's
+// scape, so it does not follow the Sounds switch (the tap is the invitation).
+
+export type Listening = { rate: number; read: () => Float32Array; close: () => void };
+
+/** Listens to a microphone stream. null where there is no Web Audio. */
+export function listen(stream: MediaStream): Listening | null {
+  const a = make();
+  if (!a) return null;
+  const src = a.createMediaStreamSource(stream);
+  const an = a.createAnalyser();
+  an.fftSize = 4096;
+  src.connect(an);
+  const buf = new Float32Array(an.fftSize);
+  return {
+    rate: a.sampleRate,
+    read: () => { an.getFloatTimeDomainData(buf); return buf; },
+    close: () => { try { src.disconnect(); } catch { /* gone */ } void a.close().catch(() => undefined); },
+  };
+}
+
+let playingTake: { stop: () => void } | null = null;
+
+/** Plays a take's audio once; a second call (or another take) stops the first. Resolves when it ends or is stopped;
+ *  false when it could not be decoded. */
+export async function play(audio: ArrayBuffer): Promise<boolean> {
+  playingTake?.stop();
+  playingTake = null;
+  const a = make();
+  if (!a) return false;
+  let buffer: AudioBuffer;
+  try { buffer = await a.decodeAudioData(audio.slice(0)); } catch { void a.close().catch(() => undefined); return false; }
+  const src = a.createBufferSource();
+  src.buffer = buffer;
+  src.connect(a.destination);
+  return new Promise(resolve => {
+    let done = false;
+    const end = () => { if (done) return; done = true; if (playingTake === me) playingTake = null; void a.close().catch(() => undefined); resolve(true); };
+    const me = { stop: () => { try { src.stop(); } catch { /* not started */ } end(); } };
+    src.onended = end;
+    playingTake = me;
+    src.start();
+  });
+}
+
+/** Stops a take playing, if one is. */
+export function stopPlaying(): void { playingTake?.stop(); playingTake = null; }

@@ -48,7 +48,9 @@ const TICKS: Record<string, string[]> = {
     // PLAN-WORLDS.md section 4 (W1): a hold on a cover raises what it wears
     'src/ui/flow/Flow.tsx',
     // PLAN-WORLDS.md section 4 (W4): a chip under a journal page in a novel raises what the page is about
-    'src/ui/world/Chips.tsx'],
+    'src/ui/world/Chips.tsx',
+    // PLAN-WORLDS.md section 6 (W6): a song's Character chip raises whose song it is; Move to raises the other worlds
+    'src/ui/songs/Songs.tsx'],
   unlock: ['src/ui/lock/Lock.tsx'],
   // PLAN-MOUNTAIN.md R2: the Depression meter, when its mark lands on either end (rule 19 amended in R5)
   meter: ['src/ui/flow/mountain/Meter.tsx'],
@@ -115,8 +117,14 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
   it('an AudioContext is made in one place, for the bells or for a sit, which only a tap begins', () => {
     const sound = fs.readFileSync('src/ui/parts/Sound.ts', 'utf8');
     expect(sound.match(/new AC\(/g)).toHaveLength(1);
-    // make(): its definition, the bells' kept context, and a sit's own
-    expect(sound.match(/\bmake\(\)/g)).toHaveLength(3);
+    // make(): its definition, the bells' kept context, a sit's own, and a hum's two (W6): listening to the microphone
+    // while a take is sung, and a take played back, each begun only by the thumb on its own control
+    expect(sound.match(/\bmake\(\)/g)).toHaveLength(5);
+    expect(sound).toMatch(/export function listen\(stream: MediaStream\)[\s\S]*?const a = make\(\)/);
+    expect(sound).toMatch(/export async function play\(audio: ArrayBuffer\)[\s\S]*?const a = make\(\)/);
+    // listening sends nothing to the speaker
+    const ear = sound.slice(sound.indexOf('export function listen'), sound.indexOf('let playingTake'));
+    expect(ear).not.toMatch(/destination/);
     expect(sound).toMatch(/function ctx\(\)[\s\S]*?ac = make\(\)/);
     expect(sound).toMatch(/export function bell[\s\S]*?const a = sounding \?\? ctx\(\)/);
     // a sit never borrows the bells' context: the iPhone leaves that one silent after Spotify or a lock
