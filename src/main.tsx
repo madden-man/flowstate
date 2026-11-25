@@ -25,7 +25,7 @@ async function boot() {
   countLaunch();
   startUpdates();
   // the Sunday question's push (PLAN-PUSH.md N3): nothing is sent unless he switched it on and something moved
-  startPush();
+  try { startPush(); } catch { /* the journal opens whatever push does */ }
   render(<App />, document.getElementById('app')!);
 }
 

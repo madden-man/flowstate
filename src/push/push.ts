@@ -227,7 +227,8 @@ export function startPush(doc: Document = document): () => void {
     if (kind === 'checkin') pushKnock.value = true;
     else if (kind === 'arrived') pushArrived.value++;
   };
-  navigator.serviceWorker.addEventListener('message', onMessage);
+  // a sandboxed frame (the walkthroughs) has a navigator.serviceWorker that throws when touched: no push there
+  try { navigator.serviceWorker.addEventListener('message', onMessage); } catch { return () => undefined; }
   const onFront = () => { if (doc.visibilityState === 'visible') void resubscribeIfMoved(); };
   doc.addEventListener('visibilitychange', onFront);
   // the line's mirror for the worker, the schedule's re-post, and the question's switch taking push with it
@@ -243,7 +244,7 @@ export function startPush(doc: Document = document): () => void {
     void resubscribeIfMoved();
   });
   return () => {
-    navigator.serviceWorker.removeEventListener('message', onMessage);
+    try { navigator.serviceWorker.removeEventListener('message', onMessage); } catch { /* gone with the frame */ }
     doc.removeEventListener('visibilitychange', onFront);
     stop();
   };
