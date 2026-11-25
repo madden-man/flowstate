@@ -9,17 +9,14 @@
 import type { Flow, Step } from '../db/schema';
 import type { Read } from '../db/fields';
 import { SEED_FLOWS } from '../db/seed-flows';
-import { isChakraId } from './mountain';
 
-/** The hashes the lock lets through with the door on: Right now, a flow's step, Meditate (PLAN-MEDITATE.md S3: it
- *  holds nothing private) and a sign's page (PLAN-TASKS.md section 7). Nothing else: #/flow/meditate/:step is no flow's step and stays behind the keypad. */
+/** The hashes the lock lets through with the door on: Right now, a flow's step and Meditate (PLAN-MEDITATE.md S3: it
+ *  holds nothing private). Nothing else: #/flow/meditate/:step is no flow's step and stays behind the keypad, and the
+ *  signs' pages left with the mountain (PLAN-WORLDS.md section 4.1). */
 export function doorPasses(path: string, doorOn: boolean): boolean {
   if (!doorOn) return false;
   const p = path.split('?')[0].replace(/\/+$/, '');
   if (p === '/flow/now' || p === '/flow/meditate') return true;
-  // a sign's page (PLAN-TASKS.md section 7): the place and the touches that write nothing
-  const c = /^\/flow\/c\/([^/]+)$/.exec(p);
-  if (c) return isChakraId(c[1]);
   const m = /^\/flow\/([^/]+)\/(\d+)$/.exec(p);
   // Research (PLAN-RESEARCH.md section 2) is never let through: its key and its questions are sealed under the PIN
   return !!m && m[1] !== 'now' && m[1] !== 'meditate' && m[1] !== 'research' && Number(m[2]) >= 1;

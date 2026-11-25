@@ -9,7 +9,6 @@ import { store, keyState } from './fields';
 import { SEED_FLOWS, SEED_TIPS_LATER, seedFlow } from './seed-flows';
 import { PICKS } from './seed/picks';
 import { DOCTOR_LINE, DOCTOR_STEP, DOCTOR_TIP } from './seed/energize';
-import { BLOCKER_DRAFTS, BLOCKERS_AT, SEED_ALSO_UNDER } from './seed/blockers';
 
 /** Hue angles from tokens.css (--h-*). test/db/seed.test.ts checks they still match. */
 export const HUES = { blue: 250, green: 150, red: 25, purple: 305, brown: 60, orange: 55, pink: 350, yellow: 95 } as const;
@@ -249,41 +248,6 @@ export function seedPicksOnce(): Promise<string[] | null> {
     return given;
   })().finally(() => { picksPass = null; });
   return picksPass;
-}
-
-// ---- the blockers (PLAN-BLOCKERS.md sections 4 and 5, K0) ----
-
-/** The name the pass leaves in settings.cleaned once it has run. */
-export const BLOCKERS_PASS = 'blockers';
-
-let blockersPass: Promise<string[] | null> | null = null;
-
-/**
- * Once per journal, new or old (PLAN-BLOCKERS.md section 5; not a Dexie version, so schema stays 9): each seed flow
- * listed a second time gets its alsoUnder (SEED_ALSO_UNDER), and the six new candidates are written with draft: true
- * (BLOCKER_DRAFTS), each with its step words as its first revision. alsoUnder is a clear field, added as the mountain
- * added chakra: no revision, no new date. A flow that already has an alsoUnder (his own) keeps it, a flow he deleted
- * gets nothing, and a candidate whose id is already there (an import) is left as it is. Then 'blockers' goes into
- * settings.cleaned, so a candidate he deletes never comes back. Names are sealed, so like seedFixationsOnce it runs
- * where the journal is open; a locked journal returns null and tries on the next open. Returns the ids written.
- */
-export function seedBlockersOnce(): Promise<string[] | null> {
-  blockersPass ??= (async () => {
-    if (keyState() === 'locked') return null;
-    const s = await store.get('settings', 'app');
-    if (!s || s.locked) return null;
-    if (s.cleaned?.includes(BLOCKERS_PASS)) return [];
-    const stored = await store.all('flows');
-    if (stored.some(f => f.locked)) return null;
-    const have = new Set(stored.map(f => f.id));
-    const listed = stored.filter(f => SEED_ALSO_UNDER[f.id] && f.alsoUnder === undefined)
-      .map(f => ({ ...f, alsoUnder: [...SEED_ALSO_UNDER[f.id]] }));
-    const drafts = BLOCKER_DRAFTS.filter(f => !have.has(f.id)).map(f => seedFlow(f, BLOCKERS_AT));
-    const write = [...listed, ...drafts];
-    await store.many({ flows: write, settings: [{ ...s, cleaned: [...(s.cleaned ?? []), BLOCKERS_PASS] }] });
-    return write.map(f => f.id);
-  })().finally(() => { blockersPass = null; });
-  return blockersPass;
 }
 
 // ---- the fixations (PLAN-ENERGIZE.md section 5, X1) ----

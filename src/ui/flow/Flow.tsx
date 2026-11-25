@@ -1,54 +1,82 @@
-// Flow is the mountain (PLAN-MOUNTAIN.md, R1): one drawing in place of the list, a night plate lit by its own water,
-// seven signs down one stream to a sea where Meditate and Energize float (ui/flow/Mountain.tsx). The eight flows that
-// are ways of getting stuck are reached through their sign (#/flow/c/<chakra>, R3); every #/flow/<id> still opens a
-// flow's page, so the door, Right now and hand-offs keep working. Under the plate, on the page's rules: the morning
-// after a worry (StampAsk, F6), Right now (F5), a row for each flow he made himself that has no sign yet (so nothing
-// of his is out of reach until "+ flow" asks which sign it goes under, plan section 6), and "+ flow" (F3). The door
-// keeps its own list (DoorRows).
+// Flow is the shelf (PLAN-WORLDS.md section 4, WF): the mountain, its signs and everything under them left (section
+// 4.1), and the tab became a shelf of notebooks across the top with, under it, what the notebook in front has to offer.
+// Today the shelf holds one cover, My own pages (./Shelf.tsx); W1 slides the worlds in beside it. Under the cover, on
+// the page's rules: the last line written in the notebook, in the quiet italic with its date; Meditate, Energize and
+// Research as three drawn circles in a row, each opening its own page as it always has; and Right now, his own lines
+// across every flow, the door's page (PLAN-FLOWS.md 3.7), from which every flow is reached. The morning after a worry
+// the What if ask (StampAsk, F6) stands at the foot.
+//
+// Nothing here moves on its own (DESIGN.md rule 31): the cover gives under the thumb (rule 26) and a circle travels to
+// its page (rule 28, ui/turns.ts, by its data-travel name), and that is all. No counts anywhere (rule 15).
 import { useEffect, useState } from 'preact/hooks';
 import { Page } from '../parts/Page';
-import { Cycle } from '../parts/Cycle';
-import { NewFlow } from './NewFlow';
 import { StampAsk } from './Stamps';
-import { Mountain } from './Mountain';
-import { shapeOf } from '../parts/cycle/index';
+import { Shelf } from './Shelf';
 import { dataVersion } from '../sheets';
-import { flowStates, placeOf, currentStepId, type FlowState } from '../../model/flows';
+import { gate } from '../lock/pin';
+import { notebookDate } from '../date';
+import { lastLine } from '../../model/pages';
+import { notebooks, OWN } from '../../model/notebooks';
 import { FIXATION_FLOW } from '../../model/fixations';
+import './shelf.css';
+
+/** The three circles under his own cover, in order. Each carries what travels to its page (rule 28): Meditate's circle
+ *  to the Meditate page's circle, Energize's to the drawing on its flow page, Research's name to the same word on its
+ *  page's header (PLAN-RESEARCH.md Q4). */
+export const CIRCLES: readonly { name: string; href: string; travel: string; mark?: 'arc' | 'split'; named?: boolean }[] = [
+  { name: 'Meditate', href: '#/flow/meditate', travel: 'md-circle' },
+  { name: 'Energize', href: `#/flow/${FIXATION_FLOW}`, travel: 'fs-drawing', mark: 'arc' },
+  { name: 'Research', href: '#/flow/research', travel: 'rs-name', mark: 'split', named: true },
+];
+
+const R = 13;
+
+/** Meditate, Energize and Research, drawn in ink: a circle each, Energize's with a rise through it, Research's split
+ *  down the middle into its two sides. */
+function Circles() {
+  return (
+    <nav class="fl-circles" aria-label="Meditate, Energize and Research">
+      {CIRCLES.map(c => (
+        <a key={c.name} class="fl-circle" href={c.href}>
+          <svg viewBox="-20 -20 40 40" aria-hidden="true" focusable="false" data-travel={c.named ? undefined : c.travel}>
+            <circle r={R} />
+            {c.mark === 'arc' && <path d="M-9 4 C-4.5 3.5 -3.5 -6 0 -6 C3.5 -6 4.5 3.5 9 4" />}
+            {c.mark === 'split' && <path d={`M0 ${-R} V${R}`} />}
+          </svg>
+          <span class="fl-circle-name" data-travel={c.named ? c.travel : undefined}>{c.name}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
 
 export function Flow() {
-  const [own, setOwn] = useState<FlowState[] | null>(null);
-  // a flow just made through "+ flow" (R5): read again. Make routes to the new flow's page, but a second navigation
-  // inside that turn (back to #/flow before the turn has drawn) lands on this same page, never unmounted, so without
-  // this its list would stay as it was read before the flow existed.
-  const [made, setMade] = useState(0);
+  // undefined while reading, null when nothing is written yet
+  const [last, setLast] = useState<{ text: string; at: number } | null | undefined>(undefined);
+  // read again when the notebook opens or locks, as every page is
+  const locked = gate.value;
   useEffect(() => {
-    let live = true;
-    flowStates().then(r => { if (live) setOwn(r.filter(s => !s.flow.chakra && s.flow.id !== FIXATION_FLOW)); }).catch(() => { if (live) setOwn([]); });
-    return () => { live = false; };
-  }, [dataVersion.value, made]);
+    let on = true;
+    lastLine().then(l => { if (on) setLast(l ?? null); }, () => { if (on) setLast(null); });
+    return () => { on = false; };
+  }, [dataVersion.value, locked]);
+  const worn = OWN.id;
 
   return (
-    <Page label="Flow" drawn={own !== null}>
-      <div class="fs-sheetof fs-rules fs-flows">
-        <Mountain />
-        <StampAsk />
+    <Page label="Flow" drawn={last !== undefined}>
+      <Shelf books={notebooks()} worn={worn} front={worn} />
+      <div class="fs-sheetof fs-rules fs-flows fl-under" data-for={worn}>
+        {/* the last line written, holding its rule from first paint so nothing under it moves */}
+        <p class="fs-quiet fl-lastline" data-read={last === undefined ? undefined : ''}>
+          {last && <><small>{notebookDate(new Date(last.at))}</small> {last.text}</>}
+        </p>
+        <Circles />
         {/* Right now (F5): his own step lines across every flow, the door's page */}
-        <a class="fs-row fs-list-row fl-flow fl-now" href="#/flow/now">
+        <a class="fs-row fs-list-row fl-flow" href="#/flow/now">
           <span class="fs-list-line">Right now</span>
           <small class="fs-list-meta">Your lines; tap the one that fits</small>
         </a>
-        {own?.map(({ flow, live }) => (
-          <a key={flow.id} class="fs-row fs-list-row fl-flow" href={`#/flow/${flow.id}`} data-live={live ? 'true' : undefined}>
-            <span class="fs-list-line">{flow.name}</span>
-            <small class="fs-list-meta">{shapeOf(flow.diagram).title}</small>
-            <span class="fl-mini" aria-hidden="true" data-travel="fs-drawing">
-              <Cycle small diagram={flow.diagram} steps={flow.steps} at={live ? placeOf(flow, currentStepId(live)) : 0} />
-            </span>
-          </a>
-        ))}
-        {/* "+ flow" comes last (F3). */}
-        <NewFlow onMade={() => setMade(k => k + 1)} />
+        <StampAsk />
       </div>
     </Page>
   );

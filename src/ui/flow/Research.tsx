@@ -1,5 +1,5 @@
-// Research (PLAN-RESEARCH.md section 2, Q4): a question, and the papers on both sides. The sea's third circle, a page
-// of its own (not a flow with steps), built as a council between two voices: + speaks in the light blue, − in its deep
+// Research (PLAN-RESEARCH.md section 2, Q4): a question, and the papers on both sides. The third circle under the shelf, a
+// page of its own (not a flow with steps), built as a council between two voices: + speaks in the light blue, − in its deep
 // twin, and every line either speaks is a paper's own title.
 //
 //   #/flow/research               the blank page: the question at the title size, the caret ready, Ask under the thumb

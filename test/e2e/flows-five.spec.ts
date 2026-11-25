@@ -1,10 +1,9 @@
-// The missed five (F4, PLAN-FLOWS.md section 6). On a flow's own page, which a flow under a sign has again
-// (PLAN-BLOCKERS.md K3): a deep link reads Shame's verdict; on a live Shame episode the hand-off line opens Fight with
-// the link row at the top, the new episode carries `from`, and an offline reload keeps both; 3 a.m. live in Still shows
-// no digit. Off their signs (./no-sign.ts): Shame's fork and the 3 a.m. clock, quiet, with no digit in Still.
-// The Flow tab scrolls to "+ flow".
+// The missed five (F4, PLAN-FLOWS.md section 6). On a flow's own page: a deep link reads Shame's verdict; on a live
+// Shame episode the hand-off line opens Fight with the link row at the top, the new episode carries `from`, and an
+// offline reload keeps both; 3 a.m. live in Still shows no digit; Shame's fork and the 3 a.m. clock, quiet, with no
+// digit in Still. The Flow tab is the shelf, with no flow's row (PLAN-WORLDS.md section 4).
 import { test, expect, type Page } from '@playwright/test';
-import { offItsSign } from './no-sign';
+import { whenSeeded } from './seeded';
 
 const threshold = async (page: Page) => {
   const t = page.locator('[data-threshold]');
@@ -29,11 +28,10 @@ test('Shame on its own page: the verdict read, and the hand-off to Fight keeps w
   await threshold(page);
   const body = (id: string) => page.locator(`.fs-flowpage[data-flow="${id}"]`);
   const current = page.locator('.fs-flowpage .fs-cycle-word[aria-pressed="true"]');
-  // a flow under a sign has its own page again (PLAN-BLOCKERS.md K3), its way back the sign
+  // its own page, its way back Flow
   await expect(body('shame')).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(current).toHaveAttribute('aria-label', "I'm worthless");
-  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Solar plexus', exact: true })).toBeVisible();
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Flow', exact: true })).toBeVisible();
 
   // the service worker takes the page over from the next load
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -91,22 +89,21 @@ test('Shame on its own page: the verdict read, and the hand-off to Fight keeps w
   await expect(current).toHaveAttribute('aria-label', 'Hide or hit back');
 });
 
-test('Shame under no sign: the fork is drawn, with the said paragraph under it', async ({ page }) => {
+test('Shame: the fork is drawn, with the said paragraph under it', async ({ page }) => {
   await page.goto('/#/flow');
   await page.locator('.fs-app').waitFor();
   await threshold(page);
-  await offItsSign(page, 'shame');
+  await whenSeeded(page, 'shame');
   await page.goto('/#/flow/shame/2');
   const body = page.locator('.fs-flowpage');
   await expect(body).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="fork"]')).toBeVisible();
   await expect(page.getByRole('button', { name: "I'm worthless" })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.fs-cycle text.hand')).toHaveText(['hide', 'hit back', 'I can fix it']);
   await expect(body.locator('.fl-said').first()).toContainText('has a door in it');
 });
 
-test('3 a.m. on its own page, live in Still: no digit on the page; the Flow tab scrolls to "+ flow"', async ({ page }) => {
+test('3 a.m. on its own page, live in Still: no digit on the page; the Flow tab has no flow\'s row', async ({ page }) => {
   await page.goto('/#/flow/night/3');
   await page.locator('.fs-flowpage').waitFor();
   await threshold(page);
@@ -128,24 +125,20 @@ test('3 a.m. on its own page, live in Still: no digit on the page; the Flow tab 
   await expect.poll(() => body.evaluate(el => (el as HTMLElement).innerText)).not.toMatch(/\d/);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
-  // the Flow tab is the mountain since R1 (test/e2e/mountain.spec.ts); "+ flow" is under it, reached by scrolling
+  // the Flow tab is the shelf (test/e2e/flow-shelf.spec.ts): no flow has a row of its own, Right now reaches them
   await page.goto('/#/flow');
   const list = page.locator('.fs-flows');
-  await expect(list.locator('.mt-plate a.mt-stop')).toHaveCount(7);
-  await expect(list.locator('a.fl-flow:not(.fl-now)')).toHaveCount(0);
-  const add = page.getByRole('button', { name: '+ flow' });
-  await add.scrollIntoViewIfNeeded();
-  await expect(add).toBeInViewport();
+  await expect(list.locator('a.fl-flow')).toHaveCount(1);
+  await expect(list.locator('a.fl-flow')).toHaveAttribute('href', '#/flow/now');
 });
 
-test('3 a.m. under no sign: the clock face, quiet on a live episode, and no digit on the page in Still', async ({ page }) => {
+test('3 a.m.: the clock face, quiet on a live episode, and no digit on the page in Still', async ({ page }) => {
   await page.goto('/#/flow');
   await page.locator('.fs-app').waitFor();
   await threshold(page);
-  await offItsSign(page, 'night');
+  await whenSeeded(page, 'night');
   await page.goto('/#/flow/night/3');
   const body = page.locator('.fs-flowpage');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="clock"]')).toBeVisible();
   await expect(page.locator('.fs-flowpage .fl-usual.fs-notstill')).toContainText('twenty minutes');
   await expect(page.locator('.fs-cycle text.num')).toHaveText(['12', '7']);

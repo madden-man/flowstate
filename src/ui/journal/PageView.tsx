@@ -11,10 +11,6 @@
 // among the open questions, and Previous and Next (or a horizontal swipe on the page) walk them. Resolve
 // (parts/Resolve, PLAN-BLOCKERS.md K1, section 3 step 13) stands at the right of the title: a tap resolves it with
 // nothing written under it, a tap on the check takes it back; "This answers it" still does the same and marks the line.
-// PLAN-BLOCKERS.md K2 (section 3 step 11): on a page linked to a sign, a wise line whose words are an open question in
-// that sign's deck (read once when the page opens) carries Resolve at its right (model/acts.ts resolveAsk), so a
-// question can be resolved where it was answered. Resolved, the line goes to print grey with the check and stays so
-// until the page is left; a tap on the check takes it back. Gone in Still with the states (fs-notstill).
 // PLAN-VALUES.md C4: the current line, when a voice speaks it, has "Spoke for" step out under it (parts/SpokeFor), as
 // the dot's chips do; a tap confirms the line for a value after it was written, and never takes the caret.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
@@ -41,10 +37,6 @@ import { LineSheet, SpeakSheet } from './LineSheet';
 import { hrefOf } from './href';
 import { JournalLink } from '../flow/JournalLink';
 import { PaperLine, ResearchFrom } from '../flow/PaperLine';
-import { pageCarry, type PageCarry } from '../flow/chakra/carry';
-import { deckOf, resolveAsk } from '../../model/acts';
-import { oneLine } from '../../model/into';
-import { isChakraId, type ChakraId } from '../../model/mountain';
 import {
   today, entryCount, pageById, messagesOf, linksOf, writeLine, setKept, speakAs, askThis, answerWith, resolveQuestion, linkPages, takeToCouncil,
   setTitle, keptLines, pickEcho, dayKey, chipVoices, voicesById, parseTags, walkOf,
@@ -162,23 +154,21 @@ type Block = { id: string; m?: Read<Message>; at: number };
 
 type BlockProps = {
   b: Block; text: string; voice?: Read<Voice>; quoted?: Read<Message>; dated?: Date; cur: boolean; edit: boolean; label: string;
-  held: boolean; wise?: boolean; chips?: JSX.Element; forRow?: JSX.Element; dotOpen: boolean; saved: boolean;
-  /** K2: Resolve at the line's right, for a wise line that is an open question of the page's sign; done, it is grey. */
-  resolve?: { done: boolean; onChange: (on: boolean) => void };
+  held: boolean; chips?: JSX.Element; forRow?: JSX.Element; dotOpen: boolean; saved: boolean;
   area: (el: HTMLTextAreaElement | null) => void;
   onHold: () => void; onTap: (offset: number | undefined) => void; onDot: () => void;
   onInput: (text: string) => void; onKeyDown: (e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => void;
   onFocus: () => void; onBlur: (to: EventTarget | null) => void;
 };
 
-function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, wise, chips, forRow, dotOpen, saved, resolve, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
+function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, chips, forRow, dotOpen, saved, area, onHold, onTap, onDot, onInput, onKeyDown, onFocus, onBlur }: BlockProps) {
   const hold = useHold(onHold, e => onTap(offsetAt((e.currentTarget as HTMLElement).querySelector('p'), e.clientX, e.clientY)));
   const own = useRef<HTMLTextAreaElement | null>(null);
   // the line height changes with the light (Still has more air), so the height is measured again
   useLayoutEffect(() => grow(own.current), [edit, light.value]);
   const m = b.m;
   const deep = voice?.shade === 'deep';
-  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m?.wise || wise ? ' fs-wise' : ''}${held ? ' held' : ''}${cur ? ' cur' : ''}${resolve ? ' fs-resolvable' : ''}${resolve?.done ? ' fs-resolved' : ''}`;
+  const cls = `fs-msg${voice ? ` fs-v${deep ? ' deep' : ''}` : ''}${m?.wise ? ' fs-wise' : ''}${held ? ' held' : ''}${cur ? ' cur' : ''}`;
   const style = voice ? ({ '--vc': voiceColour(voice.colour, voice.shade) } as JSX.CSSProperties) : undefined;
   return (
     <div class="fs-block">
@@ -192,12 +182,6 @@ function BlockView({ b, text, voice, quoted, dated, cur, edit, label, held, wise
         {voice && <Speaker v={voice} spoke={m ? spokeLabel(m, valueList.value) : undefined} />}
         {quoted && <span class="fs-quote">{quoted.text}</span>}
         {m?.kept && <small class="fs-kept">kept</small>}
-        {/* a hold on the word is not a hold on the line */}
-        {resolve && (
-          <span class="fs-line-resolve" onPointerDown={e => e.stopPropagation()}>
-            <Resolve on={resolve.done} onChange={resolve.onChange} />
-          </span>
-        )}
         {edit ? (
           <textarea ref={el => { own.current = el; area(el); }} class="fs-edit" aria-label={label} defaultValue={text} spellcheck rows={1}
             data-saved={saved ? 'true' : 'false'}
@@ -240,16 +224,6 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const [held, setHeld] = useState<Read<Message> | null>(null);
   const [echo, setEcho] = useState<Kept | null>(null);
   const [saved, setSaved] = useState(true);
-  // PLAN-TASKS.md T3: what a sign's touch carried to today's page, taken once (flow/chakra/carry.ts): Letter's "Dear" on
-  // the next rule (unsaved until he writes), or Ask's answer rule, open in italic as the wiser second person (rule 17)
-  const [carry] = useState<PageCarry | null>(() => {
-    const c = isToday && !fresh ? pageCarry.peek() : null;
-    if (c) pageCarry.value = null;
-    return c;
-  });
-  const [wiseId, setWiseId] = useState<string | null>(null);
-  // K2: the sign's open questions as the page opened (words to id), and those resolved here since
-  const [deckAsks, setDeckAsks] = useState<{ chakra: ChakraId; open: Map<string, string>; done: Set<string> } | null>(null);
   const pageRef = useRef<Read<PageRow> | undefined>();
   const echoRef = useRef<Kept | null>(null);
   const chain = useRef<Promise<void>>(Promise.resolve());
@@ -294,8 +268,6 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     let live = true;
     Promise.all([chipVoices(), voicesById()]).then(([chips, byId]) => live && setVs({ chips, byId }));
     void reloadValues();
-    if (carry?.tail) texts.current.set(tailId, carry.tail);
-    if (carry?.wise) setWiseId(tailId);
     // the page opens with the caret on its next rule: the first rule of a new day, or under the last block
     void refresh().then(() => { if (live) focusOn(tailId, 'end'); });
     return () => { live = false; };
@@ -362,7 +334,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   const textOf = (bid: string) => areas.current.get(bid)?.value ?? texts.current.get(bid) ?? msgOf(bid)?.text ?? '';
   const draftFor = (bid: string, text: string): Draft => {
     const m = msgOf(bid);
-    return { text, voiceId: voiceFor(bid), replyTo: m?.replyTo, wise: m?.wise ?? (bid === wiseId || undefined) };
+    return { text, voiceId: voiceFor(bid), replyTo: m?.replyTo, wise: m?.wise };
   };
 
   // once the next rule has been written on and you have moved on from it, a fresh one waits beneath
@@ -571,36 +543,6 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
     setData(d => (d ? { ...d, page: np } : d));
   };
 
-  // K2: the sign's deck, read once for this page (a page linked to a sign later in the visit reads it then)
-  const signAt = data?.page?.sign?.chakra;
-  const signOf = signAt && isChakraId(signAt) ? signAt : undefined;
-  useEffect(() => {
-    if (!signOf || deckAsks?.chakra === signOf) return;
-    let on = true;
-    deckOf(signOf).then(d => {
-      if (on) setDeckAsks({ chakra: signOf, open: new Map(d.open.map(q => [oneLine(q.text), q.id])), done: new Set() });
-    }, () => undefined);
-    return () => { on = false; };
-  }, [signOf]);
-  const resolveFor = (m: Read<Message> | undefined) => {
-    if (!m?.wise || !deckAsks) return undefined;
-    const qid = deckAsks.open.get(oneLine(m.text));
-    if (!qid) return undefined;
-    const c = deckAsks.chakra;
-    return {
-      done: deckAsks.done.has(qid),
-      onChange: (on: boolean) => {
-        setDeckAsks(x => {
-          if (!x) return x;
-          const done = new Set(x.done);
-          if (on) done.add(qid); else done.delete(qid);
-          return { ...x, done };
-        });
-        void resolveAsk(c, qid, on).catch(() => undefined);
-      },
-    };
-  };
-
   const walk = data?.walk;
   const walkTo = (qid: string) => route(`/questions/${qid}`);
   const swipe = useSwipe(walk, walkTo);
@@ -622,7 +564,6 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
   return (
     <Page no={kind === 'entry' ? data?.no : undefined} date={date} count={count} pageId={page?.id} drawn={data !== null}
       pages={isQuestion ? undefined : 'link'} back={isQuestion ? { word: 'Questions', href: '#/questions' } : undefined}
-      sign={page?.sign?.chakra}
       music={page ? {
         id: page.id, music: page.music,
         onMusic: music => { if (pageRef.current) pageRef.current = { ...pageRef.current, music }; setData(d => (d?.page ? { ...d, page: { ...d.page, music } } : d)); },
@@ -668,8 +609,7 @@ export function PageView({ id, section = 'journal', fresh = false }: { id?: stri
             <BlockView key={b.id} b={b} text={texts.current.get(b.id) ?? m?.text ?? ''} voice={voice}
               quoted={m?.replyTo ? byId.get(m.replyTo) : undefined} dated={dated} cur={b.id === cur} edit={b.id === cur || !m}
               label={b.id === lastArea ? pageLabel : 'This line'}
-              held={!!m && openSheet.value === 'line' && held?.id === m.id} wise={!m && b.id === wiseId} dotOpen={dotFor === b.id} saved={saved && !!data}
-              resolve={resolveFor(m)}
+              held={!!m && openSheet.value === 'line' && held?.id === m.id} dotOpen={dotFor === b.id} saved={saved && !!data}
               chips={dotFor === b.id && b.id === cur ? (
                 <div class="fs-inline" onMouseDown={e => e.preventDefault()}>
                   <div class="fs-chips" role="group" aria-label="Who speaks this line">

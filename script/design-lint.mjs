@@ -19,8 +19,6 @@ const isHaptic = f => /parts\/Haptic\.(ts|tsx)$/.test(f);
 const isMusic = f => /(^|\/)src\/music\//.test(f);
 // Research (PLAN-RESEARCH.md): the second fenced place allowed to reach out, opt-in like the first.
 const isResearch = f => /(^|\/)src\/research\//.test(f);
-// The signs' starters (PLAN-SIGN-LINES.md, L1): the file whose CHAKRAS carries each sign's line.
-const isMountain = f => /(^|\/)model\/mountain\.ts$/.test(f);
 
 const rules = [
   { id: 'DL1 colour literal outside tokens.css', skip: isTokens, re: /(#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{3}\b(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab)\(\s*[\d.])/ , where: l => !/^\s*\/\//.test(l) },
@@ -33,9 +31,6 @@ const rules = [
   { id: 'DL20 AudioContext outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b/ },
   { id: 'DL21 fetch outside src/music and src/research', only: f => inSrc(f) && !isMusic(f) && !isResearch(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
-  // DESIGN.md rule 34: the seven are Crown to Root, never their Sanskrit names (in their common spellings), and nothing
-  // borrowed from the tradition's drawing or its words for what rises
-  { id: 'DL22 Sanskrit name or lotus (rule 34)', re: /\b(sahasrara|sahasara|sahasrar|ajn[aã]|agya|vis?h?uddh[ai]|anahata|mani-?pura(ka)?|s[vw]adhis?h?th?ana|m[uo]{1,2}ladhara|lotus(es)?|petals?|meru|kundalini|bija)\b/i },
 ];
 
 let bad = 0;
@@ -51,15 +46,6 @@ for (const f of files) {
       if (r.re.test(l)) { bad++; console.log(`${f}:${i + 1}  ${r.id}\n    ${l.trim().slice(0, 110)}`); }
     });
   }
-  // DL23 (PLAN-SIGN-LINES.md section 2, L1): each sign's line in CHAKRAS (model/mountain.ts, one stop(...) a line, the
-  // line its fifth string) is two short sentences on two rules at 390pt: 70 characters at most, and no em dash
-  if (isMountain(f)) lines.forEach((l, i) => {
-    if (!/^\s*stop\(/.test(l)) return;
-    const said = [...l.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map(m => m[1]);
-    const line = said[4];
-    if (line === undefined) { bad++; console.log(`${f}:${i + 1}  DL23 a stop with no line\n    ${l.trim().slice(0, 110)}`); return; }
-    if (line.length > 70 || /\u2014/.test(line)) { bad++; console.log(`${f}:${i + 1}  DL23 a sign's line over 70 characters or with an em dash\n    ${line.slice(0, 110)}`); }
-  });
   // DL17b: a file that animates must honour reduced motion
   if (/animation\s*:/.test(src) && !/prefers-reduced-motion/.test(src)) { bad++; console.log(`${f}  DL17 animation without a prefers-reduced-motion rule`); }
 }

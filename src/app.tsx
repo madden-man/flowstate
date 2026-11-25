@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step, #/flow/c/:chakra (R3: a stop's page; a flow under a sign opens it). The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step. #/flow is the shelf (PLAN-WORLDS.md section 4); #/flow/c/:chakra, the signs' pages, left with the mountain (section 4.1) and goes back to #/flow. The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -10,8 +10,7 @@ import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
-import { FlowPage } from './ui/flow/FlowPage';
-import { FlowRoute, DoorChakraPage } from './ui/flow/ChakraPage';
+import { FlowPage, FlowRoute } from './ui/flow/FlowPage';
 import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
@@ -28,7 +27,7 @@ import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
-import { cleanSeedPages, moveDoctorLineOnce, seedBlockersOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from './db/seed';
+import { cleanSeedPages, moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from './db/seed';
 import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
@@ -135,9 +134,8 @@ function Frame() {
           <Route path="/flow/research/asked" component={ResearchAsked} />
           <Route path="/flow/research/:id" component={ResearchInquiry} />
           <Route path="/flow/research/:id/:paper" component={ResearchPaper} />
-          {/* a stop's page (PLAN-MOUNTAIN.md R3), before /flow/:id/:step so "c" is never read as a flow; one component for
-              all three, so a dot moved on a stop's page keeps the page (ui/flow/ChakraPage.tsx FlowRoute) */}
-          <Route path="/flow/c/:chakra" component={FlowRoute} />
+          {/* where a sign's page was (PLAN-WORLDS.md section 4.1), before /flow/:id/:step so "c" is never read as a flow */}
+          <Route path="/flow/c/*" component={() => <Redirect to="/flow" />} />
           <Route path="/flow/:id" component={FlowRoute} />
           {/* What stuck (PLAN-ENERGIZE.md X4), before /flow/:id/:step so it is never read as a step; behind the PIN only:
               the door frame has no such route and model/door.ts doorPasses lets no word step through */}
@@ -174,8 +172,6 @@ function DoorFrame() {
         <Router>
           <Route path="/flow/now" component={DoorNow} />
           <Route path="/flow/meditate" component={DoorMeditate} />
-          {/* a sign's page (PLAN-TASKS.md section 7): the place and the touches that write nothing */}
-          <Route path="/flow/c/:chakra" component={DoorChakraPage} />
           <Route path="/flow/:id/:step" component={DoorFlowPage} />
         </Router>
         <DoorPin />
@@ -225,15 +221,13 @@ function Gate({ children }: { children: ComponentChildren }) {
         const written = await seedFlowsOnce();
         // the picks (PLAN-PICKS.md, P0) after the flows, so the four new On rows are there to give theirs
         const picked = await seedPicksOnce();
-        // the blockers (PLAN-BLOCKERS.md section 5, K3): the second listings and the six drafts, once, after the flows
-        const blocked = await seedBlockersOnce();
         // the fixations (PLAN-ENERGIZE.md section 5, X1): the first three and the deck, once, sealed like the flows
         const fixed = await seedFixationsOnce();
         // X5: Energize's doctor line moves from the rest page to The tip, once, after the flows are there
         const doctor = await moveDoctorLineOnce();
         // PLAN-VALUES.md section 5 (C1): each paradox made one value, once, sealed like the fixations
         const valued = await valuesFromParadoxesOnce();
-        if (wrote || written?.length || picked?.length || blocked?.length || fixed?.length || doctor || valued?.length) dataVersion.value++;
+        if (wrote || written?.length || picked?.length || fixed?.length || doctor || valued?.length) dataVersion.value++;
         if (openedOnce) return;
         openedOnce = true;
         const live = await onOpen();

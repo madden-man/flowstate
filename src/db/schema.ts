@@ -8,10 +8,15 @@
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
-import type { ChakraId } from '../model/mountain';
 import type { Inquiry, Paper } from '../research/types';
 
 export { POEMS_ID, POEMS_NAME };
+
+/** The seven signs' ids (PLAN-MOUNTAIN.md). The mountain and its signs left the app (PLAN-WORLDS.md section 4.1), but
+ *  flows.chakra, the readings, the signs' shelves and the marks still hold them, unread, in the notebook and its
+ *  backups; removing them is a later, separate choice. */
+export const CHAKRA_IDS = ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root'] as const;
+export type ChakraId = typeof CHAKRA_IDS[number];
 
 /** The values' schema version (PLAN-VALUES.md section 5): the values table. It reached main first. */
 export const VALUES_VERSION = 6;

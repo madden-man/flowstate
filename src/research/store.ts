@@ -1,7 +1,7 @@
 // Research's rows (PLAN-RESEARCH.md section 5, Q2): the only place Research reads or writes the database, and it does
 // so through the fields layer (src/db/fields.ts), which seals an inquiry's question and runs and the keys in settings.
-// Papers are an index's public record and stay clear. Locked, the reads come back empty (as model/acts.ts does: a
-// sealed row has nothing to show) and every write throws LockedError from the store, as the music tie-in's do
+// Papers are an index's public record and stay clear. Locked, the reads come back empty (a sealed row has nothing
+// to show) and every write throws LockedError from the store, as the music tie-in's do
 // (music/connect.ts), so the page and Settings can say nothing rather than something half read.
 //
 // The keys live in the settings row, which the UI also holds as a signal (ui/settings.ts). saveResearchKey and
@@ -13,7 +13,7 @@ import { keyState, store, tombstone } from '../db/fields';
 import type { ResearchKey, Settings } from '../db/schema';
 import type { Inquiry, Paper } from './types';
 
-/** Bumped on every Research write, so the page and the Asked list read again (as shelfVersion is for a sign's shelf).
+/** Bumped on every Research write, so the page and the Asked list read again.
  *  dataVersion stays the import's: it remounts every page. */
 export const researchVersion = signal(0);
 const wrote = () => { researchVersion.value++; };

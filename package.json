@@ -21,13 +21,10 @@
     "walkthrough:motion": "node script/build-motion-walkthrough.mjs",
     "walkthrough:picks": "node script/build-picks-walkthrough.mjs",
     "walkthrough:energize": "node script/build-energize-walkthrough.mjs",
-    "walkthrough:mountain": "node script/build-mountain-walkthrough.mjs",
     "walkthrough:values": "node script/build-values-walkthrough.mjs",
     "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs",
     "walkthrough:folds": "node script/build-folds-walkthrough.mjs",
-    "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
-    "walkthrough:research": "node script/build-research-walkthrough.mjs",
-    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs"
+    "walkthrough:research": "node script/build-research-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"

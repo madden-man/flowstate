@@ -29,10 +29,10 @@
 .fs-hdr-r { display: grid; gap: 2px; text-align: right; padding-bottom: var(--s1); }
 /* v2: the header carries moon, Pages, Settings and ♪ at the left; on a 375pt phone the date still keeps one line */
 .fs-hdr-r > span { white-space: nowrap; }
-/* the top line ("No. 4", "2 of 3 open", "Heart chakra"), the carried sign before it (flow/chakra/SignBack); with
-   nothing on it, or in Still with only a count that Still hides, it takes no room */
-.fs-hdr-top:not(:has(.fs-count, .fs-hdr-label, .ck-signback)),
-[data-light="still"] .fs-hdr-top:not(:has(.fs-hdr-label, .ck-signback)) { display: none; }
+/* the top line ("No. 4", "2 of 3 open", "Flow"); with nothing on it, or in Still with only a count that Still hides,
+   it takes no room */
+.fs-hdr-top:not(:has(.fs-count, .fs-hdr-label)),
+[data-light="still"] .fs-hdr-top:not(:has(.fs-hdr-label)) { display: none; }
 /* a 375pt phone: Pages and Settings stand a little closer, so the small cover by the ♪ still leaves the date its line */
 @media (max-width: 380px) { .fs-hdr-l > .fs-word:not(.fs-musicword) { padding: 0 calc(var(--s1) * .5); } }
 .fs-hdr-l > .fs-word { padding: 0 calc(var(--s1) * .75); }
@@ -691,12 +691,10 @@ a.fs-row { color: var(--ink); text-decoration: none; }
 }
 
 /* ==== Flows (F1, PLAN-FLOWS.md): the list, parts/Cycle, a flow's page ==== */
-/* the list: a flow's name on the rule in the title size, its shape's name and last time in print under it, its
-   drawing small in print at the right (with the dot on it while an episode is open) */
+/* the list: a flow's name on the rule in the title size, what it is in print under it */
 .fs-row.fl-flow { position: relative; padding-right: calc(var(--lh-ink) * 3); }
 .fl-flow .fs-list-line { font-size: var(--fs-title); }
 .fl-flow .fs-list-meta { color: var(--print); text-align: left; }
-.fl-mini { position: absolute; right: 0; top: calc(var(--lh-ink) * .25); width: calc(var(--lh-ink) * 2.5); height: calc(var(--lh-ink) * 1.5); }
 /* the drawing: eight rules tall so the page's grid holds under it; the shape in print, the dot in ink */
 .fs-cycle { position: relative; width: 100%; height: calc(var(--lh-ink) * 8); margin: 0 auto; flex: none; touch-action: none; -webkit-user-select: none; user-select: none; }
 .fs-cycle.small { height: 100%; }
@@ -825,14 +823,6 @@ a.fs-row { color: var(--ink); text-decoration: none; }
   animation: fl-blink calc(var(--t-breath) / 9) steps(1) infinite; }
 @keyframes fl-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fl-caret { animation: none; } }
-/* the sheet's nine drawings, small in print, each with its name; the chosen one in ink */
-.fl-shapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s1); }
-.fl-shape { display: grid; gap: 4px; justify-items: center; min-height: var(--hit); padding: var(--s1) 4px; border: 1px solid transparent;
-  border-radius: 8px; background: none; color: var(--print); font-family: var(--sans); font-size: var(--fs-print);
-  letter-spacing: var(--track-print); cursor: pointer; }
-.fl-shape[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
-.fl-shape-draw { display: block; width: 100%; height: calc(var(--lh-ink) * 1.5); }
-.fl-shape[aria-pressed="true"] .fs-cycle .arc, .fl-shape[aria-pressed="true"] .fs-cycle .arrow { stroke: var(--ink); }
 
 /* ==== Flows (F4): the curve, the coil, the clock, the stairs, the fork ==== */
 /* the clock's awake stretch, thick in ink; its hour ticks, faint; 7 a pinned dot */
@@ -1113,11 +1103,11 @@ html[data-turn="fx-swap"]::view-transition-old(root), html[data-turn="fx-swap"]:
 .fs-chip[aria-pressed="true"][data-down], .fs-opt[aria-pressed="true"][data-down] { background-color: var(--ink); }
 
 /* rows: a 6% ink wash, on at the touch, easing out over --t-page */
-.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname, .fl-shape {
+.fs-row, .fs-list-row, .fs-crow, .fs-link, .fs-qrow, .fs-dichotomy, .fs-echo-tap, .fs-vname {
   transition: background-color var(--t-page) var(--ease);
 }
 .fs-row[data-down], .fs-list-row[data-down], .fs-crow[data-down], .fs-link[data-down], .fs-qrow[data-down], .fs-dichotomy[data-down],
-.fs-echo-tap[data-down], .fs-vname[data-down], .fl-shape[data-down] {
+.fs-echo-tap[data-down], .fs-vname[data-down] {
   background-color: color-mix(in oklch, var(--ink) 6%, transparent); transition: none;
 }
 /* the step words on a flow's drawing: the wash fills their 44pt target */
@@ -1401,48 +1391,6 @@ html[data-turn="wake"]::view-transition-old(root) { z-index: 1; animation: fs-st
 /* ---- M5 ends ---- */
 
 
-/* ---- R0: parts/Sign, the mountain's seven signs (PLAN-MOUNTAIN.md pass 6) ---- */
-/* A lantern: open, full of its hue (--sh, by the voice formula, rule 3, at --sign-l and --sign-c); as the gate closes the
-   body empties and the outline goes cold. Sign.tsx sets only --gate inline; --closed is derived here so the Still rules
-   below can pin it to 0 whatever the element carries. The drawing-in to 70 percent is a CSS scale of the group.
-   Strokes are in the 28-unit box (no non-scaling-stroke), so a dash on pathLength 1 really draws the line: 1.4 units
-   at small (1.4px), .5 at large (2px). No filter and no glow here: on the plate the glow is the parent's canvas (pass 6),
-   and a per-sign filter would repaint on every frame of a gate drag. Nothing moves here on its own.
-   On paper: cold is print grey and the cut-out marks are the page. On the plate (.on-plate on any ancestor, or the
-   plate prop): the lantern takes --plate-voice-l / --plate-voice-c, cold is --plate-line, the marks are --plate. */
-.fs-sign {
-  --closed: var(--gate, 0);
-  --sign-l: var(--voice-l); --sign-c: var(--voice-c);
-  --sign-cold: var(--print); --sign-cut: var(--page);
-  --sc: oklch(var(--sign-l) var(--sign-c) var(--sh, 0));
-  display: inline-block; vertical-align: middle; width: var(--lh-ink); height: var(--lh-ink); overflow: visible;
-}
-.on-plate .fs-sign, .fs-sign[data-plate] {
-  --sign-l: var(--plate-voice-l); --sign-c: var(--plate-voice-c); --sign-cold: var(--plate-line); --sign-cut: var(--plate);
-}
-.fs-sign[data-size="large"] { width: calc(var(--lh-ink) * 4); height: calc(var(--lh-ink) * 4); }
-.fs-sign-g { transform: scale(calc(1 - .3 * var(--closed))); }
-.fs-sign path { stroke-linejoin: round; stroke-linecap: round; }
-.fs-sign-body {
-  fill: var(--sc); fill-opacity: calc(1 - var(--closed));
-  stroke: color-mix(in oklch, var(--sc) calc((1 - var(--closed)) * 100%), var(--sign-cold)); stroke-width: 1.4;
-}
-.fs-sign[data-size="large"] .fs-sign-body { stroke-width: .5; }
-/* the marks over the body: cut out of the light while it is full, cold once it is empty */
-.fs-sign-line { fill: none; stroke: color-mix(in oklch, var(--sign-cut) calc((1 - var(--closed)) * 100%), var(--sign-cold)); stroke-width: 1.2; }
-.fs-sign[data-size="large"] .fs-sign-line { stroke-width: .45; }
-/* the sun's rays and the sprout's stem lie outside the body, so they are drawn in the lantern's own light, cold once
-   it is empty, never in the ground's colour (on the plate that would be plate on plate, and the sun a bare disc) */
-.fs-sign:is([data-sign="sun"], [data-sign="sprout"]) .fs-sign-line { stroke: color-mix(in oklch, var(--sc) calc((1 - var(--closed)) * 100%), var(--sign-cold)); }
-/* Still (rule 13): open and without hue whatever the gate says, full of the cold colour with its marks cut out of the
-   ground, so it reads at the print's 3.5:1. Two attributes and a class, so it outranks the plate rule above. */
-[data-light="still"] .fs-sign.fs-sign, .fs-sign.fs-sign[data-still] { --closed: 0; --sc: var(--sign-cold); }
-[data-light="still"] .fs-sign .fs-sign-g, .fs-sign[data-still] .fs-sign-g { transform: none; }
-[data-light="still"] .fs-sign .fs-sign-body, .fs-sign[data-still] .fs-sign-body { fill: var(--sign-cold); fill-opacity: 1; stroke: var(--sign-cold); }
-[data-light="still"] .fs-sign .fs-sign-line, .fs-sign[data-still] .fs-sign-line { stroke: var(--sign-cut); }
-[data-light="still"] .fs-sign:is([data-sign="sun"], [data-sign="sprout"]) .fs-sign-line, .fs-sign:is([data-sign="sun"], [data-sign="sprout"])[data-still] .fs-sign-line { stroke: var(--sign-cold); }
-/* ---- R0 ends ---- */
-
 /* ---- Spoke for (PLAN-VALUES.md C4) ---- */
 /* the row on a tapped voiced line: "Spoke for" in print, then his words as chips, scrolling sideways like any chip row;
    in the council's reply bar under the quote, in the journal under the current line where the dot's chips step out */
@@ -1694,27 +1642,3 @@ html[data-turn="be-place"]::view-transition-new(root) { animation: none; }
 }
 /* ==== Resolve ends ==== */
 
-/* ==== K2: Resolve on a journal line (PLAN-BLOCKERS.md section 3 step 11; journal/PageView.tsx). A wise line that is
-   an open question of the page's sign carries Resolve at the right of its first rule; its words wrap short of it, so
-   the line never rewraps when the check stands there. Resolved, the words go to print grey, as on the sign's page.
-   Still: Resolve leaves (fs-notstill) and the line is ink again, since Still shows no states (rule 13). ==== */
-.fs-col .fs-msg.fs-resolvable { padding-right: calc(var(--hit) * 1.75); }
-.fs-line-resolve { position: absolute; top: 0; right: 0; z-index: 1; display: flex; }
-.fs-col .fs-msg.fs-resolved p, .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--print); }
-[data-light="still"] .fs-col .fs-msg.fs-resolved p, [data-light="still"] .fs-col .fs-msg.fs-resolved .fs-edit { color: var(--ink); }
-/* ==== K2 ends ==== */
-
-/* ==== L1: parts/Versus, the pair a sign comes down to (PLAN-SIGN-LINES.md section 4). One rule: the sign lit and what
-   he wants in ink serif, "vs." in print sans, what works against it in print grey and the sign emptied. The signs are
-   parts/Sign at the rule's own height (R0's small size), no filter, nothing moving. Still: the signs leave (fs-notstill)
-   and the words stay on the rule, all in print, so the block keeps its height (rule 13). ==== */
-.fs-versus {
-  display: flex; align-items: center; gap: var(--s1); margin: 0; height: var(--lh-ink); overflow: hidden; white-space: nowrap;
-  font-family: var(--serif); font-size: var(--fs-ink); line-height: var(--lh-ink);
-}
-.fs-versus-sign { display: inline-flex; flex: none; }
-.fs-versus-want { color: var(--ink); }
-.fs-versus-against { color: var(--print); }
-.fs-versus-vs { font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); color: var(--print); }
-[data-light="still"] .fs-versus-want { color: var(--print); }
-/* ==== L1 ends ==== */

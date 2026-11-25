@@ -1,0 +1,55 @@
+/* The shelf (PLAN-WORLDS.md section 4, ui/flow/Shelf.tsx) and what stands under it (ui/flow/Flow.tsx). Tokens only.
+   A cover: a notebook's paper in its hue, one hue on its spine, its name in the serif, a print line at its foot. */
+.fl-shelf { flex: none; display: flex; justify-content: center; padding: var(--s2) var(--gutter) var(--s2); }
+.fl-cover {
+  --spine: calc(var(--s1) + 2px);
+  position: relative; flex: none; display: flex; flex-direction: column; justify-content: space-between;
+  /* a phone's width, never so tall on a short phone that the rows under it leave the screen */
+  width: min(62%, calc(var(--lh-ink) * 8.5), 33svh); aspect-ratio: 5 / 6;
+  padding: var(--s2) var(--s2) var(--s1) calc(var(--spine) + var(--s2));
+  border: 1px solid var(--seam); border-radius: 3px 12px 12px 3px;
+  color: var(--ink); text-decoration: none; font-family: var(--serif);
+  /* mixed in oklab, so a hueless voice (his own, the black voice) gives a grey paper and never a borrowed hue */
+  background:
+    linear-gradient(to right, color-mix(in oklab, var(--wc) 62%, var(--page)) 0 var(--spine), color-mix(in oklab, var(--wc) 34%, var(--page)) var(--spine) calc(var(--spine) + 1px), transparent calc(var(--spine) + 1px)),
+    linear-gradient(to right, color-mix(in oklab, var(--wc) 16%, var(--page)), color-mix(in oklab, var(--wc) 9%, var(--page)));
+  box-shadow: var(--shadow-tile), 0 16px 32px var(--scrim);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease), background-color var(--t-light) var(--ease);
+}
+/* rule 26: down is instant, up is eased */
+.fl-cover[data-down] { transform: scale(var(--press)); transition: none; }
+.fl-cover:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.fl-cover-name { font-size: var(--fs-manifesto); line-height: 1.15; text-wrap: balance; }
+.fl-cover-foot {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--print); line-height: var(--lh-ink);
+}
+/* Still: paper and seam, no hue (rule 40); the spine is the seam's fold */
+[data-light="still"] .fl-cover {
+  background: linear-gradient(to right, transparent 0 var(--spine), var(--seam) var(--spine) calc(var(--spine) + 1px), transparent calc(var(--spine) + 1px)), var(--page);
+  box-shadow: none;
+}
+
+/* under the shelf, on the rules */
+.fl-lastline { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fl-lastline small {
+  font-family: var(--sans); font-style: normal; font-size: var(--fs-print); letter-spacing: var(--track-print);
+  text-transform: uppercase; margin-right: var(--s1);
+}
+/* three circles, four rules tall: the drawing on three, the name on the fourth */
+.fl-circles { display: flex; justify-content: space-around; height: calc(var(--lh-ink) * 4); }
+.fl-circle {
+  display: grid; grid-template-rows: calc(var(--lh-ink) * 3) var(--lh-ink); justify-items: center;
+  min-width: calc(var(--lh-ink) * 3); color: var(--ink); text-decoration: none; -webkit-tap-highlight-color: transparent;
+}
+.fl-circle svg { width: calc(var(--lh-ink) * 3); height: calc(var(--lh-ink) * 3); overflow: visible; transition: transform var(--t-ui) var(--ease); }
+.fl-circle svg circle, .fl-circle svg path { fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; }
+.fl-circle[data-down] svg { transform: scale(var(--press)); transition: none; }
+.fl-circle:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--s1); }
+.fl-circle-name {
+  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  color: var(--print); line-height: var(--lh-ink);
+}
+/* Right now stands on the rules like the circles, with no seam of its own (rule 5) */
+.fl-under .fs-row { border-top: 0; }

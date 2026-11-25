@@ -1,6 +1,6 @@
 // Research (PLAN-RESEARCH.md section 2, Q4), in the real app with the network routed to a recorded run
 // (test/research/recorded.ts, test/fixtures/research/run-writing.json): no key on this machine reaches anything. The
-// third circle in the sea opens the blank page; with no key it says where the key goes and nothing leaves the origin;
+// third circle under the shelf opens the blank page; with no key it says where the key goes and nothing leaves the origin;
 // a key pasted in Settings, Ask sends the question to the (routed) API and the indexes and nothing else; the titles
 // are written in, the check lifts one, the chips filter; Abstract opens the paper's page; Write about it carries the
 // title to today's page; Asked lists the question. Screenshots in the three lights land in test-results/research-*.
@@ -52,11 +52,11 @@ test('Research: the circle, no key, a key, a run written in, a paper, the carry,
     });
   }
 
-  // the third circle in the sea, the line down its middle; its name is what travels
+  // the third circle under the shelf, the line down its middle; its name is what travels
   await open(page, '#/flow');
-  const circle = page.locator('.mt-plate a.mt-circle', { hasText: 'Research' });
+  const circle = page.locator('a.fl-circle', { hasText: 'Research' });
   await expect(circle).toHaveAttribute('href', '#/flow/research');
-  await expect(circle.locator('.mt-name')).toHaveAttribute('data-travel', 'rs-name');
+  await expect(circle.locator('.fl-circle-name')).toHaveAttribute('data-travel', 'rs-name');
   await circle.click();
   await expect(page).toHaveURL(/#\/flow\/research$/);
   await expect(page.locator('.fs-hdr-label')).toHaveText('Research');
