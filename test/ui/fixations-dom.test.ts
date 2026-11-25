@@ -151,13 +151,12 @@ describe('the Energize page and the Flow list, from the database', () => {
     expect(root.querySelector<SVGSVGElement>('.fl-stream svg')!.getAttribute('style')).toBeNull();
   });
 
-  it('the Flow tab is the mountain since R1: Energize is a circle in the sea, and no flow has a row', async () => {
+  it('the Flow tab is the shelf (PLAN-WORLDS.md section 4): Energize is a circle under the cover, and no flow has a row', async () => {
     act(() => { render(h(LocationProvider, null, h(Flow, null)), root); });
     await flush();
-    expect(root.querySelectorAll('.mt-stop')).toHaveLength(7);
-    const circle = [...root.querySelectorAll<HTMLAnchorElement>('a.mt-circle')].find(a => a.textContent === 'Energize')!;
+    const circle = [...root.querySelectorAll<HTMLAnchorElement>('a.fl-circle')].find(a => a.textContent === 'Energize')!;
     expect(circle.getAttribute('href')).toBe('#/flow/energize');
-    expect(root.querySelectorAll('a.fl-flow:not(.fl-now)')).toHaveLength(0);
+    expect([...root.querySelectorAll('a.fl-flow')].map(a => a.getAttribute('href'))).toEqual(['#/flow/now']);
   });
 });
 

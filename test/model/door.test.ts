@@ -30,10 +30,8 @@ describe('the route gate', () => {
     expect(doorPasses('/flow/energize/stuck', true)).toBe(false);
     expect(doorPasses('/flow/meditate', false)).toBe(false);
   });
-  it('a sign\'s page passes (PLAN-TASKS.md section 7), a sign that is not one does not', () => {
-    for (const c of ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root']) expect(doorPasses(`/flow/c/${c}`, true), c).toBe(true);
-    for (const p of ['/flow/c', '/flow/c/', '/flow/c/spleen', '/flow/c/root/1', '/flow/c/root/x']) expect(doorPasses(p, true), p).toBe(false);
-    expect(doorPasses('/flow/c/root', false)).toBe(false);
+  it('where a sign\'s page was is behind the keypad: the signs left with the mountain (PLAN-WORLDS.md section 4.1)', () => {
+    for (const p of ['/flow/c/root', '/flow/c/heart', '/flow/c', '/flow/c/root/x']) expect(doorPasses(p, true), p).toBe(false);
   });
   it('a query does not change the answer', () => {
     expect(doorPasses('/flow/panic/2?x=1', true)).toBe(true);

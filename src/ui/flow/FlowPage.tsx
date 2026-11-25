@@ -6,10 +6,13 @@
 //
 // Walk it once (3.7): a tap on a step word only reads that step; an episode starts when the dot is dragged off rest.
 //
-// Every flow has this page (PLAN-BLOCKERS.md decisions 9 and 10, K3), a flow under a sign too: a tap on its Blockers
-// row, a live episode, Right now, hand-offs and the door land here. The way back is the sign it was opened from
-// (chakra/Blockers.tsx backSignOf), else its own sign, else Flow. A draft (a candidate with step words only) shows its
-// drawing and step words, and "+ step" where a written flow's rest page has its lines.
+// Every flow has this page: a live episode, Right now, hand-offs and the door land here, and Energize's circle under
+// the shelf (PLAN-WORLDS.md section 4). The way back is Flow. A draft (a candidate with step words only, from the
+// mountain's blockers, PLAN-BLOCKERS.md) shows its drawing and step words, and "+ step" where a written flow's rest page
+// has its lines.
+//
+// FlowRoute is the one component the router renders for #/flow/:id and #/flow/:id/:step, so a dot moved on the page
+// (a replace to the step's route) keeps the page. #/flow/c, where the signs were, goes back to Flow.
 //
 // doorOnly (F5, the door without the PIN, 3.7): the journal is locked and the lock let this page through. The flow
 // reads as its seed (model/door.ts doorRead), the dot moves in memory only (ui/flow/door.ts doorDot) and nothing is
@@ -56,8 +59,13 @@ import { Stream } from '../parts/Stream';
 import { pacesOf } from '../../model/pace';
 import { FIXATION_FLOW, type Sparked } from '../../model/fixations';
 import { FixationCard, Fixations, laneHues, useFixations, type Landed } from './Fixations';
-import { backSignOf } from './chakra/Blockers';
-import { chakraOf } from '../../model/mountain';
+import { Redirect } from '../route';
+
+/** The router's one component for #/flow/:id and #/flow/:id/:step. */
+export function FlowRoute({ id, step }: { id?: string; step?: string }) {
+  if (id === undefined || id === 'c') return <Redirect to="/flow" />;
+  return <FlowPage key={id} id={id} step={step} />;
+}
 
 type Loaded = { flow: Read<Flow>; live?: Read<Episode>; last?: Read<Episode> } | 'none';
 
@@ -159,10 +167,8 @@ export function FlowPage({ id, step, doorOnly }: { id: string; step?: string; do
     if (l) setLanding(was => ({ k: at, seq: (was?.seq ?? 0) + 1, hue: l.hue }));
   };
 
-  // the way back (PLAN-BLOCKERS.md decision 9): the sign it was opened from, else its own sign, else Flow; through the
-  // door the word asks for the PIN, which opens Flow, so it stays Flow there
-  const sign = doorOnly ? null : backSignOf(flow);
-  const back = sign ? { word: chakraOf(sign).name, href: `#/flow/c/${sign}` } : { word: 'Flow', href: '#/flow' };
+  // the way back is Flow; through the door the word asks for the PIN, which opens Flow
+  const back = { word: 'Flow', href: '#/flow' };
 
   return (
     <Page label={flow.name} back={back} keepSettings door={door}>

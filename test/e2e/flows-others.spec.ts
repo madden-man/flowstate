@@ -1,10 +1,9 @@
-// The other three and your own flows (F3, PLAN-FLOWS.md section 6): a deep link to Depress's bottom reads the step on
-// Depress's own page (PLAN-BLOCKERS.md K3) with its printed safety line (a line, never a check), in Still too; the drawings (the valley's
-// floor, Fight's mountain) are the flow page's, seen with those flows taken off their signs (./no-sign.ts); Energize
-// at rest is the three (X2); "+ flow" makes a flow that opens on an empty drawing, its first step is named in the
-// sheet, and the flow survives an offline reload.
+// The other three (F3, PLAN-FLOWS.md section 6): a deep link to Depress's bottom reads the step on Depress's own page
+// with its printed safety line (a line, never a check), in Still too; the drawings (the valley's floor, Fight's
+// mountain) are the flow page's; Energize at rest is the three (X2). "+ flow" left with the mountain (PLAN-WORLDS.md
+// section 4.1).
 import { test, expect, type Page } from '@playwright/test';
-import { offItsSign } from './no-sign';
+import { whenSeeded } from './seeded';
 
 const threshold = async (page: Page) => {
   const t = page.locator('[data-threshold]');
@@ -18,11 +17,10 @@ test('the bottom on Depress\'s own page and its printed safety line; Energize at
   await threshold(page);
   const body = page.locator('.fs-flowpage[data-flow="depress"]');
   await expect(body).toHaveAttribute('data-showing', '4');
-  // its own page again (PLAN-BLOCKERS.md K3): the valley, the step pressed, the said paragraph, the safety line
-  await expect(page.locator('.ck-page')).toHaveCount(0);
+  // its own page: the valley, the step pressed, the said paragraph, the safety line
   await expect(body.locator('.fs-cycle[data-diagram="valley"]')).toBeVisible();
   await expect(body.locator('.fs-cycle-word[aria-pressed="true"]')).toHaveAttribute('aria-label', 'The bottom');
-  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Heart', exact: true })).toHaveAttribute('href', '#/flow/c/heart');
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Flow', exact: true })).toHaveAttribute('href', '#/flow');
   const safety = body.locator('.fl-print');
   await expect(safety).toHaveText("If you're thinking about suicide, call or text 988. Someone answers, any hour.");
   // a printed line, not a row: nothing to tick
@@ -49,21 +47,16 @@ test('the bottom on Depress\'s own page and its printed safety line; Energize at
   await expect(fight).toHaveAttribute('data-showing', '5');
   await expect(fight.locator('.fs-cycle[data-diagram="mountain"]')).toBeVisible();
   await expect(fight.locator('.fl-line')).toHaveText('Slower now?');
-
-  // on the mountain Fight sits under the throat's sign (PLAN-MOUNTAIN.md section 6), reached through it
-  await page.goto('/#/flow');
-  await expect(page.locator('a.mt-stop[data-chakra="throat"]')).toHaveAttribute('href', '#/flow/c/throat');
 });
 
-test('under no sign: the bottom on the valley\'s floor with its safety line, and Fight\'s mountain cools with "Slower now?"', async ({ page }) => {
+test('the bottom on the valley\'s floor with its safety line, and Fight\'s mountain cools with "Slower now?"', async ({ page }) => {
   await page.goto('/#/flow');
   await page.locator('.fs-app').waitFor();
   await threshold(page);
-  await offItsSign(page, 'depress', 'fight');
+  await whenSeeded(page, 'depress', 'fight');
   await page.goto('/#/flow/depress/4');
   const body = page.locator('.fs-flowpage');
   await expect(body).toHaveAttribute('data-showing', '4');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'The bottom' })).toHaveAttribute('aria-pressed', 'true');
   await expect(body.locator('.fl-said').first()).toContainText('the floor is where it turns');
@@ -84,48 +77,4 @@ test('under no sign: the bottom on the valley\'s floor with its safety line, and
   await page.goto('/#/flow/fight/5');
   await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="mountain"] text.print')).toHaveText(['20 min', 'about an hour']);
   await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Slower now?');
-});
-
-test('"+ flow" makes a flow from nothing that survives an offline reload', async ({ page }) => {
-  await page.goto('/#/flow');
-  await page.locator('.fs-flows').waitFor();
-  await threshold(page);
-  // the service worker takes the page over from the next load
-  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await page.reload();
-  await threshold(page);
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
-
-  await page.getByRole('button', { name: '+ flow' }).click();
-  const sheet = page.locator('.fs-sheet[data-sheet="New flow"]');
-  await expect(sheet).toBeVisible();
-  const make = sheet.getByRole('button', { name: 'Make' });
-  await expect(make).toHaveAttribute('aria-disabled', 'true');
-  await expect(sheet.locator('.fl-shape')).toHaveCount(9);
-  await sheet.getByLabel('Name').fill('Grief');
-  await sheet.locator('.fl-shape[data-diagram="valley"]').click();
-  await expect(sheet.locator('.fl-shape[data-diagram="valley"]')).toHaveAttribute('aria-pressed', 'true');
-  await make.click();
-
-  await expect(page).toHaveURL(/#\/flow\/[0-9a-f-]{36}$/);
-  const url = page.url();
-  await expect(page.locator('.fs-flowpage .fs-cycle[data-diagram="valley"]')).toBeVisible();
-  await page.getByRole('button', { name: 'name the first step' }).click();
-  const step = page.locator('.fs-sheet[data-sheet="The first step"]');
-  await step.getByLabel('Name').fill('Facing it');
-  await step.getByLabel('Your line').fill('Everything is heavy.');
-  await step.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('button', { name: 'Facing it' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '+ step' })).toBeVisible();
-
-  await page.context().setOffline(true);
-  await page.goto('/#/flow');
-  await page.reload();
-  await threshold(page);
-  await expect(page.locator('a.fl-flow .fs-list-line').last()).toHaveText('Grief');
-  await expect(page.locator('a.fl-flow').last()).toHaveAttribute('href', new URL(url).hash);
-  await page.locator('a.fl-flow').last().click();
-  await expect(page.getByRole('button', { name: 'Facing it' })).toBeVisible();
-  await page.getByRole('button', { name: 'Facing it' }).click();
-  await expect(page.locator('.fs-flowpage .fl-line')).toHaveText('Everything is heavy.');
 });

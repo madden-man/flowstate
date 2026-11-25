@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The Worlds walkthrough (PLAN-WORLDS.md), a plan-stage page: nothing here is built yet. The phone screens are the
-// app's own page parts and CSS (design/parts.css, tokens.css, gate.css, copied beside the page), set with what the
+// app's own page parts and CSS (design/parts.css and tokens.css, copied beside the page), set with what the
 // plan would show; the shelf of notebooks (wd-*) is new and drawn here in tokens only. The three desktop screens are drawn by hand in Novel Companion's own theme tokens.
 // Usage: node script/build-worlds-walkthrough.mjs   (writes design/worlds/index.html)
 import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
@@ -146,7 +146,6 @@ ${chromeCss}
 :root[data-theme="dark"]{--bg:#121318;--fg:#D8D2C3;--muted:#8C8F99;--rail:#1B1D26;--line:#2C2F3A;color-scheme:dark} /* design-lint: allow */
 </style>
 <link rel="stylesheet" href="parts.css">
-<link rel="stylesheet" href="gate.css">
 <style>
 /* Worlds: what this plan adds to the page parts, in tokens only */
 .badge{display:inline-block;vertical-align:middle;margin-left:10px;padding:2px 9px;border:1px solid var(--line);border-radius:999px;font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -277,5 +276,5 @@ ${steps.map(stepHtml).join('\n\n')}
 
 await mkdir(out, { recursive: true });
 await writeFile(path.join(out, 'index.html'), page);
-for (const f of ['tokens.css', 'parts.css', 'gate.css']) await copyFile(path.join(root, 'design', f), path.join(out, f));
+for (const f of ['tokens.css', 'parts.css']) await copyFile(path.join(root, 'design', f), path.join(out, f));
 console.log(`design/worlds/index.html: ${steps.length} steps, ${(page.length / 1024).toFixed(0)} KB`);

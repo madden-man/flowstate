@@ -41,11 +41,6 @@ export const shelves = signal<Record<string, ShelfAlbum[]>>({});
 export const shelfOf = (playlistId: string): ShelfAlbum[] | undefined => shelves.value[playlistId];
 /** Which grid the music sheet shows; null is the list of playlists. */
 export const openPlaylist = signal<string | null>(null);
-/** The music sheet's two segments (PLAN-TASKS.md section 4, T5): Signs, the seven shelves, or Playlists. The sheet
- *  opens on the one last shown in this load, Playlists at first; while a cover is being chosen it shows Playlists
- *  only (MusicSheet.tsx), and the next ♪ opens where he was. */
-export type MusicSegment = 'signs' | 'playlists';
-export const musicSegment = signal<MusicSegment>('playlists');
 /** What Spotify is playing, as last seen by a tap or the poll. */
 export const playing = signal<PageMusic | null>(null);
 /** The playlist it is playing from, when it is one of these (by a tap here, or the poll's context). */
@@ -264,7 +259,7 @@ export async function disconnectSpotify() {
 }
 
 /** The ♪ line: the music sheet on its list, connected or not. A tap on ♪ never leaves the app: with no account the
- *  sheet's Playlists side is the Settings row that connects (MusicSheet.tsx), and Signs shows the seven shelves.
+ *  sheet's Playlists side is the Settings row that connects (MusicSheet.tsx).
  *  Connected, the first ♪ of a session reads the list too (and any chosen playlist whose snapshot has moved), so a
  *  playlist ticked by name, or changed in Spotify, comes without a trip to Settings. */
 export function tapMusic() {

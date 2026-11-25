@@ -121,10 +121,10 @@ export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Pag
 }
 
 /** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2), page.sit
- *  (the page after a sit, PLAN-MEDITATE.md S2), page.sign (a sign's touch, PLAN-TASKS.md T3) or page.research (a paper
- *  carried from a question, PLAN-RESEARCH.md Q4). A day with no page yet gets an empty one (nothing written: it stays off
+ *  (the page after a sit, PLAN-MEDITATE.md S2) or page.research (a paper carried from a question, PLAN-RESEARCH.md
+ *  Q4). A day with no page yet gets an empty one (nothing written: it stays off
  *  every list until a word is, like any fresh page). Not stored: the caller writes it with the row it links, both ways. */
-export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'> | Pick<Page, 'research'>, now = Date.now()): Promise<Read<Page>> {
+export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'research'>, now = Date.now()): Promise<Read<Page>> {
   const t = await today(new Date(now));
   return t.page ? { ...t.page, ...link, updatedAt: now } : newPage('entry', now, link);
 }
@@ -414,4 +414,17 @@ export async function voicesById(): Promise<Map<string, Read<Voice>>> {
 /** The chip row: starred voices first, then the rest, each in its order. */
 export async function chipVoices(): Promise<Read<Voice>[]> {
   return (await voices()).sort((a, b) => Number(b.starred) - Number(a.starred) || a.order - b.order);
+}
+
+/** The last line written in the notebook (PLAN-WORLDS.md section 4, under the shelf): the newest line with words on a
+ *  journal entry, by when it was written, and that page's date. A council's or a question's lines are not the journal's,
+ *  and a paper's title (PLAN-RESEARCH.md Q4) is the paper's, not his. None when nothing is written, or while locked. */
+export async function lastLine(): Promise<{ text: string; at: number } | undefined> {
+  const { pages, byPage } = await everything();
+  let last: Read<Message> | undefined;
+  for (const p of pages) {
+    if (p.kind !== 'entry') continue;
+    for (const m of byPage.get(p.id) ?? []) if (m.text.trim() && !m.paper && (!last || m.at >= last.at)) last = m;
+  }
+  return last ? { text: last.text.trim(), at: last.at } : undefined;
 }

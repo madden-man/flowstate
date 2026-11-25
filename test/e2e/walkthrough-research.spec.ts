@@ -64,9 +64,9 @@ test('Research walkthrough: each of the fourteen steps starts afresh in a sandbo
   const RUN = { timeout: 30_000 };
   const standing = app.locator('.rs-line:not(.rs-lifting):not(.rs-hush)');
 
-  // 1 the sea's third circle
+  // 1 the third circle under the shelf
   await at(1);
-  await expect(app.locator('.mt-plate a.mt-circle', { hasText: 'Research' })).toHaveAttribute('href', '#/flow/research', T);
+  await expect(app.locator('a.fl-circle', { hasText: 'Research' })).toHaveAttribute('href', '#/flow/research', T);
   // 2 no key: where it goes, and Settings under the thumb
   await next(); await at(2);
   await expect(app.locator('[data-print="key"]')).toHaveText('The key goes in Settings.', T);

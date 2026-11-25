@@ -33,7 +33,7 @@ test('Energize is the three, the deck and What stuck; Still the names; the list 
   await expect(body.locator('.fx-meta, .fx-deckpeek, .fx-foot, .fx-under')).toHaveCount(0);
   await page.getByRole('button', { name: 'Leave Still' }).click();
 
-  // on the mountain Energize is a circle in the sea (R1), and it opens this page
+  // under the shelf Energize is a circle (PLAN-WORLDS.md section 4), and it opens this page
   await page.goto('/#/flow');
-  await expect(page.locator('a.mt-circle', { hasText: 'Energize' })).toHaveAttribute('href', '#/flow/energize');
+  await expect(page.locator('a.fl-circle', { hasText: 'Energize' })).toHaveAttribute('href', '#/flow/energize');
 });
