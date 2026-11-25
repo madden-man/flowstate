@@ -23,9 +23,22 @@ const needLine = (text: string): string => {
 /** Ask (Third eye): his line written on today's page, linked to the sign, and asked (V2's Ask this, which took Turn to
  *  answer's place): a question titled by the line, linked both ways with today's page. The page opens with the answer
  *  rule under the line (the wiser second person, rule 17); that is the page's, not this. */
-export async function askToday(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message>; question: Read<Page> }> {
+export const askToday = (chakra: ChakraId, text: string, now = Date.now()) => askOnToday({ sign: { chakra } }, text, now);
+
+/** The Sunday question (PLAN-PUSH.md section 4, N1): his question written on today's page and asked, as Ask does, the
+ *  page linked to the week it asked (page.checkin). Landed twice the same day (the line, then the notification), the
+ *  question already on a page of that week is not written or asked again: the page just opens. */
+export async function askCheckin(week: string, text: string, now = Date.now()): Promise<{ page: Read<Page>; message?: Read<Message>; question?: Read<Page> }> {
   const line = needLine(text);
-  const r = await writeLine(await todayLinked({ sign: { chakra } }, now), undefined, { text: line }, now);
+  const page = await todayLinked({ checkin: { week } }, now);
+  const there = (await messagesOf(page.id)).find(m => oneLine(m.text) === line);
+  if (there) { await store.put('pages', page); return { page, message: there }; }
+  return askOnToday({ checkin: { week } }, line, now);
+}
+
+async function askOnToday(link: Pick<Page, 'sign'> | Pick<Page, 'checkin'>, text: string, now: number): Promise<{ page: Read<Page>; message: Read<Message>; question: Read<Page> }> {
+  const line = needLine(text);
+  const r = await writeLine(await todayLinked(link, now), undefined, { text: line }, now);
   if (!r?.message) throw new Error('Nothing written');
   const { page, question } = await askThis(r.page, r.message, now);
   return { page, message: r.message, question };

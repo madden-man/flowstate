@@ -19,6 +19,7 @@ import { ResearchAsk, ResearchAsked, ResearchInquiry, ResearchPaper } from './ui
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
+import { CheckinAsk, checkinLanded } from './ui/journal/checkin';
 import { onOpen } from './model/flows';
 import { FIXATION_FLOW } from './model/fixations';
 import { Voices } from './ui/voices/Voices';
@@ -151,6 +152,8 @@ function Frame() {
         <AlbumPagesSheet />
         <PlaylistsSheet />
         <QuietLine />
+        {/* PLAN-PUSH.md N1: #/journal?ask=checkin lands on today's page with the Sunday question, once the PIN has opened it */}
+        <CheckinAsk />
       </main>
       <Tabs />
     </div>
@@ -238,7 +241,8 @@ function Gate({ children }: { children: ComponentChildren }) {
         openedOnce = true;
         const live = await onOpen();
         const here = readHash();
-        if (live && (here === '/' || here === '/journal')) route(`/flow/${live.flowId}${live.step ? `/${live.step}` : ''}`, true);
+        // the Sunday question landing (journal/checkin.tsx) keeps the page it opened
+        if (live && !checkinLanded && (here === '/' || here === '/journal')) route(`/flow/${live.flowId}${live.step ? `/${live.step}` : ''}`, true);
       })
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);

@@ -122,9 +122,9 @@ export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Pag
 
 /** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2), page.sit
  *  (the page after a sit, PLAN-MEDITATE.md S2), page.sign (a sign's touch, PLAN-TASKS.md T3) or page.research (a paper
- *  carried from a question, PLAN-RESEARCH.md Q4). A day with no page yet gets an empty one (nothing written: it stays off
+ *  carried from a question, PLAN-RESEARCH.md Q4) or page.checkin (the Sunday question, PLAN-PUSH.md N1). A day with no page yet gets an empty one (nothing written: it stays off
  *  every list until a word is, like any fresh page). Not stored: the caller writes it with the row it links, both ways. */
-export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'> | Pick<Page, 'research'>, now = Date.now()): Promise<Read<Page>> {
+export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'> | Pick<Page, 'research'> | Pick<Page, 'checkin'>, now = Date.now()): Promise<Read<Page>> {
   const t = await today(new Date(now));
   return t.page ? { ...t.page, ...link, updatedAt: now } : newPage('entry', now, link);
 }
