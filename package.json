@@ -28,7 +28,8 @@
     "walkthrough:folds": "node script/build-folds-walkthrough.mjs",
     "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
     "walkthrough:research": "node script/build-research-walkthrough.mjs",
-    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs"
+    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs",
+    "walkthrough:push": "node script/build-push-walkthrough.mjs"
   },
   "engines": {
     "node": ">=20"
