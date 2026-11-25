@@ -1,5 +1,7 @@
-# FlowState: static files only (PLAN.md section 3). Site: flowstate-journal.
+# FlowState: static files and one function, bridge (PLAN.md section 3, PLAN-WORLDS.md section 5). Site: flowstate-journal.
 # Deploy: netlify deploy --build --prod (same recipe as japan-trip).
+# The function needs BRIDGE_MONGODB_URI and BRIDGE_TOKEN set on the site for functions (docs/BRIDGE.md); without
+# BRIDGE_TOKEN it answers 401 to everything and touches nothing.
 
 [build]
   command = "npm run build"
@@ -7,6 +9,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # the driver is loaded as a module at run time, not bundled
+  external_node_modules = ["mongodb"]
 
 [[headers]]
   for = "/*"
@@ -43,7 +51,14 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# SPA fallback, always last. Routes are hash routes, so this only catches stray paths.
+# The bridge's answers are never cached (the function also says no-store on each one).
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+# SPA fallback, always last. Routes are hash routes, so this only catches stray paths. Netlify serves
+# /.netlify/functions/* before redirects, so the function is never swallowed (checked under netlify dev in W0).
 [[redirects]]
   from = "/*"
   to = "/index.html"

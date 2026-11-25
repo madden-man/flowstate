@@ -129,15 +129,20 @@ export async function settle(h: Handed, batch: Batch, acks: Ack[]): Promise<numb
   return gone.length;
 }
 
-/** One send: read, post, settle. keepalive keeps the batch under the keepalive budget, for a send as the app is hidden;
- *  if it never completes, the entries are still in the outbox for the next one. Throws BridgeError (offline, or a
- *  status) with the outbox untouched. */
-export async function sendOnce(h: Handed, world: string, token: string, opts: { keepalive?: boolean; fetcher?: typeof fetch; maxBytes?: number } = {}): Promise<{ sent: number; cleared: number } | null> {
-  const batch = await readBatch(h, world, opts.maxBytes ?? (opts.keepalive ? KEEPALIVE_MAX_BYTES : BODY_MAX_BYTES));
-  if (!batch) return null;
+/** Posts a batch already read and settles what the function acknowledged. keepalive for a send as the app is hidden
+ *  (the batch must have been read under the keepalive budget); if it never completes, the entries are still in the
+ *  outbox for the next one. Throws BridgeError (offline, or a status) with the outbox untouched. */
+export async function sendBatch(h: Handed, batch: Batch, token: string, opts: { keepalive?: boolean; fetcher?: typeof fetch } = {}): Promise<{ sent: number; cleared: number }> {
   if (!batch.envelopes.length) { await settle(h, batch, []); return { sent: 0, cleared: 0 }; }
   const acks = await postUp(token, batch.body, !!opts.keepalive, opts.fetcher);
   return { sent: batch.envelopes.length, cleared: await settle(h, batch, acks) };
+}
+
+/** One send: read, post, settle. Null when there was nothing to send, or the notebook is locked. */
+export async function sendOnce(h: Handed, world: string, token: string, opts: { keepalive?: boolean; fetcher?: typeof fetch; maxBytes?: number } = {}): Promise<{ sent: number; cleared: number } | null> {
+  const batch = await readBatch(h, world, opts.maxBytes ?? (opts.keepalive ? KEEPALIVE_MAX_BYTES : BODY_MAX_BYTES));
+  if (!batch) return null;
+  return sendBatch(h, batch, token, opts);
 }
 
 /** Sends until the outbox is empty or a send clears nothing (a refused row waits; offline throws). */

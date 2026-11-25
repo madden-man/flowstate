@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// The built app makes no network request after the first load except from src/music and src/research, each opt-in
-// (DESIGN.md rule 22, PLAN.md section 2).
+// The built app makes no network request after the first load except from src/music, src/research and src/bridge, each
+// opt-in (DESIGN.md rule 22, PLAN.md section 2). The bridge (PLAN-WORLDS.md section 5) asks only its own function on this
+// origin (/.netlify/functions/bridge, a path with no host), so it adds nothing to the list below.
 // This scans dist/ for any http(s) URL. A few strings are inert text inside libraries (XML namespaces,
 // links inside error messages that are never fetched); they are listed here by name, with the reason.
 // Anything else fails. The Playwright smoke test proves the runtime half: no request leaves the origin.

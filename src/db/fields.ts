@@ -744,6 +744,14 @@ export async function init(target: FlowDB = defaultDb): Promise<void> {
   }
 }
 
+const wornListeners = new Set<(worldId: string | null) => void>();
+/** Hears every don and doff once it has happened (the bridge fetches a world's pocket on donning, W2). */
+export function onWorn(fn: (worldId: string | null) => void): () => void {
+  wornListeners.add(fn);
+  return () => { wornListeners.delete(fn); };
+}
+const tellWorn = () => { const w = wornId; setTimeout(() => wornListeners.forEach(fn => fn(w)), 0); };
+
 /** Puts a world's notebook on: every table now reads and writes its database. The key stays in memory (unlike init);
  *  a world left plain by a stop halfway through setting the lock is sealed with it first. */
 export function don(worldId: string): Promise<void> {
@@ -753,6 +761,7 @@ export function don(worldId: string): Promise<void> {
     bookDb = db;
     wornId = worldId;
     await markWorn(worldId);
+    tellWorn();
   });
 }
 
@@ -762,6 +771,7 @@ export function doff(): Promise<void> {
     bookDb = homeDb;
     wornId = null;
     await markWorn(null);
+    tellWorn();
   });
 }
 

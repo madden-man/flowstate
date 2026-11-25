@@ -650,3 +650,52 @@ describe('encrypted export and import (package 6)', () => {
     expect(() => fileLock(file)).toThrow(BackupError);
   });
 });
+
+describe('schema 10 (PLAN-WORLDS.md section 9, W2): the outbox stays home, songs and takes travel in the file', () => {
+  const take = () => ({ id: 'tk', songId: 'sg', at: 5, seconds: 2, audio: new Uint8Array([7, 8, 9]).buffer, audioType: 'audio/mp4', pitch: [1, 2] });
+  it('a version 9 file, made before the outbox, songs and takes, still imports', async () => {
+    const f = await exportData(db, 1000);
+    const { songs: _s, takes: _t, ...nine } = f.tables;
+    const file = parseBackup(JSON.stringify({ ...f, schemaVersion: 9, tables: nine }));
+    expect(file.madeAt).toBe(9);
+    expect(file.tables.songs).toEqual([]);
+    await store.put('pages', { id: 'p1', kind: 'entry', createdAt: 1, updatedAt: 1, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [] });
+    const nineWithPage = parseBackup(JSON.stringify({ ...(await exportData(db, 1000)), schemaVersion: 9 }));
+    const other = await freshDB();
+    await importData(nineWithPage, 'replace', other);
+    expect(await other.pages.count()).toBe(1);
+  });
+  it('an outbox in a file is dropped unread, and an import never touches this phone\'s outbox', async () => {
+    const f = await exportData(db, 1000);
+    expect(f.tables).not.toHaveProperty('outbox');
+    await db.outbox.add({ table: 'pages', id: 'mine', rev: 1, at: 1 });
+    const file = parseBackup(JSON.stringify({ ...f, tables: { ...f.tables, outbox: [{ n: 1, table: 'pages', id: 'theirs', rev: 9, at: 9 }] } }));
+    expect(file.tables).not.toHaveProperty('outbox');
+    await importData(file, 'replace', db);
+    expect((await db.outbox.toArray()).map(o => o.id)).toEqual(['mine']);
+  });
+  it('a take\'s audio comes back byte for byte, plain and sealed; a song\'s words are sealed', async () => {
+    await store.put('songs', { id: 'sg', createdAt: 1, updatedAt: 1, title: 'Low tide', lyric: 'the water keeps it', sections: [] });
+    await store.put('takes', take());
+    let back = await freshDB();
+    await importData(await roundTrip(db), 'replace', back);
+    expect([...new Uint8Array((await back.takes.get('tk'))!.audio)]).toEqual([7, 8, 9]);
+
+    await init(db);
+    await store.put('settings', defaultSettings());
+    const salt = randomSalt();
+    const key = await deriveKey('2468', salt, 1000);
+    await setKey(key, { salt, iterations: 1000 });
+    const raw = JSON.stringify([await db.songs.toArray(), await db.takes.toArray()]);
+    expect(raw).not.toContain('Low tide');
+    expect(raw).not.toContain('the water keeps it');
+    expect((await db.takes.get('tk'))!.audio.byteLength).toBe(0);
+    expect([...new Uint8Array((await store.get('takes', 'tk'))!.audio)]).toEqual([7, 8, 9]);
+    const file = await roundTrip(db);
+    // into a plain journal: the file's own PIN opens it, and the rows are stored as that journal stores them
+    back = await freshDB();
+    await importData(file, 'replace', back, key);
+    expect((await back.songs.get('sg'))!.title).toBe('Low tide');
+    expect([...new Uint8Array((await back.takes.get('tk'))!.audio)]).toEqual([7, 8, 9]);
+  });
+});

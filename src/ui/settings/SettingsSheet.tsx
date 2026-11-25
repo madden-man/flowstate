@@ -20,6 +20,8 @@ import { DoorRows } from '../flow/DoorRows';
 import { gateState } from '../lock/pin';
 import { researchKey, saveResearchKey, removeResearchKey } from '../../research/store';
 import type { ResearchKey } from '../../db/schema';
+import { bridgeToken, saveBridgeToken, removeBridgeToken, carryNow, carriedAt } from '../../model/carry';
+import { clockTime, shortDate } from '../date';
 
 const PINS: [LightPin, string][] = [['sky', 'Follow the sky'], ['day', 'Day'], ['night', 'Night']];
 
@@ -236,6 +238,72 @@ function ResearchRow() {
   );
 }
 
+/** "Carried" and when: the time today, the day before that. No count of what went (rule 15). */
+const carriedLine = (at: number | undefined, now = Date.now()) => {
+  if (!at) return 'Not yet';
+  const d = new Date(at);
+  return new Date(now).toDateString() === d.toDateString() ? `Carried ${clockTime(d)}` : `Carried ${shortDate(d)}`;
+};
+
+/** The World row (PLAN-WORLDS.md section 5, W2): paste the bridge's token; saved, the row says when a world was last
+ *  carried and offers one word, Carry now (and Replace, for a token changed on the site). The token is sealed with the
+ *  PIN on home's row through model/carry.ts; locked, the row is not drawn. Nothing is sent from here until a token is
+ *  saved, and nothing of his until a world is worn. */
+function WorldRow() {
+  const [saved, setSaved] = useState<boolean | undefined>(undefined);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const locked = gateState() === 'locked';
+  useEffect(() => {
+    if (locked) { setSaved(undefined); return; }
+    void bridgeToken().then(t => setSaved(!!t));
+  }, [locked]);
+  if (locked || saved === undefined) return null;
+  const commit = async () => {
+    if (!draft.trim()) return;
+    await saveBridgeToken(draft);
+    await loadSettings();
+    setSaved(true); setDraft(''); setEditing(false);
+  };
+  const carry = async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await carryNow(); await loadSettings(); } finally { setBusy(false); }
+  };
+  const note = <span class="fs-note">Kept on this phone, sealed with the PIN. A world's councils, questions and kept lines leave the phone; nothing else does.</span>;
+  const enter = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); void commit(); } };
+  if (saved && !editing) {
+    return (
+      <div class="fs-row stack" data-world>
+        <span><span>World</span><small data-carried>{carriedLine(carriedAt.value)}</small></span>
+        <span class="fs-musicacct">
+          <button type="button" class={`fs-word${busy ? ' inert' : ''}`} aria-disabled={busy ? 'true' : undefined} data-carry-now onClick={() => void carry()}>Carry now</button>
+          <button type="button" class="fs-word" onClick={() => setEditing(true)}>Replace</button>
+        </span>
+        {note}
+      </div>
+    );
+  }
+  return (
+    <div data-world>
+      <label class="fs-row stack">
+        <span>World</span>
+        <input class="fs-input" type="password" value={draft} placeholder="Paste the token" autocomplete="off" spellcheck={false} enterKeyHint="done"
+          data-world-token
+          onInput={(e: JSX.TargetedEvent<HTMLInputElement>) => setDraft(e.currentTarget.value)}
+          onKeyDown={enter} />
+      </label>
+      <span class="fs-musicacct">
+        <button type="button" class={`fs-word${draft.trim() ? '' : ' inert'}`} aria-disabled={draft.trim() ? undefined : 'true'} data-world-save onClick={() => void commit()}>Save</button>
+        {editing && <button type="button" class="fs-word" onClick={() => { setDraft(''); setEditing(false); }}>Keep the old one</button>}
+        {editing && <button type="button" class="fs-word" onClick={() => void removeBridgeToken().then(loadSettings).then(() => { setSaved(false); setEditing(false); })}>Remove the token</button>}
+      </span>
+      {note}
+    </div>
+  );
+}
+
 function SettingsBody() {
   const s = settings.value;
   return (
@@ -256,6 +324,7 @@ function SettingsBody() {
       <Toggle label="Haptics" on={s.haptics} set={v => void saveSettings({ haptics: v })} />
       <MusicRows />
       <ResearchRow />
+      <WorldRow />
       <a class="fs-row" href="#/voices"><span>Voices</span><small>Rename, recolour, twin</small></a>
       <PinRows />
       <DoorRows />

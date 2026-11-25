@@ -83,7 +83,7 @@ PLAN-WORLDS.md adds rule 40 (WF builds the shelf with one cover; W1 adds the wor
 
 ## 7. Network (lint)
 
-22. The app makes no network request after the first load except from `src/music/` (the Spotify tie-in: PKCE, no server) and `src/research/` (the Anthropic API and the paper indexes, PLAN-RESEARCH.md), each opt-in: nothing leaves until he connects Spotify, or pastes a key in Settings and asks a question, and then only the question does. `fetch(` is allowed only under those two (lint DL21), and `script/check-dist.mjs` names every host they may reach. Covers are cached as blobs so the album grid works offline; every other screen stays offline.
+22. The app makes no network request after the first load except from `src/music/` (the Spotify tie-in: PKCE, no server), `src/research/` (the Anthropic API and the paper indexes, PLAN-RESEARCH.md) and `src/bridge/` (the one function on this site, `/.netlify/functions/bridge`, same origin, PLAN-WORLDS.md section 5), each opt-in: nothing leaves until he connects Spotify, or pastes a key in Settings and asks a question, and then only the question does; or pastes a bridge token and wears a world, and then only that world's councils, questions, kept lines, questions researched, songs and takes do. `fetch(` is allowed only under those three (lint DL21); `script/check-dist.mjs` names every host the first two may reach, and the bridge adds none; `src/bridge/` asks only its one path and is never handed the personal notebook (`test/bridge/fence.test.ts`). The service worker never answers `/.netlify/` from its cache or with the app's page. Covers are cached as blobs so the album grid works offline; every other screen stays offline.
 
 ## 8. Process (review)
 
