@@ -1,11 +1,25 @@
 /* The shelf (PLAN-WORLDS.md section 4, ui/flow/Shelf.tsx) and what stands under it (ui/flow/Flow.tsx). Tokens only.
    A cover: a notebook's paper in its hue, one hue on its spine, its name in the serif, a print line at its foot. */
-.fl-shelf { flex: none; display: flex; justify-content: center; padding: var(--s2) var(--gutter) var(--s2); }
+/* The shelf slides (W1): a container, so a cover's width and the shelf's side room are one measure; the covers in a
+   row that scrolls sideways and snaps one at a time to the middle; the side room lets the first and last stand there. */
+.fl-shelfwrap { flex: none; container-type: inline-size; }
+.fl-shelf {
+  /* a phone's width, never so tall on a short phone that the rows under it leave the screen */
+  --cover-w: min(56cqw, calc(var(--lh-ink) * 8), 31svh);
+  position: relative; display: flex; align-items: center; gap: var(--s2);
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  /* room under the covers for their shadow, which the sliding row would otherwise cut */
+  padding: var(--s2) calc((100cqw - var(--cover-w)) / 2) calc(var(--s3) + var(--s2));
+  margin-bottom: calc(var(--s2) * -1);
+  perspective: 900px;
+}
+.fl-shelf::-webkit-scrollbar { display: none; }
 .fl-cover {
   --spine: calc(var(--s1) + 2px);
-  position: relative; flex: none; display: flex; flex-direction: column; justify-content: space-between;
-  /* a phone's width, never so tall on a short phone that the rows under it leave the screen */
-  width: min(62%, calc(var(--lh-ink) * 8.5), 33svh); aspect-ratio: 5 / 6;
+  position: relative; flex: none; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  width: var(--cover-w); aspect-ratio: 5 / 6;
+  scroll-snap-align: center; scroll-snap-stop: always;
   padding: var(--s2) var(--s2) var(--s1) calc(var(--spine) + var(--s2));
   border: 1px solid var(--seam); border-radius: 3px 12px 12px 3px;
   color: var(--ink); text-decoration: none; font-family: var(--serif);
@@ -14,21 +28,45 @@
     linear-gradient(to right, color-mix(in oklab, var(--wc) 62%, var(--page)) 0 var(--spine), color-mix(in oklab, var(--wc) 34%, var(--page)) var(--spine) calc(var(--spine) + 1px), transparent calc(var(--spine) + 1px)),
     linear-gradient(to right, color-mix(in oklab, var(--wc) 16%, var(--page)), color-mix(in oklab, var(--wc) 9%, var(--page)));
   box-shadow: var(--shadow-tile), 0 16px 32px var(--scrim);
-  -webkit-tap-highlight-color: transparent;
-  transition: transform var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease), background-color var(--t-light) var(--ease);
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+  /* where it stands from the middle (Shelf.tsx measure): beside it, smaller, fainter and turned a little toward it;
+     --lean is the phone's tilt (tilt.ts); --k gives under the thumb (rule 26) */
+  transform: translateX(calc(var(--s, 0) * -12%)) rotateY(calc(var(--s, 0) * -16deg + var(--lean, 0deg))) scale(calc((1 - var(--d, 0) * .16) * var(--k, 1)));
+  opacity: calc(1 - var(--d, 0) * .5);
+  transition: transform var(--t-ui) var(--ease), opacity var(--t-ui) var(--ease), box-shadow var(--t-ui) var(--ease), background-color var(--t-light) var(--ease);
 }
+/* under the thumb, a cover is where the thumb puts it: no transition while the shelf slides (rule 20) */
+.fl-shelf[data-sliding] .fl-cover { transition: none; }
 /* rule 26: down is instant, up is eased */
-.fl-cover[data-down] { transform: scale(var(--press)); transition: none; }
+.fl-cover[data-down] { --k: var(--press); transition: none; }
 .fl-cover:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-.fl-cover-name { font-size: var(--fs-manifesto); line-height: 1.15; text-wrap: balance; }
+.fl-cover-name { position: relative; font-size: var(--fs-manifesto); line-height: 1.15; text-wrap: balance; }
 .fl-cover-foot {
-  font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
+  position: relative; font-family: var(--sans); font-size: var(--fs-print); letter-spacing: var(--track-print); text-transform: uppercase;
   color: var(--print); line-height: var(--lh-ink);
 }
-/* Still: paper and seam, no hue (rule 40); the spine is the seam's fold */
+/* What a cover wears (decision 16): a band across its top, the first album the largest and the rest beside it, one
+   album or his drawing filling it. Never drawn by the app: the band is his covers or nothing. */
+.fl-band {
+  display: grid; gap: 2px; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); aspect-ratio: 2 / 1;
+  margin: calc(var(--s2) * -1) calc(var(--s2) * -1) var(--s1) calc(var(--s2) * -1 + 1px);
+}
+.fl-band > img { display: block; width: 100%; height: 100%; object-fit: cover; min-width: 0; min-height: 0; }
+.fl-band > :first-child { grid-column: span 2; grid-row: span 2; }
+.fl-band[data-n="1"] > :first-child { grid-column: 1 / -1; }
+.fl-band[data-n="2"] > * { grid-column: span 2; grid-row: span 2; }
+.fl-band[data-n="3"] > :not(:first-child), .fl-band[data-n="4"] > :nth-child(2) { grid-column: span 2; }
+.fl-band:has(> img) + .fl-cover-name { margin-top: auto; margin-bottom: var(--s1); }
+/* Still: paper and seam, no hue, no band, no shadow, no lean, nothing turned (rule 40); the spine is the seam's fold */
 [data-light="still"] .fl-cover {
   background: linear-gradient(to right, transparent 0 var(--spine), var(--seam) var(--spine) calc(var(--spine) + 1px), transparent calc(var(--spine) + 1px)), var(--page);
   box-shadow: none;
+  transform: translateX(calc(var(--s, 0) * -12%)) scale(calc((1 - var(--d, 0) * .16) * var(--k, 1)));
+}
+[data-light="still"] .fl-band { display: none; }
+/* Reduce Motion: no lean, nothing turned; the covers beside the middle are still smaller and fainter */
+@media (prefers-reduced-motion: reduce) {
+  .fl-cover { transform: translateX(calc(var(--s, 0) * -12%)) scale(calc((1 - var(--d, 0) * .16) * var(--k, 1))); }
 }
 
 /* under the shelf, on the rules */
@@ -53,3 +91,10 @@
 }
 /* Right now stands on the rules like the circles, with no seam of its own (rule 5) */
 .fl-under .fs-row { border-top: 0; }
+/* the rows under a world's cover stand full width, like Right now (no drawing at their right) */
+.fl-under .fs-row.fl-flow { padding-right: 0; }
+
+/* the wears sheet (WearsSheet.tsx): the playlists' tiles, the one line when five are worn, then the two rows */
+.fl-wears-list .fs-month { margin: var(--s1) 0 0; }
+.fl-five { display: block; margin: 0; padding: 0 0 var(--s1); line-height: var(--lh-ink); text-align: left; }
+.fl-wears { margin-top: var(--s1); }

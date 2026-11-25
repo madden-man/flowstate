@@ -462,7 +462,10 @@ async function keepLock(db: FlowDB, s: Settings): Promise<Settings> {
 
 /** What a settings write puts where: one row when nothing is worn; with a world worn, home's row (its own book fields
  *  kept as they are) and the world's row (its stamp kept). Each comes back ready to seal. */
-async function settingsWrites(s: Settings): Promise<[FlowDB, Settings][]> {
+async function settingsWrites(given: Settings): Promise<[FlowDB, Settings][]> {
+  // the notebook worn is the layer's to say (don, doff): a copy read before a world was put on never takes it off
+  const s = { ...given };
+  if (wornId) s.world = wornId; else delete s.world;
   if (!split()) return [[homeDb, await keepLock(homeDb, s)]];
   const h = await homeDb.settings.get('app');
   const ho = h ? strip(await fromStored('settings', h, key)) : undefined;

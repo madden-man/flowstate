@@ -1,7 +1,7 @@
 // Pages and their messages (PLAN.md section 4). Package 0 needs today's entry, a page by id, the
 // questions list and the voices; package 1 grows this into the full Journal (below the line).
 import type { EchoState, Message, Page, Voice } from '../db/schema';
-import { store, type Read } from '../db/fields';
+import { store, type Read, type Reader } from '../db/fields';
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - 1;
@@ -419,8 +419,11 @@ export async function chipVoices(): Promise<Read<Voice>[]> {
 /** The last line written in the notebook (PLAN-WORLDS.md section 4, under the shelf): the newest line with words on a
  *  journal entry, by when it was written, and that page's date. A council's or a question's lines are not the journal's,
  *  and a paper's title (PLAN-RESEARCH.md Q4) is the paper's, not his. None when nothing is written, or while locked. */
-export async function lastLine(): Promise<{ text: string; at: number } | undefined> {
-  const { pages, byPage } = await everything();
+export async function lastLine(from: Pick<Reader, 'all'> = store): Promise<{ text: string; at: number } | undefined> {
+  // any notebook's, worn or not (the shelf reads each through fields.ts peek, PLAN-WORLDS.md section 4)
+  const [pages, messages] = await Promise.all([from.all('pages'), from.all('messages')]);
+  const byPage = new Map<string, Read<Message>[]>();
+  for (const m of messages) byPage.set(m.pageId, [...(byPage.get(m.pageId) ?? []), m]);
   let last: Read<Message> | undefined;
   for (const p of pages) {
     if (p.kind !== 'entry') continue;
