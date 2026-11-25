@@ -5,18 +5,17 @@ Branch `worlds-w6` from `worlds-plan` (9be7b95, plus the WORLDS-HANDOFF docs com
 ## Done
 
 - **One shared database (Tommy, 2026-11-25):** the function reaches only `flowstate_bridge` (`BRIDGE_DB`) and its four collections; `novel_companion` and `music_companion` are unreachable through it. Tests, docs/BRIDGE.md, PLAN-WORLDS.md sections 2 and 5 and WORLDS-HANDOFF updated. Nothing on the phone changed.
-- The key finder (`src/model/keyfinder.ts`, `theory.ts`) copied unchanged with its 30 known-answer tests (`test/model/keyfinder/`, fixtures made in memory). Uncommitted until the next checkpoint.
+- The key finder (`src/model/keyfinder.ts`, `theory.ts`) copied unchanged with its 30 known-answer tests (`test/model/keyfinder/`, fixtures made in memory). Committed.
 
 - Nothing of Songs itself yet. Only reading and design notes so far (below).
 - The flake job from the coordinator, `test/e2e/worlds.spec.ts` "the shelf slides under a thumb and settles one cover at a time" (126 passed, 1 failed on `worlds-plan` at 9be7b95), is fixed in code but **not yet proven** (see Half done).
 
-## Half done: the shelf flake
+## Done: the shelf flake (commit after cbd82db)
 
-- **Cause, measured** (20 repeats, 4 workers, scrollLeft logged at lift and at rest): Chromium's scroll snap read the lift as a fling the wrong way. A lift at 125 px (past halfway, 110 of a 220 px step) snapped back to the first cover, and a lift at 244 px (nearest East Winds at 220) went back to Songbook. CDP stamps each touch when it is dispatched, so on a loaded machine the gaps jitter and Chromium's velocity tracker misreads the direction. 7 of 20 failed before the fix. It was not scrollend versus the 120 ms fallback: the shelf reported the cover the browser actually stopped on every time.
-- **Fix, uncommitted until this checkpoint:**
-  - The test's thumb gives every touch its own timestamp, a steady 16 ms apart. The test then waits on the shelf's own `data-settled` attribute, not on sampled scrollLeft and sleeps.
-  - `src/ui/flow/Shelf.tsx`: nothing settles while a finger is on the shelf. Before this, a pause over 120 ms mid-slide settled under the held thumb, with the tick and the lamp, which was a real bug of its own. On lift it settles after the carry-on or at once. `data-settled` names the cover at rest and is cleared on scroll.
-- **Not yet done:** the `--repeat-each 20` proof run (it was running when the checkpoint was called; its result is not recorded), `npm test` and the lints on this change, and the correction to the last paragraph of `docs/WORLDS-HANDOFF.md` (record 126 passed, 1 failed, this test, and the fix).
+- Cause 1, the drag: CDP stamps each touch at dispatch; under load Chromium's velocity tracker read the lift as a fling the wrong way and the snap went back (a lift at 125 px of a 220 px step returned to the first cover; one at 244 px nearest East Winds returned to Songbook). Test fix: every touch carries its own timestamp 16 ms apart, and a slide rests 300 ms before it lifts (no fling), 160 px instead of 140; the wait is on the shelf's own `data-settled`.
+- Cause 2, the read: "the one beside it is smaller and fainter" read the side cover's opacity while it was still easing into place as the page came up (it read 1). The test now polls the covers' computed look until they rest. Forcing the first placement with no transition was tried and changed which cover a W4 test opened on, so it was left as built.
+- App fix: `Shelf.tsx` never settles under a held finger (a pause over 120 ms used to tick and light the lamp under the thumb). Fingers are heard on the document (a touch begun during a page turn lands on `<html>` and still slides the shelf), counting only touches begun on the shelf or the page itself. New e2e: "nothing settles under a held finger".
+- Proof: `--repeat-each 20` on both tests, 4 workers: 40 passed. worlds, world-sections and flow-shelf specs: 17 passed. Before: 7 of 20 failed.
 
 ## Not started (all of W6 proper)
 
@@ -40,4 +39,3 @@ Songs row and list, Hum row, song page (ruled, sections from chips), hold to hum
 
 - Move a song to another world (Tommy, "sure, add it"): coordinator message of 2026-11-25; see the PR body when built.
 - W7 asks: what `lineId` is, take ids as file names, the clip's real content type, written into docs/BRIDGE.md.
-- Flake job: the shelf test still failed 2 of 40 after the touch fix, on "the one beside it is smaller and fainter" (side cover opacity read as 1). Being diagnosed.
