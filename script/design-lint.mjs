@@ -19,6 +19,9 @@ const isHaptic = f => /parts\/Haptic\.(ts|tsx)$/.test(f);
 const isMusic = f => /(^|\/)src\/music\//.test(f);
 // Research (PLAN-RESEARCH.md): the second fenced place allowed to reach out, opt-in like the first.
 const isResearch = f => /(^|\/)src\/research\//.test(f);
+// W0 spike (PLAN-WORLDS.md row W0), this branch only, never merges: src/spike talks to its own same-origin function.
+// W2 replaces this with the real fence, src/bridge.
+const isSpike = f => /(^|\/)src\/spike\//.test(f);
 // The signs' starters (PLAN-SIGN-LINES.md, L1): the file whose CHAKRAS carries each sign's line.
 const isMountain = f => /(^|\/)model\/mountain\.ts$/.test(f);
 
@@ -31,7 +34,7 @@ const rules = [
   { id: 'DL7 icon library', re: /\b(lucide|heroicons|font-?awesome|phosphor-icons|material-icons|tabler-icons|ionicons|react-icons)\b/i },
   { id: 'DL18 navigator.vibrate outside parts/Haptic', skip: isHaptic, re: /navigator\.vibrate/ },
   { id: 'DL20 AudioContext outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b/ },
-  { id: 'DL21 fetch outside src/music and src/research', only: f => inSrc(f) && !isMusic(f) && !isResearch(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
+  { id: 'DL21 fetch outside src/music and src/research', only: f => inSrc(f) && !isMusic(f) && !isResearch(f) && !isSpike(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
   // DESIGN.md rule 34: the seven are Crown to Root, never their Sanskrit names (in their common spellings), and nothing
   // borrowed from the tradition's drawing or its words for what rises

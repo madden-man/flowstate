@@ -30,7 +30,8 @@ describe('layers', () => {
     expect(fs.readFileSync('src/model/pages.ts', 'utf8')).toMatch(/export async function questions[\s\S]*?store\.query\('pages'/);
   });
   it('no file outside src/music and src/research fetches (DESIGN.md rule 22)', () => {
-    const fenced = (f: string) => f.startsWith(path.join('src', 'music')) || f.startsWith(path.join('src', 'research'));
+    // W0 spike, this branch only (never merges): src/spike reaches its own same-origin function. W2 fences src/bridge.
+    const fenced = (f: string) => f.startsWith(path.join('src', 'music')) || f.startsWith(path.join('src', 'research')) || f.startsWith(path.join('src', 'spike'));
     for (const [f, text] of src('src').filter(([f]) => !fenced(f))) expect(text, f).not.toMatch(/\bfetch\s*\(/);
   });
   it('papers are an index\'s public record and stay clear; the questions are sealed (PLAN-RESEARCH.md section 5)', () => {

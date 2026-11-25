@@ -26,4 +26,10 @@ async function boot() {
   render(<App />, document.getElementById('app')!);
 }
 
-void boot();
+// W0 spike (PLAN-WORLDS.md row W0, never merges): #/spike is the probe screen, shown instead of the app, before the
+// lock and the database. On this branch the manifest opens the installed app there.
+if (location.hash.replace(/^#\/?/, '') === 'spike') {
+  // the service worker is registered as the app does, so the probes run under it as the real app's requests will
+  startUpdates();
+  void import('./spike/Spike').then(({ Spike }) => render(<Spike />, document.getElementById('app')!));
+} else void boot();

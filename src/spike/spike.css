@@ -1,0 +1,32 @@
+/* W0 spike: plain, on the app's own tokens. Never merges. */
+.spike {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 32px);
+  color: var(--ink);
+  font-family: var(--sans);
+  background: var(--page);
+}
+.spike h1 { font-family: var(--serif); font-weight: 400; margin: 0 0 4px; }
+.spike h2 { font-family: var(--serif); font-weight: 400; font-size: 1.15rem; margin: 0 0 8px; }
+.spike section { border-top: 1px solid var(--rule); padding: 14px 0; }
+.spike-quiet { color: var(--print); font-size: 0.85rem; margin: 6px 0; }
+.spike-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
+.spike-row select, .spike-row input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 6px; color: var(--ink); background: var(--page); border: 1px solid var(--rule); border-radius: 6px; }
+.spike button { font: inherit; font-size: 0.95rem; padding: 10px 14px; color: var(--ink); background: var(--page); border: 1px solid var(--seam); border-radius: 8px; }
+.spike button:disabled { color: var(--print); }
+.spike-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.spike-hold {
+  width: 100%;
+  padding: 28px 14px !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.spike-hold[data-on] { background: var(--tint) !important; }
+.spike-pitch { width: 100%; height: 140px; display: block; border: 1px solid var(--rule); border-radius: 6px; }
+.spike-line { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spike-c { stroke: var(--rule); stroke-width: 1; }
+.spike-findings { white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; line-height: 1.4; background: var(--tint); padding: 10px; border-radius: 6px; user-select: text; -webkit-user-select: text; }

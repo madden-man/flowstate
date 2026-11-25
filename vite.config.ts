@@ -35,7 +35,8 @@ export default defineConfig({
         short_name: 'FlowState',
         description: 'Who to Be, How to Flow.',
         display: 'standalone',
-        start_url: '/',
+        // W0 spike only: the app installed from the branch deploy opens on the probe screen. Never merges.
+        start_url: '/#/spike',
         scope: '/',
         orientation: 'portrait',
         background_color: dayPage,
@@ -51,6 +52,9 @@ export default defineConfig({
         // Every built file is precached: the app must open in airplane mode (PLAN.md section 2).
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,ico,txt}'],
         navigateFallback: '/index.html',
+        // the bridge's rule (PLAN-WORLDS.md section 5), proved here: never fall back to the app for a function's path.
+        // Nothing under /.netlify is precached, and there is no runtime caching, so a function's answer is never cached.
+        navigateFallbackDenylist: [/^\/\.netlify\//],
         cleanupOutdatedCaches: true,
       },
     }),
