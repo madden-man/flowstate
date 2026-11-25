@@ -29,7 +29,7 @@
   <details><summary>How this is built</summary><table>
     <tr><td>Phone</td><td><code>src/push/push.ts turnOn</code>: permission first, inside the tap, then <code>pushManager.subscribe</code> with the server's VAPID key; <code>PushRows.tsx</code> draws the row.</td></tr>
     <tr><td>Server</td><td><code>POST /api/push/subscribe</code> keeps an address, a weekday, an hour and a time zone in one Netlify Blob. Never a word.</td></tr>
-    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/push-plan/PLAN-PUSH.md">PLAN-PUSH.md</a> section 5, <a href="https://github.com/madden-man/flowstate/blob/push-plan/docs/PUSH.md">docs/PUSH.md</a></td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/PLAN-PUSH.md">PLAN-PUSH.md</a> section 5, <a href="https://github.com/madden-man/flowstate/blob/main/docs/PUSH.md">docs/PUSH.md</a></td></tr>
   </table></details>
 </section>
 
@@ -46,7 +46,7 @@
   <details><summary>How this is built</summary><table>
     <tr><td>Hourly</td><td><code>netlify/functions/checkin.mts</code> runs every hour; in each phone's own zone, Sunday at or past 10:00 and not sent this week, it sends one push.</td></tr>
     <tr><td>Payload</td><td>Exactly <code>{"kind":"checkin"}</code>. <code>public/push-sw.js</code> reads the line from the phone's own <code>fs-push</code> store and shows it, <code>tag: 'checkin'</code>.</td></tr>
-    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/push-plan/docs/PUSH.md">docs/PUSH.md</a>, the hourly run</td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/docs/PUSH.md">docs/PUSH.md</a>, the hourly run</td></tr>
   </table></details>
 </section>
 
@@ -69,7 +69,7 @@
   <details><summary>How this is built</summary><table>
     <tr><td>Clock</td><td><code>src/push/due.ts checkinDue</code>: pure, no network; due from Sunday 10:00 until the next, once a week.</td></tr>
     <tr><td>Line</td><td><code>UpdateToast.tsx CheckinLine</code>, where the backup line goes; it wins that day. Never in Still.</td></tr>
-    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/push-plan/PLAN-PUSH.md">PLAN-PUSH.md</a> section 4</td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/PLAN-PUSH.md">PLAN-PUSH.md</a> section 4</td></tr>
   </table></details>
 </section>
 

@@ -2,7 +2,7 @@
 
 Planned 2026-11-25 at Tommy's ask: "make a plan for push notifications in flow state (you can mimic the architecture for it in semper dulce or make options for simplifying) so i can set up weekly check ins on sunday mornings that ask me if there's anything on my mind."
 
-Status: N0 to N4 built 2026-11-25: N0 and N1 in PR #101, N2 in #102, N3 in #104, N4 (the walkthrough, `npm run walkthrough:push`, and `docs/PUSH.md`) in #105, all on `push-plan` (draft PR #100). Nothing is on main and nothing is deployed; the VAPID env is not set. Decided by Tommy: 10:00 Sunday. The defaults in section 8 and the choices in section 9 stand until he overturns them.
+Status: N0 to N4 built, merged to main and deployed 2026-11-25 (main 458f6a0; N2 in PR #101, N0 and N1 in #102, N3 in #104, N4 in #105, all through `push-plan`, PR #100). The VAPID env is set on the Netlify site, with the site's own URL as the subject. Walkthrough: `design/push/` (`npm run walkthrough:push`), private at https://claude.ai/artifact/82tWVxRt1oEorRba1cTn8f until shared. Not yet checked on the iPhone (`docs/PUSH.md`, the checklist). Decided by Tommy: 10:00 Sunday. The defaults in section 8 and the choices in section 9 stand until he overturns them.
 
 ## 1. The idea
 
