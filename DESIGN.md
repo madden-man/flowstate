@@ -89,7 +89,7 @@ PLAN-SIGN-LINES.md (Tommy, 2026-11-17: a one-line italic blurb per sign and its 
 
 ## 7. Network (lint)
 
-22. The app makes no network request after the first load except from `src/music/` (the Spotify tie-in: PKCE, no server) and `src/research/` (the Anthropic API and the paper indexes, PLAN-RESEARCH.md), each opt-in: nothing leaves until he connects Spotify, or pastes a key in Settings and asks a question, and then only the question does. `fetch(` is allowed only under those two (lint DL21), and `script/check-dist.mjs` names every host they may reach. Covers are cached as blobs so the album grid works offline; every other screen stays offline.
+22. The app makes no network request after the first load except from `src/music/` (the Spotify tie-in: PKCE, no server), `src/research/` (the Anthropic API and the paper indexes, PLAN-RESEARCH.md) and `src/push/` (the Sunday question's Web Push, PLAN-PUSH.md: same-origin `/api/push/*` only), each opt-in: nothing leaves until he connects Spotify, pastes a key in Settings and asks a question (and then only the question does), or switches the Sunday question's push on (and then only a push address and a time do, never his words). `fetch(` is allowed only under those three (lint DL21), and `script/check-dist.mjs` names every host they may reach and every same-origin `/api/` path. Covers are cached as blobs so the album grid works offline; every other screen stays offline.
 
 ## 8. Process (review)
 
@@ -99,7 +99,7 @@ PLAN-SIGN-LINES.md (Tommy, 2026-11-17: a one-line italic blurb per sign and its 
 
 ## 9. Research behind the choices
 
-- Calm technology (Amber Case): the smallest possible attention, use the periphery, work when it fails → the sky in the periphery, no notifications, offline always. [Calm principles as cited](https://arxiv.org/pdf/2306.05741), [Designing calm](https://www.uxmatters.com/mt/archives/2025/05/designing-calm-ux-principles-for-reducing-users-anxiety.php).
+- Calm technology (Amber Case): the smallest possible attention, use the periphery, work when it fails → the sky in the periphery, one notification a week, that he set, in his words, and never a second one (PLAN-PUSH.md), offline always. [Calm principles as cited](https://arxiv.org/pdf/2306.05741), [Designing calm](https://www.uxmatters.com/mt/archives/2025/05/designing-calm-ux-principles-for-reducing-users-anxiety.php).
 - Slow technology (Hallnäs and Redström; Odom et al. 2022: temporal interconnectedness, temporal drift, explicit slowness) → the page lit by the real sun, the breath, 400ms page turns. [Slow technology](https://dl.acm.org/doi/10.1007/PL00000019), [office installation study](https://arxiv.org/pdf/2405.11772).
 - Self-distancing (Kross and Ayduk): reflecting from a distanced perspective and non-first-person self-talk lowers rumination over time → Turn to answer, the wiser second person. [Chapter](https://sites.lsa.umich.edu/emotion-selfcontrol-psych/wp-content/uploads/sites/1322/2017/09/Self-distancing-theory-research-future.pdf), [Kross 2011](https://rascl.studentorg.berkeley.edu/assets/files/kross_ayduk_2011_cd.pdf).
 - Lighting and arousal: higher illuminance raises self-rated arousal, colour temperature does not significantly → Still dims rather than warms. [VR lighting study](https://arxiv.org/pdf/2307.10969). Dark vs light reading: no comprehension difference, less glare in low light → Night by sky is safe. [Summary](https://android.gadgethacks.com/news/dark-mode-vs-light-mode-what-research-says-about-when-each-works-best/).

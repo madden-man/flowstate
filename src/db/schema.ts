@@ -10,6 +10,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
 import type { ChakraId } from '../model/mountain';
 import type { Inquiry, Paper } from '../research/types';
+import type { Checkin } from '../push/due';
 
 export { POEMS_ID, POEMS_NAME };
 
@@ -97,6 +98,10 @@ export type Settings = {
    *  rest of settings, and optional, so it needs no Dexie version. An absent key, or the whole field absent, is the
    *  default: the three tiers open, Resting and Legacy folded (ui/be/tiers.ts isFolded). */
   beFolded?: Partial<Record<BePlaceKey, boolean>>;
+  /** PLAN-PUSH.md section 5 (N1): the Sunday question, its switch, when it asks, his line and the week it was last
+   *  shown or answered (push/due.ts). Clear, like the rest of settings, and optional, so it needs no Dexie version and
+   *  a backup carries it whole (backup.ts copies rows as they are). Absent reads as on, Sunday 10:00, the default line. */
+  checkin?: Checkin;
   sealed?: Sealed;
 };
 
@@ -175,6 +180,9 @@ export type Page = {
   /** PLAN-RESEARCH.md section 2 (Q4): the question a paper was carried here from (Write about it, To Council), so the
    *  page prints "From" and the question, and a tap goes back to it. Optional and unindexed, like sit; an id, clear. */
   research?: { inquiryId: string };
+  /** PLAN-PUSH.md section 5 (N1): the Sunday question this page began from, by the week it asked (push/due.ts weekKey),
+   *  so pages begun from it can be found later without a count anywhere. Optional and unindexed, like sit; clear. */
+  checkin?: { week: string };
   /** Not in PLAN.md section 4 (V3, the council's seats screen "Who sits?"): the voices seated at a council,
    *  by id, in seat order; turns go round them (model/council.ts nextSpeaker). Undefined until a voice is
    *  seated, which keeps older councils on plain chips. Ids stay clear, like paradoxIds; nothing to seal. */

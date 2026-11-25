@@ -50,3 +50,26 @@ describe('DL23', () => {
     expect(lintMountain([at('x'.repeat(90))], 'other.ts')).toBe('');
   });
 });
+
+// DL21 (DESIGN.md rule 22; PLAN-PUSH.md N0): a fetch is allowed under src/music, src/research and src/push only, and
+// fails anywhere else in src.
+const lintAt = (rel: string, line: string) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'dl21-'));
+  const f = path.join(root, rel);
+  mkdirSync(path.dirname(f), { recursive: true });
+  writeFileSync(f, `${line}\n`);
+  try { execFileSync(process.execPath, ['script/design-lint.mjs', f], { stdio: 'pipe' }); return ''; } catch (e) { return String((e as { stdout: Buffer }).stdout); }
+};
+
+describe('DL21', () => {
+  const call = "await fetch('/api/push/subscribe', { method: 'POST' });";
+  it.each(['src/push/push.ts', 'src/music/spotify.ts', 'src/research/client.ts'])('passes a fetch in %s', f => {
+    expect(lintAt(f, call)).toBe('');
+  });
+  it.each(['src/ui/settings/CheckinRow.tsx', 'src/model/pages.ts', 'src/pwa/install.ts', 'src/pushy/a.ts', 'src/ui/push/a.ts'])('fails a fetch in %s', f => {
+    expect(lintAt(f, call)).toMatch(/DL21/);
+  });
+  it('fails a beacon to the same origin outside src/push', () => {
+    expect(lintAt('src/ui/a.ts', 'navigator.sendBeacon("/api/push/x");')).toMatch(/DL21/);
+  });
+});
