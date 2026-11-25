@@ -20,9 +20,9 @@ const WY = `${W} · <b class="wd-yr">2071</b>`;
 const hdrL = '<div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><button type="button" class="fs-word">Settings</button><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div>';
 const hdr = (date, label = WY) => `<header class="fs-hdr">${hdrL}<div class="fs-hdr-r"><span class="fs-hdr-label">${label}</span><span>Date: <b>${date}</b></span></div></header>`;
 const tabs = cur => `<nav class="fs-tabs" aria-label="Sections">${[['Journal'], ['Council'], ['?', 'Questions'], ['Be'], ['Flow']].map(([w, l]) => `<a class="fs-tab${l ? ' fs-tab-q' : ''}"${(l ?? w) === cur ? ' aria-current="page"' : ''}${l ? ` aria-label="${l}"` : ''}>${w}</a>`).join('')}</nav>`;
-const phone = (light, time, tab, body, after = '', lamp = '') => `<div class="phone" data-mock><div class="screen" data-light="${light}"><div class="island"></div>
+const phone = (light, time, tab, body, after = '', lamp = '', sheet = '') => `<div class="phone" data-mock><div class="screen" data-light="${light}"><div class="island"></div>
     <div class="status"><span>${time}</span><span>Example lines</span></div>
-    <div class="fs-app"${lamp ? ` data-lamp style="--lamp-voice:${lamp}"` : ''}><main class="fs-main"><section class="fs-page">${body}</section></main>${tabs(tab)}</div>${after}
+    <div class="fs-app"${lamp ? ` data-lamp style="--lamp-voice:${lamp}"` : ''}><main class="fs-main"><section class="fs-page">${body}</section>${sheet}</main>${tabs(tab)}</div>${after}
   </div></div>`;
 const line = t => `<div class="fs-block"><div class="fs-msg" data-j-line><p>${t}</p></div></div>`;
 const keptLine = t => `<div class="fs-block"><div class="fs-msg" data-j-line><span class="fs-kept">kept</span><p>${t}</p></div></div>`;
@@ -45,16 +45,18 @@ const plainRow = (lineText, meta) => `<a class="fs-row fs-list-row fl-flow"><spa
 const LIVES = [['Abbot Ren', 'var(--v-brown)', 2010, 2069], ['Mrs. Li', 'var(--v-purple)', 2033, 2080], ['Sydney', 'var(--v-red)', 2037, 2080], ['Siyuan', 'var(--v-blue)', 2041, 2080], ['Dawn Li', 'var(--v-green)', 2062, 2080]];
 const Y0 = 2040, Y1 = 2080, pct = y => ((Math.max(Y0, Math.min(Y1, y)) - Y0) / (Y1 - Y0) * 100).toFixed(1);
 const dial = year => `<span class="wd-dial" data-lives='${JSON.stringify(LIVES.map(([n, , b, d]) => [n, b, d]))}'><span class="wd-lives" aria-hidden="true">${LIVES.map(([, c, b, d]) => `<i style="--vc:${c};left:${pct(b)}%;right:${(100 - pct(d)).toFixed(1)}%"></i>`).join('')}<b class="wd-now" style="left:${pct(year)}%"></b></span><input type="range" min="${Y0}" max="${Y1}" value="${year}" aria-label="Story year"><span class="wd-ends"><small>${Y0}</small><output>${year}</output><small>${Y1}</small></span></span>`;
-// an album's sleeve (a stand-in, not a real album's art); a drawing is his to upload, so none is drawn here
-const SLEEVE = '<svg class="wd-art wd-sleeve" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="100" cy="118" r="70"></circle><circle cx="100" cy="118" r="52"></circle><circle cx="100" cy="118" r="34"></circle><circle cx="100" cy="118" r="5"></circle></svg>';
+// album covers are stand-ins in the voices' hues, not real albums' art; a drawing is his to upload, so none is drawn here
+const HUES = ['blue', 'purple', 'green', 'red', 'brown', 'orange', 'pink', 'yellow', 'black'];
+const art = h => `<span class="wd-alb" style="--h:var(--v-${h})"></span>`;
+const band = hs => hs.length ? `<span class="wd-band" data-n="${hs.length}">${hs.map(art).join('')}</span>` : '';
 const BOOKS = [
   { id: 'own', name: 'My own pages', sub: 'Who to Be, How to Flow', wc: 'var(--v-black)', art: '',
     wait: 'Who are my models?', last: ['11 / 24 / 26', 'Then the answer is not a list of people. It is the pace.'],
     rows: CIRCLES + plainRow('Right now', 'Your lines; tap the one that fits') },
-  { id: 'eastwinds', name: 'East Winds', sub: 'A novel', wc: 'var(--v-blue)', art: '', year: 2071,
+  { id: 'eastwinds', name: 'East Winds', sub: 'A novel', wc: 'var(--v-blue)', art: band(['blue', 'purple', 'green', 'brown', 'red']), year: 2071,
     wait: 'Who raises Dawn after 2065?', last: ['11 / 25 / 26', 'What does it cost her to keep it?'],
     rows: plainRow('Songs', 'Lyrics and hums') + plainRow('Research', 'A question, and the papers on both sides') },
-  { id: 'songbook', name: 'Songbook', sub: 'Its album', wc: 'var(--v-orange)', art: SLEEVE,
+  { id: 'songbook', name: 'Songbook', sub: 'Songs of no book', wc: 'var(--v-orange)', art: band(['orange', 'yellow']),
     wait: '', last: ['11 / 19 / 26', 'slow train, low sun, nobody waving'],
     rows: plainRow('Songs', 'Lyrics and hums') },
 ];
@@ -73,7 +75,12 @@ const steps = [
 
   { id: 'worlds', name: 'Slide to East Winds', line: 'The lamp turns its colour.',
     mock: phone('night', '21:32', 'Flow', hdr('11 / 25 / 26', 'Flow') + shelf('own', 'eastwinds'), '', 'var(--v-blue)'),
-    built: [['The cover', 'Plain paper in the world\'s hue, as here, until you pin an album to the world or upload a drawing of your own. The app never draws one.'], ['Settling', 'One tick as a cover lands (<code>parts/Haptic</code>); by night the lamp takes its hue, the way it takes a council\'s last speaker. By day only the spine has colour.'], ['Tilt', 'On the phone the covers lean with the phone itself; here they follow the pointer. Off with Reduce Motion.']] },
+    built: [['The cover', 'Up to five albums you pick (stand-in tiles here, not real art), or a drawing you upload, or plain paper like your own notebook. The app never draws one.'], ['Settling', 'One tick as a cover lands (<code>parts/Haptic</code>); by night the lamp takes its hue, the way it takes a council\'s last speaker. By day only the spine has colour.'], ['Tilt', 'On the phone the covers lean with the phone itself; here they follow the pointer. Off with Reduce Motion.']] },
+
+  { id: 'covers', name: 'Hold a cover to dress it', line: 'Up to five albums, from your playlists.',
+    mock: phone('night', '21:34', 'Flow', hdr('11 / 25 / 26', 'Flow') + shelf('own', 'eastwinds'), '', 'var(--v-blue)',
+      `<div class="fs-scrim"></div><section class="fs-sheet" aria-label="East Winds wears"><div class="fs-sheet-head"><div class="fs-grab"></div><div class="fs-sheet-title"><h2>East Winds wears</h2><button type="button" class="fs-word">Done</button></div></div><div class="fs-sheet-body"><p class="fs-month">Poems</p><div class="fs-tiles hush">${HUES.map(h => { const on = ['blue', 'purple', 'green', 'brown', 'red'].includes(h); return `<div class="fs-tile-cell"${on ? ' data-chosen' : ''}><button type="button" class="fs-tile" aria-pressed="${on}" aria-label="An album">${art(h)}</button></div>`; }).join('')}</div><p class="fs-quiet">Five at most.</p><div class="fs-rows"><button type="button" class="fs-row"><span>Upload a drawing</span><small>Photos or Files</small></button><button type="button" class="fs-row"><span>Plain paper</span></button></div></div></section>`),
+    built: [['Tiles', 'The playlists you have ticked under ♪, from covers already cached: no new Spotify request, and it works offline. Stand-in tiles here.'], ['Order', 'The first one tapped is the largest on the cover. A sixth tap does nothing.'], ['Every notebook', 'Your own pages can wear albums too. A drawing stays on the phone, sealed.']] },
 
   { id: 'dial', name: 'Drag the year', line: 'Everyone alive then is on the line.',
     mock: phone('night', '21:33', 'Flow', hdr('11 / 25 / 26', 'Flow') + shelf('own', 'eastwinds').replace('value="2071"', 'value="2065"'), '', 'var(--v-blue)'),
@@ -81,7 +88,7 @@ const steps = [
 
   { id: 'journal', name: 'Write about the book', line: 'Only the lines you keep go to the bible.',
     mock: phone('day', '09:40', 'Journal', `${hdr('11 / 25 / 26')}<div class="fs-sheetof fs-rules fs-col">${line('Trying the leaving again. Maybe it is quieter than I had it.')}${keptLine('Siyuan leaves the temple in 2071, the spring after the flood.')}${keptLine('He tells nobody but Dawn. She is nine and keeps it for a year.')}${line('Not sure about the coat yet.')}${caret}</div><div class="fs-composer-wrap"><div class="fs-chips" role="group" aria-label="What this page is about">${chip('Siyuan', true)}${chip('Dawn Li', true)}${chip('2071', true)}<button type="button" class="fs-chip add">+ place</button></div></div>`),
-    built: [['The year', 'A new page takes the year you are wearing. Tap the year in the header for the dial; the Year chip changes this page alone.'], ['Chips', 'Character, Place and Year, filled from the bible. Optional: names in the text are found anyway.'], ['Leaves the phone', 'A kept line, with the page\'s date, year and chips. The rest of the page stays here. Hold a line and Keep close, as built; unkeep it and it leaves the bible.']] },
+    built: [['The year', 'A new page takes the year you are wearing. Tap the year in the header for the dial; the Year chip changes this page alone.'], ['Chips', 'Character, Place and Year, filled from the bible. Optional: names in the text are found anyway.'], ['Leaves the phone', 'A kept line, with the date, the year and chips of its own. The rest of the page stays here. Unkeep it and it leaves the bible.'], ['Standing alone', 'At keeping, the phone gives the line the page\'s chips and any name the page uses elsewhere, so "She is nine" arrives saying Dawn Li.']] },
 
   { id: 'seats', name: 'Seat the characters', line: 'Each at the age they are that year.',
     mock: phone('night', '22:10', 'Council', `${hdr('11 / 25 / 26')}${seg}<div class="fs-council"><div class="fs-sheetof fs-rules"><p class="fs-quiet">Who sits?</p><div class="fs-seats" role="group" aria-label="Who sits">${chip('Siyuan, 30', true, V.Siyuan)}${chip('Sydney, 34', true, V.Sydney)}${chip('Dawn Li, 9', true, V['Dawn Li'])}${chip('Mrs. Li, 38', false, 'var(--v-purple)')}<button type="button" class="fs-chip wd-gone" aria-pressed="false" style="--vc:var(--v-brown)"><i></i>Abbot Ren, d. 2069</button></div><p class="fs-quiet">This council is</p><div class="fs-seats" role="group" aria-label="This council is">${chip('About the story', true)}${chip('In the story', false)}</div><p class="fs-quiet">Set in</p><div class="fs-seats" role="group" aria-label="Set in">${chip('2071', true)}${chip('The whole book', false)}</div><p class="fs-from"><small>About</small> <a>Does Siyuan leave before the flood, or after?</a></p></div><div class="fs-composer-wrap"><button type="button" class="fs-new">Begin</button></div></div>`),
@@ -110,9 +117,6 @@ const steps = [
   { id: 'song', name: 'Hold to hum', line: 'The line is drawn as you sing.',
     mock: phone('night', '23:05', 'Flow', `<header class="fs-hdr"><div class="fs-hdr-l"><button type="button" class="fs-moon" aria-label="Still"><i></i><span class="fs-ring-mark"></span></button><a class="fs-word">Songs</a><button type="button" class="fs-word fs-musicword" aria-label="Music">♪</button></div><div class="fs-hdr-r"><span class="fs-hdr-label">${WY}</span><span>Date: <b>11 / 25 / 26</b></span></div></header><div class="fs-sheetof fs-rules fs-col"><textarea class="fs-edit fs-q" rows="1" spellcheck="false" aria-label="Title">The grey coat</textarea><p class="wd-sec">Verse</p>${line('You only wear that one to leave')}${line('so leave it on the nail')}<div class="wd-take">${pitch(HUM)}<small>G minor · 0:14</small></div><p class="wd-sec">Chorus</p>${line('Keep this for me, one year')}${caret}</div><div class="fs-composer-wrap"><div class="fs-chips" role="group" aria-label="Whose song">${chip('Dawn Li', true)}<button type="button" class="fs-chip add">Tap tempo</button></div><button type="button" class="fs-new">Hold to hum</button></div>`),
     built: [['Take', 'The audio, the pitch line, a key guess from Music Companion\'s key finder, a tapped tempo. Pinned to a lyric line or left loose.'], ['Not verified', 'Recording in the installed Home Screen app is the first thing package W0 tries on the iPhone.']] },
-
-  { id: 'lock', name: 'It opens where you left it', line: 'The keypad says which notebook.',
-    mock: phone('night', '07:12', 'Journal', `${hdr('11 / 26 / 26')}<div class="fs-sheetof fs-rules fs-col"></div>`, `<div class="fs-threshold locked" data-threshold data-lock><div class="fs-threshold-words"><h1 class="fs-threshold-title">Who to Be, How to Flow</h1><p class="fs-manifesto">I determine my core.<br>I choose how to flow.</p><p class="wd-worn">${W}</p></div><div class="fs-threshold-keypad"><div class="fs-keypad" role="group" aria-label="PIN"><div class="fs-dots"><i></i><i></i><i></i><i></i></div><p class="fs-keypad-note" role="status"></p><div class="fs-keys">${[['1', ''], ['2', 'ABC'], ['3', 'DEF'], ['4', 'GHI'], ['5', 'JKL'], ['6', 'MNO'], ['7', 'PQRS'], ['8', 'TUV'], ['9', 'WXYZ']].map(([n, l]) => `<button type="button" class="fs-key" aria-label="${n}"><b>${n}</b><small aria-hidden="true">${l}</small></button>`).join('')}<span></span><button type="button" class="fs-key" aria-label="0"><b>0</b><small aria-hidden="true"></small></button><button type="button" class="fs-word fs-key-word">delete</button></div></div></div></div>`) },
 
   { id: 'bible', name: 'Your kept line is on Siyuan', line: 'Councils arrive whole beside it.', badge: 'Novel Companion',
     mock: mac('Novel Companion · East Winds (example data)', NC_RAIL, 'Characters', `<h3>Siyuan</h3><p class="mac-sub">b. 2041 · Guangzhou</p><h4>Voice</h4><ul class="mac-list"><li><time>2071</time><span>“I am walking to the river and back.”</span><em>In the story · 25 Nov</em></li><li><time>2071</time><span>“Keep this for me. One year.”</span><em>In the story · 25 Nov</em></li></ul><h4>Notebook</h4><ul class="mac-list"><li><time>25 Nov</time><span>Siyuan leaves the temple in 2071, the spring after the flood.</span><em>Kept line · story year 2071</em></li><li><time>25 Nov</time><span>Does Siyuan leave before the flood, or after?</span><em>Council, about the story · story year 2071</em></li><li><time>25 Nov</time><span>The grey coat</span><em>Song · in Music Companion</em></li></ul>`),
@@ -154,9 +158,14 @@ ${chromeCss}
   --tilt:0deg;transform:scale(.84) rotateY(var(--tilt));opacity:.45;transition:transform var(--t-ui) var(--ease),opacity var(--t-ui) var(--ease)}
 .wd-cover.front{transform:rotateY(var(--tilt));opacity:1;box-shadow:0 10px 24px color-mix(in oklch,var(--wc) 22%,transparent)}
 .wd-cover>*{position:relative}
-.wd-art{position:absolute;inset:0 0 auto 8px;width:calc(100% - 8px);height:66%}
-.wd-art *{fill:none;stroke:color-mix(in oklch,var(--wc) 55%,var(--print));stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
-.wd-sleeve *{stroke:color-mix(in oklch,var(--wc) 40%,var(--seam))}
+.wd-band{display:grid;gap:3px;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);aspect-ratio:2/1;margin:calc(-1*var(--s1)) calc(-1*var(--s1)) 0 0}
+.wd-band>:first-child{grid-column:span 2;grid-row:span 2}
+.wd-band[data-n="1"]>:first-child{grid-column:1/-1}
+.wd-band[data-n="2"]>*{grid-column:span 2;grid-row:span 2}
+.wd-band[data-n="3"]>:not(:first-child){grid-column:span 2}
+.wd-alb{display:block;width:100%;height:100%;border-radius:2px;background:linear-gradient(140deg,color-mix(in oklch,var(--h) 70%,var(--page)),color-mix(in oklch,var(--h) 35%,var(--ink)))}
+[data-light="still"] .wd-band{display:none}
+.screen .fs-sheet .fs-tiles{grid-template-columns:repeat(3,1fr)}
 .wd-cover-name{font-size:var(--fs-title);line-height:1.15;text-wrap:balance}
 .wd-cover-foot{display:flex;flex-direction:column;gap:6px}
 .wd-cover small{font-family:var(--sans);font-size:var(--fs-print);letter-spacing:var(--track-print);text-transform:uppercase;color:var(--print)}
