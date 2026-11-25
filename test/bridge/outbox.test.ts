@@ -285,13 +285,15 @@ describe('what comes down never goes back up', () => {
     const r = (await writeLine(q, undefined, { text: 'and the ice sings' }, Date.now()))!;
     expect(await outbox()).toEqual(['pages q-river', `messages ${r.message!.id}`]);
   });
-  it('an import into a world records nothing to send', async () => {
+  it('an import into a world records nothing to send, and the file carries no outbox', async () => {
     const c = await newCouncil();
     await speak(c.id, 'from a file');
     const file = await exportData(db);
-    const { db: other } = await worldDB();
-    await importData(file, 'replace', other);
-    expect(await other.outbox.count()).toBe(0);
-    expect(await other.pages.count()).toBe(1);
+    expect(file.notebook).toBe('eastwinds');
+    expect(file.tables).not.toHaveProperty('outbox');
+    await db.outbox.clear();
+    await importData(file, 'replace', db);
+    expect(await db.outbox.count()).toBe(0);
+    expect(await db.pages.count()).toBe(1);
   });
 });

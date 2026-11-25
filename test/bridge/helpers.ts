@@ -1,14 +1,14 @@
-// A world's notebook for the bridge's tests: named as W1 names one (flowstate-w-<id>), so openDB installs the outbox.
-import { openDB, type FlowDB } from '../../src/db/schema';
-import { init, handed, type Handed } from '../../src/db/fields';
+// A world worn for the bridge's tests: a fresh personal notebook, then East Winds donned (W1's don), so the fields layer's
+// book is the world's database and openDB has put the outbox on it.
+import type { FlowDB } from '../../src/db/schema';
+import { book, don, handed, home, type Handed } from '../../src/db/fields';
 import type { Ack, Envelope } from '../../src/bridge/protocol';
+import { freshDB } from '../db/helpers';
 
-let n = 0;
-export async function worldDB(): Promise<{ db: FlowDB; h: Handed }> {
-  const db = openDB(`flowstate-w-test${Date.now().toString(36)}${n++}`);
-  await db.open();
-  await init(db);
-  return { db, h: handed(db) };
+export async function worldDB(world = 'eastwinds'): Promise<{ db: FlowDB; h: Handed; home: FlowDB }> {
+  await freshDB();
+  await don(world);
+  return { db: book(), h: handed(book()), home: home() };
 }
 
 /** Lets the outbox's after-write tick and any pending transaction finish. */

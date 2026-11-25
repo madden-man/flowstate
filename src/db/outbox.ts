@@ -1,5 +1,5 @@
 // The outbox's half of the one write path (PLAN-WORLDS.md section 5, W2). A Dexie middleware, installed by openDB only on
-// a world's notebook (a database named WORLD_DB_PREFIX + its id, never `flowstate`), that adds `{ table, id }` to the
+// a world's notebook (isWorldDB, never `flowstate` itself), that adds `{ table, id }` to the
 // outbox in the same transaction as every put and delete of what travels:
 //
 //   a council page and its lines, a question page and its lines;
@@ -10,16 +10,16 @@
 // the envelope is built at send time from the row as it stands (src/bridge/up.ts), so many edits collapse into one. A
 // row written again replaces its entry with a new n and a higher rev.
 //
-// It acts only in a transaction that holds the outbox. fields.ts opens every write in a world with the outbox, pages and
-// messages in scope (WRITE_SCOPE); a write that comes DOWN from the bible (fields.ts quiet) opens its transaction
+// It acts only in a transaction that holds the outbox. fields.ts opens every write with the outbox, pages and messages in
+// scope (WRITE_SCOPE) only when book is a world; a write that comes DOWN from the bible (fields.ts quiet) opens its transaction
 // without the outbox, so it never goes back up as if he wrote it; and an import, a PIN change's re-seal and anything
 // else that does not hold the outbox passes straight through.
 import Dexie, { type DBCore, type DBCoreMutateRequest, type DBCoreTable, type DBCoreTransaction, type Middleware } from 'dexie';
 import { TRAVELS, type TravelTable } from '../bridge/protocol';
 
-/** A world's notebook is this prefix and the world's id (PLAN-WORLDS.md section 3: flowstate-w-eastwinds). */
-export const WORLD_DB_PREFIX = 'flowstate-w-';
-export const isWorldDB = (name: string) => name.startsWith(WORLD_DB_PREFIX);
+/** A world's notebook is the personal notebook's name, -w- and the world's id (schema.ts worldDbName: flowstate-w-eastwinds
+ *  on the phone, a test's world beside its own test database). The personal notebook's name never has it. */
+export const isWorldDB = (name: string) => /-w-[a-z0-9][a-z0-9-]*$/.test(name);
 /** What a write in a world must hold besides its own tables, so the middleware can read a line's page and record it. */
 export const WRITE_SCOPE = ['outbox', 'pages', 'messages'] as const;
 
