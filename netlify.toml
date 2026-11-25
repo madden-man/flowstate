@@ -1,9 +1,15 @@
-# FlowState: static files only (PLAN.md section 3). Site: flowstate-journal.
+# FlowState: static files, plus two small functions for the Sunday question
+# (PLAN-PUSH.md section 5, docs/PUSH.md). Site: flowstate-journal.
+# push.mts answers /api/push/* through its own config.path; checkin.mts runs
+# hourly through its own config.schedule. Neither needs a redirect here.
+# Env before the first deploy with functions: VAPID_PUBLIC_KEY,
+# VAPID_PRIVATE_KEY, VAPID_SUBJECT (npm run vapid prints a pair).
 # Deploy: netlify deploy --build --prod (same recipe as japan-trip).
 
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
@@ -44,6 +50,7 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 # SPA fallback, always last. Routes are hash routes, so this only catches stray paths.
+# Functions with a config.path are matched before redirects, so /api/push/* never lands here.
 [[redirects]]
   from = "/*"
   to = "/index.html"

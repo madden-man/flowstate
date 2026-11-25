@@ -1,86 +1,142 @@
-// The Sunday question's clock (PLAN-PUSH.md N1, src/push/due.ts): due from Sunday 10:00 until the next Sunday 10:00,
-// once a week, by the phone's wall clock, across both daylight saving changes.
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CHECKIN_DEFAULT, CHECKIN_LINE, checkinDue, checkinOf, lastOccurrence, weekKey, type Checkin } from '../../src/push/due';
+import { describe, expect, it } from 'vitest';
+import { isDue, isValidZone, weekOf, zoneParts, type Schedule } from '../../netlify/functions/lib/due.mts';
 
-// Mountain time has both changes in 2026: forward on Sunday 8 March, back on Sunday 1 November
-let tz: string | undefined;
-beforeAll(() => { tz = process.env.TZ; process.env.TZ = 'America/Denver'; });
-afterAll(() => { process.env.TZ = tz; });
+const sunday10 = (tz: string): Schedule => ({ tz, weekday: 0, hour: 10, minute: 0 });
+const at = (iso: string) => new Date(iso);
 
-const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m - 1, d, h, min).getTime();
-const q = (patch: Partial<Checkin> = {}): Checkin => ({ ...CHECKIN_DEFAULT, ...patch });
-
-describe('checkinDue', () => {
-  it('the zone is the one the tests ask for', () => {
-    expect(new Date(at(2026, 7, 1)).getTimezoneOffset()).toBe(360);
-    expect(new Date(at(2026, 12, 1)).getTimezoneOffset()).toBe(420);
+describe('zoneParts', () => {
+  it('reads the wall clock and weekday in a zone', () => {
+    // 2026-11-22 is a Sunday.
+    expect(zoneParts(at('2026-11-22T17:00:00Z'), 'America/Denver')).toEqual({ y: 2026, m: 11, d: 22, h: 10, min: 0, weekday: 0 });
+    expect(zoneParts(at('2026-11-22T01:00:00Z'), 'Asia/Tokyo')).toEqual({ y: 2026, m: 11, d: 22, h: 10, min: 0, weekday: 0 });
   });
 
-  it('is not due before 10:00 on Sunday, and is at 10:01', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-11-15' }), at(2026, 11, 22, 9, 59))).toBe(false);
-    expect(checkinDue(q({ lastShownWeek: '2026-11-15' }), at(2026, 11, 22, 10, 1))).toBe(true);
-    expect(weekKey(at(2026, 11, 22, 9, 59), q())).toBe('2026-11-15');
-    expect(weekKey(at(2026, 11, 22, 10, 1), q())).toBe('2026-11-22');
-  });
-
-  it('is not due once shown this week', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-11-22' }), at(2026, 11, 22, 10, 1))).toBe(false);
-    expect(checkinDue(q({ lastShownWeek: '2026-11-22' }), at(2026, 11, 28, 23, 59))).toBe(false);
-  });
-
-  it('is still due on the Wednesday of the same week if never shown', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-11-15' }), at(2026, 11, 25, 8, 0))).toBe(true);
-    expect(checkinDue(q(), at(2026, 11, 25, 8, 0))).toBe(true);
-    expect(weekKey(at(2026, 11, 25, 8, 0), q())).toBe('2026-11-22');
-  });
-
-  it('is due again the next Sunday', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-11-22' }), at(2026, 11, 29, 9, 59))).toBe(false);
-    expect(checkinDue(q({ lastShownWeek: '2026-11-22' }), at(2026, 11, 29, 10, 0))).toBe(true);
-  });
-
-  it('is never due with the question off', () => {
-    expect(checkinDue(q({ on: false }), at(2026, 11, 22, 10, 1))).toBe(false);
-  });
-
-  it('waits for the next occurrence in a journal begun after this one', () => {
-    const seeded = at(2026, 11, 24, 12, 0);
-    expect(checkinDue(q(), at(2026, 11, 25, 8, 0), seeded)).toBe(false);
-    expect(checkinDue(q(), at(2026, 11, 29, 10, 1), seeded)).toBe(true);
-  });
-
-  it('asks at 10:00 by the clock on the day the clocks go back, and the week after', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-10-25' }), at(2026, 11, 1, 9, 59))).toBe(false);
-    expect(checkinDue(q({ lastShownWeek: '2026-10-25' }), at(2026, 11, 1, 10, 1))).toBe(true);
-    const o = lastOccurrence(at(2026, 11, 4, 12), q());
-    expect([o.getDate(), o.getHours(), o.getMinutes()]).toEqual([1, 10, 0]);
-    // the Saturday before the change still belongs to the week begun before it
-    const back = lastOccurrence(at(2026, 11, 1, 9, 0), q());
-    expect([back.getMonth(), back.getDate(), back.getHours()]).toEqual([9, 25, 10]);
-    expect(weekKey(at(2026, 10, 31, 23, 0), q())).toBe('2026-10-25');
-  });
-
-  it('asks at 10:00 by the clock on the day the clocks go forward, and the week after', () => {
-    expect(checkinDue(q({ lastShownWeek: '2026-03-01' }), at(2026, 3, 8, 9, 59))).toBe(false);
-    expect(checkinDue(q({ lastShownWeek: '2026-03-01' }), at(2026, 3, 8, 10, 1))).toBe(true);
-    const o = lastOccurrence(at(2026, 3, 14, 23, 0), q());
-    expect([o.getDate(), o.getHours()]).toEqual([8, 10]);
-    // a Sunday 10:00 seen from just before the next one, across the change, is the one before it
-    const prev = lastOccurrence(at(2026, 3, 8, 9, 30), q());
-    expect([prev.getMonth(), prev.getDate(), prev.getHours()]).toEqual([2, 1, 10]);
-  });
-
-  it('names the week by its Sunday whatever the time, so a moved time never asks twice', () => {
-    expect(weekKey(at(2026, 11, 22, 10, 1), q())).toBe(weekKey(at(2026, 11, 22, 10, 1), q({ hour: 9 })));
-    expect(checkinDue(q({ hour: 9, lastShownWeek: '2026-11-22' }), at(2026, 11, 22, 10, 1))).toBe(false);
+  it('gives hour 0 at midnight, never 24', () => {
+    expect(zoneParts(at('2026-11-23T07:00:00Z'), 'America/Denver').h).toBe(0);
   });
 });
 
-describe('checkinOf', () => {
-  it('reads an absent question as Sunday 10:00 with his line, and an emptied line as that line', () => {
-    expect(checkinOf({})).toEqual({ on: true, weekday: 0, hour: 10, minute: 0, line: CHECKIN_LINE });
-    expect(checkinOf({ checkin: { ...CHECKIN_DEFAULT, line: '  ' } }).line).toBe(CHECKIN_LINE);
-    expect(checkinOf({ checkin: { ...CHECKIN_DEFAULT, line: 'What is heavy?', hour: 9 } })).toMatchObject({ line: 'What is heavy?', hour: 9 });
+describe('weekOf', () => {
+  it('names a week by its Sunday', () => {
+    expect(weekOf({ y: 2026, m: 11, d: 22, weekday: 0 })).toBe('2026-11-22');
+    expect(weekOf({ y: 2026, m: 11, d: 28, weekday: 6 })).toBe('2026-11-22');
+    expect(weekOf({ y: 2027, m: 1, d: 2, weekday: 6 })).toBe('2026-12-27');
+  });
+});
+
+describe('isValidZone', () => {
+  it('accepts IANA names and refuses the rest', () => {
+    expect(isValidZone('America/Denver')).toBe(true);
+    expect(isValidZone('Asia/Tokyo')).toBe(true);
+    expect(isValidZone('UTC')).toBe(true);
+    expect(isValidZone('Mars/Olympus')).toBe(false);
+    expect(isValidZone('+09:00')).toBe(false);
+    expect(isValidZone('')).toBe(false);
+    expect(isValidZone(9)).toBe(false);
+    expect(isValidZone('A'.repeat(80))).toBe(false);
+  });
+});
+
+describe('isDue', () => {
+  const denver = sunday10('America/Denver');
+
+  it('is due at Sunday 10:00 Denver in winter (17:00 UTC, MST)', () => {
+    expect(isDue(denver, undefined, at('2026-11-22T16:00:00Z')).due).toBe(false);
+    expect(isDue(denver, undefined, at('2026-11-22T17:00:00Z'))).toEqual({ due: true, week: '2026-11-22' });
+  });
+
+  it('is due at Sunday 10:00 Denver in summer (16:00 UTC, MDT)', () => {
+    expect(isDue(denver, undefined, at('2026-07-12T15:00:00Z')).due).toBe(false);
+    expect(isDue(denver, undefined, at('2026-07-12T16:00:00Z')).due).toBe(true);
+  });
+
+  it('follows the spring change on the Sunday it happens (2026-03-08)', () => {
+    // 02:00 MST jumps to 03:00 MDT; 10:00 that morning is 16:00 UTC.
+    expect(isDue(denver, undefined, at('2026-03-08T15:00:00Z')).due).toBe(false);
+    expect(isDue(denver, undefined, at('2026-03-08T16:00:00Z')).due).toBe(true);
+  });
+
+  it('follows the fall change on the Sunday it happens (2026-11-01)', () => {
+    // 02:00 MDT falls back to 01:00 MST; 10:00 that morning is 17:00 UTC.
+    expect(isDue(denver, undefined, at('2026-11-01T16:00:00Z')).due).toBe(false);
+    expect(isDue(denver, undefined, at('2026-11-01T17:00:00Z')).due).toBe(true);
+  });
+
+  it('sends a time skipped by spring forward at the first run after it', () => {
+    const s: Schedule = { tz: 'America/Denver', weekday: 0, hour: 2, minute: 30 };
+    expect(isDue(s, undefined, at('2026-03-08T08:00:00Z')).due).toBe(false); // 01:00 MST
+    expect(isDue(s, undefined, at('2026-03-08T09:00:00Z')).due).toBe(true); // 03:00 MDT
+  });
+
+  it('sends a repeated fall-back hour once', () => {
+    const s: Schedule = { tz: 'America/Denver', weekday: 0, hour: 1, minute: 0 };
+    const first = isDue(s, undefined, at('2026-11-01T07:00:00Z')); // 01:00 MDT
+    expect(first.due).toBe(true);
+    expect(isDue(s, first.week, at('2026-11-01T08:00:00Z')).due).toBe(false); // 01:00 MST again
+  });
+
+  it('is due at Sunday 10:00 Tokyo, which is Sunday 01:00 UTC', () => {
+    const tokyo = sunday10('Asia/Tokyo');
+    expect(isDue(tokyo, undefined, at('2026-11-22T00:00:00Z')).due).toBe(false);
+    expect(isDue(tokyo, undefined, at('2026-11-22T01:00:00Z'))).toEqual({ due: true, week: '2026-11-22' });
+  });
+
+  it('is not due on Saturday UTC when Tokyo is already Sunday morning early', () => {
+    // Saturday 23:00 UTC is Sunday 08:00 Tokyo: right day, too early.
+    expect(isDue(sunday10('Asia/Tokyo'), undefined, at('2026-11-21T23:00:00Z')).due).toBe(false);
+  });
+
+  it('is due when UTC is still Saturday (Kiritimati, UTC+14)', () => {
+    // Saturday 20:00 UTC is Sunday 10:00 at UTC+14.
+    expect(isDue(sunday10('Pacific/Kiritimati'), undefined, at('2026-11-21T20:00:00Z'))).toEqual({ due: true, week: '2026-11-22' });
+  });
+
+  it('is due when UTC is already Monday (Honolulu, evening schedule)', () => {
+    // Sunday 20:00 in Honolulu (UTC-10) is Monday 06:00 UTC.
+    const s: Schedule = { tz: 'Pacific/Honolulu', weekday: 0, hour: 20, minute: 0 };
+    expect(isDue(s, undefined, at('2026-11-23T06:00:00Z'))).toEqual({ due: true, week: '2026-11-22' });
+  });
+
+  it('is due in a zone west of UTC where local Sunday 10:00 is Sunday UTC (New York)', () => {
+    expect(isDue(sunday10('America/New_York'), undefined, at('2026-11-22T15:00:00Z')).due).toBe(true);
+  });
+
+  it('is not due twice in one week', () => {
+    const first = isDue(denver, undefined, at('2026-11-22T17:00:00Z'));
+    expect(isDue(denver, first.week, at('2026-11-22T18:00:00Z')).due).toBe(false);
+    expect(isDue(denver, first.week, at('2026-11-23T03:00:00Z')).due).toBe(false); // Sunday 20:00
+  });
+
+  it('is due again the next week', () => {
+    expect(isDue(denver, '2026-11-22', at('2026-11-29T17:00:00Z'))).toEqual({ due: true, week: '2026-11-29' });
+  });
+
+  it('still sends late the same local day after skipped runs', () => {
+    expect(isDue(denver, '2026-11-15', at('2026-11-23T06:00:00Z')).due).toBe(true); // Sunday 23:00
+  });
+
+  it('does not send on Monday for a missed Sunday', () => {
+    expect(isDue(denver, '2026-11-15', at('2026-11-23T07:00:00Z')).due).toBe(false); // Monday 00:00
+  });
+
+  it('respects the minute: 10:15 waits for the 11:00 run', () => {
+    const s: Schedule = { tz: 'America/Denver', weekday: 0, hour: 10, minute: 15 };
+    expect(isDue(s, undefined, at('2026-11-22T17:00:00Z')).due).toBe(false);
+    expect(isDue(s, undefined, at('2026-11-22T18:00:00Z')).due).toBe(true);
+  });
+
+  it('handles half-hour zones (Kolkata, UTC+5:30)', () => {
+    // Runs land at hh:30 local. 04:00 UTC is 09:30; 05:00 UTC is 10:30.
+    const s = sunday10('Asia/Kolkata');
+    expect(isDue(s, undefined, at('2026-11-22T04:00:00Z')).due).toBe(false);
+    expect(isDue(s, undefined, at('2026-11-22T05:00:00Z')).due).toBe(true);
+    expect(isDue({ ...s, minute: 30 }, undefined, at('2026-11-22T04:00:00Z')).due).toBe(false);
+    expect(isDue({ ...s, hour: 9, minute: 30 }, undefined, at('2026-11-22T04:00:00Z')).due).toBe(true);
+  });
+
+  it('works for a weekday other than Sunday', () => {
+    const wed: Schedule = { tz: 'Asia/Tokyo', weekday: 3, hour: 7, minute: 0 };
+    // Wednesday 2026-11-25 07:00 JST is Tuesday 22:00 UTC.
+    expect(isDue(wed, undefined, at('2026-11-24T22:00:00Z'))).toEqual({ due: true, week: '2026-11-22' });
   });
 });
