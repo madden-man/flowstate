@@ -513,6 +513,63 @@ export function listen(stream: MediaStream): Listening | null {
   };
 }
 
+/** The recorder's types, in the order asked for: AAC in MP4 first, named so (what Music Companion files as .m4a; Chromium
+ *  records MP4 too since about version 126 and may choose Opus for it unless AAC is named), then any MP4, then WebM. */
+export const RECORD_TYPES = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
+/** A hum's bitrate: 96 kbps, so three minutes is about 2.2 MB, well under the 4 MiB a clip may be (W6, the review of
+ *  PR 112: unpinned, a browser may choose more and a long take would never be carried). */
+export const RECORD_BITS = 96_000;
+
+export function recordType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  return RECORD_TYPES.find(t => { try { return MediaRecorder.isTypeSupported(t); } catch { return false; } });
+}
+
+/** A take being recorded: the analyser for the pitch line (null where there is no Web Audio), and the way to stop,
+ *  which resolves with the bytes as recorded and their type with its parameters dropped, or null when nothing was. */
+export type Recording = { ear: Listening | null; stop: () => Promise<{ audio: ArrayBuffer; type: string } | null> };
+
+/**
+ * The microphone opened for a hum (W6): the only place the app asks for it and records it (DESIGN.md rule 21, lint
+ * DL20). The session is named play-and-record before the microphone is asked for and given back however this ends:
+ * refused, a recorder that cannot start, or stopped. Rejects when the microphone is refused or missing.
+ */
+export async function record(): Promise<Recording> {
+  const release = micSession();
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { release(); throw e; }
+  const type = recordType();
+  let rec: MediaRecorder;
+  try { rec = new MediaRecorder(stream, { ...(type ? { mimeType: type } : {}), audioBitsPerSecond: RECORD_BITS }); }
+  catch (e) { stream.getTracks().forEach(t => t.stop()); release(); throw e; }
+  const chunks: Blob[] = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const ear = listen(stream);
+  rec.start(1000);
+  let stopping: Promise<{ audio: ArrayBuffer; type: string } | null> | null = null;
+  const stop = () => {
+    if (stopping) return stopping;
+    stopping = new Promise(resolve => {
+      const done = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        ear?.close();
+        release();
+        const full = rec.mimeType || type || 'audio/mp4';
+        const blob = new Blob(chunks, { type: full });
+        if (!blob.size) return resolve(null);
+        resolve({ audio: await blob.arrayBuffer(), type: full.split(';')[0].trim() });
+      };
+      if (rec.state === 'inactive') { void done(); return; }
+      rec.onstop = () => void done();
+      try { rec.stop(); } catch { void done(); }
+    });
+    return stopping;
+  };
+  return { ear, stop };
+}
+
 let playingTake: { stop: () => void } | null = null;
 
 /** Plays a take's audio once; a second call (or another take) stops the first. Resolves when it ends or is stopped;
