@@ -26,7 +26,7 @@ import { voiceColour } from '../voice';
 import { hueOf } from '../../bridge/colour';
 import { pocketFor } from '../../model/story';
 import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionTarget, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, withSections, type SongRow } from '../../model/songs';
-import { moveSong, settleMoves } from '../../model/move';
+import { moveSong, settleMoves, MoveError } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
 import { carryNow, pocketVersion } from '../../model/carry';
 import type { Song, Take } from '../../db/schema';
@@ -283,7 +283,13 @@ export function SongPage({ id }: { id: string }) {
         change({ characterIds: ids.includes(cid) ? ids.filter(x => x !== cid) : [...ids, cid] });
       }} />}
       <MoveSheet song={song} onMoved={() => route('/flow/songs')}
-        beforeMove={async () => { await flush(); gone.current = true; clearTimeout(timer.current); }}
+        beforeMove={async () => {
+          await flush();
+          // a Songbook song still only in the pocket (or a page never written) is written here first, so there is a song
+          // to move (the review of PR 112: the move had failed silently)
+          if (!exists.current && latest.current) { await saveSong(latest.current); exists.current = true; }
+          gone.current = true; clearTimeout(timer.current);
+        }}
         onFailed={() => { gone.current = false; }} />
     </Page>
   );
@@ -316,17 +322,22 @@ function MoveSheet({ song, onMoved, beforeMove, onFailed }: { song: Song; onMove
   const from = wornWorld.value;
   const others = (settings.value.worlds ?? []).filter(w => w.id !== from);
   const [busy, setBusy] = useState(false);
+  // when the move did not happen, why, in print on the sheet: where the song is now, or that it is still here
+  const [said, setSaid] = useState<string | null>(null);
   const go = async (to: string) => {
     if (!from || busy) return;
     setBusy(true);
+    setSaid(null);
     try {
       await beforeMove();
       await moveSong(song.id, from, to);
       openSheet.value = null;
       void carryNow().catch(() => undefined);
       onMoved();
-    } catch {
-      // the song stays here (a stop halfway is finished before the next carry, or on the next Songs list)
+    } catch (e) {
+      // a move of it that had stopped halfway was finished first: it is in that world now; else it stays here
+      const where = e instanceof MoveError && e.where ? (settings.value.worlds ?? []).find(w => w.id === e.where)?.name ?? e.where : null;
+      setSaid(where ? `It is in ${where} now.` : 'It could not be moved; it is still here.');
       onFailed();
     } finally { setBusy(false); }
   };
@@ -339,6 +350,7 @@ function MoveSheet({ song, onMoved, beforeMove, onFailed }: { song: Song; onMove
           </button>
         ))}
       </div>
+      {said && <p class="fs-quiet sg-said" data-said>{said}</p>}
     </Sheet>
   );
 }

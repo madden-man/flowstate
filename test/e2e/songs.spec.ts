@@ -459,3 +459,19 @@ test('a hum too large to carry says so under its line, in print, and the carry g
   await page.locator('.sg-list a', { hasText: 'Too long' }).click();
   await expect(page.locator('.sg-aside')).toHaveText('Too long to carry; it stays on this phone.', { timeout: 15_000 });
 });
+
+test('Move to on a Songbook song still only in the pocket: it is written on the phone first, then moved', async ({ page, context }) => {
+  const bridge = await stubBridge(context);
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/songs');
+  await page.locator('.sg-list a', { hasText: 'Low tide' }).click();
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Low tide');
+  await page.getByRole('button', { name: 'Move to…' }).click();
+  const f = await finger(page, context);
+  await f.tap('[data-sheet="Move to"] .fs-row[data-world="eastwinds"]');
+  await expect(page).toHaveURL(/#\/flow\/songs$/);
+  await expect.poll(async () => (await rows(page, 'flowstate-w-eastwinds', 'songs')).map(r => r.id)).toEqual(['mac-1']);
+  // it goes up under East Winds with the Mac's id and the Mac's text, the [Verse] line its section
+  await expect.poll(() => bridge.up.find(e => e.world === 'eastwinds' && e.table === 'songs' && e.id === 'mac-1')?.row, { timeout: 15_000 })
+    .toMatchObject({ title: 'Low tide', lyric: 'the water goes out\nand comes back', sections: [{ line: 0, name: 'Verse' }], lyricFrom: MAC_AT });
+});
