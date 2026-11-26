@@ -23,6 +23,8 @@
 }
 .sg-page .fs-edit::placeholder { color: var(--print); font-style: italic; }
 .sg-said { margin: 0; line-height: var(--lh-ink); }
+/* a take whose audio stays on the phone: one quiet print line under it, on its own rule */
+.sg-aside { margin: 0; line-height: var(--lh-ink); font-style: italic; color: var(--print); }
 
 /* the chips under a song wrap onto a second row at phone width: the section names, the characters and the tempo are
    all his to reach, so none is cut at the edge or hidden behind a sideways scroll */

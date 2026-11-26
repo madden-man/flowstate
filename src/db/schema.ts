@@ -788,8 +788,9 @@ export type Take = {
    *  follow). Both go up with the take. */
   lineId?: string; lineText?: string;
   /** W6: the clip (the audio) acknowledged by the bridge, under which world and when (src/bridge/clips.ts). Absent, the
-   *  audio has not gone up yet. On the phone only. */
-  clip?: { world: string; at: Millis };
+   *  audio has not gone up yet. aside: never sent and never tried again, because it is too large to carry ('size') or
+   *  the function refused it for good ('refused'); the take says so under its line. On the phone only. */
+  clip?: { world: string; at: Millis; aside?: 'size' | 'refused' };
   sealed?: Sealed;
 };
 

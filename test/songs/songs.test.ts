@@ -154,6 +154,51 @@ describe('in a world', () => {
     expect(await sendClips(h, 'eastwinds', 'tok', s.fetcher)).toBe(0);
   });
 
+  it('a clip the function refuses, or one too large to carry, is set aside and told; a failing clip never stops the carry or the pocket', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('no real request in a unit test'); });
+    await store.put('settings', { ...defaultSettings(), ...(await store.get('settings', 'app')), world: 'eastwinds' } as Settings);
+    const asked: string[] = [];
+    let pocketRead = false;
+    const fetcher = (async (u: RequestInfo | URL, init?: RequestInit) => {
+      const q = new URLSearchParams(String(u).split('?')[1]);
+      const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
+      if (q.get('op') === 'worlds') return json({ worlds: [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }] });
+      if (q.get('op') === 'pocket') { pocketRead = true; return json({ world: 'eastwinds', stamp: 'p', pocket: { kind: 'novel', characters: [], places: [], chapters: [], events: [], questions: [] } }); }
+      if (q.get('op') === 'clip') {
+        const t = q.get('take')!;
+        asked.push(t);
+        if (t === 't-big') return json({}, 413);
+        if (t === 't-type') return json({}, 415);
+        if (t === 't-flaky') return json({}, 502);
+        if (t === 't-no') return json({ take: t, result: 'refused' });
+        return json({ take: t, result: 'stored' });
+      }
+      const body = JSON.parse(String(init!.body)) as { envelopes: Envelope[] };
+      return json({ acks: body.envelopes.map((e): Ack => ({ table: e.table, id: e.id, rev: e.rev, result: 'stored' })) });
+    }) as typeof fetch;
+    await saveBridgeToken('tok', fetcher);
+    const huge = new Uint8Array(4 * 1024 * 1024 + 1).buffer;
+    for (const id of ['t-big', 't-type', 't-flaky', 't-no', 't-ok']) await saveTake(take({ id }));
+    await saveTake(take({ id: 't-huge', audio: huge }));
+    await settled();
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect(pocketRead).toBe(true);
+    const clip = async (id: string) => (await store.get('takes', id))!.clip;
+    expect(await clip('t-ok')).toMatchObject({ world: 'eastwinds' });
+    expect((await clip('t-ok'))!.aside).toBeUndefined();
+    expect(await clip('t-big')).toMatchObject({ aside: 'size' });
+    expect(await clip('t-huge')).toMatchObject({ aside: 'size' });
+    expect(asked).not.toContain('t-huge');
+    expect(await clip('t-type')).toMatchObject({ aside: 'refused' });
+    expect(await clip('t-no')).toMatchObject({ aside: 'refused' });
+    // a passing failure (502) is tried again on the next carry; the set-aside ones are not
+    expect(await clip('t-flaky')).toBeUndefined();
+    asked.length = 0;
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect(asked).toEqual(['t-flaky']);
+    await removeBridgeToken();
+  });
+
   it('locked: no clip goes', async () => {
     await saveTake(take({ id: 't1' }));
     await setKey(await deriveKey('1234', randomSalt(), 1000), { salt: randomSalt(), iterations: 1000 });

@@ -436,3 +436,26 @@ test('a section named from a chip is a lyric change: the row goes up with a newe
   const row = bridge.up.find(e => e.table === 'songs' && e.id === 'mac-1')!.row!;
   expect(row.lyricAt as number).toBeGreaterThan(MAC_AT);
 });
+
+test('a hum too large to carry says so under its line, in print, and the carry goes on', async ({ page, context }) => {
+  await page.addInitScript(fakeMic);
+  const bridge = await stubBridge(context);
+  // the function answers this clip 413, as it would one over its limit (registered last, so it is asked first)
+  await context.route(url => url.searchParams.get('op') === 'clip', route => route.fulfill({ status: 413, json: {} }));
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/songs/new');
+  await page.getByRole('textbox', { name: 'Title' }).fill('Too long');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  await page.keyboard.type('one line');
+  const f = await finger(page, context);
+  await f.down(HUM);
+  await page.waitForTimeout(1500);
+  await f.up();
+  await expect(page.locator('.wd-take:not(.sg-live)')).toHaveCount(1, { timeout: 10_000 });
+  await expect.poll(() => bridge.up.some(e => e.table === 'takes'), { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => ((await rows(page, 'flowstate-w-songbook', 'takes'))[0]?.clip as { aside?: string } | undefined)?.aside, { timeout: 15_000 }).toBe('size');
+  // reopened, the take carries its print line
+  await page.getByRole('link', { name: 'Songs' }).click();
+  await page.locator('.sg-list a', { hasText: 'Too long' }).click();
+  await expect(page.locator('.sg-aside')).toHaveText('Too long to carry; it stays on this phone.', { timeout: 15_000 });
+});
