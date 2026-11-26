@@ -10,14 +10,16 @@
 // the outbox still holds every entry), and on opening. Down is the pocket, on donning and on opening, if its stamp moved.
 // Locked, nothing is read and nothing goes; the token itself is sealed in the settings row.
 import { signal } from '@preact/signals';
-import { book, handed, keyState, onWorn, store, worn, type Handed } from '../db/fields';
+import { book, handed, handedWorld, keyState, onWorn, store, worldsOnPhone, worn, type Handed } from '../db/fields';
 import { onOutbox } from '../db/outbox';
 import type { BridgeSettings, Settings, WorldEntry } from '../db/schema';
 import { readBatch, sendBatch, drain, type Batch } from '../bridge/up';
 import { getPocket, listWorlds, BridgeError } from '../bridge/net';
 import { applyPocket } from '../bridge/down';
+import { sendClips } from '../bridge/clips';
 import { KEEPALIVE_MAX_BYTES } from '../bridge/protocol';
 import { startYearOnce } from './story';
+import { settleAll } from './move';
 
 /** Bumped when a pocket has come down and been written: the UI reads the settings row again (the pocket, the year). */
 export const pocketVersion = signal(0);
@@ -75,7 +77,7 @@ export async function removeBridgeToken(): Promise<void> {
   carriedAt.value = undefined;
 }
 
-/** The registry, read from both databases by the function, onto home's row; a world's spine hue is kept. */
+/** The registry (flowstate_bridge.bridge_worlds, the one shared database), read by the function, onto home's row; a world's spine hue is kept. */
 async function refreshWorlds(fetcher?: Fetcher): Promise<void> {
   if (!token || !open()) return;
   const rows = await listWorlds(token, fetcher);
@@ -101,12 +103,37 @@ const stamp = async (patch: Partial<BridgeSettings>) => {
   await writeBridge(b => (b ? { ...b, ...patch } : b)).catch(() => undefined);
 };
 
-/** Up: every entry the outbox holds, in batches. */
+/** Up: every entry the worn world's outbox holds, in batches, then the clips its acknowledged takes still owe (W6);
+ *  then the same for every other world on the phone that the registry knows and that has something waiting (W6: a song
+ *  moved out of a world leaves its deletes in that world's outbox, which must not wait for him to wear it again). Each
+ *  other world is handed alone, never home; one that fails is left for the next carry and the rest still go. */
 async function carryUp(fetcher?: Fetcher): Promise<number> {
   const t = target();
   if (!t) return 0;
-  const sent = await drain(t.h, t.world, token!, fetcher);
+  let sent = await drain(t.h, t.world, token!, fetcher);
+  sent += await sendClips(t.h, t.world, token!, fetcher);
+  sent += await carryOthers(t.world, fetcher);
   if (sent) { const at = Date.now(); carriedAt.value = at; await stamp({ upAt: at }); }
+  return sent;
+}
+
+/** The other worlds' outboxes and clips (see carryUp). Offline stops it (the worn world's send already found the
+ *  function); any other failure is that world's alone. */
+async function carryOthers(wornWorld: string, fetcher?: Fetcher): Promise<number> {
+  const s = await store.get('settings', 'app');
+  const known = new Set((s?.worlds ?? []).map(w => w.id));
+  let sent = 0;
+  for (const world of await worldsOnPhone()) {
+    if (world === wornWorld || !known.has(world) || !token || !open()) continue;
+    const h = await handedWorld(world);
+    if (!h) continue;
+    try {
+      sent += await drain(h, world, token, fetcher);
+      sent += await sendClips(h, world, token, fetcher);
+    } catch (e) {
+      if (e instanceof BridgeError && e.status === 'offline') throw e;
+    }
+  }
   return sent;
 }
 
@@ -119,8 +146,10 @@ async function carryDown(fetcher?: Fetcher): Promise<void> {
   const r = await getPocket(token!, t.world, have, fetcher);
   if ('unchanged' in r) return;
   if (worn() !== t.world) return; // taken off while it was on its way
-  await applyPocket(t.h, r.pocket);
-  await stamp({ downAt: Date.now(), pocket: { world: t.world, stamp: r.stamp, pocket: r.pocket } });
+  const whole = await applyPocket(t.h, r.pocket);
+  // a pocket passed over in part (a newer Mac lyric against an unsent edit of his) keeps the stamp the phone had, so
+  // the next carry, after his edit has gone up, reads it again instead of hearing "unchanged"
+  await stamp({ downAt: Date.now(), pocket: { world: t.world, stamp: whole ? r.stamp : have ?? '', pocket: r.pocket } });
   // the phone's year starts once from the bible's story year (PLAN-WORLDS.md section 4, W4); after that it is his
   if (r.pocket.kind === 'novel') await startYearOnce(t.world, r.pocket).catch(() => undefined);
   pocketVersion.value++;
@@ -136,6 +165,9 @@ export async function carry(opts: { worlds?: 'worn' | 'always'; fetcher?: Fetche
   try {
     if (opts.worlds === 'always' || (opts.worlds === 'worn' && worn())) await refreshWorlds(opts.fetcher);
     if (!target()) return 'idle';
+    // a song move that stopped halfway is finished before anything goes (model/move.ts): its new world's rows are
+    // written again, newer than the old world's deletes, so the deletes are never the newest envelope sent
+    await settleAll().catch(() => 0);
     await carryUp(opts.fetcher);
     await carryDown(opts.fetcher);
     return 'carried';

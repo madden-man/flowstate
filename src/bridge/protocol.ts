@@ -5,27 +5,26 @@
 // Every request goes to one same-origin path, BRIDGE_PATH, with `Authorization: Bearer <token>`. Without a token that
 // matches BRIDGE_TOKEN on the site the answer is 401 and nothing is read or written.
 //
-//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, read from both databases
+//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, flowstate_bridge.bridge_worlds
 //   GET  ?op=pocket&world=<id>&stamp=<s>   PocketReply                   "unchanged" when the stamp matches
 //   POST ?op=up      body UpBatch           { acks: Ack[] }               one ack an envelope, in the order sent
 //   POST ?op=clip&world=<id>&take=<id>&rev=<n>   body audio bytes         { take, result }   (W6 sends these)
 //
-// Every answer carries `cache-control: no-store`.
+// Every answer carries `cache-control: no-store`. Everything the function reads or writes is in one database, BRIDGE_DB.
 
 export const BRIDGE_PATH = '/.netlify/functions/bridge';
 
-/** The two databases and the one prefix the function may touch (PLAN-WORLDS.md section 2). */
-export const DATABASES = ['novel_companion', 'music_companion'] as const;
-export type DatabaseName = typeof DATABASES[number];
+/** The one database the function may touch (Tommy, 2026-11-25: one shared database), its one prefix and its four
+ *  collections. Novel Companion and Music Companion each read it and write their own registry rows and pockets there;
+ *  neither app's own database is reachable through the function. */
+export const BRIDGE_DB = 'flowstate_bridge';
 export const PREFIX = 'bridge_';
 export const COLLECTIONS = ['bridge_worlds', 'bridge_down', 'bridge_up', 'bridge_clips'] as const;
 export type CollectionName = typeof COLLECTIONS[number];
 
-/** A world's kind decides its database: a novel's bible is Novel Companion's, Songbook is Music Companion's. */
+/** A world's kind: a novel's bible (Novel Companion writes its row and pocket) or Songbook (Music Companion's). It no
+ *  longer picks a database: every world's rows live in BRIDGE_DB, told apart by the `world` and `table` they carry. */
 export type WorldKind = 'novel' | 'songs';
-export const KIND_DB: Record<WorldKind, DatabaseName> = { novel: 'novel_companion', songs: 'music_companion' };
-/** Clips (a hum's audio, W6) only ever go to Music Companion, whatever world the take was made in. */
-export const CLIPS_DB: DatabaseName = 'music_companion';
 
 /** The tables that travel (section 5): a council page and its lines, a question page and its lines, a journal line while
  *  it is kept, the questions researched, songs and takes. Values, voices and the music tables never do. */
@@ -80,7 +79,20 @@ export type NovelPocket = {
   span?: { from: number; to: number };
   questions: PocketQuestion[];
 };
-export type SongsPocket = { kind: 'songs'; songs: { id: string; title: string }[] };
+/** A Mac song in Songbook's pocket (W7 writes it): its id, its title (Music Companion's, the work date in front), and
+ *  its lyric with lyricAt, the Mac's time of the lyric's last change, in epoch milliseconds like every time the phone's
+ *  rows carry. Both optional: an older pocket has neither. */
+export type PocketSong = { id: string; title: string; lyric?: string; lyricAt?: number };
+export type SongsPocket = { kind: 'songs'; songs: PocketSong[] };
+
+/** A song row as it goes up (src/bridge/up.ts names these fields and no others). lyricAt: when the lyric itself last
+ *  changed on the phone (absent if he never edited it there); lyricFrom: the pocket's lyricAt his text started from
+ *  (absent if it started from nothing). Both epoch milliseconds. The sections are the lyric (a [Name] line on the Mac),
+ *  so naming one moves lyricAt; a rename, the key, the tempo and the Character chip never move either. */
+export type SongRow = {
+  id: string; createdAt: number; updatedAt: number; title: string; lyric: string; sections: { line: number; name: string }[];
+  key?: string; bpm?: number; characterIds?: string[]; lyricAt?: number; lyricFrom?: number;
+};
 export type Pocket = NovelPocket | SongsPocket;
 export type PocketReply = { world: string; stamp: string; unchanged: true } | { world: string; stamp: string; pocket: Pocket };
 

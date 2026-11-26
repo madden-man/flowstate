@@ -31,7 +31,8 @@ const rules = [
   { id: 'DL8 modal dialog', re: /(<dialog\b|role=["']dialog["']|\.showModal\(|\b(?:alert|confirm|prompt)\s*\()/ },
   { id: 'DL7 icon library', re: /\b(lucide|heroicons|font-?awesome|phosphor-icons|material-icons|tabler-icons|ionicons|react-icons)\b/i },
   { id: 'DL18 navigator.vibrate outside parts/Haptic', skip: isHaptic, re: /navigator\.vibrate/ },
-  { id: 'DL20 AudioContext outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b/ },
+  // the microphone and the recorder too (W6, the review of PR 112): DESIGN.md rule 21, nothing else hears the microphone
+  { id: 'DL20 AudioContext, the microphone or a recorder outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b|\bgetUserMedia\b|\bnew\s+MediaRecorder\b|\bMediaRecorder\.isTypeSupported\b/ },
   { id: 'DL21 fetch outside src/music, src/research and src/bridge', only: f => inSrc(f) && !isMusic(f) && !isResearch(f) && !isBridge(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
 ];

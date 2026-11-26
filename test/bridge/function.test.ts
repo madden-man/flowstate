@@ -1,8 +1,9 @@
-// The bridge function (PLAN-WORLDS.md section 5, W2) against a fake driver: the token, the two databases and the
-// `bridge_` prefix, newest rev wins, a resend changes nothing, and every input is checked.
+// The bridge function (PLAN-WORLDS.md section 5, W2) against a fake driver: the token, the one shared database
+// (flowstate_bridge) and its four `bridge_` collections, newest rev wins, a resend changes nothing, and every input is
+// checked.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handle, coll, authorised, Confined } from '../../netlify/lib/bridge';
-import { BRIDGE_PATH, BATCH_MAX, CLIP_MAX_BYTES, ENVELOPE_MAX_BYTES, type Envelope } from '../../src/bridge/protocol';
+import { BRIDGE_DB, BRIDGE_PATH, BATCH_MAX, CLIP_MAX_BYTES, ENVELOPE_MAX_BYTES, type Envelope } from '../../src/bridge/protocol';
 import { FakeMongo } from './fake-mongo';
 
 const TOKEN = 'a-long-random-token';
@@ -27,9 +28,8 @@ const env = (o: Partial<Envelope> = {}): Envelope => ({ world: 'eastwinds', tabl
 beforeEach(() => {
   mongo = new FakeMongo();
   connects = 0;
-  mongo.seed('novel_companion', 'bridge_worlds', [{ _id: 'eastwinds', name: 'East Winds', kind: 'novel' }]);
-  mongo.seed('music_companion', 'bridge_worlds', [{ _id: 'songbook', name: 'Songbook', kind: 'songs' }]);
-  mongo.seed('novel_companion', 'bridge_down', [{ _id: 'eastwinds', stamp: 's1', pocket: { kind: 'novel', characters: [], places: [], chapters: [], events: [], questions: [] } }]);
+  mongo.seed(BRIDGE_DB, 'bridge_worlds', [{ _id: 'eastwinds', name: 'East Winds', kind: 'novel' }, { _id: 'songbook', name: 'Songbook', kind: 'songs' }]);
+  mongo.seed(BRIDGE_DB, 'bridge_down', [{ _id: 'eastwinds', stamp: 's1', pocket: { kind: 'novel', characters: [], places: [], chapters: [], events: [], questions: [] } }]);
   mongo.touched = [];
 });
 
@@ -63,14 +63,16 @@ describe('the token', () => {
 });
 
 describe('confinement', () => {
-  it('coll() refuses any other database, any name without the prefix, and clips outside music_companion', () => {
-    expect(() => coll(mongo, 'admin' as never, 'bridge_up')).toThrow(Confined);
-    expect(() => coll(mongo, 'novel_companion', 'characters' as never)).toThrow(Confined);
-    expect(() => coll(mongo, 'novel_companion', 'bridge_other' as never)).toThrow(Confined);
-    expect(() => coll(mongo, 'novel_companion', 'bridge_clips')).toThrow(Confined);
-    expect(() => coll(mongo, 'music_companion', 'bridge_clips')).not.toThrow();
+  it('coll() refuses any database but flowstate_bridge, the two apps\' own included, and any other name', () => {
+    expect(BRIDGE_DB).toBe('flowstate_bridge');
+    for (const db of ['admin', 'novel_companion', 'music_companion', 'flowstate', 'flowstate_bridge2', '']) {
+      expect(() => coll(mongo, db, 'bridge_up')).toThrow(Confined);
+    }
+    expect(() => coll(mongo, BRIDGE_DB, 'characters' as never)).toThrow(Confined);
+    expect(() => coll(mongo, BRIDGE_DB, 'bridge_other' as never)).toThrow(Confined);
+    for (const c of ['bridge_worlds', 'bridge_down', 'bridge_up', 'bridge_clips'] as const) expect(() => coll(mongo, BRIDGE_DB, c)).not.toThrow();
   });
-  it('a whole session of every op touches only bridge_ collections of the two databases', async () => {
+  it('a whole session of every op touches only the four bridge_ collections of flowstate_bridge', async () => {
     await handle(get('op=worlds'), deps());
     await handle(get('op=pocket&world=eastwinds'), deps());
     await handle(post('op=up', { world: 'eastwinds', envelopes: [env()] }), deps());
@@ -78,28 +80,36 @@ describe('confinement', () => {
     await handle(post('op=clip&world=eastwinds&take=t1&rev=1', new Uint8Array(8), { 'content-type': 'audio/mp4' }), deps());
     expect(mongo.touched.length).toBeGreaterThan(0);
     for (const t of mongo.touched) {
-      expect(['novel_companion', 'music_companion']).toContain(t.db);
-      expect(t.coll.startsWith('bridge_')).toBe(true);
+      expect(t.db).toBe(BRIDGE_DB);
+      expect(['bridge_worlds', 'bridge_down', 'bridge_up', 'bridge_clips']).toContain(t.coll);
     }
   });
-  it('a world\'s envelopes go to its own database only: a novel to novel_companion, Songbook to music_companion', async () => {
-    await handle(post('op=up', { world: 'eastwinds', envelopes: [env()] }), deps());
-    await handle(post('op=up', { world: 'songbook', envelopes: [env({ world: 'songbook', id: 'm2', row: { id: 'm2', text: 'hm' } })] }), deps());
-    expect([...mongo.rows('novel_companion', 'bridge_up').keys()]).toEqual(['eastwinds:messages:m1']);
-    expect([...mongo.rows('music_companion', 'bridge_up').keys()]).toEqual(['songbook:messages:m2']);
-    expect(mongo.touched.filter(t => t.op === 'insertOne' || t.op === 'updateOne').every(t => t.coll === 'bridge_up')).toBe(true);
+  it('a novel world\'s song is stored once, in the one bridge_up, and is found there by world and table', async () => {
+    const song = env({ table: 'songs', id: 's-grey', row: { id: 's-grey', title: 'The grey coat', lyric: 'You only wear that one to leave', characterIds: ['dawn'] } });
+    const take = env({ table: 'takes', id: 't-1', row: { id: 't-1', songId: 's-grey', seconds: 14, pitch: [55, 0, 57] } });
+    const r = await read(await handle(post('op=up', { world: 'eastwinds', envelopes: [env(), song, take] }), deps()));
+    expect(r.body.acks.map((a: { result: string }) => a.result)).toEqual(['stored', 'stored', 'stored']);
+    const up = mongo.rows(BRIDGE_DB, 'bridge_up');
+    expect(up.size).toBe(3);
+    expect([...up.keys()].filter(k => k === 'eastwinds:songs:s-grey')).toHaveLength(1);
+    // what each desktop app reads: Music Companion every world's songs and takes, Novel Companion its own world's rows
+    const by = (world: string | null, tables: string[]) => [...up.values()].filter(d => (world === null || d.world === world) && tables.includes(d.table as string)).map(d => d._id);
+    expect(by(null, ['songs', 'takes'])).toEqual(['eastwinds:songs:s-grey', 'eastwinds:takes:t-1']);
+    expect(by('eastwinds', ['pages', 'messages', 'inquiries', 'songs'])).toEqual(['eastwinds:messages:m1', 'eastwinds:songs:s-grey']);
+    expect(up.get('eastwinds:songs:s-grey')).toMatchObject({ world: 'eastwinds', table: 'songs', rev: 10, row: { title: 'The grey coat', characterIds: ['dawn'] } });
+    // and nothing anywhere else
+    expect([...mongo.data.keys()].every(k => k.startsWith(`${BRIDGE_DB}.`))).toBe(true);
   });
-  it('a registry row in the wrong database for its kind is no world: listed nowhere, written nowhere', async () => {
-    mongo.seed('music_companion', 'bridge_worlds', [{ _id: 'stray', name: 'Stray', kind: 'novel' }]);
+  it('an unknown world, or a registry row with no kind it knows, is refused and nothing is written', async () => {
+    mongo.seed(BRIDGE_DB, 'bridge_worlds', [{ _id: 'stray', name: 'Stray', kind: 'poems' }]);
     const w = await read(await handle(get('op=worlds'), deps()));
     expect(w.body.worlds).toEqual([{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }, { id: 'songbook', name: 'Songbook', kind: 'songs' }]);
-    const r = await read(await handle(post('op=up', { world: 'stray', envelopes: [env({ world: 'stray' })] }), deps()));
-    expect(r.status).toBe(404);
-    expect(mongo.rows('music_companion', 'bridge_up').size + mongo.rows('novel_companion', 'bridge_up').size).toBe(0);
-  });
-  it('a world id claimed by both databases is refused rather than guessed', async () => {
-    mongo.seed('music_companion', 'bridge_worlds', [{ _id: 'eastwinds', name: 'Twin', kind: 'songs' }]);
-    expect((await handle(post('op=up', { world: 'eastwinds', envelopes: [env()] }), deps())).status).toBe(404);
+    for (const world of ['stray', 'nowhere']) {
+      expect((await handle(post('op=up', { world, envelopes: [env({ world })] }), deps())).status).toBe(404);
+      expect((await handle(post(`op=clip&world=${world}&take=t1&rev=1`, new Uint8Array(4), { 'content-type': 'audio/mp4' }), deps())).status).toBe(404);
+      expect((await handle(get(`op=pocket&world=${world}`), deps())).status).toBe(404);
+    }
+    expect(mongo.rows(BRIDGE_DB, 'bridge_up').size + mongo.rows(BRIDGE_DB, 'bridge_clips').size).toBe(0);
   });
 });
 
@@ -124,7 +134,7 @@ describe('the pocket', () => {
 
 describe('up', () => {
   const up = async (envelopes: unknown[], world = 'eastwinds') => read(await handle(post('op=up', { world, envelopes }), deps()));
-  const stored = () => mongo.rows('novel_companion', 'bridge_up').get('eastwinds:messages:m1');
+  const stored = () => mongo.rows(BRIDGE_DB, 'bridge_up').get('eastwinds:messages:m1');
 
   it('stores an envelope and acknowledges it', async () => {
     const r = await up([env()]);
@@ -145,7 +155,7 @@ describe('up', () => {
     const r = await up([env()]);
     expect(r.body.acks[0].result).toBe('same');
     expect(stored()!.rev).toBe(10);
-    expect(mongo.rows('novel_companion', 'bridge_up').size).toBe(1);
+    expect(mongo.rows(BRIDGE_DB, 'bridge_up').size).toBe(1);
     // the second try did attempt a guarded write, and it matched nothing
     expect(mongo.touched.filter(t => t.op === 'updateOne' || t.op === 'insertOne').length - before).toBe(2);
   });
@@ -175,7 +185,7 @@ describe('up', () => {
       ['bad id!', 'refused', 'id'], ['c', 'refused', 'rev'], ['d', 'refused', 'rev'], ['e', 'refused', 'row id'],
       ['f', 'refused', 'size'], ['g', 'refused', 'row on a delete'], ['h', 'refused', 'field'], ['i', 'stored', undefined],
     ]);
-    expect([...mongo.rows('novel_companion', 'bridge_up').keys()]).toEqual(['eastwinds:messages:a', 'eastwinds:messages:i']);
+    expect([...mongo.rows(BRIDGE_DB, 'bridge_up').keys()]).toEqual(['eastwinds:messages:a', 'eastwinds:messages:i']);
   });
   it('refuses a whole batch that is not JSON, too long, too large, or for a world it does not know', async () => {
     const bad = async (body: unknown, h?: Record<string, string>) => (await handle(post('op=up', body, h), deps())).status;
@@ -185,16 +195,15 @@ describe('up', () => {
     expect(await bad({ world: 'nowhere', envelopes: [env({ world: 'nowhere' })] })).toBe(404);
     expect(await bad(new TextEncoder().encode('{not json'))).toBe(400);
     expect(await bad(new TextEncoder().encode(JSON.stringify({ world: 'eastwinds', envelopes: [], pad: 'x'.repeat(1024 * 1024) })))).toBe(413);
-    expect(mongo.rows('novel_companion', 'bridge_up').size).toBe(0);
+    expect(mongo.rows(BRIDGE_DB, 'bridge_up').size).toBe(0);
   });
 });
 
-describe('clips (W6 sends them; the shape and the guard are here now)', () => {
-  it('keeps audio in music_companion.bridge_clips, newest rev wins, whatever the world\'s kind', async () => {
+describe('clips (W6 sends them)', () => {
+  it('keeps audio in the one bridge_clips, newest rev wins, whatever the world\'s kind', async () => {
     const r = await read(await handle(post('op=clip&world=eastwinds&take=t1&rev=2', new Uint8Array([1, 2, 3]), { 'content-type': 'audio/mp4' }), deps()));
     expect(r.body).toEqual({ take: 't1', result: 'stored' });
-    expect(mongo.rows('music_companion', 'bridge_clips').get('eastwinds:t1')).toMatchObject({ take: 't1', rev: 2, type: 'audio/mp4', bytes: 3 });
-    expect(mongo.rows('novel_companion', 'bridge_clips').size).toBe(0);
+    expect(mongo.rows(BRIDGE_DB, 'bridge_clips').get('eastwinds:t1')).toMatchObject({ world: 'eastwinds', take: 't1', rev: 2, type: 'audio/mp4', bytes: 3 });
     const again = await read(await handle(post('op=clip&world=eastwinds&take=t1&rev=1', new Uint8Array([9]), { 'content-type': 'audio/mp4' }), deps()));
     expect(again.body.result).toBe('older');
   });

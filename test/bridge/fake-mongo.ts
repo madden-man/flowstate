@@ -1,6 +1,6 @@
 // An in-memory stand-in for the few MongoDB driver calls the bridge makes (netlify/lib/bridge.ts CollLike). It
-// remembers every database and collection it was asked for, so a test can assert the function stayed inside the two
-// databases and the `bridge_` prefix. Filters understood: {}, { _id }, { _id, rev: { $lt } }. No real connection.
+// remembers every database and collection it was asked for, so a test can assert the function stayed inside the one
+// database (flowstate_bridge) and its four `bridge_` collections. Filters understood: {}, { _id }, { _id, rev: { $lt } }. No real connection.
 import type { ClientLike, CollLike } from '../../netlify/lib/bridge';
 
 type Doc = Record<string, unknown>;

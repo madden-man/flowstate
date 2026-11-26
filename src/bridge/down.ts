@@ -10,8 +10,9 @@
 // page moves under Answered with the decision as its wise line (a line of its own, id d:<questionId>). A question he
 // answered on the phone is not reopened from here; deciding on the phone, the year dial, ages and chips are W4's.
 import type { Handed } from '../db/fields';
-import type { Message, Page, Voice } from '../db/schema';
-import type { NovelPocket, Pocket } from './protocol';
+import type { Message, Page, Song, Take, Voice } from '../db/schema';
+import { follow, fromMacLyric } from '../model/songs';
+import type { NovelPocket, Pocket, SongsPocket } from './protocol';
 import { hueOf } from './colour';
 
 export const characterVoiceId = (characterId: string) => `c:${characterId}`;
@@ -101,11 +102,52 @@ async function questionsFrom(h: Handed, pocket: NovelPocket, now: number): Promi
   return { pages, messages };
 }
 
-/** Writes what a pocket holds into the world's notebook. A Songbook pocket holds only song ids and titles, which W6's
- *  Songs list reads from the pocket itself; nothing is written for it here. Locked, nothing is written. */
-export async function applyPocket(h: Handed, pocket: Pocket, now = Date.now()): Promise<void> {
-  if (!h.open() || pocket.kind !== 'novel') return;
+/**
+ * Songbook's lyrics (W6, from W7's review): a song the phone holds takes the pocket's lyric when the Mac changed it
+ * after the text the phone's started from (pocket lyricAt newer than the song's lyricFrom), and only if the phone has no
+ * unsent lyric edit of its own (a lyricAt of its own while the song still waits in the outbox): what he typed is never
+ * overwritten. Taken, the song's lyricFrom becomes the pocket's lyricAt and its own lyricAt goes (the text is the Mac's
+ * now); its sections follow the lines by their text, and its pinned takes are kept on their lines (model/songs.ts). A
+ * quiet write, so nothing that came down goes back up. A song the phone does not hold is read from the pocket when it
+ * is opened (songFromPocket).
+ */
+async function lyricsFrom(h: Handed, pocket: SongsPocket): Promise<{ songs: Song[]; takes: Take[]; passed: boolean }> {
+  const fromMac = (pocket.songs ?? []).filter(p => p && typeof p.id === 'string' && typeof p.lyric === 'string' && typeof p.lyricAt === 'number');
+  if (!fromMac.length) return { songs: [], takes: [], passed: false };
+  const have = await h.many('songs', fromMac.map(p => p.id));
+  const waiting = new Set((await h.db.outbox.toArray()).filter(o => o.table === 'songs').map(o => o.id));
+  const songs: Song[] = [], takes: Take[] = [];
+  let passed = false;
+  for (const [i, p] of fromMac.entries()) {
+    const was = have[i];
+    if (!was || was.locked) continue;
+    if (was.lyricFrom !== undefined && p.lyricAt! <= was.lyricFrom) continue;
+    if (was.lyricAt !== undefined && waiting.has(was.id)) { passed = true; continue; }
+    // the Mac's [Name] lines become the phone's section names, so what goes back up rebuilds the same text
+    const mac = fromMacLyric(p.lyric!);
+    if (was.lyric === mac.lyric && was.lyricFrom === p.lyricAt && JSON.stringify(was.sections) === JSON.stringify(mac.sections)) continue;
+    const { locked: _, lyricAt: _a, ...rest } = was as Song & { locked?: true };
+    songs.push({ ...rest, lyric: mac.lyric, sections: mac.sections, lyricFrom: p.lyricAt });
+    const own = (await h.query('takes', t => t.where('songId').equals(was.id))).filter(t => !t.locked) as Take[];
+    takes.push(...follow(own, mac.lyric));
+  }
+  return { songs, takes, passed };
+}
+
+/** Writes what a pocket holds into the world's notebook: a novel's voices and questions, Songbook's lyrics for the songs
+ *  the phone holds (its song list itself is read from the pocket by the Songs list). Locked, nothing is written.
+ *  Resolves false when a newer Mac lyric was passed over for an unsent edit of his: the caller then keeps the old stamp,
+ *  so the same pocket is read again once his edit has gone up (model/carry.ts carryDown). */
+export async function applyPocket(h: Handed, pocket: Pocket, now = Date.now()): Promise<boolean> {
+  if (!h.open()) return true;
+  if (pocket.kind === 'songs') {
+    const { songs, takes, passed } = await lyricsFrom(h, pocket);
+    if (songs.length) await h.writeDown({ songs, ...(takes.length ? { takes } : {}) });
+    return !passed;
+  }
+  if (pocket.kind !== 'novel') return true;
   const voices = await voicesFrom(h, pocket, now);
   const { pages, messages } = await questionsFrom(h, pocket, now);
   await h.writeDown({ voices, pages, messages });
+  return true;
 }

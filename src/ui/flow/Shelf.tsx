@@ -90,33 +90,62 @@ export function Shelf({ books, worn, front, looks = {}, dials = {}, onSettle, on
   useLayoutEffect(() => {
     const el = shelf.current;
     const c = el?.querySelector<HTMLElement>(`.fl-cover[data-book="${CSS.escape(front)}"]`);
-    if (el && c) el.scrollLeft = c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2;
-    measure();
+    if (!el) return;
+    if (c) el.scrollLeft = c.offsetLeft - (el.clientWidth - c.offsetWidth) / 2;
+    const near = measure();
+    if (near) el.dataset.settled = near;
   }, [books.length]);
 
   useEffect(() => {
     const el = shelf.current;
     if (!el) return;
     let frame = 0, timer: ReturnType<typeof setTimeout> | undefined;
+    // fingers on the shelf: nothing settles under a held finger, however long it rests mid-slide (a pause longer than
+    // SETTLE_MS used to settle there, with the tick and the lamp, while the thumb was still down). Heard on the document,
+    // because a touch begun while a page turn is up lands on <html> (ui/turns.ts) and still slides the shelf; but only a
+    // touch begun on the shelf or on the page itself counts, since a touch's end goes to where it began, and a row
+    // elsewhere that is taken away under the finger would never hear its end.
+    const held = new Set<number>();
+    const ours = (t: EventTarget | null) => t === document.documentElement || t === document.body || (t instanceof Node && el.contains(t));
     const settle = () => {
       clearTimeout(timer);
+      if (held.size) return;
       delete el.dataset.sliding;
       const near = measure();
+      // the shelf's own word that it has come to rest, and on which cover (the e2e waits on it, never on time)
+      if (near) el.dataset.settled = near;
       if (near && near !== shown.current) hear.current?.(near);
     };
     const onScroll = () => {
       el.dataset.sliding = '';
+      delete el.dataset.settled;
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; measure(); });
+      clearTimeout(timer);
+      timer = setTimeout(settle, SETTLE_MS);
+    };
+    const down = (e: TouchEvent) => { if (ours(e.target)) for (const t of e.changedTouches) held.add(t.identifier); };
+    // lifted: the covers carry on to their stop and settle there (scrollend, or the fallback); a lift that moved nothing
+    // settles where it is
+    const up = (e: TouchEvent) => {
+      const had = held.size;
+      for (const t of e.changedTouches) held.delete(t.identifier);
+      if (!had || held.size) return;
       clearTimeout(timer);
       timer = setTimeout(settle, SETTLE_MS);
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     el.addEventListener('scrollend', settle);
+    document.addEventListener('touchstart', down, { passive: true, capture: true });
+    document.addEventListener('touchend', up, { passive: true, capture: true });
+    document.addEventListener('touchcancel', up, { passive: true, capture: true });
     addEventListener('resize', measure);
     const stop = lean(el);
     return () => {
       el.removeEventListener('scroll', onScroll);
       el.removeEventListener('scrollend', settle);
+      document.removeEventListener('touchstart', down, true);
+      document.removeEventListener('touchend', up, true);
+      document.removeEventListener('touchcancel', up, true);
       removeEventListener('resize', measure);
       cancelAnimationFrame(frame);
       clearTimeout(timer);

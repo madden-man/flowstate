@@ -762,13 +762,36 @@ export type OutboxRow = { n?: number; table: TravelTable; id: string; rev: numbe
  *  starts one and its name, by line index. */
 export type Song = {
   id: string; createdAt: Millis; updatedAt: Millis; title: string; lyric: string;
-  sections: { line: number; name: string }[]; key?: string; bpm?: number; characterIds?: string[]; sealed?: Sealed;
+  sections: { line: number; name: string }[]; key?: string; bpm?: number; characterIds?: string[];
+  /** W6 (W7's review): when the lyric itself last changed on the phone, epoch ms; absent if he never edited it here. A
+   *  section named, changed or cleared moves it too (model/songs.ts withSections); a rename, the key, the tempo and the
+   *  Character chip never do. Goes up. */
+  lyricAt?: Millis;
+  /** W6: the pocket's lyricAt (the Mac's) that this lyric started from; absent if it started from nothing. Goes up. */
+  lyricFrom?: Millis;
+  /** W6, a song moved out of a novel (model/move.ts): the characters it named there, kept with that world's id so a move
+   *  back restores them. On the phone only (src/bridge/up.ts sends characterIds, never this). Ids, clear. */
+  tucked?: { world: string; characterIds: string[] }[];
+  /** W6: the world this song was moved from, while that world may still hold its old copy (model/move.ts settleMoves
+   *  finishes the move and clears it). On the phone only. */
+  movedFrom?: string;
+  sealed?: Sealed;
 };
 /** A take (PLAN-WORLDS.md section 6, W6 records them): the audio is plain bytes (iOS Safari can lose a Blob kept in
  *  IndexedDB, as the covers found in V9) and sealed like everything private; the pitch line, key and tempo are clear. */
 export type Take = {
   id: string; songId?: string; at: Millis; seconds: number; audio: ArrayBuffer; audioType?: string; pitch: number[];
-  key?: string; bpm?: number; lineId?: string; sealed?: Sealed;
+  key?: string; bpm?: number;
+  /** W6: the lyric line the take is pinned to, as the line's 0-based index in the song's lyric written as a decimal
+   *  string ("0" is the first line); absent on a take loose on its song or a loose hum. lineText is that line's text,
+   *  so the line can be shown without the lyric; the phone moves both when lines above it come or go (model/songs.ts
+   *  follow). Both go up with the take. */
+  lineId?: string; lineText?: string;
+  /** W6: the clip (the audio) acknowledged by the bridge, under which world and when (src/bridge/clips.ts). Absent, the
+   *  audio has not gone up yet. aside: never sent and never tried again, because it is too large to carry ('size') or
+   *  the function refused it for good ('refused'); the take says so under its line. On the phone only. */
+  clip?: { world: string; at: Millis; aside?: 'size' | 'refused' };
+  sealed?: Sealed;
 };
 
 /** The worlds' version adds the outbox (by its own counter, and by row so a write can replace its entry), the songs by

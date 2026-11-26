@@ -62,25 +62,44 @@ async function seedHome(page: Page, extra: { music?: boolean } = {}) {
 async function thumb(page: Page, context: BrowserContext) {
   const cdp = await context.newCDPSession(page);
   const box = async () => (await page.locator('.fl-shelf').boundingBox())!;
+  // Every touch carries its own timestamp, a steady 16 ms apart, and a slide rests before it lifts. Without them, CDP
+  // stamps each event when it is dispatched, and under a loaded machine the gaps jitter enough that Chromium's velocity
+  // tracker reads the lift as a fling the wrong way: a lift past halfway snapped back, one nearer the next cover returned
+  // (the flake this fixes).
+  let clock = Date.now() / 1000;
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x?: number, y?: number) =>
-    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y: y! }] });
+    cdp.send('Input.dispatchTouchEvent', { type, timestamp: (clock += 0.016), touchPoints: x === undefined ? [] : [{ x, y: y! }] });
+  const shelf = page.locator('.fl-shelf');
   return {
     /** Slides the shelf by dx (negative: the covers go left, the next one comes to the middle), and lifts. */
     async slide(dx: number) {
       const b = await box();
       const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
+      clock = Math.max(clock, Date.now() / 1000);
       await touch('touchStart', x0, y);
       const step = 8 * Math.sign(dx);
-      for (let d = step; Math.abs(d) <= Math.abs(dx); d += step) { await touch('touchMove', x0 + d, y); await page.waitForTimeout(8); }
+      for (let d = step; Math.abs(d) <= Math.abs(dx); d += step) await touch('touchMove', x0 + d, y);
+      // the thumb rests a moment before it lifts, so the lift carries no fling and the covers settle on the nearest stop
+      clock += 0.3;
+      await touch('touchMove', x0 + dx, y);
       await touch('touchEnd');
-      // the covers carry on to their place and stop there; a tap while they still move only stops them, as on a phone
-      let was = -1;
-      for (let i = 0; i < 40; i++) {
-        const now = await page.locator('.fl-shelf').evaluate(el => el.scrollLeft);
-        if (now === was) break;
-        was = now;
-        await page.waitForTimeout(120);
-      }
+      // the covers carry on to their stop; the shelf says when it has come to rest (Shelf.tsx data-settled), so the
+      // wait is on the app's own state, never on time
+      await expect(shelf).toHaveAttribute('data-settled', /./);
+    },
+    /** Puts a finger down on the shelf and moves it by dx, and keeps it there (lift() lets go). */
+    async drag(dx: number) {
+      const b = await box();
+      const y = b.y + b.height / 2, x0 = b.x + b.width / 2;
+      clock = Math.max(clock, Date.now() / 1000);
+      await touch('touchStart', x0, y);
+      const step = 8 * Math.sign(dx);
+      for (let d = step; Math.abs(d) <= Math.abs(dx); d += step) await touch('touchMove', x0 + d, y);
+    },
+    /** Lifts the finger drag() left down, and waits for the shelf to come to rest. */
+    async lift() {
+      await touch('touchEnd');
+      await expect(shelf).toHaveAttribute('data-settled', /./);
     },
     /** Holds a finger on the cover in front past a long press, and lifts. */
     async hold() {
@@ -137,9 +156,9 @@ test('the shelf slides under a thumb and settles one cover at a time, with the t
   await expect(front(page)).toHaveAttribute('data-book', 'own');
   // the one beside it is smaller and fainter
   const look = (id: string) => page.locator(`.fl-cover[data-book="${id}"]`).evaluate(el => ({ o: Number(getComputedStyle(el).opacity), w: el.getBoundingClientRect().width }));
-  const own0 = await look('own'), ew0 = await look('eastwinds');
-  expect(ew0.o).toBeLessThan(own0.o);
-  expect(ew0.w).toBeLessThan(own0.w);
+  // they ease there over --t-ui as the page comes up, so the look is read once they have come to rest (polled on the
+  // covers' own computed style, never a fixed wait): reading it mid-ease was the rest of this test's flake
+  await expect.poll(async () => { const o = await look('own'), e = await look('eastwinds'); return e.o < o.o - 0.4 && e.w < o.w; }).toBe(true);
   await expect(page.locator('a.fl-circle')).toHaveCount(3);
   await expect(page.locator('.fl-lastline')).toContainText('It is the pace, not the list.');
   // nothing moves by itself: at rest, the shelf stays where it is
@@ -149,7 +168,7 @@ test('the shelf slides under a thumb and settles one cover at a time, with the t
 
   await listen(page);
   const t = await thumb(page, context);
-  await t.slide(-140);
+  await t.slide(-160);
   await expect(front(page)).toHaveAttribute('data-book', 'eastwinds');
   await expect.poll(() => ticks(page)).toEqual(['check']);
   // the lamp takes East Winds' hue by the council's mix; nothing is worn by sliding
@@ -157,25 +176,25 @@ test('the shelf slides under a thumb and settles one cover at a time, with the t
   expect(await page.locator('.fs-app').evaluate(el => el.style.getPropertyValue('--lamp-voice'))).toContain(' 250)');
   await expect(page.locator('.fl-cover[data-book="own"] .fl-cover-foot')).toHaveText('Open');
   await expect(page.locator('.fs-hdr-world')).toHaveCount(0);
-  // under East Winds: its own last line (none yet) and Research; no circles, no Right now
+  // under East Winds: its own last line (none yet), Songs (W6) and Research; no circles, no Right now
   await expect(page.locator('.fl-under')).toHaveAttribute('data-for', 'eastwinds');
   await expect(page.locator('.fl-lastline')).toHaveText('');
-  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/Research/]);
+  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/^Songs/, /^Research/]);
   await expect(page.locator('a.fl-circle')).toHaveCount(0);
-  // one more: Songbook, and nothing under it yet
-  await t.slide(-140);
+  // one more: Songbook, and Songs alone under it (W6)
+  await t.slide(-160);
   await expect(front(page)).toHaveAttribute('data-book', 'songbook');
   await expect.poll(() => ticks(page)).toEqual(['check', 'check']);
-  await expect(page.locator('.fl-under a')).toHaveCount(0);
+  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/^Songs/]);
   // a slide past the last cover settles where it was, with no tick
-  await t.slide(-140);
+  await t.slide(-160);
   await page.waitForTimeout(400);
   await expect(front(page)).toHaveAttribute('data-book', 'songbook');
   expect(await ticks(page)).toEqual(['check', 'check']);
   // and back, one cover at a time, however far the thumb goes
   await t.slide(220);
   await expect(front(page)).toHaveAttribute('data-book', 'eastwinds');
-  await t.slide(140);
+  await t.slide(160);
   await expect(front(page)).toHaveAttribute('data-book', 'own');
   await expect(page.locator('a.fl-circle')).toHaveCount(3);
   // Still: no hue on the lamp
@@ -183,6 +202,31 @@ test('the shelf slides under a thumb and settles one cover at a time, with the t
   await expect(page.locator('html')).toHaveAttribute('data-light', 'still');
   await expect(page.locator('.fs-app')).not.toHaveAttribute('data-lamp', '');
   await page.getByRole('button', { name: 'Leave Still' }).click();
+});
+
+test('nothing settles under a held finger: no tick, no lamp, no cover in front until the thumb lifts', async ({ page, context }) => {
+  await page.clock.install({ time: new Date(2026, 10, 25, 21, 30) });
+  await enter(page, '/#/journal');
+  await seedHome(page);
+  await tabTo(page, 'Flow');
+  await expect(front(page)).toHaveAttribute('data-book', 'own');
+  await listen(page);
+  const t = await thumb(page, context);
+  // past halfway to East Winds, and resting there far longer than the shelf's settle fallback (120 ms)
+  await t.drag(-150);
+  await expect(page.locator('.fl-shelf')).toHaveAttribute('data-sliding', '');
+  await page.clock.runFor(1000);
+  await page.waitForTimeout(500);
+  await expect(page.locator('.fl-shelf')).not.toHaveAttribute('data-settled', /./);
+  await expect(front(page)).toHaveAttribute('data-book', 'own');
+  expect(await ticks(page)).toEqual([]);
+  await expect(page.locator('.fs-app')).toHaveAttribute('data-lamp', '');
+  expect(await page.locator('.fs-app').evaluate(el => el.style.getPropertyValue('--lamp-voice'))).not.toContain(' 250)');
+  // lifted, it settles once, on East Winds
+  await t.lift();
+  await expect(page.locator('.fl-shelf')).toHaveAttribute('data-settled', 'eastwinds');
+  await expect(front(page)).toHaveAttribute('data-book', 'eastwinds');
+  await expect.poll(() => ticks(page)).toEqual(['check']);
 });
 
 test('a tap on the cover in front puts it on: the bell, its Journal, its name over the date on every tab; My own pages takes it off', async ({ page, context }) => {
@@ -195,7 +239,7 @@ test('a tap on the cover in front puts it on: the bell, its Journal, its name ov
   await seedHome(page);
   await tabTo(page, 'Flow');
   const t = await thumb(page, context);
-  await t.slide(-140);
+  await t.slide(-160);
   await expect(front(page)).toHaveAttribute('data-book', 'eastwinds');
   // a slide begun while the tab was still turning raised no sheet (Shelf.tsx: a finger that slid was not holding)
   await expect(page.locator('.fs-sheet')).toHaveCount(0);
@@ -233,7 +277,7 @@ test('a tap on the cover in front puts it on: the bell, its Journal, its name ov
   await expect(front(page).locator('.fl-cover-foot')).toHaveText('Open');
   await expect(page.locator('.fl-lastline')).toContainText('What does it cost her to keep it?');
   // My own pages: slide back and tap it, and the world comes off
-  await t.slide(140);
+  await t.slide(160);
   await expect(front(page)).toHaveAttribute('data-book', 'own');
   await expect(page.locator('.fl-lastline')).toContainText('Mine, and only mine.');
   await t.tap();
@@ -243,11 +287,11 @@ test('a tap on the cover in front puts it on: the bell, its Journal, its name ov
   await expect(page.locator('main')).not.toContainText('What does it cost her');
   // a circle under his cover, from a world, takes the world off on the way
   await tabTo(page, 'Flow');
-  await t.slide(-140);
+  await t.slide(-160);
   await t.tap();
   await expect(page.locator('.fs-hdr-world')).toHaveText('East Winds');
   await tabTo(page, 'Flow');
-  await t.slide(140);
+  await t.slide(160);
   await page.locator('a.fl-circle', { hasText: 'Meditate' }).click();
   await expect(page).toHaveURL(/#\/flow\/meditate$/);
   await expect(page.locator('.md-page')).toBeVisible();
@@ -258,7 +302,7 @@ test('the app reopens in the world it was left in', async ({ page, context }) =>
   await enter(page, '/#/flow');
   await seedHome(page);
   const t = await thumb(page, context);
-  await t.slide(-140);
+  await t.slide(-160);
   await t.tap();
   await expect(page.locator('.fs-hdr-world')).toHaveText('East Winds');
   await page.reload();
@@ -273,7 +317,7 @@ test('locked in a world: the keypad names it, the ring opens his own Right now, 
   await enter(page, '/#/flow');
   await seedHome(page);
   const t = await thumb(page, context);
-  await t.slide(-140);
+  await t.slide(-160);
   await t.tap();
   await expect(page.locator('.fs-hdr-world')).toHaveText('East Winds');
   await page.locator('.fs-hdr').getByRole('button', { name: 'Settings' }).click();
@@ -312,7 +356,7 @@ test('what a cover wears: five albums at most in the order tapped, plain paper, 
   await enter(page, '/#/flow');
   await seedHome(page, { music: true });
   const t = await thumb(page, context);
-  await t.slide(-140);
+  await t.slide(-160);
   await expect(front(page)).toHaveAttribute('data-book', 'eastwinds');
   await t.hold();
   const sheet = page.locator('[data-sheet="East Winds wears"]');
@@ -343,7 +387,7 @@ test('what a cover wears: five albums at most in the order tapped, plain paper, 
   await expect(page.locator('.fl-cover[data-book="eastwinds"] .fl-band img')).toHaveCount(5);
   // untick one: four
   const t2 = await thumb(page, context);
-  await t2.slide(-140);
+  await t2.slide(-160);
   await t2.hold();
   await expect(sheet).toBeVisible();
   await tile(0).click();
