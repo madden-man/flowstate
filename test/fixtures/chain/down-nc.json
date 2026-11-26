@@ -1,0 +1,99 @@
+{
+ "worlds": [
+  {
+   "_id": "east-winds",
+   "name": "East Winds",
+   "kind": "novel"
+  }
+ ],
+ "down": [
+  {
+   "_id": "east-winds",
+   "stamp": "acec9d90cd3be219c94beaa2fed129b5",
+   "pocket": {
+    "kind": "novel",
+    "characters": [
+     {
+      "id": "ren",
+      "fullName": "Abbot Ren",
+      "firstName": "Abbot",
+      "familyColour": "#8a6a4a",
+      "born": 2010,
+      "died": 2069
+     },
+     {
+      "id": "dawn",
+      "fullName": "Dawn Li",
+      "firstName": "Dawn",
+      "familyColour": "#3a9a5a",
+      "born": 2062
+     },
+     {
+      "id": "li",
+      "fullName": "Mrs. Li",
+      "firstName": "Mrs.",
+      "familyColour": "#8a5ac0",
+      "born": 2033
+     },
+     {
+      "id": "siyuan",
+      "fullName": "Siyuan",
+      "firstName": "Siyuan",
+      "familyColour": "#3a70d0",
+      "born": 2041
+     },
+     {
+      "id": "sydney",
+      "fullName": "Sydney",
+      "firstName": "Sydney",
+      "familyColour": "#d04848",
+      "born": 2037
+     }
+    ],
+    "places": [
+     {
+      "id": "river",
+      "name": "The river"
+     },
+     {
+      "id": "gate",
+      "name": "The temple gate"
+     }
+    ],
+    "chapters": [
+     {
+      "id": "ch12",
+      "title": "The flood",
+      "year": 2071
+     }
+    ],
+    "events": [
+     {
+      "id": "ev1",
+      "title": "The spring flood",
+      "year": 2071
+     }
+    ],
+    "questions": [
+     {
+      "id": "q-leave",
+      "question": "Does Siyuan leave before the flood, or after?",
+      "state": "open",
+      "changedAt": 1791738000598
+     },
+     {
+      "id": "q-who",
+      "question": "Who raises Dawn after 2065?",
+      "state": "open",
+      "changedAt": 1791738000602
+     }
+    ],
+    "storyYear": 2071,
+    "span": {
+     "from": 2025,
+     "to": 2100
+    }
+   }
+  }
+ ]
+}

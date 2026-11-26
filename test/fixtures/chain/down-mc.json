@@ -1,0 +1,26 @@
+{
+ "worlds": [
+  {
+   "_id": "songbook",
+   "name": "Songbook",
+   "kind": "songs"
+  }
+ ],
+ "down": [
+  {
+   "_id": "songbook",
+   "stamp": "4ba309797cee20ef2adeee948a43c9ae",
+   "pocket": {
+    "kind": "songs",
+    "songs": [
+     {
+      "id": "01M7T54PFJ1TYRAA3GVXDMSB22",
+      "title": "2026-11-19 Low tide",
+      "lyric": "[Verse]\nThe water left a line on every door\nand we painted over it in May",
+      "lyricAt": 1795100400126
+     }
+    ]
+   }
+  }
+ ]
+}
