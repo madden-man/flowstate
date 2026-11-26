@@ -187,7 +187,7 @@ const drained = (tab, name) => tab.waitForFunction(name => new Promise(resolve =
   };
 }), name, { timeout: 20000, polling: 500 });
 
-const shots = (() => { try { return JSON.parse(readFileSync(path.join(root, '.chain/phone.json'), 'utf8')); } catch { return {}; } })();
+const shots = {};
 async function session(hour, run, { world = EW, rows = 'all', minute = 30, day = 25 } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 358, height: 722 }, deviceScaleFactor: 2, serviceWorkers: 'block', hasTouch: true, isMobile: true });
   await ctx.route('**/.netlify/functions/bridge**', bridgeRoute);
