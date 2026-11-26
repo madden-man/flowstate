@@ -11,6 +11,9 @@ import { readBatch, drain } from '../../src/bridge/up';
 import { owed, sendClips } from '../../src/bridge/clips';
 import { BRIDGE_PATH, type Ack, type Envelope } from '../../src/bridge/protocol';
 import { worldDB, settled } from '../bridge/helpers';
+import { carryNow, saveBridgeToken, removeBridgeToken } from '../../src/model/carry';
+import { defaultSettings } from '../../src/db/seed';
+import { vi } from 'vitest';
 import { freshDB } from '../db/helpers';
 
 const take = (o: Partial<Take> = {}): Take => ({ id: `t-${Math.random().toString(36).slice(2)}`, at: 1_700_000_000_000, seconds: 14, audio: new Uint8Array([1, 2, 3, 4]).buffer, audioType: 'audio/mp4', pitch: [55, 0, 57.5], ...o });
@@ -213,6 +216,38 @@ describe('Songbook\'s lyrics both ways (W7\'s review): lyricAt and lyricFrom', (
     // an older pocket (or the same one again) changes nothing
     await applyPocket(handed(book()), pocket([{ ...POCKET_SONG, lyric: 'old', lyricAt: 1_800_000_000_000 }]));
     expect((await store.get('songs', 'mac-tide'))!.lyric).toBe(newer.lyric);
+  });
+
+  it('a pocket passed over for an unsent edit is read again on the next carry, not lost to its stamp', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('no real request in a unit test'); });
+    await store.put('settings', { ...defaultSettings(), ...(await store.get('settings', 'app')), world: 'songbook' } as Settings);
+    const newer = { ...POCKET_SONG, lyric: 'the Mac wrote this', lyricAt: 1_800_000_009_000 };
+    let refuse = true;
+    const asked: (string | null)[] = [];
+    const fetcher = (async (u: RequestInfo | URL, init?: RequestInit) => {
+      const q = new URLSearchParams(String(u).split('?')[1]);
+      const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+      if (q.get('op') === 'worlds') return json({ worlds: [{ id: 'songbook', name: 'Songbook', kind: 'songs' }] });
+      if (q.get('op') === 'pocket') {
+        asked.push(q.get('stamp'));
+        return json(q.get('stamp') === 'p2' ? { world: 'songbook', stamp: 'p2', unchanged: true } : { world: 'songbook', stamp: 'p2', pocket: pocket([newer]) });
+      }
+      if (q.get('op') === 'clip') return json({ take: q.get('take'), result: 'stored' });
+      const body = JSON.parse(String(init!.body)) as { envelopes: Envelope[] };
+      // the first carry's song row is refused (it waits in the outbox), so the pocket finds an unsent edit
+      return json({ acks: body.envelopes.map((e): Ack => ({ table: e.table, id: e.id, rev: e.rev, result: refuse ? 'refused' : 'stored', ...(refuse ? { reason: 'test' } : {}) })) });
+    }) as typeof fetch;
+    await saveBridgeToken('tok', fetcher);
+    await saveSong(withLyric(songFromPocket(POCKET_SONG), 'the water goes out\nI typed this', 1_800_000_000_500));
+    await settled();
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect((await store.get('songs', 'mac-tide'))!.lyric).toBe('the water goes out\nI typed this');
+    // his edit goes up on the next carry; the pocket it was passed over for is read again and taken
+    refuse = false;
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect(asked[1]).not.toBe('p2');
+    expect((await store.get('songs', 'mac-tide'))!).toMatchObject({ lyric: 'the Mac wrote this', lyricFrom: 1_800_000_009_000 });
+    await removeBridgeToken();
   });
 
   it('a song the phone does not hold is not written by a pocket, and a pocket with no lyric changes nothing', async () => {

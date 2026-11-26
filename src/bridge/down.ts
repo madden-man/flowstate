@@ -111,17 +111,18 @@ async function questionsFrom(h: Handed, pocket: NovelPocket, now: number): Promi
  * quiet write, so nothing that came down goes back up. A song the phone does not hold is read from the pocket when it
  * is opened (songFromPocket).
  */
-async function lyricsFrom(h: Handed, pocket: SongsPocket): Promise<{ songs: Song[]; takes: Take[] }> {
+async function lyricsFrom(h: Handed, pocket: SongsPocket): Promise<{ songs: Song[]; takes: Take[]; passed: boolean }> {
   const fromMac = (pocket.songs ?? []).filter(p => p && typeof p.id === 'string' && typeof p.lyric === 'string' && typeof p.lyricAt === 'number');
-  if (!fromMac.length) return { songs: [], takes: [] };
+  if (!fromMac.length) return { songs: [], takes: [], passed: false };
   const have = await h.many('songs', fromMac.map(p => p.id));
   const waiting = new Set((await h.db.outbox.toArray()).filter(o => o.table === 'songs').map(o => o.id));
   const songs: Song[] = [], takes: Take[] = [];
+  let passed = false;
   for (const [i, p] of fromMac.entries()) {
     const was = have[i];
     if (!was || was.locked) continue;
     if (was.lyricFrom !== undefined && p.lyricAt! <= was.lyricFrom) continue;
-    if (was.lyricAt !== undefined && waiting.has(was.id)) continue;
+    if (was.lyricAt !== undefined && waiting.has(was.id)) { passed = true; continue; }
     // the Mac's [Name] lines become the phone's section names, so what goes back up rebuilds the same text
     const mac = fromMacLyric(p.lyric!);
     if (was.lyric === mac.lyric && was.lyricFrom === p.lyricAt && JSON.stringify(was.sections) === JSON.stringify(mac.sections)) continue;
@@ -130,20 +131,23 @@ async function lyricsFrom(h: Handed, pocket: SongsPocket): Promise<{ songs: Song
     const own = (await h.query('takes', t => t.where('songId').equals(was.id))).filter(t => !t.locked) as Take[];
     takes.push(...follow(own, mac.lyric));
   }
-  return { songs, takes };
+  return { songs, takes, passed };
 }
 
 /** Writes what a pocket holds into the world's notebook: a novel's voices and questions, Songbook's lyrics for the songs
- *  the phone holds (its song list itself is read from the pocket by the Songs list). Locked, nothing is written. */
-export async function applyPocket(h: Handed, pocket: Pocket, now = Date.now()): Promise<void> {
-  if (!h.open()) return;
+ *  the phone holds (its song list itself is read from the pocket by the Songs list). Locked, nothing is written.
+ *  Resolves false when a newer Mac lyric was passed over for an unsent edit of his: the caller then keeps the old stamp,
+ *  so the same pocket is read again once his edit has gone up (model/carry.ts carryDown). */
+export async function applyPocket(h: Handed, pocket: Pocket, now = Date.now()): Promise<boolean> {
+  if (!h.open()) return true;
   if (pocket.kind === 'songs') {
-    const { songs, takes } = await lyricsFrom(h, pocket);
+    const { songs, takes, passed } = await lyricsFrom(h, pocket);
     if (songs.length) await h.writeDown({ songs, ...(takes.length ? { takes } : {}) });
-    return;
+    return !passed;
   }
-  if (pocket.kind !== 'novel') return;
+  if (pocket.kind !== 'novel') return true;
   const voices = await voicesFrom(h, pocket, now);
   const { pages, messages } = await questionsFrom(h, pocket, now);
   await h.writeDown({ voices, pages, messages });
+  return true;
 }

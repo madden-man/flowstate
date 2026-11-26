@@ -146,8 +146,10 @@ async function carryDown(fetcher?: Fetcher): Promise<void> {
   const r = await getPocket(token!, t.world, have, fetcher);
   if ('unchanged' in r) return;
   if (worn() !== t.world) return; // taken off while it was on its way
-  await applyPocket(t.h, r.pocket);
-  await stamp({ downAt: Date.now(), pocket: { world: t.world, stamp: r.stamp, pocket: r.pocket } });
+  const whole = await applyPocket(t.h, r.pocket);
+  // a pocket passed over in part (a newer Mac lyric against an unsent edit of his) keeps the stamp the phone had, so
+  // the next carry, after his edit has gone up, reads it again instead of hearing "unchanged"
+  await stamp({ downAt: Date.now(), pocket: { world: t.world, stamp: whole ? r.stamp : have ?? '', pocket: r.pocket } });
   // the phone's year starts once from the bible's story year (PLAN-WORLDS.md section 4, W4); after that it is his
   if (r.pocket.kind === 'novel') await startYearOnce(t.world, r.pocket).catch(() => undefined);
   pocketVersion.value++;
