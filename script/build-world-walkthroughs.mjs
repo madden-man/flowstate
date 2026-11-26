@@ -119,6 +119,8 @@ const at = main.indexOf('<main id="main">') + '<main id="main">'.length;
 const tail = main.indexOf('<div class="ctl">');
 const MAC_CSS = `<style>
 /* a desktop app's window: its own document in a frame, scaled to the column (script/build-world-walkthroughs.mjs) */
+/* the rail's row of numbers scrolls inside its own box at phone width, never widening the page */
+.wrap>*{min-width:0}
 .mac{width:min(100%,780px);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--rail);box-shadow:var(--shadow-sheet)}
 .mac-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font:12px var(--sans)}
 .mac-bar i{width:10px;height:10px;border-radius:50%;background:var(--line)}
@@ -136,6 +138,11 @@ const MAC_JS = `<script>
   document.addEventListener('load',function(e){if(e.target.tagName==='IFRAME'){theme(e.target);fit();}},true);
   new MutationObserver(fit).observe(document.getElementById('main'),{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
   window.addEventListener('resize',fit);fit();
+  /* a phone screen captured at night keeps its lamp (data-lamp) and the moon's glow; by day the app lights neither, so
+     relit to day they go, and come back with the night */
+  function lamps(){document.querySelectorAll('#main .screen').forEach(function(s){var day=s.dataset.light==='day';s.querySelectorAll('.fs-app[data-lamp],.fs-app[data-lamp-off]').forEach(function(a){if(day&&a.hasAttribute('data-lamp')){a.removeAttribute('data-lamp');a.setAttribute('data-lamp-off','');}else if(!day&&a.hasAttribute('data-lamp-off')){a.removeAttribute('data-lamp-off');a.setAttribute('data-lamp','');}});
+    s.querySelectorAll('.fs-moon.glow,.fs-moon[data-glow-off]').forEach(function(m){if(day&&m.classList.contains('glow')){m.classList.remove('glow');m.setAttribute('data-glow-off','');}else if(!day&&m.hasAttribute('data-glow-off')){m.removeAttribute('data-glow-off');m.classList.add('glow');}});});}
+  new MutationObserver(lamps).observe(document.getElementById('main'),{subtree:true,childList:true,attributes:true,attributeFilter:['data-light']});lamps();
 })();
 </script>`;
 
