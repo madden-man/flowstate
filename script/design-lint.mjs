@@ -19,7 +19,9 @@ const isHaptic = f => /parts\/Haptic\.(ts|tsx)$/.test(f);
 const isMusic = f => /(^|\/)src\/music\//.test(f);
 // Research (PLAN-RESEARCH.md): the second fenced place allowed to reach out, opt-in like the first.
 const isResearch = f => /(^|\/)src\/research\//.test(f);
-// The bridge (PLAN-WORLDS.md section 5, W2): the third fenced place, same origin only (/.netlify/functions/bridge), opt-in
+// The Sunday question's push (PLAN-PUSH.md, N0): the third, same-origin /api/push/* only, off until he switches it on.
+const isPush = f => /(^|\/)src\/push\//.test(f);
+// The bridge (PLAN-WORLDS.md section 5, W2): the fourth fenced place, same origin only (/.netlify/functions/bridge), opt-in
 // by a token pasted in Settings and a world worn. test/bridge/fence.test.ts holds it to that one path.
 const isBridge = f => /(^|\/)src\/bridge\//.test(f);
 
@@ -33,7 +35,7 @@ const rules = [
   { id: 'DL18 navigator.vibrate outside parts/Haptic', skip: isHaptic, re: /navigator\.vibrate/ },
   // the microphone and the recorder too (W6, the review of PR 112): DESIGN.md rule 21, nothing else hears the microphone
   { id: 'DL20 AudioContext, the microphone or a recorder outside parts/Sound', skip: isSound, re: /new\s+(?:window\.)?(?:webkit)?AudioContext|\bHTMLAudioElement\b|<audio\b|\bgetUserMedia\b|\bnew\s+MediaRecorder\b|\bMediaRecorder\.isTypeSupported\b/ },
-  { id: 'DL21 fetch outside src/music, src/research and src/bridge', only: f => inSrc(f) && !isMusic(f) && !isResearch(f) && !isBridge(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
+  { id: 'DL21 fetch outside src/music, src/research, src/push and src/bridge', only: f => inSrc(f) && !isMusic(f) && !isResearch(f) && !isPush(f) && !isBridge(f), re: /\bfetch\s*\(|new\s+XMLHttpRequest|navigator\.sendBeacon|new\s+WebSocket/ },
   { id: 'DL14 streaks and badges', only: inUi, re: /\b(streak|confetti|badge|leaderboard)\b/i },
 ];
 

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowState: the Sunday question</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="walk.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>FlowState: the Sunday question</h1><span class="counter" id="counter"></span>
+  <div class="lights" role="group" aria-label="Relight the app"><button data-light="design" aria-pressed="true">As designed</button><button data-light="day">Day</button><button data-light="night">Night</button><button data-light="still">Still</button></div>
+</header>
+<nav class="rail" aria-label="Steps"><ol id="rail"></ol></nav>
+<main id="main">
+  <div class="text" id="text">
+
+<!-- 1 -->
+<section class="step" id="question" data-name="My question, in Settings">
+  <h2>My question, in Settings</h2>
+  <p class="line">My own line, and when it asks: Sunday, 10:00.</p>
+</section>
+
+<!-- 2 -->
+<section class="step" id="notify" data-name="Notify me asks iOS once">
+  <h2>Notify me asks iOS once</h2>
+  <p class="line">Only my tap asks; Allow turns it on.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Phone</td><td><code>src/push/push.ts turnOn</code>: permission first, inside the tap, then <code>pushManager.subscribe</code> with the server's VAPID key; <code>PushRows.tsx</code> draws the row.</td></tr>
+    <tr><td>Server</td><td><code>POST /api/push/subscribe</code> keeps an address, a weekday, an hour and a time zone in one Netlify Blob. Never a word.</td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/PLAN-PUSH.md">PLAN-PUSH.md</a> section 5, <a href="https://github.com/madden-man/flowstate/blob/main/docs/PUSH.md">docs/PUSH.md</a></td></tr>
+  </table></details>
+</section>
+
+<!-- 3 -->
+<section class="step" id="sendnow" data-name="Send one now, to be sure">
+  <h2>Send one now, to be sure</h2>
+  <p class="line">Last arrived shows the last one landed.</p>
+</section>
+
+<!-- 4 -->
+<section class="step" id="lock" data-name="Sunday 10:00, my line">
+  <h2>Sunday 10:00, my line</h2>
+  <p class="line">One notification on the lock screen, in my words.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Hourly</td><td><code>netlify/functions/checkin.mts</code> runs every hour; in each phone's own zone, Sunday at or past 10:00 and not sent this week, it sends one push.</td></tr>
+    <tr><td>Payload</td><td>Exactly <code>{"kind":"checkin"}</code>. <code>public/push-sw.js</code> reads the line from the phone's own <code>fs-push</code> store and shows it, <code>tag: 'checkin'</code>.</td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/docs/PUSH.md">docs/PUSH.md</a>, the hourly run</td></tr>
+  </table></details>
+</section>
+
+<!-- 5 -->
+<section class="step" id="pin" data-name="A tap opens it behind my PIN">
+  <h2>A tap opens it behind my PIN</h2>
+  <p class="line">The keypad first, as always.</p>
+</section>
+
+<!-- 6 -->
+<section class="step" id="landing" data-name="Then today's page asks">
+  <h2>Then today's page asks</h2>
+  <p class="line">The question as a line, Turn to answer open.</p>
+</section>
+
+<!-- 7 -->
+<section class="step" id="later" data-name="No tap? It waits in the Journal">
+  <h2>No tap? It waits in the Journal</h2>
+  <p class="line">Under the page on the first open after 10:00; Later puts it away.</p>
+  <details><summary>How this is built</summary><table>
+    <tr><td>Clock</td><td><code>src/push/due.ts checkinDue</code>: pure, no network; due from Sunday 10:00 until the next, once a week.</td></tr>
+    <tr><td>Line</td><td><code>UpdateToast.tsx CheckinLine</code>, where the backup line goes; it wins that day. Never in Still.</td></tr>
+    <tr><td>Read</td><td><a href="https://github.com/madden-man/flowstate/blob/main/PLAN-PUSH.md">PLAN-PUSH.md</a> section 4</td></tr>
+  </table></details>
+</section>
+
+<!-- 8 -->
+<section class="step" id="safari" data-name="In Safari, Add to Home Screen first">
+  <h2>In Safari, Add to Home Screen first <span class="badge">Safari</span></h2>
+  <p class="line">Notify me is held until it is the home-screen app.</p>
+</section>
+
+  </div>
+  <div class="phone" data-mock><div class="screen"><div class="island"></div>
+    <div class="status"><span id="clock">9:30</span><span id="where">FlowState</span></div>
+    <div class="frames" id="frames"></div>
+    <div class="safari" id="safaribar" hidden>
+      <div class="safari-pill"><span class="safari-aa">aA</span><span class="safari-url">flowstate-journal.netlify.app</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></svg></div>
+      <div class="safari-tools" aria-hidden="true">
+        <svg viewBox="0 0 20 20"><path d="M12.5 4 6.5 10l6 6"/></svg>
+        <svg viewBox="0 0 20 20"><path d="m7.5 4 6 6-6 6"/></svg>
+        <svg viewBox="0 0 20 20"><path d="M10 12.5V2.5M6.5 6 10 2.5 13.5 6M6 9H4.5v8.5h11V9H14"/></svg>
+        <svg viewBox="0 0 20 20"><path d="M3.5 3.5h13v13h-13z"/><path d="M7 3.5v13"/></svg>
+        <svg viewBox="0 0 20 20"><rect x="2.5" y="5.5" width="11" height="11" rx="2"/><path d="M6.5 3.5h8a2 2 0 0 1 2 2v8"/></svg>
+      </div>
+    </div>
+    <div class="lockscreen" id="lockscreen" hidden>
+      <div class="ls-date">Sunday, November 29</div>
+      <div class="ls-time">10:00</div>
+      <div class="ls-note"><img src="icon.png" alt=""><div class="ls-body"><div class="ls-head"><b>FlowState</b><span>now</span></div><p>Is there anything on your mind?</p></div></div>
+      <div class="ls-foot" aria-hidden="true">
+        <span class="ls-btn"><svg viewBox="0 0 20 20"><path d="M7 2.5h6v3l-1.5 2.5v9.5h-3V8L7 5.5z"/></svg></span>
+        <span class="ls-btn"><svg viewBox="0 0 20 20"><path d="M2.5 6.5h3l1.5-2h6l1.5 2h3v10h-15z"/><circle cx="10" cy="11" r="3"/></svg></span>
+      </div>
+      <div class="ls-home"></div>
+    </div>
+    <p class="nolive" id="nolive" hidden>The live app could not start here; the same screens are in the app itself.</p>
+  </div></div>
+  <div class="ctl"><button type="button" data-prev>Previous</button><button type="button" data-next>Next</button></div>
+</main>
+</div>
+<script src="walk.js"></script>
+</body>
+</html>

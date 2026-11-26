@@ -226,6 +226,18 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
         delete opened.world; delete opened.worlds;
         if (mine?.world) opened.world = mine.world;
         if (mine?.worlds) opened.worlds = mine.worlds;
+        if (notebookOf(database) !== null) {
+          // the Sunday question is his own pages' (PLAN-PUSH.md, PLAN-WORLDS.md section 3): a world's row never holds it
+          delete opened.checkin;
+        } else {
+          // Push is this phone's subscription (PLAN-PUSH.md N3): a file never switches it on or off here.
+          const theirs = opened.checkin as Settings['checkin'];
+          const ours = mine?.checkin;
+          if (theirs) {
+            const { push: _theirPush, ...rest } = theirs;
+            opened = { ...opened, checkin: ours?.push ? { ...rest, push: true } : rest };
+          } else if (ours?.push) opened = { ...opened, checkin: ours };
+        }
       }
       row = (await storedForm(t, opened as never)) as Record<string, unknown>;
       rows.push(row);

@@ -19,6 +19,7 @@ import { SongsList, SongPage, NewSong, Hums } from './ui/songs/Songs';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
+import { ASK_CHECKIN, CheckinAsk, checkinLanded } from './ui/journal/checkin';
 import { onOpen } from './model/flows';
 import { FIXATION_FLOW } from './model/fixations';
 import { Voices } from './ui/voices/Voices';
@@ -161,6 +162,8 @@ function Frame() {
         <WearsSheet />
         <YearSheet />
         <QuietLine />
+        {/* PLAN-PUSH.md N1: #/journal?ask=checkin lands on today's page with the Sunday question, once the PIN has opened it */}
+        <CheckinAsk />
       </main>
       <Tabs />
     </div>
@@ -243,8 +246,12 @@ function Gate({ children }: { children: ComponentChildren }) {
   // step's usual span opens its flow page instead of the journal (PLAN-FLOWS.md 3.7); a deep link anywhere else stays.
   // The door (F5): locked with the door on, the live episode opens read-only through the door. Once the PIN opens
   // the journal, the dot put through the door is written first (ui/flow/door.ts), and the page stays where it is.
-  const { route, path } = useLocation();
+  const { route, path, query } = useLocation();
   const doorOn = !!settings.value.flowDoor;
+  // the Sunday question's notification (PLAN-PUSH.md N3) opens his own pages whatever is worn, as the door does: the
+  // world comes off before the keypad, so the lock screen names no world; the landing (journal/checkin.tsx) once open
+  const askingCheckin = query.ask === ASK_CHECKIN;
+  useEffect(() => { if (locked && askingCheckin && wornWorld.peek() !== null) void wear(null); }, [locked, askingCheckin]);
   useEffect(() => {
     if (locked) {
       if (!doorOn || openedOnce) return;
@@ -274,7 +281,8 @@ function Gate({ children }: { children: ComponentChildren }) {
         openedOnce = true;
         const live = await onOpen();
         const here = readHash();
-        if (live && (here === '/' || here === '/journal')) route(`/flow/${live.flowId}${live.step ? `/${live.step}` : ''}`, true);
+        // the Sunday question landing (journal/checkin.tsx) keeps the page it opened
+        if (live && !checkinLanded && (here === '/' || here === '/journal')) route(`/flow/${live.flowId}${live.step ? `/${live.step}` : ''}`, true);
       })
       .catch(() => { /* locked again before it ran: the next open tries again */ });
   }, [locked]);
