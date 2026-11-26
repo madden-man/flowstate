@@ -24,6 +24,10 @@
 .sg-page .fs-edit::placeholder { color: var(--print); font-style: italic; }
 .sg-said { margin: 0; line-height: var(--lh-ink); }
 
+/* the chips under a song wrap onto a second row at phone width: the section names, the characters and the tempo are
+   all his to reach, so none is cut at the edge or hidden behind a sideways scroll */
+.fs-chips.sg-chips { flex-wrap: wrap; overflow-x: visible; row-gap: var(--s1); }
+
 /* Hold to hum: held, it reads "Lift to stop" and fills, down instant (rule 26) */
 .sg-hum { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .sg-hum[data-humming] { background: var(--ink); color: var(--page); transition: none; }

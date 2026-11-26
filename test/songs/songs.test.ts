@@ -250,6 +250,22 @@ describe('Songbook\'s lyrics both ways (W7\'s review): lyricAt and lyricFrom', (
     await removeBridgeToken();
   });
 
+  it('a page left open while the pocket replaced the lyric, then only renamed, does not put the old lyric back', async () => {
+    const opened = songFromPocket(POCKET_SONG);
+    await saveSong(opened);
+    const s = site();
+    await settled();
+    await drain(handed(book()), 'songbook', 'tok', s.fetcher);
+    // the page holds the song as it was opened; the Mac's newer lyric comes down underneath it
+    const page = (await store.get('songs', 'mac-tide'))! as Song;
+    await applyPocket(handed(book()), pocket([{ ...POCKET_SONG, lyric: 'the Mac wrote this', lyricAt: 1_800_000_009_000 }]));
+    await saveSong({ ...page, title: 'Low tide, renamed' }, { lyric: page.lyric, sections: page.sections });
+    expect((await store.get('songs', 'mac-tide'))!).toMatchObject({ title: 'Low tide, renamed', lyric: 'the Mac wrote this', lyricFrom: 1_800_000_009_000 });
+    // a lyric he did type on that page is his, and wins
+    await saveSong(withLyric({ ...page, title: 'x' }, 'his words', 1_800_000_010_000), { lyric: page.lyric, sections: page.sections });
+    expect((await store.get('songs', 'mac-tide'))!).toMatchObject({ lyric: 'his words', lyricAt: 1_800_000_010_000 });
+  });
+
   it('a song the phone does not hold is not written by a pocket, and a pocket with no lyric changes nothing', async () => {
     await applyPocket(handed(book()), pocket([POCKET_SONG]));
     expect(await store.all('songs')).toEqual([]);

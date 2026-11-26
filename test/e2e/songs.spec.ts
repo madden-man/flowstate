@@ -299,3 +299,96 @@ test('his own pages have no Songs: no row under his cover, and the routes go bac
     await expect(page).toHaveURL(/#\/flow$/);
   }
 });
+
+test('typed straight on after Enter, with no wait, every word lands on its own rule', async ({ page, context }) => {
+  await stubBridge(context);
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/songs/new');
+  await page.getByRole('textbox', { name: 'Title' }).fill('Fast hands');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  // one burst: Enter is pressed between the words with nothing waited for (Playwright types \n as Enter)
+  await page.keyboard.type('one two\nthree four\n\nfive\nsix seven', { delay: 0 });
+  await expect(page.locator('.sg-line textarea')).toHaveCount(5);
+  const lines = await page.locator('.sg-line textarea').evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value));
+  expect(lines).toEqual(['one two', 'three four', '', 'five', 'six seven']);
+  // and a split in the middle of a line, typed on at once
+  await page.getByRole('textbox', { name: 'Line 1' }).click();
+  await page.keyboard.press('End');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowLeft');
+  await page.keyboard.type('\nX', { delay: 0 });
+  const after = await page.locator('.sg-line textarea').evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value));
+  expect(after.slice(0, 2)).toEqual(['one', 'X two']);
+});
+
+test('the page sits on the rules: every line, a section name and a take under a line land on the ruled grid', async ({ page, context }) => {
+  await page.addInitScript(fakeMic);
+  await stubBridge(context);
+  await setUp(page, 'eastwinds');
+  await page.goto('/#/flow/songs/new');
+  await page.getByRole('textbox', { name: 'Title' }).fill('On the rules');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  await page.keyboard.type('first line\nsecond line\nthird line\n\nfourth line');
+  await page.getByRole('textbox', { name: 'Line 5' }).click();
+  await page.getByRole('group', { name: 'This song' }).getByRole('button', { name: 'Chorus' }).click();
+  await page.getByRole('textbox', { name: 'Line 1' }).click();
+  const f = await finger(page, context);
+  await f.down(HUM);
+  await page.waitForTimeout(1500);
+  await f.up();
+  await expect(page.locator('.sg-line[data-line="0"] + .wd-take:not(.sg-live)')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('.sg-live')).toHaveCount(0);
+  const off = await page.evaluate(() => {
+    const sheet = document.querySelector('.sg-page') as HTMLElement;
+    const cs = getComputedStyle(sheet);
+    const lh = parseFloat(getComputedStyle(document.querySelector('.sg-line textarea')!).lineHeight);
+    const origin = sheet.getBoundingClientRect().top + parseFloat(cs.backgroundPositionY) - sheet.scrollTop;
+    const els = [...sheet.querySelectorAll('.sg-title, .sg-line, .wd-sec, .wd-take')] as HTMLElement[];
+    return els.map(e => {
+      const r = e.getBoundingClientRect();
+      const top = ((r.top - origin) % lh + lh) % lh, h = r.height % lh;
+      return { cls: e.className, top: Math.min(top, lh - top), h: Math.min(h, lh - h) };
+    });
+  });
+  for (const o of off) expect(o, o.cls).toMatchObject({ top: expect.closeTo(0, 0), h: expect.closeTo(0, 0) });
+});
+
+test('at phone width the chips under a song wrap onto rows: nothing is cut and nothing scrolls sideways', async ({ page, context }) => {
+  await stubBridge(context);
+  await setUp(page, 'eastwinds');
+  await page.goto('/#/flow/songs/new');
+  await page.getByRole('textbox', { name: 'Title' }).fill('Wide chips');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  await page.keyboard.type('a line');
+  const chips = page.getByRole('group', { name: 'This song' });
+  for (let i = 0; i < 4; i++) { await chips.getByRole('button', { name: 'Tap tempo' }).click(); await page.waitForTimeout(400); }
+  await expect(chips.getByRole('button', { name: 'Tap tempo' })).toHaveText(/BPM$/);
+  const box = await chips.evaluate(el => ({ sw: el.scrollWidth, cw: el.clientWidth, right: Math.max(...[...el.children].map(c => c.getBoundingClientRect().right)), edge: el.getBoundingClientRect().right }));
+  expect(box.sw).toBeLessThanOrEqual(box.cw);
+  expect(box.right).toBeLessThanOrEqual(box.edge);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('opening a song and leaving it untouched writes nothing and sends nothing; a Mac song is written only once he writes', async ({ page, context }) => {
+  const bridge = await stubBridge(context);
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/songs');
+  await page.locator('.sg-list a', { hasText: 'Low tide' }).click();
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Low tide');
+  await page.getByRole('link', { name: 'Songs' }).click();
+  await expect(page).toHaveURL(/#\/flow\/songs$/);
+  await page.waitForTimeout(2500);
+  expect(await rows(page, 'flowstate-w-songbook', 'songs')).toEqual([]);
+  expect(bridge.up.filter(e => e.table === 'songs')).toEqual([]);
+  // a song of his, opened and left: no second row goes up
+  await page.goto('/#/flow/songs/new');
+  await page.getByRole('textbox', { name: 'Title' }).fill('Mine');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  await page.keyboard.type('a line');
+  await page.getByRole('link', { name: 'Songs' }).click();
+  await expect.poll(() => bridge.up.filter(e => e.table === 'songs').length, { timeout: 15_000 }).toBe(1);
+  await page.locator('.sg-list a', { hasText: 'Mine' }).click();
+  await expect(page.getByRole('textbox', { name: 'Line 1' })).toHaveValue('a line');
+  await page.getByRole('link', { name: 'Songs' }).click();
+  await page.waitForTimeout(3000);
+  expect(bridge.up.filter(e => e.table === 'songs')).toHaveLength(1);
+});

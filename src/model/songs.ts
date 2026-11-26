@@ -200,9 +200,17 @@ export function songFromPocket(p: PocketSong, now = Date.now()): Song {
 }
 
 /** Writes a song as given (its sections already follow its lyric: withLyric), and every pinned take kept on its line
- *  when the lyric changed since `was`, in one write. */
+ *  when the lyric changed since `was`, in one write. A page that did not touch the lyric (song.lyric is still `was`'s)
+ *  keeps the lyric stored now: one Songbook's pocket replaced while the page was open is never put back by a rename. */
 export async function saveSong(song: Song, was?: Pick<Song, 'lyric' | 'sections'>): Promise<Song> {
-  const next: Song = { ...song, updatedAt: Date.now() };
+  let next: Song = { ...song, updatedAt: Date.now() };
+  if (was && was.lyric === song.lyric) {
+    const now = await songOf(song.id);
+    if (now && now.lyric !== was.lyric) {
+      const { lyricAt: _a, lyricFrom: _f, ...rest } = next;
+      next = { ...rest, lyric: now.lyric, sections: now.sections, ...(now.lyricAt !== undefined ? { lyricAt: now.lyricAt } : {}), ...(now.lyricFrom !== undefined ? { lyricFrom: now.lyricFrom } : {}) };
+    }
+  }
   const moved = was && was.lyric !== song.lyric ? follow(await takesOf(song.id), song.lyric) : [];
   await store.many({ songs: [next], ...(moved.length ? { takes: moved } : {}) });
   return next;

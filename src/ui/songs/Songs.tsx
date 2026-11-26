@@ -28,7 +28,7 @@ import { pocketFor } from '../../model/story';
 import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, type SongRow } from '../../model/songs';
 import { moveSong, settleMoves } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
-import { carryNow } from '../../model/carry';
+import { carryNow, pocketVersion } from '../../model/carry';
 import type { Song, Take } from '../../db/schema';
 import type { NovelPocket } from '../../bridge/protocol';
 import { HumButton } from './HumButton';
@@ -95,8 +95,14 @@ export function NewSong() {
 
 // ---------------------------------------------------------------- the song page
 
-/** Grows a one-rule field to its text, so a long line wraps onto the rules below it. */
-const grow = (el: HTMLTextAreaElement | null) => { if (!el) return; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; };
+/** Grows a one-rule field to its text, so a long line wraps onto the rules below it: always a whole number of rules
+ *  (the title's larger type measures a pixel over one rule, which put every line under it off the ruled paper). */
+const grow = (el: HTMLTextAreaElement | null) => {
+  if (!el) return;
+  el.style.height = 'auto';
+  const rule = parseFloat(getComputedStyle(el).lineHeight) || el.scrollHeight;
+  el.style.height = `${Math.max(1, Math.round(el.scrollHeight / rule)) * rule}px`;
+};
 
 export function SongPage({ id }: { id: string }) {
   const { route } = useLocation();
@@ -114,6 +120,8 @@ export function SongPage({ id }: { id: string }) {
   const focusNext = useRef<{ line: number; at: number } | null>(null);
   const pocket = pocketFor(settings.value, wornWorld.value);
 
+  // something he changed on this page that is not written yet; nothing is written for a page he only looked at
+  const dirty = useRef(false);
   const read = async () => {
     const s = await songOf(id);
     exists.current = !!s;
@@ -127,25 +135,34 @@ export function SongPage({ id }: { id: string }) {
     setTakes(await takesOf(id));
   };
   useEffect(() => { void read().catch(() => setSong(blankSong(id))); }, [id, dataVersion.value]);
+  // a pocket landing while the page is open (Songbook's lyric taken in, bridge/down.ts) is shown at once, unless he has
+  // changes of his own not yet written: then his stay, and the write keeps what came down unless he typed the lyric
+  const pv = pocketVersion.value;
+  const firstPv = useRef(pv);
+  useEffect(() => { if (pv !== firstPv.current && !dirty.current) void read().catch(() => undefined); }, [pv]);
 
   // moved to another world (Move to): nothing more is written here
   const gone = useRef(false);
   const flush = async () => {
     clearTimeout(timer.current);
     const s = latest.current;
-    if (!s || gone.current) return;
+    if (!s || gone.current || !dirty.current) return;
     if (!exists.current && !s.title.trim() && !s.lyric.trim()) return;
+    dirty.current = false;
     const next = await saveSong(s, saved.current);
     exists.current = true;
     saved.current = { lyric: next.lyric, sections: next.sections };
     // only the time written comes back: anything changed while it was writing (a chip, a line) stays as it is now
     latest.current = { ...latest.current!, updatedAt: next.updatedAt };
+    // the write kept a lyric that came down while the page was open (saveSong): show it, unless he is typing again
+    if (next.lyric !== s.lyric && !dirty.current) { await read(); return; }
     setTakes(await takesOf(id));
   };
   useEffect(() => () => { void flush(); }, [id]);
 
   const change = (patch: Partial<Song>) => {
     const { lyric, ...rest } = patch;
+    dirty.current = true;
     let next = { ...latest.current!, ...rest };
     // the sections follow the lines as they come and go
     if (lyric !== undefined && lyric !== next.lyric) next = withLyric(next, lyric);
@@ -247,7 +264,7 @@ export function SongPage({ id }: { id: string }) {
         )}
       </div>
       <div class="fs-composer-wrap">
-        <div class="fs-chips fs-notstill" role="group" aria-label="This song">
+        <div class="fs-chips sg-chips fs-notstill" role="group" aria-label="This song">
           {sectionHere !== undefined && SECTION_NAMES.map(n => (
             <Chip key={n} label={n} pressed={nameAt(sectionHere) === n}
               onPress={() => change({ sections: nameSection(song, sectionHere, n) })} />
