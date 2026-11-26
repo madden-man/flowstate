@@ -14,6 +14,7 @@ import { ensureSeeded, seedFlowsOnce, seedPicksOnce, seedFixationsOnce, valuesFr
 import { exportData, importData, fileName, parseBackup, BackupError } from '../../src/db/backup';
 import { saveResearchKey, researchKey } from '../../src/research/store';
 import { onWrite, type WriteNote } from '../../src/db/writes';
+import { settings, loadSettings, saveSettings } from '../../src/ui/settings';
 import WORLDS from '../fixtures/worlds.json';
 
 const FAST = 1000;
@@ -343,6 +344,43 @@ describe('one PIN across every notebook', () => {
     }
   }
 
+  // the session goes on after a stop, with no restart: home was rewritten with the new key, so the key in memory is
+  // the new one, a world still under the old key still reads, and the next write finishes the change
+  for (const worn of [null, 'songbook'] as const) {
+    it(`a PIN change stopped at a world leaves the running session whole${worn ? ', worn in that world' : ''}`, async () => {
+      await threeNotebooks();
+      const s1 = randomSalt(), k1 = await pinKey('1111', s1);
+      await setKey(k1, { salt: s1, iterations: FAST });
+      if (worn) await don(worn);
+      const stop = stopAt(`${db.name}-w-songbook`);
+      const s2 = randomSalt(), k2 = await pinKey('2222', s2);
+      await expect(setKey(k2, { salt: s2, iterations: FAST })).rejects.toThrow('stopped');
+      expect(keyState()).toBe('open');
+      expect((await peek(null, r => r.get('messages', 'own-m')))!.text).toBe('own line');
+      expect((await peek('eastwinds', r => r.get('messages', 'ew-m')))!.text).toBe('ew line');
+      expect((await peek('songbook', r => r.get('messages', 'sb-m')))!.text).toBe('sb line');
+      expect((await store.get('messages', worn ? 'sb-m' : 'own-m'))!.text).toBe(worn ? 'sb line' : 'own line');
+      // still stopped (Songbook takes no write while it is): a write in his own pages lands all the same and reads back
+      if (!worn) {
+        await store.put('messages', { ...rowsFor('late').messages![0], pageId: 'own-p' });
+        expect((await store.get('messages', 'late-m'))!.text).toBe('late line');
+      }
+      stop.mockRestore();
+      // the next write finishes the change: every notebook on the new key, the move cleared
+      await store.put('messages', { ...rowsFor('later').messages![0], pageId: worn ? 'sb-p' : 'own-p' });
+      expect((await db.settings.get('app'))!.lock.moving).toBeUndefined();
+      for (const id of ['eastwinds', 'songbook']) expect((await world(id).settings.get('app'))!.lock.salt).toBe(s2);
+      expect((await store.get('messages', 'later-m'))!.text).toBe('later line');
+      // and a fresh start opens it all with the new PIN alone
+      lock();
+      await init(db);
+      expect(await unlock(k1)).toBe(false);
+      expect(await unlock(k2)).toBe(true);
+      expect((await peek('songbook', r => r.get('messages', 'sb-m')))!.text).toBe('sb line');
+      expect((await peek(worn, r => r.get('messages', 'later-m')))!.text).toBe('later line');
+    });
+  }
+
   it('the PIN turned on and stopped before a world was sealed: the next unlock seals it', async () => {
     await threeNotebooks();
     const stop = stopAt(`${db.name}-w-songbook`);
@@ -375,6 +413,54 @@ describe('a cover', () => {
     expect((await store.get('settings', 'app'))!.cover).toEqual({ albums: ['spotify:album:a', 'spotify:album:b'] });
     await dress(null, undefined);
     expect((await store.get('settings', 'app'))!.cover).toBeUndefined();
+  });
+
+  // a cover is dress()'s alone to change: the settings signal (ui/settings.ts) holds a copy read before the dress, and
+  // the next save of any other setting writes that copy whole, so the layer keeps the cover stored on the row
+  const cover = async (w: string | null) => (await peek(w, r => r.get('settings', 'app')))?.cover;
+  const flip = () => saveSettings({ sounds: !settings.value.sounds });
+
+  it('his own cover survives a later settings save', async () => {
+    await loadSettings();
+    await dress(null, { albums: ['spotify:album:a'] });
+    await flip();
+    expect(await cover(null)).toEqual({ albums: ['spotify:album:a'] });
+  });
+
+  it('the cover of the world worn survives a later settings save, and his own on home\'s row too', async () => {
+    const id = WORLDS[0].id;
+    await dress(null, { albums: ['spotify:album:own'] });
+    await don(id); await loadSettings();
+    await dress(id, { albums: ['spotify:album:a'] });
+    await flip();
+    expect(await cover(id)).toEqual({ albums: ['spotify:album:a'] });
+    expect(await cover(null)).toEqual({ albums: ['spotify:album:own'] });
+  });
+
+  it('plain paper stays plain after a later settings save', async () => {
+    await dress(null, { albums: ['spotify:album:a'] });
+    await loadSettings();
+    await dress(null, undefined);
+    await flip();
+    expect(await cover(null)).toBeUndefined();
+  });
+
+  it('a drawing survives a later settings save, sealed, with a world worn or not', async () => {
+    const salt = randomSalt(), k = await pinKey('2580', salt);
+    await setKey(k, { salt, iterations: FAST });
+    const bytes = new Uint8Array([1, 2, 3]);
+    await loadSettings();
+    await dress(null, { drawing: new Blob([bytes], { type: 'image/png' }) });
+    await flip();
+    const own = (await cover(null)) as { drawing: Blob };
+    expect(new Uint8Array(await own.drawing.arrayBuffer())).toEqual(bytes);
+    const id = WORLDS[0].id;
+    await don(id); await loadSettings();
+    await dress(id, { drawing: new Blob([bytes], { type: 'image/png' }) });
+    await store.many({ settings: [settings.value] });
+    const theirs = (await cover(id)) as { drawing: Blob };
+    expect(new Uint8Array(await theirs.drawing.arrayBuffer())).toEqual(bytes);
+    expect((await world(id).settings.get('app'))!.cover).toBeUndefined();
   });
 });
 

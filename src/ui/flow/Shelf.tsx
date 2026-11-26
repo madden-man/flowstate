@@ -164,9 +164,10 @@ export function Shelf({ books, worn, front, looks = {}, dials = {}, onSettle, on
 
   return (
     <div class="fl-shelfwrap">
-      {/* the first tap on the shelf asks for the phone's tilt, quietly (./tilt.ts) */}
+      {/* a tap on the shelf asks for the phone's tilt, quietly, from the click (./tilt.ts) */}
       <div ref={shelf} class="fl-shelf" role="group" aria-label="Notebooks"
-        onPointerDownCapture={() => { pressedAt.current = shelf.current?.scrollLeft ?? 0; void askTilt(); }}>
+        onPointerDownCapture={() => { pressedAt.current = shelf.current?.scrollLeft ?? 0; }}
+        onClickCapture={() => { void askTilt(); }}>
         {books.map(b => (
           <Cover key={b.id} book={b} worn={b.id === worn} front={b.id === front} looks={looks[b.id]} dial={dials[b.id]}
             onHold={() => {

@@ -389,6 +389,10 @@ let wornId: string | null = null;
 const openWorlds = new Map<string, FlowDB>();
 let key: CryptoKey | null = null;
 let lockEnabled = false;
+/** A PIN change stopped partway in this session after home was rewritten (setKey): the key in memory is already the
+ *  new one, a world may still be sealed with the old (or plain, a first PIN), and the next job in the write queue tries
+ *  to finish it (catchUp). null otherwise; a restart forgets it and the next unlock finishes the move instead. */
+let stopped: { old: CryptoKey | null; next: CryptoKey; target: Settings['lock'] } | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 
 /** The personal notebook's database, whatever is worn. */
@@ -406,7 +410,8 @@ const split = () => bookDb !== homeDb;
 
 /** Writes and the re-encrypt pass run one at a time, so no write lands between a read and its rewrite. */
 function serial<T>(fn: () => Promise<T>): Promise<T> {
-  const run = queue.then(fn, fn);
+  const job = async () => { await catchUp(); return fn(); };
+  const run = queue.then(job, job);
   queue = run.catch(() => undefined);
   return run;
 }
@@ -454,8 +459,13 @@ async function opened<K extends TableName>(t: K, stored: Tables[K], withKey: Cry
   if (!isSealed(env)) return stored;
   const spec = SPECS[t] as Spec<Tables[K]>;
   const clear = strip(stored);
-  if (!withKey) return { ...clear, locked: true } as Read<Tables[K]>;
-  return spec.give(clear, await unseal(withKey, env, aad(t, pkOf(t, clear))));
+  // with a PIN change stopped partway, a world's row may still be sealed with the other key of the move, so both open it
+  const keys = [withKey, ...(stopped ? [stopped.next, stopped.old] : [])].filter((k, i, a): k is CryptoKey => !!k && a.indexOf(k) === i);
+  if (!keys.length) return { ...clear, locked: true } as Read<Tables[K]>;
+  for (const [i, k] of keys.entries()) {
+    try { return spec.give(clear, await unseal(k, env, aad(t, pkOf(t, clear)))); } catch (e) { if (i === keys.length - 1) throw e; }
+  }
+  throw new Error('unreachable');
 }
 
 export type KeyState = 'plain' | 'locked' | 'open';
@@ -506,19 +516,34 @@ async function keepLock(db: FlowDB, s: Settings): Promise<Settings> {
   return next;
 }
 
+/**
+ * A notebook's cover is dress()'s alone to change (PLAN-WORLDS.md section 4): a settings write from elsewhere carries a
+ * copy read before the last dress, so it keeps the cover stored on the row it lands on, plain paper included. A drawing
+ * lives in the sealed secret, so the stored row is opened to find it. A row not yet stored takes the cover given.
+ * A backup import writes its rows whole (backup.ts), so a file's cover still comes in.
+ */
+async function keepCover(db: FlowDB, s: Settings): Promise<Settings> {
+  const stored = await db.settings.get(s.id);
+  if (!stored) return s;
+  const { cover } = await opened('settings', stored, key);
+  const next = { ...s };
+  if (cover) next.cover = cover; else delete next.cover;
+  return next;
+}
+
 /** What a settings write puts where: one row when nothing is worn; with a world worn, home's row (its own book fields
  *  kept as they are) and the world's row (its stamp kept). Each comes back ready to seal. */
 async function settingsWrites(given: Settings): Promise<[FlowDB, Settings][]> {
   // the notebook worn is the layer's to say (don, doff): a copy read before a world was put on never takes it off
   const s = { ...given };
   if (wornId) s.world = wornId; else delete s.world;
-  if (!split()) return [[homeDb, await keepLock(homeDb, s)]];
+  if (!split()) return [[homeDb, await keepLock(homeDb, await keepCover(homeDb, s))]];
   const h = await homeDb.settings.get('app');
   const ho = h ? strip(await fromStored('settings', h, key)) : undefined;
   const homeRow = { ...(ho ? bookPart(ho as Row) : {}), ...homePart(s as Row), id: 'app' } as Settings;
   const b = await bookDb.settings.get('app');
   const bookRow = { ...bookPart(s as Row), id: 'app', lock: b?.lock ?? stampOf(h?.lock) } as Settings;
-  return [[homeDb, await keepLock(homeDb, homeRow)], [bookDb, await keepLock(bookDb, bookRow)]];
+  return [[homeDb, await keepLock(homeDb, homeRow)], [bookDb, await keepLock(bookDb, await keepCover(bookDb, bookRow))]];
 }
 
 function writable() {
@@ -566,6 +591,34 @@ const direct = {
     if (t === 'settings') { for (const r of rows) await direct.put(t, r); return; }
     const stored = await Promise.all(rows.map(r => toStored(t, r, key)));
     await within([t], () => table(t).bulkPut(stored));
+  },
+  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
+   *  drops are primary keys deleted in that same transaction, after the writes. With a world worn, a settings row's
+   *  home fields are written to home's row just after (a second database cannot join the transaction). */
+  async many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
+    writable();
+    const db = bookDb;
+    const after: Settings[] = [];
+    const prepared = await Promise.all(
+      (Object.keys(writes) as TableName[]).map(async t => {
+        let rows = writes[t] as Tables[TableName][];
+        if (t === 'settings') {
+          const parts = (await Promise.all((rows as Settings[]).map(settingsWrites))).flat();
+          after.push(...parts.filter(([d]) => d !== db).map(([, r]) => r));
+          rows = parts.filter(([d]) => d === db).map(([, r]) => r) as Tables[TableName][];
+        }
+        return [t, await Promise.all(rows.map(r => toStored(t, r as never, key)))] as const;
+      }),
+    );
+    const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
+    const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
+    if (tables.length) {
+      await db.transaction('rw', scope(tables).map(t => db.table(t)), async () => {
+        for (const [t, rows] of prepared) await db.table(t).bulkPut(rows);
+        for (const t of gone) await db.table(t).bulkDelete(drops[t]!);
+      });
+    }
+    for (const r of after) await homeDb.settings.put(await toStored('settings', r, key));
   },
 };
 export type Unit = typeof direct;
@@ -632,35 +685,9 @@ export const store = {
       return db.transaction('rw', scope(tables).map(t => db.table(t)), () => fn(<K extends TableName>(t: K) => tableOf(db, t)));
     });
   },
-  /** Several writes in one transaction, all sealed first (WebCrypto cannot run inside an IndexedDB transaction).
-   *  drops are primary keys deleted in that same transaction, after the writes. With a world worn, a settings row's
-   *  home fields are written to home's row just after (a second database cannot join the transaction). */
+  /** Several writes in one transaction, all sealed first (direct.many), in the write queue. */
   many(writes: { [K in TableName]?: Tables[K][] }, drops: { [K in TableName]?: string[] } = {}): Promise<void> {
-    return serial(async () => {
-      writable();
-      const db = bookDb;
-      const after: Settings[] = [];
-      const prepared = await Promise.all(
-        (Object.keys(writes) as TableName[]).map(async t => {
-          let rows = writes[t] as Tables[TableName][];
-          if (t === 'settings') {
-            const parts = (await Promise.all((rows as Settings[]).map(settingsWrites))).flat();
-            after.push(...parts.filter(([d]) => d !== db).map(([, r]) => r));
-            rows = parts.filter(([d]) => d === db).map(([, r]) => r) as Tables[TableName][];
-          }
-          return [t, await Promise.all(rows.map(r => toStored(t, r as never, key)))] as const;
-        }),
-      );
-      const gone = (Object.keys(drops) as TableName[]).filter(t => drops[t]?.length);
-      const tables = [...new Set([...prepared.map(([t]) => t), ...gone])];
-      if (tables.length) {
-        await db.transaction('rw', scope(tables).map(t => db.table(t)), async () => {
-          for (const [t, rows] of prepared) await db.table(t).bulkPut(rows);
-          for (const t of gone) await db.table(t).bulkDelete(drops[t]!);
-        });
-      }
-      for (const r of after) await homeDb.settings.put(await toStored('settings', r, key));
-    });
+    return serial(() => direct.many(writes, drops));
   },
 };
 
@@ -747,6 +774,7 @@ export async function init(target: FlowDB = defaultDb): Promise<void> {
   bookDb = target;
   wornId = null;
   key = null;
+  stopped = null;
   queue = Promise.resolve();
   const s = await target.settings.get('app');
   lockEnabled = !!s?.lock.enabled;
@@ -976,10 +1004,27 @@ export function setKey(next: CryptoKey, lock: LockSpec): Promise<void> {
       await homeDb.settings.update('app', { 'lock.moving': moving } as never);
       target.moving = moving;
     }
-    await finishMove(old, next, target);
+    try {
+      await finishMove(old, next, target);
+    } catch (e) {
+      // stopped at a world after home was rewritten: home opens only with the new key now, so the session goes on with
+      // it, and the worlds left behind are read with either key and finished by the next write (catchUp)
+      if ((await keyOpening(homeDb, [next])) === next) { key = next; lockEnabled = true; stopped = { old, next, target }; }
+      throw e;
+    }
     key = next;
     lockEnabled = true;
   }));
+}
+
+/** Tries again to finish a PIN change stopped partway in this session (stopped); a stop again leaves it for the next job. */
+async function catchUp(): Promise<void> {
+  const s = stopped;
+  if (!s || key !== s.next) return;
+  try {
+    await unheard(() => finishMove(s.old, s.next, s.target));
+    stopped = null;
+  } catch { /* still stopped: the next job tries again, and a restart's unlock finishes it */ }
 }
 
 /** Turns the lock off: every row of every notebook is written back as plain text, the worlds first and home last. */
@@ -1057,4 +1102,5 @@ export async function storedForm<K extends TableName>(t: K, row: Tables[K]): Pro
 /** Drops the key from memory (relock). Rows stay sealed in every notebook; reads come back marked locked. */
 export function lock(): void {
   key = null;
+  stopped = null;
 }
