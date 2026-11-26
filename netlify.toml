@@ -1,11 +1,17 @@
-# FlowState: static files and one function, bridge (PLAN.md section 3, PLAN-WORLDS.md section 5). Site: flowstate-journal.
+# FlowState: static files and three functions (PLAN.md section 2). Site: flowstate-journal.
+# bridge.mts (PLAN-WORLDS.md section 5, docs/BRIDGE.md) answers /.netlify/functions/bridge. It needs
+# BRIDGE_MONGODB_URI and BRIDGE_TOKEN set on the site for functions; without BRIDGE_TOKEN it answers 401 to
+# everything and touches nothing.
+# push.mts and checkin.mts are the Sunday question (PLAN-PUSH.md section 5, docs/PUSH.md): push.mts answers
+# /api/push/* through its own config.path; checkin.mts runs hourly through its own config.schedule. Neither
+# needs a redirect here. Env before the first deploy with them: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
+# VAPID_SUBJECT (npm run vapid prints a pair).
 # Deploy: netlify deploy --build --prod (same recipe as japan-trip).
-# The function needs BRIDGE_MONGODB_URI and BRIDGE_TOKEN set on the site for functions (docs/BRIDGE.md); without
-# BRIDGE_TOKEN it answers 401 to everything and touches nothing.
 
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
@@ -13,7 +19,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  # the driver is loaded as a module at run time, not bundled
+  # every function (bridge, push, checkin) is bundled by esbuild; the MongoDB driver alone is loaded as a module at
+  # run time, not bundled (web-push and @netlify/blobs bundle as they did on main)
   external_node_modules = ["mongodb"]
 
 [[headers]]
@@ -51,14 +58,21 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# The bridge's answers are never cached (the function also says no-store on each one).
+# The functions' answers are never cached (each function also says no-store on each one). /api/push/* is the push
+# function's own path, so it is named too.
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
     Cache-Control = "no-store"
 
+[[headers]]
+  for = "/api/push/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
 # SPA fallback, always last. Routes are hash routes, so this only catches stray paths. Netlify serves
-# /.netlify/functions/* before redirects, so the function is never swallowed (checked under netlify dev in W0).
+# /.netlify/functions/* before redirects, so the bridge is never swallowed (checked under netlify dev in W0), and
+# functions with a config.path are matched before redirects, so /api/push/* never lands here.
 [[redirects]]
   from = "/*"
   to = "/index.html"
