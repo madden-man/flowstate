@@ -19,6 +19,7 @@ import { applyPocket } from '../bridge/down';
 import { sendClips } from '../bridge/clips';
 import { KEEPALIVE_MAX_BYTES } from '../bridge/protocol';
 import { startYearOnce } from './story';
+import { settleAll } from './move';
 
 /** Bumped when a pocket has come down and been written: the UI reads the settings row again (the pocket, the year). */
 export const pocketVersion = signal(0);
@@ -162,6 +163,9 @@ export async function carry(opts: { worlds?: 'worn' | 'always'; fetcher?: Fetche
   try {
     if (opts.worlds === 'always' || (opts.worlds === 'worn' && worn())) await refreshWorlds(opts.fetcher);
     if (!target()) return 'idle';
+    // a song move that stopped halfway is finished before anything goes (model/move.ts): its new world's rows are
+    // written again, newer than the old world's deletes, so the deletes are never the newest envelope sent
+    await settleAll().catch(() => 0);
     await carryUp(opts.fetcher);
     await carryDown(opts.fetcher);
     return 'carried';

@@ -306,7 +306,7 @@ function MoveSheet({ song, onMoved, beforeMove, onFailed }: { song: Song; onMove
       void carryNow().catch(() => undefined);
       onMoved();
     } catch {
-      // the song stays here (a stop halfway is finished by settleMoves on the next Songs list)
+      // the song stays here (a stop halfway is finished before the next carry, or on the next Songs list)
       onFailed();
     } finally { setBusy(false); }
   };

@@ -129,6 +129,8 @@ describe('moving a song', () => {
 
   it('Dawn Li is tucked moving out of East Winds and comes back moving home; another world never sees her', async () => {
     await grey();
+    // East Winds' pocket made her voice (bridge/down.ts), so its bible still has her
+    await handed(book()).writeDown({ voices: [{ id: 'c:dawn', name: 'Dawn Li', aka: [], colour: { hue: 120 }, shade: 'light', starred: false, order: 0, archived: false, revisions: [] }] });
     await moveSong('s-grey', 'eastwinds', 'songbook');
     const out = (await into('songbook').get('songs', 's-grey'))!;
     expect(out.characterIds).toBeUndefined();
@@ -147,6 +149,101 @@ describe('moving a song', () => {
     await expect(moveSong('s-grey', 'eastwinds', 'eastwinds')).rejects.toBeInstanceOf(MoveError);
     expect(() => into('')).toThrow();
     expect((await holds('eastwinds')).song).toBeTruthy();
+  });
+});
+
+describe('a move stopped and stopped again (the handoff\'s audit, 2026-11-25)', () => {
+  beforeEach(() => { vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('no real request in a unit test'); }); });
+
+  /** The token saved and the registry on home's row, as Settings leaves them. */
+  async function bridged() {
+    await store.put('settings', { ...defaultSettings(), ...(await store.get('settings', 'app')) });
+    const s = site();
+    await saveBridgeToken('tok', s.fetcher);
+    s.up.length = 0;
+    return s;
+  }
+  /** Step 1 of a move alone (the destination written whole, marked), as a stop right after it leaves it. */
+  async function firstHalf(from: string, to: string) {
+    const song = (await into(from).get('songs', 's-grey'))!;
+    const takes = await into(from).query('takes', t => t.where('songId').equals('s-grey'));
+    await into(to).many({ songs: [songFor(song, from, to)], takes: takes as Take[] });
+  }
+  /** Step 3 alone: the old copy deleted, the new one not yet written again (a stop between the halves' last two). */
+  async function deleteHalf(from: string) {
+    const ids = (await into(from).query('takes', t => t.where('songId').equals('s-grey'))).map(t => t.id);
+    await into(from).many({}, { songs: ['s-grey'], takes: ids });
+  }
+
+  it('a stop after the old copy went, before the rewrite: the next carry rewrites the new world newer than the deletes, without opening Songs', async () => {
+    await grey();
+    const s = await bridged();
+    await firstHalf('eastwinds', 'songbook');
+    // the first half's rows go up under Songbook before the stop
+    await drain((await handedWorld('songbook'))!, 'songbook', 'tok', s.fetcher);
+    await deleteHalf('eastwinds');
+    // the app is opened again: a carry, East Winds still worn, Songs never opened
+    expect(await carryNow(s.fetcher)).toBe('carried');
+    const revs = (w: string, deleted: boolean) => s.up.filter(e => e.world === w && !!e.deleted === deleted).map(e => e.rev);
+    expect(revs('eastwinds', true).length).toBe(3);
+    // for every id the newest envelope across both worlds is a live row under Songbook
+    for (const id of ['s-grey', 't-sent', 't-owed']) {
+      const newest = s.up.filter(e => e.id === id).sort((a, b) => b.rev - a.rev)[0];
+      expect([newest.world, !!newest.deleted]).toEqual(['songbook', false]);
+    }
+    expect((await holds('songbook')).song!.movedFrom).toBeUndefined();
+    await removeBridgeToken();
+  });
+
+  it('stopped twice (after the first half, then after the delete of the settling): still in one notebook at least, and the carry ends it in the new one', async () => {
+    await grey();
+    const s = await bridged();
+    await firstHalf('eastwinds', 'songbook');
+    expect((await holds('eastwinds')).song).toBeTruthy();
+    await deleteHalf('eastwinds');
+    expect((await holds('songbook')).song).toBeTruthy();
+    expect(await carryNow(s.fetcher)).toBe('carried');
+    expect((await holds('eastwinds')).song).toBeUndefined();
+    expect((await holds('songbook')).takes).toEqual(['t-owed', 't-sent']);
+    const newest = s.up.filter(e => e.id === 's-grey').sort((a, b) => b.rev - a.rev)[0];
+    expect([newest.world, !!newest.deleted]).toEqual(['songbook', false]);
+    await removeBridgeToken();
+  });
+
+  it('a lyric written in the old world after a stop is carried over when the move is finished, never lost', async () => {
+    await grey();
+    await firstHalf('eastwinds', 'songbook');
+    await new Promise(r => setTimeout(r, 3));
+    const here = (await into('eastwinds').get('songs', 's-grey'))!;
+    await saveSong({ ...here, lyric: 'a\nb\nwritten after the stop', lyricAt: Date.now() } as never);
+    await settleMoves('songbook');
+    expect((await holds('eastwinds')).song).toBeUndefined();
+    expect((await holds('songbook')).song).toMatchObject({ lyric: 'a\nb\nwritten after the stop' });
+  });
+
+  it('a song half moved to Songbook and then moved to a third world from where it was never ends up in two worlds', async () => {
+    await grey();
+    await firstHalf('eastwinds', 'songbook');
+    await into('third').many({});
+    await moveSong('s-grey', 'eastwinds', 'third').catch(() => undefined);
+    const where = [];
+    for (const w of ['eastwinds', 'songbook', 'third']) if ((await holds(w)).song) where.push(w);
+    expect(where).toHaveLength(1);
+  });
+
+  it('characters brought back on a move home are only those the destination\'s bible still has; the rest stay tucked', async () => {
+    await grey();
+    const now = (await store.get('songs', 's-grey'))!;
+    await saveSong({ ...now, characterIds: ['dawn', 'gone'] } as never);
+    // East Winds' notebook knows Dawn Li from its pocket; 'gone' was deleted in the bible (its voice archived)
+    const voice = (id: string, archived: boolean) => ({ id: `c:${id}`, name: id, aka: [], colour: { hue: 120 }, shade: 'light' as const, starred: false, order: 0, archived, revisions: [] });
+    await handed(book()).writeDown({ voices: [voice('dawn', false), voice('gone', true)] });
+    await moveSong('s-grey', 'eastwinds', 'songbook');
+    expect((await into('songbook').get('songs', 's-grey'))!.tucked).toEqual([{ world: 'eastwinds', characterIds: ['dawn', 'gone'] }]);
+    await moveSong('s-grey', 'songbook', 'eastwinds');
+    const back = (await into('eastwinds').get('songs', 's-grey'))!;
+    expect(back.characterIds).toEqual(['dawn']);
+    expect(back.tucked).toEqual([{ world: 'eastwinds', characterIds: ['gone'] }]);
   });
 });
 
