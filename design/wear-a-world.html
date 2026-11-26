@@ -188,6 +188,8 @@ details code{font-size:12px}
 .mac-bar span{margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mac .win{position:relative;overflow:hidden}
 .mac iframe{position:absolute;top:0;left:0;border:0;transform-origin:0 0;pointer-events:none}
+/* the link at the foot of the last step, in the page's own ink in both themes */
+.step p.line a{color:var(--fg);text-underline-offset:3px}
 </style>
 </head>
 <body>
@@ -613,6 +615,13 @@ document.addEventListener('click',function(e){
      relit to day they go, and come back with the night */
   function lamps(){document.querySelectorAll('#main .screen').forEach(function(s){var day=s.dataset.light==='day';s.querySelectorAll('.fs-app[data-lamp],.fs-app[data-lamp-off]').forEach(function(a){if(day&&a.hasAttribute('data-lamp')){a.removeAttribute('data-lamp');a.setAttribute('data-lamp-off','');}else if(!day&&a.hasAttribute('data-lamp-off')){a.removeAttribute('data-lamp-off');a.setAttribute('data-lamp','');}});
     s.querySelectorAll('.fs-moon.glow,.fs-moon[data-glow-off]').forEach(function(m){if(day&&m.classList.contains('glow')){m.classList.remove('glow');m.setAttribute('data-glow-off','');}else if(!day&&m.hasAttribute('data-glow-off')){m.removeAttribute('data-glow-off');m.classList.add('glow');}});});}
+  /* at phone width the rail is one scrolling row of numbers: the step shown is kept in view (sideways only) */
+  var rail=document.getElementById('rail');
+  function follow(){var a=rail.querySelector('a[aria-current]');if(!a||rail.scrollWidth<=rail.clientWidth)return;var li=a.parentNode;rail.scrollLeft+=li.getBoundingClientRect().left-rail.getBoundingClientRect().left-(rail.clientWidth-li.offsetWidth)/2;}
+  new MutationObserver(follow).observe(rail,{subtree:true,attributes:true,attributeFilter:['aria-current']});window.addEventListener('resize',follow);follow();
+  /* a #step link opens that step from the top of the page: the browser's own jump to the anchor would hide the header */
+  try{history.scrollRestoration='manual';}catch(e){}
+  window.addEventListener('load',function(){window.scrollTo(0,0);});
   new MutationObserver(lamps).observe(document.getElementById('main'),{subtree:true,childList:true,attributes:true,attributeFilter:['data-light']});lamps();
 })();
 </script>
