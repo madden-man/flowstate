@@ -41,6 +41,7 @@ const SEED = [
   person('siyuan', 'Siyuan', 2041, 'fam-wen', { backstory: 'Raised at the temple from the age of six.' }),
   person('dawn', 'Dawn Li', 2062, 'fam-river', { backstory: 'Mrs. Li\'s granddaughter. Nine in the spring of the flood.' }),
   { collection: 'places', data: { _id: 'gate', title: 'The temple gate', parentId: null, communityId: null, descriptions: [] } },
+  { collection: 'places', data: { _id: 'harbour', title: 'Harbour Town', parentId: null, communityId: 'harbour-town', descriptions: [] } },
   { collection: 'places', data: { _id: 'river', title: 'The river', parentId: null, communityId: null, descriptions: [] } },
   { collection: 'parts', data: { _id: 'pt1', title: 'Part One: High Water', number: 1 } },
   { collection: 'chapters', data: { _id: 'ch12', title: 'The flood', partId: 'pt1', readingOrder: 1, strands: [{ id: 'ch12-a', label: 'spring', startYear: 2071, endYear: null, primary: true, povCharacterId: 'siyuan', characterIds: ['siyuan', 'dawn'], placeIds: ['gate'] }] } },
@@ -64,6 +65,7 @@ test.beforeAll(async () => {
   await invoke('bible.create', { slug: SLUG, name: 'East Winds' });
   await invoke('bible.open', { slug: SLUG });
   await expect(page.getByTestId('workspace')).toBeVisible();
+  await invoke('lists.addItem', { listId: 'communities', label: 'Harbour Town', parentId: null, id: 'harbour-town' });
   for (const item of SEED) {
     try { await invoke('test.seed', { items: [item as never] }); } catch (e) { throw new Error(`seed ${JSON.stringify(item).slice(0, 80)}: ${String(e)}`); }
   }
@@ -126,16 +128,20 @@ test('screens: the phone\'s pages arrive', async () => {
   await rail(page, 'From the notebook').click();
   await expect(page.getByTestId('notebook-tray')).toBeVisible();
   await page.waitForTimeout(1500);
+  const group = page.getByTestId('notebook-tray').getByTestId('tray-group').filter({ hasText: 'Harbour Town' });
+  await group.getByTestId('tray-file').evaluate(e => e.scrollIntoView({ block: 'end' }));
   await shot('tray');
-  const file = page.getByTestId('notebook-tray').getByTestId('tray-file').first();
-  if (await file.isEnabled().catch(() => false)) {
-    await file.click();
-    await page.waitForTimeout(800);
-    await shot('filed');
-  }
+  await group.getByTestId('tray-file').click();
+  const filed = page.getByTestId('notebook-tray').getByTestId('tray-filed');
+  await expect(filed).toBeVisible();
+  await filed.evaluate(e => e.scrollIntoView({ block: 'center' }));
+  await shot('filed');
 
   await rail(page, 'Questions').click();
   await page.waitForTimeout(1000);
+  await page.getByText('Does Siyuan leave before the flood, or after?').first().click();
+  await page.waitForTimeout(1000);
+  await page.locator('[data-field="decision"]').first().evaluate(e => e.scrollIntoView({ block: 'center' }));
   await shot('questions');
   await page.getByTestId('top-changes').click();
   await page.waitForTimeout(500);

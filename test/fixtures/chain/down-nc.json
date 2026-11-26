@@ -9,7 +9,7 @@
  "down": [
   {
    "_id": "east-winds",
-   "stamp": "acec9d90cd3be219c94beaa2fed129b5",
+   "stamp": "2405f4ab59879e28a737bd8338a9e287",
    "pocket": {
     "kind": "novel",
     "characters": [
@@ -52,6 +52,11 @@
     ],
     "places": [
      {
+      "id": "harbour",
+      "name": "Harbour Town",
+      "community": "Harbour Town"
+     },
+     {
       "id": "river",
       "name": "The river"
      },
@@ -79,13 +84,13 @@
       "id": "q-leave",
       "question": "Does Siyuan leave before the flood, or after?",
       "state": "open",
-      "changedAt": 1791738000598
+      "changedAt": 1791738000570
      },
      {
       "id": "q-who",
       "question": "Who raises Dawn after 2065?",
       "state": "open",
-      "changedAt": 1791738000602
+      "changedAt": 1791738000575
      }
     ],
     "storyYear": 2071,

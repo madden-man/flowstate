@@ -29,17 +29,8 @@ async function onBridge<T>(work: (db: Db) => Promise<T>): Promise<T> {
 }
 
 test.beforeAll(async () => {
-  if (PHASE === 'screens') {
-    const nc = JSON.parse(readFileSync(join(FIX, 'down-nc.json'), 'utf8')) as { worlds: object[] };
-    const up = JSON.parse(readFileSync(join(FIX, 'up.json'), 'utf8')) as { up: object[]; clips: (Record<string, unknown> & { file: string })[] };
-    await onBridge(async db => {
-      await db.collection('bridge_worlds').insertMany(nc.worlds as never[]);
-      await db.collection('bridge_up').insertMany(up.up as never[]);
-      if (up.clips.length) await db.collection('bridge_clips').insertMany(up.clips.map(({ file, ...c }) => ({ ...c, audio: readFileSync(join(FIX, file)) })) as never[]);
-    });
-  }
   ({ app, page } = await launchApp());
-  await size(app);
+  await size(app, 1180, 1260);
   await clockAt(app, '2026-11-19T15:00:00.000Z');
   const invoke = invokeVia(page);
   await expect(page.getByTestId('db-status')).toHaveAttribute('data-state', 'connected');
@@ -60,6 +51,14 @@ test('down: what Songbook publishes for the phone', async () => {
 
 test('screens: the phone\'s songs and hums on the Mac', async () => {
   test.skip(PHASE !== 'screens');
+  // the phone's rows arrive the next morning, with Novel Companion's registry row beside Songbook's
+  const nc = JSON.parse(readFileSync(join(FIX, 'down-nc.json'), 'utf8')) as { worlds: object[] };
+  const up = JSON.parse(readFileSync(join(FIX, 'up.json'), 'utf8')) as { up: object[]; clips: (Record<string, unknown> & { file: string })[] };
+  await onBridge(async db => {
+    await db.collection('bridge_worlds').insertMany(nc.worlds as never[]);
+    await db.collection('bridge_up').insertMany(up.up as never[]);
+    if (up.clips.length) await db.collection('bridge_clips').insertMany(up.clips.map(({ file, ...c }) => ({ ...c, audio: readFileSync(join(FIX, file)) })) as never[]);
+  });
   await app.evaluate(({ BrowserWindow, app: a }) => { a.emit('browser-window-focus', {}, BrowserWindow.getAllWindows()[0]); });
   await page.getByTestId('rail').getByRole('button', { name: 'Songs' }).click();
   const row = page.getByTestId('song-row').filter({ hasText: 'The grey coat' });
@@ -67,7 +66,11 @@ test('screens: the phone\'s songs and hums on the Mac', async () => {
   await row.click();
   await expect(page.getByTestId('song-world')).toBeVisible();
   await expect(page.getByTestId('song-sketches').getByTestId('sketch-row').first()).toBeVisible({ timeout: 30_000 });
-  await page.getByTestId('song-sketches').scrollIntoViewIfNeeded();
+  // the song's head ("From East Winds") at the top of the window, a little room above it
+  await page.getByTestId('song-world').evaluate(e => {
+    e.scrollIntoView({ block: 'start' });
+    for (let p = e.parentElement; p; p = p.parentElement) if (p.scrollTop > 0) { p.scrollTop -= 70; break; }
+  });
   await page.waitForTimeout(800);
   await capture(page, OUT, 'mc-song');
   await page.getByTestId('loose-hums-row').click();
