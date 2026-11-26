@@ -2,28 +2,20 @@
 
 Written 2026-11-25 for whoever builds next. `PLAN-WORLDS.md` is the plan; this file is the state of the build and the places where the plan no longer matches the repos. Read both before starting.
 
-## Hold
+## State (2026-11-25, late)
 
-Tommy released W5 and W6 on 2026-11-25 ("ok start w5 and w6"). W7 and W8 wait for his word. Nothing here is on any `main`, and nothing is deployed ("don't deploy anything").
-
-## State
+Tommy: "just merge and deploy everything." All of W1 to W8 is merged. W8's audit is still owed (his word: after the initial build).
 
 | Package | Repo | Where | State |
 |---|---|---|---|
 | W0 spike | flowstate | draft PR #106, `worlds-w0-spike` | Never merges. Its phone findings (plan section 13) are unanswered. |
-| WF, W1, W2, W4 | flowstate | merged into `worlds-plan` (draft PR #103), head 9be7b95 | Built. W4 was reviewed by a fresh reviewer and its seven findings fixed. W1 was merged unaudited. |
-| W3 | NovelCompanion | draft PR #1, `worlds-w3`, head 8bd74b8 | Built as A55, migration 015. Reviewed, seven findings fixed. The fixes have not had a second review. |
-| W5 | NovelCompanion | draft PR #2, stacked on `worlds-w3` | Built as A56, reviewed, the review's fixes in. Not merged. |
-| W6 | flowstate | draft PR #112, `worlds-w6`, base `worlds-plan` | Songs built: the song page, sections (any Mac `[Name]` round-trips), hold to hum, the pitch line, the key guess, tap tempo, loose hums, the Character chip, Songbook, clips, the move between worlds, lyrics both ways. Taken over mid-stride, audited, fixes in (see the PR). Needs its fresh reviewer. Not merged. |
-| W7 | MusicCompanion | draft PR #1, `worlds-w7` | Built, reviewed, the review's fixes in (head 95ab373). Not merged. `~/dev/MusicCompanion` has an uncommitted `package-lock.json` change that is not ours; leave it. |
-| W8 | flowstate | not started | See "Walkthroughs" below. |
+| WF, W1, W2, W4, W6, W8 | flowstate | `main` through PR #103 | Built, merged, deployed. W1's audit fixes are PR #110. W8 (PR #113) is not audited. |
+| W3, W5 | NovelCompanion | `main` at 4115daf (PR #1) | A55 and A56, migration 015 (an empty `notebookPages` collection and its indexes). Reviewed; W3's fixes had no second review. |
+| W7 | MusicCompanion | `main` at 37bd1ef (PR #1) | Reviewed, fixes in, fixes not re-reviewed. |
 
-Worktrees on this Mac: `~/dev/flowstate-worlds` (`worlds-plan`), `~/dev/nc-worlds-w3` (`worlds-w3`). The `flowstate-w0` to `flowstate-w4` and `flowstate-wf` worktrees are merged and can go.
+Checks as last run, flowstate `worlds-plan` at 62768e1 (W8 and #110 merged): `npm test` PASS (1293 unit tests, 1 skipped, lints, typecheck); e2e 156 passed, 0 failed; check-dist PASS. The older lines at the foot of this file are history.
 
-Checks as last run:
-
-- flowstate `worlds-plan` at 9be7b95: `npm test` PASS (1046 unit tests, lints, typecheck). E2E: see the line at the foot of this file.
-- NovelCompanion `worlds-w3` at 8bd74b8: lint and typecheck clean, unit 848, integration 343, e2e 298 passed, 2 failed, 38 not run. The two failures (`backstory.spec.ts` SM-9 "a click on an empty spot", `tree.spec.ts` SM-1 "the character page") fail the same way on `main` at db286e5, by the builder's run; the 38 are the rest of those two serial files. The reviewer did not re-check that.
+The walkthroughs from the real apps are `design/wear-a-world.html` and `design/songs.html` (W8; `script/chain-desktops.mjs`, `script/snap-chain-phone.mjs`, `script/build-world-walkthroughs.mjs`).
 
 Decided since the plan (Tommy, 2026-11-25), and written into `docs/BRIDGE.md`:
 
@@ -78,12 +70,12 @@ Decided since the plan (Tommy, 2026-11-25), and written into `docs/BRIDGE.md`:
 - W4 added a second one, `design/in-a-world.html` (seven steps from the real app, `script/snap-world-sections.mjs`). It is not published as an artifact. The main walkthrough does not link forward to it. A shelf screen captured at night reads grey when relit to day.
 - The plan-stage walkthrough `design/worlds/index.html` is artifact https://claude.ai/artifact/2QN4NwCPZtECWfT1aNBVfu (private). W8 replaces it with two from the real app.
 
-## Next, in order, once Tommy says go
+## Next
 
-1. W5 on NovelCompanion, stacked on `worlds-w3` (brief it with the readings above and W3's `docs/briefs/W3-HANDOFF.md`).
-2. W6 on flowstate from `worlds-plan`, with W7 on MusicCompanion. W6 and W7 share only the song, take and clip shapes in `docs/BRIDGE.md`.
-3. W8.
-4. Before any of it reaches a `main`: Tommy sets up Atlas and the site (BRIDGE.md, "Setting it up"), W0's phone checks, and schema 10's rule holds: once on main, never deploy a dist built from an older tree.
+1. The audit of W8.
+2. The first real round trip: phone, the deployed function, Atlas, both desktop apps (never yet run). Whether each desktop app's Atlas user can reach `flowstate_bridge` is unchecked.
+3. W0's phone checks and plan section 12's questions.
+4. Schema 10 is on main: never deploy a dist built from an older tree.
 
 ---
 
