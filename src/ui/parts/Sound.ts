@@ -572,9 +572,10 @@ export async function record(): Promise<Recording> {
 
 let playingTake: { stop: () => void } | null = null;
 
-/** Plays a take's audio once; a second call (or another take) stops the first. Resolves when it ends or is stopped;
- *  false when it could not be decoded. */
-export async function play(audio: ArrayBuffer): Promise<boolean> {
+/** Plays a take's audio once; one take at a time: a second call (another take, or the same tapped again) stops the
+ *  first, including one still decoding, which then never sounds (the review of PR 112). Resolves true when it played to
+ *  its end or was stopped while sounding; false when it could not be decoded or was stopped before it sounded. */
+export function play(audio: ArrayBuffer): Promise<boolean> {
   playingTake?.stop();
   playingTake = null;
   // media, named before its context is made (as a sit's is), so the ringer switch does not mute it
@@ -582,19 +583,28 @@ export async function play(audio: ArrayBuffer): Promise<boolean> {
   if (!micOpen) sessionType('playback');
   const a = make();
   const off = () => { takeOn = false; sessionType(resting()); };
-  if (!a) { off(); return false; }
-  let buffer: AudioBuffer;
-  try { buffer = await a.decodeAudioData(audio.slice(0)); } catch { void a.close().catch(() => undefined); off(); return false; }
-  const src = a.createBufferSource();
-  src.buffer = buffer;
-  src.connect(a.destination);
+  if (!a) { off(); return Promise.resolve(false); }
   return new Promise(resolve => {
     let done = false;
-    const end = () => { if (done) return; done = true; if (playingTake === me) { playingTake = null; off(); } void a.close().catch(() => undefined); resolve(true); };
-    const me = { stop: () => { try { src.stop(); } catch { /* not started */ } end(); } };
-    src.onended = end;
+    let src: AudioBufferSourceNode | null = null;
+    const end = (sounded: boolean) => {
+      if (done) return;
+      done = true;
+      if (playingTake === me) { playingTake = null; off(); }
+      void a.close().catch(() => undefined);
+      resolve(sounded);
+    };
+    // held from the first moment, so a tap while it decodes reaches it
+    const me = { stop: () => { if (src) { try { src.stop(); } catch { /* not started */ } } end(!!src); } };
     playingTake = me;
-    src.start();
+    a.decodeAudioData(audio.slice(0)).then(buffer => {
+      if (done) return;
+      src = a.createBufferSource();
+      src.buffer = buffer;
+      src.connect(a.destination);
+      src.onended = () => end(true);
+      src.start();
+    }, () => end(false));
   });
 }
 
