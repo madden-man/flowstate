@@ -11,7 +11,7 @@
 // answered on the phone is not reopened from here; deciding on the phone, the year dial, ages and chips are W4's.
 import type { Handed } from '../db/fields';
 import type { Message, Page, Song, Take, Voice } from '../db/schema';
-import { follow, reSection } from '../model/songs';
+import { follow, fromMacLyric } from '../model/songs';
 import type { NovelPocket, Pocket, SongsPocket } from './protocol';
 import { hueOf } from './colour';
 
@@ -122,11 +122,13 @@ async function lyricsFrom(h: Handed, pocket: SongsPocket): Promise<{ songs: Song
     if (!was || was.locked) continue;
     if (was.lyricFrom !== undefined && p.lyricAt! <= was.lyricFrom) continue;
     if (was.lyricAt !== undefined && waiting.has(was.id)) continue;
-    if (was.lyric === p.lyric && was.lyricFrom === p.lyricAt) continue;
+    // the Mac's [Name] lines become the phone's section names, so what goes back up rebuilds the same text
+    const mac = fromMacLyric(p.lyric!);
+    if (was.lyric === mac.lyric && was.lyricFrom === p.lyricAt && JSON.stringify(was.sections) === JSON.stringify(mac.sections)) continue;
     const { locked: _, lyricAt: _a, ...rest } = was as Song & { locked?: true };
-    songs.push({ ...rest, lyric: p.lyric!, sections: reSection(was, p.lyric!), lyricFrom: p.lyricAt });
+    songs.push({ ...rest, lyric: mac.lyric, sections: mac.sections, lyricFrom: p.lyricAt });
     const own = (await h.query('takes', t => t.where('songId').equals(was.id))).filter(t => !t.locked) as Take[];
-    takes.push(...follow(own, p.lyric!));
+    takes.push(...follow(own, mac.lyric));
   }
   return { songs, takes };
 }

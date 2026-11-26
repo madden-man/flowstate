@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { store, don, doff, handed, book, setKey, lock } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import type { Settings, Song, Take } from '../../src/db/schema';
-import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, takesOf, linesOf, withLyric } from '../../src/model/songs';
+import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, takesOf, linesOf, withLyric, fromMacLyric, toMacLyric } from '../../src/model/songs';
 import { applyPocket } from '../../src/bridge/down';
 import { readBatch, drain } from '../../src/bridge/up';
 import { owed, sendClips } from '../../src/bridge/clips';
@@ -221,5 +221,46 @@ describe('Songbook\'s lyrics both ways (W7\'s review): lyricAt and lyricFrom', (
     await saveSong(blankSong('mine', 'Mine'));
     await applyPocket(handed(book()), pocket([{ id: 'mine', title: 'Mine' }]));
     expect((await store.get('songs', 'mine'))!.lyric).toBe('');
+  });
+});
+
+describe('the Mac\'s [Name] lines round-trip (W7: Music Companion writes sections into its lyric)', () => {
+  const MAC = [
+    '[Verse]', 'the water goes out', 'and comes back', '',
+    '[Pre-chorus]', 'low tide, low tide', '[Hook]', 'nobody waving', '',
+    '[From the phone]', 'slow train, low sun', '[Chorus]', '[Bridge]', 'two on one line', '',
+    ' [not a head]', '[ also not ]', 'last line', '[Outro]',
+  ].join('\n');
+  it('read into the phone\'s sections and out of the text; the Mac rebuilds the identical text, any name kept', () => {
+    const p = fromMacLyric(MAC);
+    expect(p.lyric).not.toMatch(/^\[(Verse|Pre-chorus|Hook|From the phone|Chorus|Bridge|Outro)\]$/m);
+    expect(p.lyric).toContain(' [not a head]');
+    expect(p.lyric).toContain('[ also not ]');
+    expect(p.sections.map(s => s.name)).toEqual(['Verse', 'Pre-chorus', 'Hook', 'From the phone', 'Chorus', 'Bridge', 'Outro']);
+    expect(toMacLyric(p)).toBe(MAC);
+    expect(toMacLyric(fromMacLyric('no sections at all\nhere'))).toBe('no sections at all\nhere');
+    expect(fromMacLyric('')).toEqual({ lyric: '', sections: [] });
+  });
+  it('opened from the pocket and sent up unedited, the row rebuilds to the Mac\'s text exactly', async () => {
+    await worldDB('songbook');
+    const opened = songFromPocket({ id: 'mac-tide', title: '2026-11-19 Low tide', lyric: MAC, lyricAt: 1_800_000_000_000 });
+    await saveSong({ ...opened, title: 'Low tide, renamed' });
+    await settled();
+    const row = (await readBatch(handed(book()), 'songbook'))!.envelopes.find(e => e.table === 'songs')!.row! as { lyric: string; sections: Song['sections'] };
+    expect(toMacLyric(row)).toBe(MAC);
+    expect(row).not.toHaveProperty('lyricAt');
+  });
+  it('a newer pocket taken in comes in the same way, and an edit keeps a name standing mid-section on its line', async () => {
+    await worldDB('songbook');
+    await saveSong({ ...songFromPocket({ id: 'mac-tide', title: 'Low tide', lyric: 'old', lyricAt: 1 }) });
+    const s = site();
+    await settled();
+    await drain(handed(book()), 'songbook', 'tok', s.fetcher);
+    await applyPocket(handed(book()), { kind: 'songs', songs: [{ id: 'mac-tide', title: 'Low tide', lyric: MAC, lyricAt: 2 }] });
+    const now = (await store.get('songs', 'mac-tide'))!;
+    expect(toMacLyric(now)).toBe(MAC);
+    const edited = withLyric(now, `added first\n${now.lyric}`);
+    expect(edited.sections.find(x => x.name === 'Hook')).toMatchObject({ line: linesOf(edited.lyric).indexOf('nobody waving') });
+    expect(edited.sections.map(x => x.name)).toEqual(expect.arrayContaining(['Pre-chorus', 'Hook', 'From the phone', 'Outro']));
   });
 });

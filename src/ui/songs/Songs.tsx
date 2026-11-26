@@ -225,7 +225,7 @@ export function SongPage({ id }: { id: string }) {
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lineEls.current[0]?.focus(); setCaret(0); } }} />
         {lines.map((l, i) => (
           <Fragment key={i}>
-            {starts.includes(i) && nameAt(i) && <p class="wd-sec" data-sec={i}>{nameAt(i)}</p>}
+            {song.sections.filter(x => x.line === i).map(x => <p key={x.name} class="wd-sec" data-sec={i}>{x.name}</p>)}
             <div class={`fs-msg sg-line${caret === i ? ' cur' : ''}`} data-line={i}>
               <textarea class="fs-edit" rows={1} spellcheck={false} aria-label={`Line ${i + 1}`} value={l}
                 ref={el => { lineEls.current[i] = el; grow(el); }}
@@ -236,6 +236,7 @@ export function SongPage({ id }: { id: string }) {
             {live && caret === i && <div class="wd-take sg-live" aria-hidden="true"><PitchSvg pitch={live.pitch} live /></div>}
           </Fragment>
         ))}
+        {song.sections.filter(x => x.line >= lines.length).map(x => <p key={x.name} class="wd-sec">{x.name}</p>)}
         {loose.map(t => <TakeLine key={t.id} take={t} />)}
         {live && caret === null && <div class="wd-take sg-live" aria-hidden="true"><PitchSvg pitch={live.pitch} live /></div>}
         <MicLine said={said} />

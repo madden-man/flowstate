@@ -28,14 +28,17 @@ export function sectionStarts(lines: readonly string[]): number[] {
 }
 
 /**
- * The sections of a new lyric, named from the old: a section keeps its name when the line it starts on is still
- * there (by its text), else it takes the name the section in its place had (by order). A section with no name is left
- * out (it has no print in the margin).
+ * The sections of a new lyric, named from the old. A section that starts after a blank rule keeps its name when the
+ * line it starts on is still there (by its text), else it takes the name the section in its place had (by order). A
+ * name standing on a line that is no section start (a Mac lyric can put a [Name] line anywhere: fromMacLyric) follows
+ * that line by its text, and goes with it. A section with no name is left out.
  */
 export function reSection(old: Pick<Song, 'lyric' | 'sections'>, lyric: string): Song['sections'] {
   const was = linesOf(old.lyric), now = linesOf(lyric);
   const oldStarts = sectionStarts(was);
-  const named = new Map(old.sections.map(s => [s.line, s.name]));
+  const isStart = new Set(oldStarts);
+  const named = new Map<number, string>();
+  for (const s of old.sections) if (isStart.has(s.line) && !named.has(s.line)) named.set(s.line, s.name);
   const byText = new Map<string, string>();
   for (const st of oldStarts) { const n = named.get(st); if (n && !byText.has(was[st])) byText.set(was[st], n); }
   const used = new Set<number>();
@@ -47,7 +50,59 @@ export function reSection(old: Pick<Song, 'lyric' | 'sections'>, lyric: string):
     used.add(k);
     if (name) out.push({ line: st, name });
   });
-  return out;
+  // names in the middle of a section (from the Mac), by their line's text, the nearest match
+  const taken = new Set(out.map(s => s.line));
+  for (const s of old.sections) {
+    if (isStart.has(s.line)) continue;
+    const text = was[s.line];
+    if (text === undefined) { if (s.line >= was.length) out.push({ line: now.length, name: s.name }); continue; }
+    let best = -1;
+    now.forEach((l, i) => { if (l === text && !taken.has(i) && (best < 0 || Math.abs(i - s.line) < Math.abs(best - s.line))) best = i; });
+    if (best >= 0) { out.push({ line: best, name: s.name }); taken.add(best); }
+  }
+  return out.sort((a, b) => a.line - b.line);
+}
+
+// ---------------------------------------------------------------- the Mac's lyric (Music Companion, W7)
+
+/** A Mac section line: `[Verse]`, `[Pre-chorus]`, `[From the phone]`, a name in brackets alone on its line. */
+const MAC_HEAD = /^\s*\[([^\[\]\n]+)\]\s*$/;
+
+/**
+ * Music Companion's lyric as the phone keeps it: each `[Name]` line taken out of the text and kept as the section name
+ * of the line under it (several on one line are all kept, in order; one at the very end stands past the last line).
+ * Any name survives, not only Verse, Chorus and Bridge. With toMacLyric this round-trips: Mac text in, no edit, the
+ * Mac rebuilds the identical text from what goes up.
+ */
+export function fromMacLyric(text: string): Pick<Song, 'lyric' | 'sections'> {
+  const lines: string[] = [];
+  const sections: Song['sections'] = [];
+  for (const l of linesOf(text)) {
+    const m = MAC_HEAD.exec(l);
+    // only a line the Mac would write back the same ([Name], nothing round it, the name trimmed) is a section line
+    if (m && l === `[${m[1]}]` && m[1] === m[1].trim()) sections.push({ line: lines.length, name: m[1] });
+    else lines.push(l);
+  }
+  return { lyric: lines.join('\n'), sections };
+}
+
+/** The Mac's rebuilding of a phone lyric (Music Companion sketches.ts lyricsFromPhone, SK-5): each section a `[Name]`
+ *  line above the line it starts on. Here for the round-trip test and nothing else. */
+export function toMacLyric(song: Pick<Song, 'lyric' | 'sections'>): string {
+  const lines = linesOf(song.lyric);
+  const heads = new Map<number, string[]>();
+  for (const s of song.sections) {
+    const name = s.name.replace(/[[\]\n]/g, ' ').trim();
+    if (!name) continue;
+    const at = Math.min(s.line, lines.length);
+    heads.set(at, [...(heads.get(at) ?? []), `[${name}]`]);
+  }
+  const out: string[] = [];
+  for (let i = 0; i <= lines.length; i++) {
+    out.push(...(heads.get(i) ?? []));
+    if (i < lines.length) out.push(lines[i]);
+  }
+  return out.join('\n');
 }
 
 /** Names (or unnames, with the name it already has) the section the line is in. */
@@ -139,7 +194,7 @@ export const withLyric = (song: Song, lyric: string, now = Date.now()): Song =>
  *  and its lyric, remembering the Mac's lyricAt it starts from. Nothing is written until he writes. */
 export function songFromPocket(p: PocketSong, now = Date.now()): Song {
   const s = blankSong(p.id, typeof p.title === 'string' ? withoutDate(p.title) : '', now);
-  if (typeof p.lyric === 'string') s.lyric = p.lyric;
+  if (typeof p.lyric === 'string') Object.assign(s, fromMacLyric(p.lyric));
   if (typeof p.lyricAt === 'number') s.lyricFrom = p.lyricAt;
   return s;
 }
