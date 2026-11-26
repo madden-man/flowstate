@@ -121,7 +121,7 @@ describe('ticks and bells fire only where DESIGN.md lists them', () => {
     // while a take is sung, and a take played back, each begun only by the thumb on its own control
     expect(sound.match(/\bmake\(\)/g)).toHaveLength(5);
     expect(sound).toMatch(/export function listen\(stream: MediaStream\)[\s\S]*?const a = make\(\)/);
-    expect(sound).toMatch(/export async function play\(audio: ArrayBuffer\)[\s\S]*?const a = make\(\)/);
+    expect(sound).toMatch(/export (?:async )?function play\(audio: ArrayBuffer\)[\s\S]*?const a = make\(\)/);
     // listening sends nothing to the speaker
     const ear = sound.slice(sound.indexOf('export function listen'), sound.indexOf('let playingTake'));
     expect(ear).not.toMatch(/destination/);

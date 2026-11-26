@@ -5,12 +5,14 @@ import { startHum } from '../../src/ui/songs/hum';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+const made: { mimeType?: string; audioBitsPerSecond?: number }[] = [];
 function fakeRecorder(opts: { throws?: boolean } = {}) {
   const track = { stop: vi.fn() };
+  made.length = 0;
   class Rec {
     state = 'inactive'; mimeType = 'audio/mp4'; ondataavailable: ((e: { data: Blob }) => void) | null = null; onstop: (() => void) | null = null;
     static isTypeSupported = () => true;
-    constructor() { if (opts.throws) throw new DOMException('no', 'NotSupportedError'); }
+    constructor(_s: unknown, o?: { mimeType?: string; audioBitsPerSecond?: number }) { if (opts.throws) throw new DOMException('no', 'NotSupportedError'); made.push(o ?? {}); }
     start() { this.state = 'recording'; this.ondataavailable?.({ data: new Blob([new Uint8Array([1, 2, 3])]) }); }
     stop() { this.state = 'inactive'; this.onstop?.(); }
   }
@@ -53,6 +55,15 @@ describe('the hum and the audio session', () => {
     await expect(startHum({ onFrame: () => undefined })).rejects.toThrow();
     expect(atAsk).toBe('play-and-record');
     expect(session.type).toBe('auto');
+  });
+
+  it('the recorder is asked for AAC at 96 kbps, so three minutes (about 2.2 MB) stays well under the 4 MiB a clip may be', async () => {
+    const track = fakeRecorder();
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: async () => ({ getTracks: () => [track] }) } });
+    const h = await startHum({ onFrame: () => undefined });
+    await h.stop();
+    expect(made[0]).toEqual({ mimeType: 'audio/mp4;codecs=mp4a.40.2', audioBitsPerSecond: 96_000 });
+    expect((96_000 / 8) * 180).toBeLessThan(0.6 * 4 * 1024 * 1024);
   });
 
   it('a take stopped gives the session back', async () => {

@@ -42,18 +42,25 @@ export function PitchSvg({ pitch, live }: { pitch: readonly number[]; live?: boo
 }
 
 /** A take as it stands under its line (or loose at the foot of the song). */
-export function TakeLine({ take }: { take: Pick<Take, 'id' | 'pitch' | 'key' | 'seconds' | 'audio'> }) {
+/** Why a take's audio stays on the phone, in print under it (the review of PR 112: never silence). */
+const ASIDE_LINE = { size: 'Too long to carry; it stays on this phone.', refused: 'It could not be carried; it stays on this phone.' } as const;
+
+export function TakeLine({ take }: { take: Pick<Take, 'id' | 'pitch' | 'key' | 'seconds' | 'audio' | 'clip'> }) {
   const [playing, setPlaying] = useState(false);
   const toggle = () => {
     if (playing) { stopPlaying(); setPlaying(false); return; }
     setPlaying(true);
     void play(take.audio).finally(() => setPlaying(false));
   };
+  const aside = take.clip?.aside;
   return (
+    <>
     <button type="button" class="wd-take" data-take={take.id} data-playing={playing ? '' : undefined}
       aria-label={playing ? 'Stop this hum' : 'Play this hum'} onClick={toggle}>
       <PitchSvg pitch={take.pitch} />
       <small class="fs-notstill">{[take.key, length(take.seconds)].filter(Boolean).join(' · ')}</small>
     </button>
+    {aside && <p class="fs-quiet sg-aside fs-notstill">{ASIDE_LINE[aside]}</p>}
+    </>
   );
 }

@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { store, don, doff, handed, book, setKey, lock } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import type { Settings, Song, Take } from '../../src/db/schema';
-import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, takesOf, linesOf, withLyric, fromMacLyric, toMacLyric } from '../../src/model/songs';
+import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, takesOf, linesOf, withLyric, withSections, fromMacLyric, toMacLyric } from '../../src/model/songs';
 import { applyPocket } from '../../src/bridge/down';
 import { readBatch, drain } from '../../src/bridge/up';
 import { owed, sendClips } from '../../src/bridge/clips';
@@ -14,6 +14,8 @@ import { worldDB, settled } from '../bridge/helpers';
 import { carryNow, saveBridgeToken, removeBridgeToken } from '../../src/model/carry';
 import { defaultSettings } from '../../src/db/seed';
 import { vi } from 'vitest';
+import macFixture from './fixtures/mac-lyrics.json';
+import { macScenarios, type Scenario } from './mac-scenarios';
 import { freshDB } from '../db/helpers';
 
 const take = (o: Partial<Take> = {}): Take => ({ id: `t-${Math.random().toString(36).slice(2)}`, at: 1_700_000_000_000, seconds: 14, audio: new Uint8Array([1, 2, 3, 4]).buffer, audioType: 'audio/mp4', pitch: [55, 0, 57.5], ...o });
@@ -56,7 +58,21 @@ describe('the lyric: lines, sections and their names', () => {
     const was = { lyric: 'a\nb\n\nc\nd', sections: [{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }] };
     expect(reSection(was, 'new\na\nb\n\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 4, name: 'Chorus' }]);
     expect(reSection(was, 'A\nb\n\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }]);
-    expect(reSection(was, 'a\nb\nc\nd')).toEqual([{ line: 0, name: 'Verse' }]);
+    // a blank rule taken out joins the sections: the second name is never dropped, it stands over its line mid-section
+    // (it is a [Chorus] line on the Mac, and the phone never deletes one it was not asked to)
+    expect(reSection(was, 'a\nb\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 2, name: 'Chorus' }]);
+    // a section's first line taken out: its name goes to the line that now starts it
+    expect(reSection(was, 'a\nb\n\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }]);
+  });
+  it('a chip names the section, beside a name from the Mac it never takes away; on a line holding a chip name it acts there', () => {
+    const s = { lyric: 'a\n\nb\nc', sections: [{ line: 2, name: 'From the phone' }, { line: 2, name: 'Verse' }] };
+    expect(nameSection(s, 3, 'Chorus')).toEqual([{ line: 2, name: 'From the phone' }, { line: 2, name: 'Chorus' }]);
+    expect(nameSection(s, 3, 'Verse')).toEqual([{ line: 2, name: 'From the phone' }]);
+    const onlyMac = { ...s, sections: [{ line: 2, name: 'From the phone' }] };
+    expect(nameSection(onlyMac, 2, 'Bridge')).toEqual([{ line: 2, name: 'From the phone' }, { line: 2, name: 'Bridge' }]);
+    // a Chorus left mid-section by a join is cleared with the caret on its own line
+    const joined = { lyric: 'a\nb\nc', sections: [{ line: 0, name: 'Verse' }, { line: 2, name: 'Chorus' }] };
+    expect(nameSection(joined, 2, 'Chorus')).toEqual([{ line: 0, name: 'Verse' }]);
   });
 });
 
@@ -138,6 +154,51 @@ describe('in a world', () => {
     expect(await sendClips(h, 'eastwinds', 'tok', s.fetcher)).toBe(0);
   });
 
+  it('a clip the function refuses, or one too large to carry, is set aside and told; a failing clip never stops the carry or the pocket', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => { throw new Error('no real request in a unit test'); });
+    await store.put('settings', { ...defaultSettings(), ...(await store.get('settings', 'app')), world: 'eastwinds' } as Settings);
+    const asked: string[] = [];
+    let pocketRead = false;
+    const fetcher = (async (u: RequestInfo | URL, init?: RequestInit) => {
+      const q = new URLSearchParams(String(u).split('?')[1]);
+      const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status });
+      if (q.get('op') === 'worlds') return json({ worlds: [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }] });
+      if (q.get('op') === 'pocket') { pocketRead = true; return json({ world: 'eastwinds', stamp: 'p', pocket: { kind: 'novel', characters: [], places: [], chapters: [], events: [], questions: [] } }); }
+      if (q.get('op') === 'clip') {
+        const t = q.get('take')!;
+        asked.push(t);
+        if (t === 't-big') return json({}, 413);
+        if (t === 't-type') return json({}, 415);
+        if (t === 't-flaky') return json({}, 502);
+        if (t === 't-no') return json({ take: t, result: 'refused' });
+        return json({ take: t, result: 'stored' });
+      }
+      const body = JSON.parse(String(init!.body)) as { envelopes: Envelope[] };
+      return json({ acks: body.envelopes.map((e): Ack => ({ table: e.table, id: e.id, rev: e.rev, result: 'stored' })) });
+    }) as typeof fetch;
+    await saveBridgeToken('tok', fetcher);
+    const huge = new Uint8Array(4 * 1024 * 1024 + 1).buffer;
+    for (const id of ['t-big', 't-type', 't-flaky', 't-no', 't-ok']) await saveTake(take({ id }));
+    await saveTake(take({ id: 't-huge', audio: huge }));
+    await settled();
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect(pocketRead).toBe(true);
+    const clip = async (id: string) => (await store.get('takes', id))!.clip;
+    expect(await clip('t-ok')).toMatchObject({ world: 'eastwinds' });
+    expect((await clip('t-ok'))!.aside).toBeUndefined();
+    expect(await clip('t-big')).toMatchObject({ aside: 'size' });
+    expect(await clip('t-huge')).toMatchObject({ aside: 'size' });
+    expect(asked).not.toContain('t-huge');
+    expect(await clip('t-type')).toMatchObject({ aside: 'refused' });
+    expect(await clip('t-no')).toMatchObject({ aside: 'refused' });
+    // a passing failure (502) is tried again on the next carry; the set-aside ones are not
+    expect(await clip('t-flaky')).toBeUndefined();
+    asked.length = 0;
+    expect(await carryNow(fetcher)).toBe('carried');
+    expect(asked).toEqual(['t-flaky']);
+    await removeBridgeToken();
+  });
+
   it('locked: no clip goes', async () => {
     await saveTake(take({ id: 't1' }));
     await setKey(await deriveKey('1234', randomSalt(), 1000), { salt: randomSalt(), iterations: 1000 });
@@ -181,15 +242,26 @@ describe('Songbook\'s lyrics both ways (W7\'s review): lyricAt and lyricFrom', (
     expect(songFromPocket({ id: 'old', title: 'Older pocket' }).lyric).toBe('');
   });
 
-  it('typing moves lyricAt and keeps lyricFrom; a rename, the tempo, sections and chips move neither; both go up', async () => {
+  it('typing and the sections move lyricAt (a name is lyric text on the Mac); a rename, the tempo and the Character chip never do; lyricFrom stays; both go up', async () => {
     const opened = songFromPocket(POCKET_SONG);
-    const renamed = { ...opened, title: 'Low tide again', bpm: 80, characterIds: [], sections: nameSection(opened, 0, 'Verse') };
+    // a rename, the tempo and the Character chip: not the lyric
+    const renamed = { ...opened, title: 'Low tide again', bpm: 80, characterIds: ['dawn'] };
     expect(renamed.lyricAt).toBeUndefined();
     expect(withLyric(renamed, renamed.lyric)).toBe(renamed);
-    const typed = withLyric(renamed, `${renamed.lyric}\nand I wait`, 1_800_000_000_500);
+    // a section named from a chip is a lyric change: on the Mac it is a [Verse] line (Tommy, 2026-11-25, review of #112)
+    const named = withSections(renamed, nameSection(renamed, 0, 'Verse'), 1_800_000_000_300);
+    expect(named).toMatchObject({ sections: [{ line: 0, name: 'Verse' }], lyricAt: 1_800_000_000_300, lyricFrom: 1_800_000_000_000 });
+    // the same sections again change nothing
+    expect(withSections(named, [{ line: 0, name: 'Verse' }], 9)).toBe(named);
+    // cleared, it moves again
+    expect(withSections(named, nameSection(named, 0, 'Verse'), 1_800_000_000_400)).toMatchObject({ sections: [], lyricAt: 1_800_000_000_400 });
+    const typed = withLyric(named, `${named.lyric}\nand I wait`, 1_800_000_000_500);
     expect(typed).toMatchObject({ lyricAt: 1_800_000_000_500, lyricFrom: 1_800_000_000_000 });
     expect(typed.sections).toEqual([{ line: 0, name: 'Verse' }]);
     expect(withLyric({ ...typed, title: 'x' }, typed.lyric).lyricAt).toBe(1_800_000_000_500);
+    // a blank rule typed (a section started) is a lyric change too, and so is joining it back
+    const split = withLyric(typed, 'the water goes out\n\nand comes back\nand I wait', 1_800_000_000_600);
+    expect(split.lyricAt).toBe(1_800_000_000_600);
     await saveSong(typed);
     await settled();
     const row = (await readBatch(handed(book()), 'songbook'))!.envelopes.find(e => e.table === 'songs')!.row!;
@@ -310,8 +382,68 @@ describe('the Mac\'s [Name] lines round-trip (W7: Music Companion writes section
     await applyPocket(handed(book()), { kind: 'songs', songs: [{ id: 'mac-tide', title: 'Low tide', lyric: MAC, lyricAt: 2 }] });
     const now = (await store.get('songs', 'mac-tide'))!;
     expect(toMacLyric(now)).toBe(MAC);
+    // a first line typed into the verse: the Mac text comes back with that line alone added, every [Name] line kept
     const edited = withLyric(now, `added first\n${now.lyric}`);
-    expect(edited.sections.find(x => x.name === 'Hook')).toMatchObject({ line: linesOf(edited.lyric).indexOf('nobody waving') });
-    expect(edited.sections.map(x => x.name)).toEqual(expect.arrayContaining(['Pre-chorus', 'Hook', 'From the phone', 'Outro']));
+    expect(toMacLyric(edited)).toBe(MAC.replace('[Verse]\n', '[Verse]\nadded first\n'));
+  });
+  it('any Mac lyric, opened, one written line edited, sent: the Mac text is the same but for that line, every [Name] line still there in order', () => {
+    const heads = ['[Verse]', '[Chorus]', '[Bridge]', '[From the phone]', '[Pre-chorus]', '[Hook]', '[Outro]'];
+    const words = ['low tide', 'the water goes out', 'and comes back', 'nobody waving', 'slow train', 'low tide'];
+    let seed = 7;
+    const rnd = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+    const lyrics: string[] = [MAC, '[Chorus]\n[Bridge]\nline one\nline two', '[From the phone]\n[Verse]\nfrom the phone\n\n[Verse]\nmac', 'a\n[Hook]\n[Hook]\nb\n[Outro]\n[Outro]'];
+    for (let n = 0; n < 200; n++) {
+      const ls: string[] = [];
+      const len = 1 + rnd(12);
+      for (let i = 0; i < len; i++) { const r = rnd(10); ls.push(r < 3 ? heads[rnd(heads.length)] : r < 4 ? '' : words[rnd(words.length)]); }
+      lyrics.push(ls.join('\n'));
+    }
+    let checked = 0;
+    for (const mac of lyrics) {
+      const opened = songFromPocket({ id: 'p', title: 'P', lyric: mac, lyricAt: 1 });
+      expect(toMacLyric(opened), mac).toBe(mac);
+      const macLines = mac.split('\n');
+      const ls = linesOf(opened.lyric);
+      ls.forEach((l, j) => {
+        if (!l.trim()) return;
+        const edited = withLyric(opened, ls.map((x, i) => (i === j ? `${x} (edited)` : x)).join('\n'));
+        // the same Mac line, found by its place among the lines that are not [Name] lines, carries the edit
+        const head = (x: string) => { const m = /^\[([^\[\]\n]+)\]$/.exec(x); return !!m && m[1] === m[1].trim(); };
+        const allHeads = macLines.every(head);
+        let k = -1, seen = -1;
+        for (let i = 0; i < macLines.length; i++) { if (!allHeads && head(macLines[i])) continue; if (++seen === j) { k = i; break; } }
+        const want = macLines.map((x, i) => (i === k ? `${x} (edited)` : x)).join('\n');
+        expect(toMacLyric(edited), `${JSON.stringify(mac)} line ${j}`).toBe(want);
+        checked++;
+      });
+    }
+    expect(checked).toBeGreaterThan(300);
+  });
+  it('a lyric of section lines only comes back exactly: what the phone cannot hold as a name stays as its text', () => {
+    for (const mac of ['[Verse]', '[Verse]\n[Chorus]', '[Verse]\n', '']) {
+      const opened = fromMacLyric(mac);
+      expect(toMacLyric(opened), JSON.stringify(mac)).toBe(mac);
+    }
+    expect(fromMacLyric('[Verse]')).toEqual({ lyric: '[Verse]', sections: [] });
+  });
+});
+
+describe('against Music Companion\'s real lyric rules (fixtures/mac-lyrics.json, made by mac-lyrics.gen.test.ts from mc-worlds-w7 95ab373)', () => {
+  const fixture = macFixture as Scenario[];
+  const mine = macScenarios();
+  it('the phone sends exactly the rows the Mac was run on: a chip moves lyricAt, so the Mac takes the name and never pastes the lyric again', () => {
+    for (const k of [0, 1]) {
+      expect(mine[k].steps.map(x => x.row), fixture[k].name).toEqual(fixture[k].steps.map(x => x.row));
+      for (const st of fixture[k].steps) {
+        // what the Mac holds after each step is the phone's text, [Name] lines and all: replaced, never appended
+        expect(st.mac, `${fixture[k].name}: ${st.did}`).toBe(toMacLyric(st.row));
+        expect(st.mac).not.toContain('[From the phone]');
+      }
+    }
+    expect(fixture[0].steps.at(-1)!.mac).toBe('[Verse]\nYou only wear that one to leave\nso leave it on the nail\n\n[Chorus]\nKeep this for me, one year');
+    expect(fixture[1].steps.at(-1)!.mac).toBe('[Verse]\nthe water goes out\nand never comes back\n\n[Chorus]\nlow tide, low tide');
+  });
+  it('toMacLyric, the phone\'s copy of the Mac\'s lyricsFromPhone, gives the Mac\'s own answers', () => {
+    for (const st of fixture[2].steps) expect(toMacLyric(st.row), JSON.stringify(st.row)).toBe(st.mac);
   });
 });

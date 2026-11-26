@@ -5,7 +5,7 @@
 // Every request goes to one same-origin path, BRIDGE_PATH, with `Authorization: Bearer <token>`. Without a token that
 // matches BRIDGE_TOKEN on the site the answer is 401 and nothing is read or written.
 //
-//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, read from both databases
+//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, flowstate_bridge.bridge_worlds
 //   GET  ?op=pocket&world=<id>&stamp=<s>   PocketReply                   "unchanged" when the stamp matches
 //   POST ?op=up      body UpBatch           { acks: Ack[] }               one ack an envelope, in the order sent
 //   POST ?op=clip&world=<id>&take=<id>&rev=<n>   body audio bytes         { take, result }   (W6 sends these)
@@ -87,8 +87,8 @@ export type SongsPocket = { kind: 'songs'; songs: PocketSong[] };
 
 /** A song row as it goes up (src/bridge/up.ts names these fields and no others). lyricAt: when the lyric itself last
  *  changed on the phone (absent if he never edited it there); lyricFrom: the pocket's lyricAt his text started from
- *  (absent if it started from nothing). Both epoch milliseconds; a rename, the key, the tempo, the sections' names and
- *  the chips never move them. */
+ *  (absent if it started from nothing). Both epoch milliseconds. The sections are the lyric (a [Name] line on the Mac),
+ *  so naming one moves lyricAt; a rename, the key, the tempo and the Character chip never move either. */
 export type SongRow = {
   id: string; createdAt: number; updatedAt: number; title: string; lyric: string; sections: { line: number; name: string }[];
   key?: string; bpm?: number; characterIds?: string[]; lyricAt?: number; lyricFrom?: number;

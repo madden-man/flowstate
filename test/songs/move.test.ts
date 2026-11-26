@@ -225,7 +225,10 @@ describe('a move stopped and stopped again (the handoff\'s audit, 2026-11-25)', 
     await grey();
     await firstHalf('eastwinds', 'songbook');
     await into('third').many({});
-    await moveSong('s-grey', 'eastwinds', 'third').catch(() => undefined);
+    // it settles into its first destination, and says where it is, so the sheet can print it
+    const err = await moveSong('s-grey', 'eastwinds', 'third').catch(e => e);
+    expect(err).toBeInstanceOf(MoveError);
+    expect(err.where).toBe('songbook');
     const where = [];
     for (const w of ['eastwinds', 'songbook', 'third']) if ((await holds(w)).song) where.push(w);
     expect(where).toHaveLength(1);

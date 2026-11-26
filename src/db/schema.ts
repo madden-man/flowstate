@@ -764,7 +764,8 @@ export type Song = {
   id: string; createdAt: Millis; updatedAt: Millis; title: string; lyric: string;
   sections: { line: number; name: string }[]; key?: string; bpm?: number; characterIds?: string[];
   /** W6 (W7's review): when the lyric itself last changed on the phone, epoch ms; absent if he never edited it here. A
-   *  rename, the key, the tempo, sections' names and chips never move it (model/songs.ts withLyric). Goes up. */
+   *  section named, changed or cleared moves it too (model/songs.ts withSections); a rename, the key, the tempo and the
+   *  Character chip never do. Goes up. */
   lyricAt?: Millis;
   /** W6: the pocket's lyricAt (the Mac's) that this lyric started from; absent if it started from nothing. Goes up. */
   lyricFrom?: Millis;
@@ -787,8 +788,9 @@ export type Take = {
    *  follow). Both go up with the take. */
   lineId?: string; lineText?: string;
   /** W6: the clip (the audio) acknowledged by the bridge, under which world and when (src/bridge/clips.ts). Absent, the
-   *  audio has not gone up yet. On the phone only. */
-  clip?: { world: string; at: Millis };
+   *  audio has not gone up yet. aside: never sent and never tried again, because it is too large to carry ('size') or
+   *  the function refused it for good ('refused'); the take says so under its line. On the phone only. */
+  clip?: { world: string; at: Millis; aside?: 'size' | 'refused' };
   sealed?: Sealed;
 };
 

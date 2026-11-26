@@ -54,7 +54,11 @@ async function charactersOf(world: string): Promise<Set<string>> {
   return new Set(voices.filter(v => !v.locked && !v.archived && v.id.startsWith('c:')).map(v => v.id.slice(2)));
 }
 
-export class MoveError extends Error {}
+/** Why a move did not happen. where: the world the song is in now, when it is not here (a move of it that had stopped
+ *  halfway was finished first); the sheet prints it. */
+export class MoveError extends Error {
+  constructor(message: string, readonly where?: string) { super(message); this.name = 'MoveError'; }
+}
 
 /** Moves a song and its takes from one world's notebook to another's. Refuses his own pages and a move to itself. */
 export async function moveSong(songId: string, from: string, to: string): Promise<void> {
@@ -66,6 +70,7 @@ export async function moveSong(songId: string, from: string, to: string): Promis
   if (!s) {
     // already moved: here (a stop after step 3, now settled), or somewhere else, which this move must not undo
     if (await dst.get('songs', songId)) return;
+    for (const w of await worldsOnPhone()) if (w !== from && (await into(w).get('songs', songId))) throw new MoveError('The song is in another world', w);
     throw new MoveError('The song is no longer here');
   }
   if (s.locked) throw new MoveError('Locked');

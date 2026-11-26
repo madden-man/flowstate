@@ -28,39 +28,63 @@ export function sectionStarts(lines: readonly string[]): number[] {
 }
 
 /**
- * The sections of a new lyric, named from the old. A section that starts after a blank rule keeps its name when the
- * line it starts on is still there (by its text), else it takes the name the section in its place had (by order). A
- * name standing on a line that is no section start (a Mac lyric can put a [Name] line anywhere: fromMacLyric) follows
- * that line by its text, and goes with it. A section with no name is left out.
+ * Where each old line went in a new lyric: the lines both share (a longest common run, so lines kept are matched in
+ * order), and for a run of lines rewritten or taken out, the new line in their place (the next line kept, or past the
+ * end). Index was.length maps to now.length.
+ */
+export function lineMap(was: readonly string[], now: readonly string[]): number[] {
+  const n = was.length, m = now.length;
+  // common head and tail first, so a one-line edit costs nothing
+  let a = 0;
+  while (a < n && a < m && was[a] === now[a]) a++;
+  let b = 0;
+  while (b < n - a && b < m - a && was[n - 1 - b] === now[m - 1 - b]) b++;
+  const W = was.slice(a, n - b), N = now.slice(a, m - b);
+  const L = Array.from({ length: W.length + 1 }, () => new Uint16Array(N.length + 1));
+  for (let i = W.length - 1; i >= 0; i--) for (let j = N.length - 1; j >= 0; j--) L[i][j] = W[i] === N[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const map = new Array<number>(n + 1);
+  for (let i = 0; i < a; i++) map[i] = i;
+  for (let i = 0; i < b; i++) map[n - 1 - i] = m - 1 - i;
+  map[n] = m;
+  // walk the middle: matched lines map straight; a run taken out between matches maps onto the run put in its place
+  let i = 0, j = 0;
+  const flush = (i0: number, i1: number, j0: number, j1: number) => {
+    for (let t = i0; t < i1; t++) map[a + t] = a + (j1 > j0 ? Math.min(j0 + (t - i0), j1 - 1) : j0);
+  };
+  let ri = 0, rj = 0;
+  while (i < W.length && j < N.length) {
+    if (W[i] === N[j] && L[i][j] === L[i + 1][j + 1] + 1) { flush(ri, i, rj, j); map[a + i] = a + j; i++; j++; ri = i; rj = j; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++;
+    else j++;
+  }
+  flush(ri, W.length, rj, N.length);
+  return map;
+}
+
+/**
+ * The sections of a new lyric, named from the old. Every name is kept (each is a [Name] line on the Mac, and the phone
+ * never drops one it was not asked to): it goes where its line went (lineMap). A name over a section's first line stays
+ * over that section's first line (a line typed at the top of a verse is in the verse); one whose section was joined into
+ * the section above stands over its own line, mid-section. Names stacked on one line keep their order; a name past the
+ * last line stays past it. Only a chip takes a name away (nameSection).
  */
 export function reSection(old: Pick<Song, 'lyric' | 'sections'>, lyric: string): Song['sections'] {
   const was = linesOf(old.lyric), now = linesOf(lyric);
-  const oldStarts = sectionStarts(was);
-  const isStart = new Set(oldStarts);
-  const named = new Map<number, string>();
-  for (const s of old.sections) if (isStart.has(s.line) && !named.has(s.line)) named.set(s.line, s.name);
-  const byText = new Map<string, string>();
-  for (const st of oldStarts) { const n = named.get(st); if (n && !byText.has(was[st])) byText.set(was[st], n); }
-  const used = new Set<number>();
-  const out: Song['sections'] = [];
-  sectionStarts(now).forEach((st, k) => {
-    let name = byText.get(now[st]);
-    if (name) byText.delete(now[st]);
-    else if (k < oldStarts.length && !used.has(k)) name = named.get(oldStarts[k]);
-    used.add(k);
-    if (name) out.push({ line: st, name });
+  const map = lineMap(was, now);
+  const oldStarts = new Set(sectionStarts(was));
+  const newStarts = sectionStarts(now);
+  const heldBy = new Map<number, number>(); // a new section start, and the old line whose names went to it
+  const out = old.sections.map(sec => {
+    if (sec.line >= was.length) return { line: now.length, name: sec.name };
+    const to = map[sec.line];
+    if (oldStarts.has(sec.line)) {
+      const st = [...newStarts].reverse().find(x => x <= to);
+      if (st !== undefined && (heldBy.get(st) ?? sec.line) === sec.line) { heldBy.set(st, sec.line); return { line: st, name: sec.name }; }
+    }
+    return { line: to, name: sec.name };
   });
-  // names in the middle of a section (from the Mac), by their line's text, the nearest match
-  const taken = new Set(out.map(s => s.line));
-  for (const s of old.sections) {
-    if (isStart.has(s.line)) continue;
-    const text = was[s.line];
-    if (text === undefined) { if (s.line >= was.length) out.push({ line: now.length, name: s.name }); continue; }
-    let best = -1;
-    now.forEach((l, i) => { if (l === text && !taken.has(i) && (best < 0 || Math.abs(i - s.line) < Math.abs(best - s.line))) best = i; });
-    if (best >= 0) { out.push({ line: best, name: s.name }); taken.add(best); }
-  }
-  return out.sort((a, b) => a.line - b.line);
+  // stable: names on one line keep the order they had
+  return out.map((x, k) => [x, k] as const).sort((p, q) => p[0].line - q[0].line || p[1] - q[1]).map(([x]) => x);
 }
 
 // ---------------------------------------------------------------- the Mac's lyric (Music Companion, W7)
@@ -83,6 +107,9 @@ export function fromMacLyric(text: string): Pick<Song, 'lyric' | 'sections'> {
     if (m && l === `[${m[1]}]` && m[1] === m[1].trim()) sections.push({ line: lines.length, name: m[1] });
     else lines.push(l);
   }
+  // section lines with no line of the lyric under any of them: the phone's lyric is never empty of lines (an empty lyric
+  // is one empty line), so it cannot hold them as names and give back the same text; they stay as the text itself
+  if (!lines.length && sections.length) return { lyric: text, sections: [] };
   return { lyric: lines.join('\n'), sections };
 }
 
@@ -105,14 +132,29 @@ export function toMacLyric(song: Pick<Song, 'lyric' | 'sections'>): string {
   return out.join('\n');
 }
 
-/** Names (or unnames, with the name it already has) the section the line is in. */
-export function nameSection(song: Pick<Song, 'lyric' | 'sections'>, line: number, name: string): Song['sections'] {
+const isChipName = (n: string) => (SECTION_NAMES as readonly string[]).includes(n);
+
+/** The line a chip acts on for the caret's line: that line itself when a chip's name stands on it (one a join left
+ *  mid-section), else the first line of its section. Undefined with no written line. */
+export function sectionTarget(song: Pick<Song, 'lyric' | 'sections'>, line: number): number | undefined {
+  if (song.sections.some(x => x.line === line && isChipName(x.name))) return line;
   const starts = sectionStarts(linesOf(song.lyric));
-  const st = [...starts].reverse().find(s => s <= line) ?? starts[0];
-  if (st === undefined) return song.sections;
-  const rest = song.sections.filter(s => s.line !== st);
-  const had = song.sections.find(s => s.line === st)?.name;
-  return had === name ? rest : [...rest, { line: st, name }].sort((a, b) => a.line - b.line);
+  return [...starts].reverse().find(x => x <= line) ?? starts[0];
+}
+
+/** Names the section the line is in from a chip: the chip's name replaces a chip name already there, and the same chip
+ *  again takes it off. A name from the Mac ([From the phone], [Hook]) is never taken away; the chip's name goes beside
+ *  it, under it. */
+export function nameSection(song: Pick<Song, 'lyric' | 'sections'>, line: number, name: string): Song['sections'] {
+  const at = sectionTarget(song, line);
+  if (at === undefined) return song.sections;
+  const k = song.sections.findIndex(x => x.line === at && isChipName(x.name));
+  if (k >= 0) {
+    if (song.sections[k].name === name) return song.sections.filter((_, i) => i !== k);
+    return song.sections.map((x, i) => (i === k ? { line: at, name } : x));
+  }
+  const last = song.sections.reduce((p, x, i) => (x.line <= at ? i : p), -1);
+  return [...song.sections.slice(0, last + 1), { line: at, name }, ...song.sections.slice(last + 1)];
 }
 
 /**
@@ -186,9 +228,18 @@ export async function looseHums(): Promise<Take[]> {
 }
 
 /** A song with a new lyric: its sections carried over to the new lines (reSection). The page calls this on every edit
- *  of the lyric, so a section chip always names a line of the lyric it sees. */
+ *  of the lyric, so a section chip always names a line of the lyric it sees. lyricAt moves. */
 export const withLyric = (song: Song, lyric: string, now = Date.now()): Song =>
   (lyric === song.lyric ? song : { ...song, lyric, sections: reSection(song, lyric), lyricAt: now });
+
+const sameSections = (a: Song['sections'], b: Song['sections']) =>
+  a.length === b.length && a.every((x, i) => x.line === b[i].line && x.name === b[i].name);
+
+/** A song with its sections named anew (a chip set, changed or cleared). On the Mac a section's name is a line of the
+ *  lyric ([Chorus]), so this is a lyric change and lyricAt moves (Tommy, 2026-11-25, the review of PR 112); a rename,
+ *  the key, the tempo and the Character chip are not, and never move it. The same sections again change nothing. */
+export const withSections = (song: Song, sections: Song['sections'], now = Date.now()): Song =>
+  (sameSections(song.sections, sections) ? song : { ...song, sections, lyricAt: now });
 
 /** A Mac song opened from Songbook's pocket that the phone does not hold yet: its id, its title without the work date,
  *  and its lyric, remembering the Mac's lyricAt it starts from. Nothing is written until he writes. */
@@ -201,10 +252,11 @@ export function songFromPocket(p: PocketSong, now = Date.now()): Song {
 
 /** Writes a song as given (its sections already follow its lyric: withLyric), and every pinned take kept on its line
  *  when the lyric changed since `was`, in one write. A page that did not touch the lyric (song.lyric is still `was`'s)
- *  keeps the lyric stored now: one Songbook's pocket replaced while the page was open is never put back by a rename. */
+ *  keeps the lyric stored now: one Songbook's pocket replaced while the page was open is never put back by a rename. The
+ *  sections are the lyric too (withSections): a page that named one wrote the lyric. */
 export async function saveSong(song: Song, was?: Pick<Song, 'lyric' | 'sections'>): Promise<Song> {
   let next: Song = { ...song, updatedAt: Date.now() };
-  if (was && was.lyric === song.lyric) {
+  if (was && was.lyric === song.lyric && sameSections(was.sections, song.sections)) {
     const now = await songOf(song.id);
     if (now && now.lyric !== was.lyric) {
       const { lyricAt: _a, lyricFrom: _f, ...rest } = next;

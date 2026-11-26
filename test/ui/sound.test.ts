@@ -306,6 +306,29 @@ describe('scape(): a context of its own, and the ringer', () => {
     expect(s.type).toBe('playback');
   });
 
+  it('one take at a time: a second tap while the first is still decoding stops it, and stopping one still decoding keeps it silent', async () => {
+    session();
+    const pending: ((b: unknown) => void)[] = [];
+    for (const AC of [window.AudioContext as unknown as { prototype: { decodeAudioData: unknown } }]) AC.prototype.decodeAudioData = () => new Promise(r => pending.push(r));
+    const a = snd.play(new ArrayBuffer(8));
+    const b = snd.play(new ArrayBuffer(8));
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    pending[0]({ duration: 1 });
+    pending[1]({ duration: 1 });
+    expect(await a).toBe(false);
+    const started = () => made.flatMap(m => m.nodes).filter(n => n.kind === 'buffer' && n.started);
+    await vi.waitFor(() => expect(started()).toHaveLength(1));
+    snd.stopPlaying();
+    expect(await b).toBe(true);
+    // stopped while it decodes: it never sounds
+    const c = snd.play(new ArrayBuffer(8));
+    await vi.waitFor(() => expect(pending).toHaveLength(3));
+    snd.stopPlaying();
+    pending[2]({ duration: 1 });
+    expect(await c).toBe(false);
+    expect(started()).toHaveLength(1);
+  });
+
   it('a newer sit keeps the session when the older one finishes fading', () => {
     settings.value = { ...defaultSettings(0), sitThroughSilent: true };
     const s = session();
