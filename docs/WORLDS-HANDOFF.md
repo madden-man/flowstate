@@ -69,7 +69,8 @@ Decided since the plan (Tommy, 2026-11-25), and written into `docs/BRIDGE.md`:
 - W4's choices: Research this shows only in a world, at the foot beside Previous and Next; the chips under a journal page appear once it has a word; a council's year is the year worn or The whole book; "In the story" is not offered until a year is worn; seats print full names, conversation chips first names; no haptic tick on the dial.
 - From W1 and W2, still open: "+ flow" went with the mountain, so there is no way to make a flow; the Settings World row has Replace and Remove beside Carry now. (The outbox draining only for the world worn is closed by W6: every carry drains every registered world's outbox, worn or not, while some world is worn.)
 - Plan section 12's seven questions and section 13's phone checks (W0).
-- Not verified anywhere: a real round trip through the deployed function and a real MongoDB; the Atlas custom role; whether the desktop apps' own Atlas users have been given `flowstate_bridge` (the one shared database since 2026-11-25; docs/BRIDGE.md); the dial and the header's year under a real thumb.
+- Atlas (Tommy, 2026-11-25): the function gets his existing all-databases user, not the custom role, so `BRIDGE_MONGODB_URI` is a full-access string and the function's own `coll()` guard and its tests are the only thing keeping it inside `flowstate_bridge` and its four collections: never loosen it (docs/BRIDGE.md, "Setting it up"). The custom role stays documented as the narrower option.
+- Not verified anywhere: a real round trip through the deployed function and a real MongoDB; whether the desktop apps' own Atlas users have been given `flowstate_bridge` (the one shared database since 2026-11-25; docs/BRIDGE.md); the dial and the header's year under a real thumb.
 
 ## Walkthroughs
 

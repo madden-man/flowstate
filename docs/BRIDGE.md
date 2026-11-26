@@ -87,11 +87,17 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)
 
-1. In Atlas, the custom role and user below.
-2. On the site, for functions only: `BRIDGE_MONGODB_URI` (that user's connection string) and `BRIDGE_TOKEN` (`openssl rand -hex 32`).
-3. Deploy as usual. Paste the token into Settings, World, on the phone.
+1. On the site, for functions only: `BRIDGE_MONGODB_URI` and `BRIDGE_TOKEN` (`openssl rand -hex 32`).
+2. Deploy as usual. Paste the token into Settings, World, on the phone.
 
-## A custom role for the one Atlas user (UNVERIFIED)
+**Whose Atlas user (Tommy, 2026-11-25): his existing all-databases user**, not a custom-role user. What follows from that:
+
+- `BRIDGE_MONGODB_URI` on the site is a **full-access string**: it can read and write every database in the cluster, Novel Companion's and Music Companion's included. Treat it as such (functions scope only, never in the repo, never on the phone).
+- The **only** thing keeping the function inside `flowstate_bridge` and its four collections is the function's own guard, `coll()` in `netlify/lib/bridge.ts`, and its tests (`test/bridge/function.test.ts`: any other database, any other collection name refused). Atlas will not stop it. **That guard must never be loosened**, and any change near it needs those tests to pass first.
+
+The custom role below stays as the narrower option, if he ever wants Atlas itself to hold the line.
+
+## A custom role for the one Atlas user (the narrower option; UNVERIFIED, not in use)
 
 Atlas custom roles take privileges on a database and a named collection. The function needs only these, all in `flowstate_bridge`, and it never deletes (Music Companion removes a clip after pulling it, with its own user):
 

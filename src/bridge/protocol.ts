@@ -5,7 +5,7 @@
 // Every request goes to one same-origin path, BRIDGE_PATH, with `Authorization: Bearer <token>`. Without a token that
 // matches BRIDGE_TOKEN on the site the answer is 401 and nothing is read or written.
 //
-//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, read from both databases
+//   GET  ?op=worlds                        { worlds: WorldRow[] }       the registry, flowstate_bridge.bridge_worlds
 //   GET  ?op=pocket&world=<id>&stamp=<s>   PocketReply                   "unchanged" when the stamp matches
 //   POST ?op=up      body UpBatch           { acks: Ack[] }               one ack an envelope, in the order sent
 //   POST ?op=clip&world=<id>&take=<id>&rev=<n>   body audio bytes         { take, result }   (W6 sends these)

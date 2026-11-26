@@ -77,7 +77,7 @@ export async function removeBridgeToken(): Promise<void> {
   carriedAt.value = undefined;
 }
 
-/** The registry, read from both databases by the function, onto home's row; a world's spine hue is kept. */
+/** The registry (flowstate_bridge.bridge_worlds, the one shared database), read by the function, onto home's row; a world's spine hue is kept. */
 async function refreshWorlds(fetcher?: Fetcher): Promise<void> {
   if (!token || !open()) return;
   const rows = await listWorlds(token, fetcher);
