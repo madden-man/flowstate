@@ -176,16 +176,16 @@ test('the shelf slides under a thumb and settles one cover at a time, with the t
   expect(await page.locator('.fs-app').evaluate(el => el.style.getPropertyValue('--lamp-voice'))).toContain(' 250)');
   await expect(page.locator('.fl-cover[data-book="own"] .fl-cover-foot')).toHaveText('Open');
   await expect(page.locator('.fs-hdr-world')).toHaveCount(0);
-  // under East Winds: its own last line (none yet) and Research; no circles, no Right now
+  // under East Winds: its own last line (none yet), Songs (W6) and Research; no circles, no Right now
   await expect(page.locator('.fl-under')).toHaveAttribute('data-for', 'eastwinds');
   await expect(page.locator('.fl-lastline')).toHaveText('');
-  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/Research/]);
+  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/^Songs/, /^Research/]);
   await expect(page.locator('a.fl-circle')).toHaveCount(0);
-  // one more: Songbook, and nothing under it yet
+  // one more: Songbook, and Songs alone under it (W6)
   await t.slide(-160);
   await expect(front(page)).toHaveAttribute('data-book', 'songbook');
   await expect.poll(() => ticks(page)).toEqual(['check', 'check']);
-  await expect(page.locator('.fl-under a')).toHaveCount(0);
+  await expect(page.locator('.fl-under a.fs-row')).toHaveText([/^Songs/]);
   // a slide past the last cover settles where it was, with no tick
   await t.slide(-160);
   await page.waitForTimeout(400);

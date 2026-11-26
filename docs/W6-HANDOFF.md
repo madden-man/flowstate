@@ -1,49 +1,119 @@
-# W6 (Songs): handoff
+# W6 (Songs): handoff for whoever takes it over
 
-Branch `worlds-w6` from `worlds-plan` (9be7b95, plus the WORLDS-HANDOFF docs commit merged in). Draft PR against `worlds-plan`. Nothing deployed.
+Branch `worlds-w6` in `~/dev/flowstate-w6`, cut from `worlds-plan` (9be7b95, plus the WORLDS-HANDOFF docs commit merged in). Draft PR #112 against `worlds-plan`. Nothing is merged and nothing is deployed. Typecheck is clean (`npm run typecheck`) at the commit carrying this file.
 
-## Done
+## Every coordinator instruction, and where it stands
 
-- **One shared database (Tommy, 2026-11-25):** the function reaches only `flowstate_bridge` (`BRIDGE_DB`) and its four collections; `novel_companion` and `music_companion` are unreachable through it. Tests, docs/BRIDGE.md, PLAN-WORLDS.md sections 2 and 5 and WORLDS-HANDOFF updated. Nothing on the phone changed.
-- The key finder (`src/model/keyfinder.ts`, `theory.ts`) copied unchanged with its 30 known-answer tests (`test/model/keyfinder/`, fixtures made in memory). Committed.
+| Instruction | State |
+|---|---|
+| Shelf flake (`worlds.spec.ts` "settles one cover at a time"): find the cause, make it deterministic, prove it with `--repeat-each 20` | **Done**, commit bd6d5ed. 40 of 40 passed (that test and the new "nothing settles under a held finger", 20 each, 4 workers). The worlds, world-sections and flow-shelf specs: 17 passed. |
+| A test for "no settle while a finger is on the shelf" | **Done**: `worlds.spec.ts` "nothing settles under a held finger: no tick, no lamp, no cover in front until the thumb lifts". |
+| Correct WORLDS-HANDOFF's last paragraph (126 passed and 1 failed at 9be7b95; W5, W6 and W7 on draft PRs NovelCompanion #2, flowstate #112, MusicCompanion #1) | **Done**, cbd82db. The State table above that paragraph still says W5, W6 and W7 are "not started"; I did not touch it. |
+| One shared database, `flowstate_bridge` (function, protocol constant, fake driver, tests, BRIDGE.md, PLAN-WORLDS sections 2 and 5, WORLDS-HANDOFF) | **Done and pushed**, cbd82db. CLAUDE.md rule 6 names no database, so it is unchanged. |
+| Songs in full (the original brief) | **Built and tested**, apart from the gaps under "Not done". |
+| Move a song between worlds | **Built and tested** (unit tests and e2e). |
+| W7 questions: what `lineId` is, take ids as file names, the clip's content type | **Answered in BRIDGE.md.** `lineText` was added to the take row (up.ts allow-list) beside `lineId`. |
+| W7's six points (lineId and lineText, id regex, content type, revs on a move, pocket titles with a date, pitch as MIDI with 0) | **Done**: fcc21d2 and eb7c55a, plus BRIDGE.md. |
+| Lyric clock (`lyricAt`, `lyricFrom`) and the pocket's lyric | **Done**, d1dfdcc. `SongRow` and `PocketSong` are in protocol.ts; up.ts allows both fields. |
+| `[Name]` section lines round trip | **Done**, ef34c1b. |
+| The final full e2e with every change, and the PR body | **Not done**: see below. |
 
-- Nothing of Songs itself yet. Only reading and design notes so far (below).
-- The flake job from the coordinator, `test/e2e/worlds.spec.ts` "the shelf slides under a thumb and settles one cover at a time" (126 passed, 1 failed on `worlds-plan` at 9be7b95), is fixed in code but **not yet proven** (see Half done).
+## Built, and the tests that cover it
 
-## Done: the shelf flake (commit after cbd82db)
+- **The key finder.** Copied unchanged from MusicCompanion 5f6e05c into `src/model/keyfinder.ts` and `theory.ts`. `test/model/keyfinder/` holds its 30 known-answer tests, with fixtures made in memory (`fixtures.ts`, `gen-wav.ts`, `wav.ts`, `fft.ts`).
+- **Pitch, key and tempo**, `src/model/pitch.ts` and `tempo.ts`. Covered by `test/songs/pitch.test.ts`:
+  - "a sine at 220 Hz reads A3"
+  - "a C major scale reads C major; G major reads G major"
+  - "a tune that dwells on G, B flat and D reads G minor"
+  - "absent when too little is sung, or on one note alone"
+  - the tap tempo tests
+- **The song model**, `src/model/songs.ts`: sections, `follow` (a take stays on its line), loose hums, `songList` tolerant of the pocket, `withLyric` and the `lyricAt` clock, `songFromPocket`, `fromMacLyric` and `toMacLyric`. Covered by `test/songs/songs.test.ts` (20 tests):
+  - "what goes up: the song..., a pinned take and a loose hum"
+  - "a clip goes only after its take's row is acknowledged"
+  - "a newer pocket never overwrites an unsent edit..."
+  - "opened from the pocket and sent up unedited, the row rebuilds to the Mac's text exactly"
+- **The move**, `src/model/move.ts`. In this order: the destination written whole, checked, the source deleted, then the destination rewritten so its revs are newer than the deletes; `settleMoves` finishes a stopped move. Covered by `test/songs/move.test.ts` (7 tests):
+  - "a stop between the halves leaves it in both, never neither"
+  - "what goes up: deletes under the old world, rows under the new"
+  - "Dawn Li is tucked..."
+  - "carrying drains every world on the phone the registry knows, worn or not"
+- **fields.ts.** `into(world)` writes to a world's notebook whether it is worn or not, with its outbox. Also new: `worldsOnPhone`, `handedWorld`, and a take's `lineText` sealed with its audio.
+- **Bridge, phone side.**
+  - net.ts `postClip` goes through the same single `fetcher`, as the fence test requires.
+  - `src/bridge/clips.ts` sends a clip after its row is acknowledged, with rev = `take.at`, and marks it through `writeDown`.
+  - `down.ts` `lyricsFrom` brings Songbook's pocket lyrics into songs the phone holds.
+  - `carry.ts` `carryOthers` drains every registered world's outbox and clips, worn or not. This also closes the open item "the outbox drains only for the world worn".
+- **UI** in `src/ui/songs/` (Songs.tsx, HumButton.tsx, Take.tsx, hum.ts, songs.css, plus `design/songs.css` kept equal by tokens:check):
+  - routes in app.tsx, a world's only;
+  - the Songs row in Flow.tsx;
+  - `parts/Sound` `listen()` and `play()`;
+  - a sentence in DESIGN.md rule 21;
+  - Songs.tsx added to the sheet ticks in `test/ui/feel.test.ts`.
+- **E2E**, `test/e2e/songs.spec.ts`: 5 tests, all passed at fcc21d2. They use CDP touches and a stubbed microphone (an oscillator playing a G minor tune):
+  - a full song;
+  - a cancelled hold;
+  - a loose hum titled into a song;
+  - Move to by touch on the sheet;
+  - his own pages have no Songs.
 
-- Cause 1, the drag: CDP stamps each touch at dispatch; under load Chromium's velocity tracker read the lift as a fling the wrong way and the snap went back (a lift at 125 px of a 220 px step returned to the first cover; one at 244 px nearest East Winds returned to Songbook). Test fix: every touch carries its own timestamp 16 ms apart, and a slide rests 300 ms before it lifts (no fling), 160 px instead of 140; the wait is on the shelf's own `data-settled`.
-- Cause 2, the read: "the one beside it is smaller and fainter" read the side cover's opacity while it was still easing into place as the page came up (it read 1). The test now polls the covers' computed look until they rest. Forcing the first placement with no transition was tried and changed which cover a W4 test opened on, so it was left as built.
-- App fix: `Shelf.tsx` never settles under a held finger (a pause over 120 ms used to tick and light the lamp under the thumb). Fingers are heard on the document (a touch begun during a page turn lands on `<html>` and still slides the shelf), counting only touches begun on the shelf or the page itself. New e2e: "nothing settles under a held finger".
-- Proof: `--repeat-each 20` on both tests, 4 workers: 40 passed. worlds, world-sections and flow-shelf specs: 17 passed. Before: 7 of 20 failed.
+  The Chromium clip type logged there was `audio/mp4`.
+- **Walkthrough** `design/songs.html`: nine steps from `script/snap-songs.mjs`. artifact-lint PASS, 113 words. `SHOTS=<dir>` also writes PNGs of the live app. I looked at night, day and Still: the app is right. The walkthrough shell's night relight reads grey for these mocks, and for in-a-world's too; that is a shell quirk, not this screen.
 
-## Songs: built so far (committed, unit-tested; no e2e, walkthrough or screenshots yet)
+## Written but not proven at the last commit
 
-- Model: `src/model/pitch.ts` (YIN, the stored line, the key guess over Music Companion's key finder), `tempo.ts` (Tap tempo), `songs.ts` (lines, sections named by chips, takes kept on their line, loose hums, the list tolerant of Songbook's pocket), `move.ts` (a song moved between worlds, safe to stop halfway; `settleMoves`).
-- fields.ts: `into(world)` (a world's notebook written worn or not, with its outbox), `worldsOnPhone`, `handedWorld`; a take's `lineText` sealed with its audio.
-- Bridge, phone side: `postClip` in net.ts (still the one fetcher), `src/bridge/clips.ts` (a clip after its row is acknowledged, rev = take.at, marked through writeDown). `carry.ts` drains every registered world on the phone, worn or not, and their clips.
-- UI: `src/ui/songs/` (Songs list, song page, loose hums, Hold to hum with pointer capture, Move to sheet, Whose song sheet), routes in app.tsx (a world's only), Songs rows under a novel and Songbook in Flow.tsx; `parts/Sound` listen() and play(); DESIGN.md rule 21 sentence.
-- Tests: test/songs (29), feel and shelf-dom updated. `npm test`: 1104 passed.
+- **The last full e2e** (`PORT=4386 npm run e2e`, at 6e7b93b) gave **132 passed, 1 failed**. The failure was `worlds.spec.ts` "settles one cover at a time": its old expectation that East Winds has Research alone and Songbook has nothing. That expectation is updated in the commit carrying this file (`[/^Songs/, /^Research/]` and `[/^Songs/]`). The re-run was in progress when I stopped and **its result is not known**. check-dist did not run (it runs only after a green e2e).
+- **songs.spec.ts after ef34c1b.** ef34c1b changed how section names are printed (every name, on any line). The e2e was not re-run after it.
+- **`design/songs.html`** was snapped before d1dfdcc and ef34c1b. Its screens should look the same; re-snap anyway.
+- **`npm test`** last passed at d1dfdcc with 1108 tests. ef34c1b ran only `test/songs` (36 passed) and typecheck.
 
-## Not started
+## Not done
 
-- e2e (hold with CDP touches and a stubbed microphone, the move sheet, his notebook offering none), `design/songs.html` walkthrough from the real app, three-lights screenshots, docs/BRIDGE.md rules for W7 (lineId, ids as file names, content types, a song keeps its id for life), the full e2e run, the PR body.
+- The PR body. A draft is at `/private/tmp/claude-501/-Users-musicman-dev/affb8d52-a5a4-47e7-8dd6-d5f4ea089908/scratchpad/pr-body.md`; it may be gone after a reboot. It still needs the real e2e and unit numbers, the lint PASS lines, and lines for the lyric clock and the `[Name]` round trip. The PR's current body is the WIP checkpoint text.
+- Deleting this file in the last commit, once the package is complete.
+- The fresh reviewer.
 
-## Decisions and findings so far (for whoever resumes)
+## Decisions taken (Tommy may overturn)
 
-- **No schema bump needed.** W2 already created `songs`, `takes` and `outbox` in schema 10, and the sealing for both (`fields.ts` songSpec, takeSpec). The outbox middleware records songs and takes in a world only. `up.ts` builds song and take envelopes (the take without its audio).
-- **Clip sender is missing.** `net.ts` has no `postClip`, but the function's `POST ?op=clip&world&take&rev` is built (`netlify/lib/bridge.ts`). Plan: add `postClip` in `src/bridge/net.ts` and a `src/bridge/clips.ts` that, after a drain, sends each take with no `clipped` mark and no outbox entry. Use rev = the take's `at` (constant, so a resend answers `same`), and mark `clipped` through `handed().writeDown` (no outbox, so the take does not go up again). Call it from `model/carry.ts` carryUp. A world only; his own notebook has no Songs row (plan section 4).
-- **Live pitch:** `new AudioContext` and `<audio>` are banned outside `parts/Sound` (DL20). Put a mic analyser (`listen(stream)`) and take playback in `parts/Sound.ts`. Run YIN (lift from `origin/worlds-w0-spike:src/spike/pitch.ts`) on analyser frames about every 50 ms. Store `pitch` as MIDI note numbers to two decimals, 0 where unvoiced, evenly spaced over `seconds` (document this for W7).
-- **Key finder:** copy `~/dev/MusicCompanion/src/shared/domain/keyfinder.ts` and `theory.ts` unchanged (source commit 6897f34). For a hum, build the chroma from voiced pitch frames, run `findKey`, and name a key only when `namedKey` allows it (confidence 0.15 or more, not noise). Its tests read WAV fixtures from MusicCompanion's `scripts/make-fixtures.ts`; port the generators into a test helper, or synthesise.
-- **Songbook pocket songs** (`{ id, title }`) are listed with local songs; writing on one makes the local row with that id.
-- **Design** to match: `design/worlds/index.html` step `song` (`.wd-sec`, `.wd-take`, `.wd-pitch`, chips "Dawn Li" and "Tap tempo", button "Hold to hum"). Proposed: in Still a take is its pitch line alone (no key, no time).
-- E2E for the hum: stub `getUserMedia` with an oscillator's `MediaStreamDestination` stream (known pitch), and drive the hold with CDP touch events.
+- A section name is print on its own rule above the section, as the approved mock draws it; the plan says "in the margin".
+- "New song" is a second row under Hum. An untitled song shows "No title yet".
+- A take prints "G MINOR · 0:14". In Still the pitch line stands alone.
+- Tapping a take plays it. Playback ignores the Sounds switch: it is his own voice, invited by the tap.
+- Tap tempo sets the song's bpm, and each new take carries it.
+- After Move to, the page returns to the old world's Songs list.
+- A stopped move is finished when the destination world's Songs list is opened. It deletes the old copy even if it was edited in between; takes made there in between are carried over first.
+- The recorder asks for `audio/mp4;codecs=mp4a.40.2` first.
+- A pocket song with an unsent phone lyric edit is never overwritten. "Unsent" is read as: a phone `lyricAt` while the song still has an outbox entry.
+- Songbook's pocket titles are shown without the work date.
+- No schema version bump. All new fields are optional and unindexed:
+  - `Song.lyricAt`, `lyricFrom`, `tucked` and `movedFrom`;
+  - `Take.lineText` (sealed with the audio) and `clip`.
 
-## How to resume
+## Known shaky or wrong
 
-`cd ~/dev/flowstate-w6`. Run `PORT=4386 npx playwright test test/e2e/worlds.spec.ts -g "settles one cover at a time" --repeat-each 20 --workers 4`, then `npm test` and the two lints. Then correct `docs/WORLDS-HANDOFF.md`'s last paragraph, and start W6 from the notes above.
+- **Fast typing.** Typing straight after Enter can land in the old line before the new rule takes focus. The e2e waits for focus, and focus now moves in a layout effect, but a fast typist on a phone may still hit it.
+- **Rule alignment.** Lyric lines under a take sit slightly off the rules (a take is two rules tall, but not exactly on the grid).
+- **Chips row.** It overflows sideways on a phone ("72 BP" is cut), like the other chip rows.
+- **The live pitch line** comes from a 4096-sample analyser window every 50 ms, under setInterval. It has not been heard against a real voice.
+- **iOS audio session.** Not set to `play-and-record` while recording. Unverified on the iPhone.
+- **Move and the pocket.** `songFor` does not filter restored characterIds against the destination's pocket (only the worn world's pocket is kept).
+- **A novel's songs** do not take a pocket lyric: only Songbook's pocket carries songs.
 
-## Added scope since the first checkpoint
+## Only the iPhone can verify
 
-- Move a song to another world (Tommy, "sure, add it"): coordinator message of 2026-11-25; see the PR body when built.
-- W7 asks: what `lineId` is, take ids as file names, the clip's real content type, written into docs/BRIDGE.md.
+- `MediaRecorder` and the microphone in the installed app, including whether it asks again on every open.
+- That the recording is AAC in `audio/mp4`, a hum's real size, and that three minutes fits the 4 MiB clip limit.
+- Holding a button with `touch-action: none` and pointer capture (no loupe, no selection).
+- How well the pitch line and the key read a real hum.
+- Playback with the ringer switch off.
+
+## To resume
+
+```
+cd ~/dev/flowstate-w6
+npm test && node script/design-lint.mjs src design
+PORT=4386 npm run e2e
+npm run build && node script/snap-songs.mjs && node ~/.claude/hooks/artifact-lint.mjs design/songs.html
+node ~/.claude/hooks/artifact-lint.mjs design/walkthrough.html
+```
+
+Then write the PR body with real numbers and delete this file in the last commit. Stage by name. Never deploy, never merge.
