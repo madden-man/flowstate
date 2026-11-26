@@ -34,10 +34,12 @@ const attrs = list => list.filter(([k]) => k !== 'data-theme').map(([k, v]) => `
 const RESTORE = "addEventListener('load',function(){document.querySelectorAll('[data-st]').forEach(function(e){var p=e.getAttribute('data-st').split(',');e.scrollTop=+p[0];e.scrollLeft=+p[1];});});";
 
 const APPS = { nc: 'Novel Companion', mc: 'Music Companion' };
+// The window's caption: Novel Companion has one bible open; Music Companion holds songs from every world, so it names none.
+const CAPTION = { nc: 'Novel Companion · East Winds (example data)', mc: 'Music Companion (example data)' };
 function macMock(s) {
   const shot = desk(s.shot);
   const doc = `<!doctype html><html${attrs(shot.htmlAttrs)} data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="desk/${s.app}.css"><style>html,body{overflow:hidden!important}*{caret-color:transparent!important}</style><script>${RESTORE}</script></head><body${attrs(shot.bodyAttrs)}>${shot.body}</body></html>`;
-  return `<div class="mac" data-mock><div class="mac-bar"><i></i><i></i><i></i><span>${APPS[s.app]} · East Winds (example data)</span></div><div class="win" data-w="${shot.w}" style="aspect-ratio:${shot.w}/${shot.h}"><iframe title="${APPS[s.app]}" tabindex="-1" data-theme="light" width="${shot.w}" height="${shot.h}" srcdoc="${esc(doc)}"></iframe></div></div> <!-- design-lint: allow: another app's screen as it rendered, its own inline styles -->`;
+  return `<div class="mac" data-mock><div class="mac-bar"><i></i><i></i><i></i><span>${CAPTION[s.app]}</span></div><div class="win" data-w="${shot.w}" style="aspect-ratio:${shot.w}/${shot.h}"><iframe title="${APPS[s.app]}" tabindex="-1" data-theme="light" width="${shot.w}" height="${shot.h}" srcdoc="${esc(doc)}"></iframe></div></div> <!-- design-lint: allow: another app's screen as it rendered, its own inline styles -->`;
 }
 const phoneMock = s => `<div class="phone" data-mock><div class="screen" data-light="${s.light}" data-step="${s.id}"><div class="island"></div>
     <div class="status"><span>${s.time}</span><span>Example data</span></div>
@@ -127,6 +129,8 @@ const MAC_CSS = `<style>
 .mac-bar span{margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mac .win{position:relative;overflow:hidden}
 .mac iframe{position:absolute;top:0;left:0;border:0;transform-origin:0 0;pointer-events:none}
+/* the link at the foot of the last step, in the page's own ink in both themes */
+.step p.line a{color:var(--fg);text-underline-offset:3px}
 </style>`;
 const MAC_JS = `<script>
 /* the desktop frames: scaled to the column, and lit as the relight control says (day light; night and Still dark) */
@@ -142,6 +146,13 @@ const MAC_JS = `<script>
      relit to day they go, and come back with the night */
   function lamps(){document.querySelectorAll('#main .screen').forEach(function(s){var day=s.dataset.light==='day';s.querySelectorAll('.fs-app[data-lamp],.fs-app[data-lamp-off]').forEach(function(a){if(day&&a.hasAttribute('data-lamp')){a.removeAttribute('data-lamp');a.setAttribute('data-lamp-off','');}else if(!day&&a.hasAttribute('data-lamp-off')){a.removeAttribute('data-lamp-off');a.setAttribute('data-lamp','');}});
     s.querySelectorAll('.fs-moon.glow,.fs-moon[data-glow-off]').forEach(function(m){if(day&&m.classList.contains('glow')){m.classList.remove('glow');m.setAttribute('data-glow-off','');}else if(!day&&m.hasAttribute('data-glow-off')){m.removeAttribute('data-glow-off');m.classList.add('glow');}});});}
+  /* at phone width the rail is one scrolling row of numbers: the step shown is kept in view (sideways only) */
+  var rail=document.getElementById('rail');
+  function follow(){var a=rail.querySelector('a[aria-current]');if(!a||rail.scrollWidth<=rail.clientWidth)return;var li=a.parentNode;rail.scrollLeft+=li.getBoundingClientRect().left-rail.getBoundingClientRect().left-(rail.clientWidth-li.offsetWidth)/2;}
+  new MutationObserver(follow).observe(rail,{subtree:true,attributes:true,attributeFilter:['aria-current']});window.addEventListener('resize',follow);follow();
+  /* a #step link opens that step from the top of the page: the browser's own jump to the anchor would hide the header */
+  try{history.scrollRestoration='manual';}catch(e){}
+  window.addEventListener('load',function(){window.scrollTo(0,0);});
   new MutationObserver(lamps).observe(document.getElementById('main'),{subtree:true,childList:true,attributes:true,attributeFilter:['data-light']});lamps();
 })();
 </script>`;
