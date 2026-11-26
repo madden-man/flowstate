@@ -8,6 +8,7 @@
 // here writes a word for him: every title and line is his; the key is the key finder's print, never a sentence.
 import { store, worn, type Read } from '../db/fields';
 import type { Settings, Song, Take } from '../db/schema';
+import type { PocketSong } from '../bridge/protocol';
 
 /** The names a section may take, in the order the chips show them. */
 export const SECTION_NAMES = ['Verse', 'Chorus', 'Bridge'] as const;
@@ -131,7 +132,17 @@ export async function looseHums(): Promise<Take[]> {
 
 /** A song with a new lyric: its sections carried over to the new lines (reSection). The page calls this on every edit
  *  of the lyric, so a section chip always names a line of the lyric it sees. */
-export const withLyric = (song: Song, lyric: string): Song => ({ ...song, lyric, sections: reSection(song, lyric) });
+export const withLyric = (song: Song, lyric: string, now = Date.now()): Song =>
+  (lyric === song.lyric ? song : { ...song, lyric, sections: reSection(song, lyric), lyricAt: now });
+
+/** A Mac song opened from Songbook's pocket that the phone does not hold yet: its id, its title without the work date,
+ *  and its lyric, remembering the Mac's lyricAt it starts from. Nothing is written until he writes. */
+export function songFromPocket(p: PocketSong, now = Date.now()): Song {
+  const s = blankSong(p.id, typeof p.title === 'string' ? withoutDate(p.title) : '', now);
+  if (typeof p.lyric === 'string') s.lyric = p.lyric;
+  if (typeof p.lyricAt === 'number') s.lyricFrom = p.lyricAt;
+  return s;
+}
 
 /** Writes a song as given (its sections already follow its lyric: withLyric), and every pinned take kept on its line
  *  when the lyric changed since `was`, in one write. */

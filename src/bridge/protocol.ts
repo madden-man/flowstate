@@ -79,7 +79,20 @@ export type NovelPocket = {
   span?: { from: number; to: number };
   questions: PocketQuestion[];
 };
-export type SongsPocket = { kind: 'songs'; songs: { id: string; title: string }[] };
+/** A Mac song in Songbook's pocket (W7 writes it): its id, its title (Music Companion's, the work date in front), and
+ *  its lyric with lyricAt, the Mac's time of the lyric's last change, in epoch milliseconds like every time the phone's
+ *  rows carry. Both optional: an older pocket has neither. */
+export type PocketSong = { id: string; title: string; lyric?: string; lyricAt?: number };
+export type SongsPocket = { kind: 'songs'; songs: PocketSong[] };
+
+/** A song row as it goes up (src/bridge/up.ts names these fields and no others). lyricAt: when the lyric itself last
+ *  changed on the phone (absent if he never edited it there); lyricFrom: the pocket's lyricAt his text started from
+ *  (absent if it started from nothing). Both epoch milliseconds; a rename, the key, the tempo, the sections' names and
+ *  the chips never move them. */
+export type SongRow = {
+  id: string; createdAt: number; updatedAt: number; title: string; lyric: string; sections: { line: number; name: string }[];
+  key?: string; bpm?: number; characterIds?: string[]; lyricAt?: number; lyricFrom?: number;
+};
 export type Pocket = NovelPocket | SongsPocket;
 export type PocketReply = { world: string; stamp: string; unchanged: true } | { world: string; stamp: string; pocket: Pocket };
 

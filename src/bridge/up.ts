@@ -22,7 +22,7 @@ const pick = <T extends object>(row: T, keys: (keyof T)[]): Out => {
 
 const PAGE: (keyof Page)[] = ['id', 'kind', 'title', 'state', 'createdAt', 'updatedAt', 'answeredAt', 'resolvedByTap', 'seats', 'reading', 'chips', 'asked', 'year'];
 const LINE: (keyof Message)[] = ['id', 'pageId', 'at', 'updatedAt', 'voiceId', 'text', 'replyTo', 'kept', 'wise', 'paper'];
-const SONG: (keyof Song)[] = ['id', 'createdAt', 'updatedAt', 'title', 'lyric', 'sections', 'key', 'bpm', 'characterIds'];
+const SONG: (keyof Song)[] = ['id', 'createdAt', 'updatedAt', 'title', 'lyric', 'sections', 'key', 'bpm', 'characterIds', 'lyricAt', 'lyricFrom'];
 /** A take's audio goes as a clip of its own (W6), never inside an envelope. */
 const TAKE: (keyof Take)[] = ['id', 'songId', 'at', 'seconds', 'audioType', 'pitch', 'key', 'bpm', 'lineId', 'lineText'];
 

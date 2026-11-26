@@ -25,7 +25,7 @@ import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
 import { hueOf } from '../../bridge/colour';
 import { pocketFor } from '../../model/story';
-import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songList, songOf, takesOf, withLyric, withoutDate, type SongRow } from '../../model/songs';
+import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, type SongRow } from '../../model/songs';
 import { moveSong, settleMoves } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
 import { carryNow } from '../../model/carry';
@@ -117,9 +117,10 @@ export function SongPage({ id }: { id: string }) {
   const read = async () => {
     const s = await songOf(id);
     exists.current = !!s;
-    // a song Songbook's pocket names that the phone does not hold yet: its title, and nothing written until he writes
+    // a song Songbook's pocket names that the phone does not hold yet: its title and the Mac's lyric, and nothing
+    // written until he writes
     const fromMac = settings.value.bridge?.pocket?.pocket.kind === 'songs' ? settings.value.bridge.pocket.pocket.songs.find(x => x?.id === id) : undefined;
-    const next = s ?? blankSong(id, typeof fromMac?.title === 'string' ? withoutDate(fromMac.title) : '');
+    const next = s ?? (fromMac ? songFromPocket(fromMac) : blankSong(id));
     saved.current = { lyric: next.lyric, sections: next.sections };
     latest.current = next;
     setSong(next);

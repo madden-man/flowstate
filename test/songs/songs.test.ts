@@ -5,7 +5,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { store, don, doff, handed, book, setKey, lock } from '../../src/db/fields';
 import { deriveKey, randomSalt } from '../../src/db/crypto';
 import type { Settings, Song, Take } from '../../src/db/schema';
-import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songList, takesOf, linesOf } from '../../src/model/songs';
+import { blankSong, follow, looseHums, nameSection, reSection, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, takesOf, linesOf, withLyric } from '../../src/model/songs';
+import { applyPocket } from '../../src/bridge/down';
 import { readBatch, drain } from '../../src/bridge/up';
 import { owed, sendClips } from '../../src/bridge/clips';
 import { BRIDGE_PATH, type Ack, type Envelope } from '../../src/bridge/protocol';
@@ -162,5 +163,63 @@ describe('Songbook\'s list, tolerant of its pocket', () => {
     await freshDB();
     await doff();
     expect(await songList()).toEqual([]);
+  });
+});
+
+describe('Songbook\'s lyrics both ways (W7\'s review): lyricAt and lyricFrom', () => {
+  const POCKET_SONG = { id: 'mac-tide', title: '2026-11-19 Low tide', lyric: 'the water goes out\nand comes back', lyricAt: 1_800_000_000_000 };
+  const pocket = (songs: object[]) => ({ kind: 'songs' as const, songs: songs as never });
+  beforeEach(async () => { await worldDB('songbook'); });
+
+  it('a pocket song opens with its lyric, its title without the date, and remembers the Mac\'s lyricAt', () => {
+    const s = songFromPocket(POCKET_SONG);
+    expect(s).toMatchObject({ id: 'mac-tide', title: 'Low tide', lyric: 'the water goes out\nand comes back', lyricFrom: 1_800_000_000_000 });
+    expect(s.lyricAt).toBeUndefined();
+    expect(songFromPocket({ id: 'old', title: 'Older pocket' }).lyric).toBe('');
+  });
+
+  it('typing moves lyricAt and keeps lyricFrom; a rename, the tempo, sections and chips move neither; both go up', async () => {
+    const opened = songFromPocket(POCKET_SONG);
+    const renamed = { ...opened, title: 'Low tide again', bpm: 80, characterIds: [], sections: nameSection(opened, 0, 'Verse') };
+    expect(renamed.lyricAt).toBeUndefined();
+    expect(withLyric(renamed, renamed.lyric)).toBe(renamed);
+    const typed = withLyric(renamed, `${renamed.lyric}\nand I wait`, 1_800_000_000_500);
+    expect(typed).toMatchObject({ lyricAt: 1_800_000_000_500, lyricFrom: 1_800_000_000_000 });
+    expect(typed.sections).toEqual([{ line: 0, name: 'Verse' }]);
+    expect(withLyric({ ...typed, title: 'x' }, typed.lyric).lyricAt).toBe(1_800_000_000_500);
+    await saveSong(typed);
+    await settled();
+    const row = (await readBatch(handed(book()), 'songbook'))!.envelopes.find(e => e.table === 'songs')!.row!;
+    expect(row).toMatchObject({ id: 'mac-tide', lyricAt: 1_800_000_000_500, lyricFrom: 1_800_000_000_000 });
+  });
+
+  it('a newer pocket never overwrites an unsent edit; once it has gone up, the newer Mac lyric is taken; an older one never', async () => {
+    const typed = withLyric(songFromPocket(POCKET_SONG), 'the water goes out\nI typed this', 1_800_000_000_500);
+    await saveSong(typed);
+    await saveTake(take({ id: 't-in', songId: 'mac-tide', lineId: '1', lineText: 'I typed this' }));
+    await settled();
+    const newer = { ...POCKET_SONG, lyric: 'a new first line\nthe water goes out\nand comes back', lyricAt: 1_800_000_009_000 };
+    await applyPocket(handed(book()), pocket([newer]));
+    expect((await store.get('songs', 'mac-tide'))!.lyric).toBe('the water goes out\nI typed this');
+    // it goes up (the outbox empties); the next pocket, newer than the text it started from, is taken
+    const s = site();
+    await drain(handed(book()), 'songbook', 'tok', s.fetcher);
+    await applyPocket(handed(book()), pocket([newer]));
+    const now = (await store.get('songs', 'mac-tide'))!;
+    expect(now).toMatchObject({ lyric: newer.lyric, lyricFrom: 1_800_000_009_000 });
+    expect(now.lyricAt).toBeUndefined();
+    // what came down is not sent back
+    expect(await book().outbox.count()).toBe(0);
+    // an older pocket (or the same one again) changes nothing
+    await applyPocket(handed(book()), pocket([{ ...POCKET_SONG, lyric: 'old', lyricAt: 1_800_000_000_000 }]));
+    expect((await store.get('songs', 'mac-tide'))!.lyric).toBe(newer.lyric);
+  });
+
+  it('a song the phone does not hold is not written by a pocket, and a pocket with no lyric changes nothing', async () => {
+    await applyPocket(handed(book()), pocket([POCKET_SONG]));
+    expect(await store.all('songs')).toEqual([]);
+    await saveSong(blankSong('mine', 'Mine'));
+    await applyPocket(handed(book()), pocket([{ id: 'mine', title: 'Mine' }]));
+    expect((await store.get('songs', 'mine'))!.lyric).toBe('');
   });
 });

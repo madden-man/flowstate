@@ -763,6 +763,11 @@ export type OutboxRow = { n?: number; table: TravelTable; id: string; rev: numbe
 export type Song = {
   id: string; createdAt: Millis; updatedAt: Millis; title: string; lyric: string;
   sections: { line: number; name: string }[]; key?: string; bpm?: number; characterIds?: string[];
+  /** W6 (W7's review): when the lyric itself last changed on the phone, epoch ms; absent if he never edited it here. A
+   *  rename, the key, the tempo, sections' names and chips never move it (model/songs.ts withLyric). Goes up. */
+  lyricAt?: Millis;
+  /** W6: the pocket's lyricAt (the Mac's) that this lyric started from; absent if it started from nothing. Goes up. */
+  lyricFrom?: Millis;
   /** W6, a song moved out of a novel (model/move.ts): the characters it named there, kept with that world's id so a move
    *  back restores them. On the phone only (src/bridge/up.ts sends characterIds, never this). Ids, clear. */
   tucked?: { world: string; characterIds: string[] }[];
