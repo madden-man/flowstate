@@ -186,9 +186,18 @@ export async function looseHums(): Promise<Take[]> {
 }
 
 /** A song with a new lyric: its sections carried over to the new lines (reSection). The page calls this on every edit
- *  of the lyric, so a section chip always names a line of the lyric it sees. */
+ *  of the lyric, so a section chip always names a line of the lyric it sees. lyricAt moves. */
 export const withLyric = (song: Song, lyric: string, now = Date.now()): Song =>
   (lyric === song.lyric ? song : { ...song, lyric, sections: reSection(song, lyric), lyricAt: now });
+
+const sameSections = (a: Song['sections'], b: Song['sections']) =>
+  a.length === b.length && a.every((x, i) => x.line === b[i].line && x.name === b[i].name);
+
+/** A song with its sections named anew (a chip set, changed or cleared). On the Mac a section's name is a line of the
+ *  lyric ([Chorus]), so this is a lyric change and lyricAt moves (Tommy, 2026-11-25, the review of PR 112); a rename,
+ *  the key, the tempo and the Character chip are not, and never move it. The same sections again change nothing. */
+export const withSections = (song: Song, sections: Song['sections'], now = Date.now()): Song =>
+  (sameSections(song.sections, sections) ? song : { ...song, sections, lyricAt: now });
 
 /** A Mac song opened from Songbook's pocket that the phone does not hold yet: its id, its title without the work date,
  *  and its lyric, remembering the Mac's lyricAt it starts from. Nothing is written until he writes. */
@@ -201,10 +210,11 @@ export function songFromPocket(p: PocketSong, now = Date.now()): Song {
 
 /** Writes a song as given (its sections already follow its lyric: withLyric), and every pinned take kept on its line
  *  when the lyric changed since `was`, in one write. A page that did not touch the lyric (song.lyric is still `was`'s)
- *  keeps the lyric stored now: one Songbook's pocket replaced while the page was open is never put back by a rename. */
+ *  keeps the lyric stored now: one Songbook's pocket replaced while the page was open is never put back by a rename. The
+ *  sections are the lyric too (withSections): a page that named one wrote the lyric. */
 export async function saveSong(song: Song, was?: Pick<Song, 'lyric' | 'sections'>): Promise<Song> {
   let next: Song = { ...song, updatedAt: Date.now() };
-  if (was && was.lyric === song.lyric) {
+  if (was && was.lyric === song.lyric && sameSections(was.sections, song.sections)) {
     const now = await songOf(song.id);
     if (now && now.lyric !== was.lyric) {
       const { lyricAt: _a, lyricFrom: _f, ...rest } = next;

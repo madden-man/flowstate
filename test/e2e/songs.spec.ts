@@ -10,6 +10,8 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 const FN = '/.netlify/functions/bridge';
 type Env = { world: string; table: string; id: string; rev: number; deleted?: true; row?: Record<string, unknown> };
 const WORLDS = [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }, { id: 'songbook', name: 'Songbook', kind: 'songs' }];
+/** When Songbook's Low tide last changed on the Mac (its pocket lyricAt). */
+const MAC_AT = 1_790_000_000_000;
 /** Example data: a novel's pocket (docs/BRIDGE.md). */
 const POCKET = {
   kind: 'novel', storyYear: 2071, span: { from: 2040, to: 2080 },
@@ -53,7 +55,7 @@ async function stubBridge(context: BrowserContext) {
     if (op === 'worlds') return route.fulfill({ json: { worlds: WORLDS } });
     if (op === 'pocket') {
       const w = q.get('world');
-      return route.fulfill({ json: w === 'eastwinds' ? { world: w, stamp: 's1', pocket: POCKET } : { world: w, stamp: 's1', pocket: { kind: 'songs', songs: [{ id: 'mac-1', title: '2026-11-20 Low tide' }] } } });
+      return route.fulfill({ json: w === 'eastwinds' ? { world: w, stamp: 's1', pocket: POCKET } : { world: w, stamp: 's1', pocket: { kind: 'songs', songs: [{ id: 'mac-1', title: '2026-11-20 Low tide', lyric: '[Verse]\nthe water goes out\nand comes back', lyricAt: MAC_AT }] } } });
     }
     if (op === 'clip') {
       const take = q.get('take')!;
@@ -416,4 +418,21 @@ test('the microphone refused: the page says so in print and keeps nothing; allow
   await f.up();
   await expect(page.locator('.sg-hum-row')).toHaveCount(1, { timeout: 10_000 });
   await expect(page.locator('.sg-said')).toHaveCount(0);
+});
+
+test('a section named from a chip is a lyric change: the row goes up with a newer lyricAt, from the Mac text it started from', async ({ page, context }) => {
+  const bridge = await stubBridge(context);
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/songs');
+  await page.locator('.sg-list a', { hasText: 'Low tide' }).click();
+  // the Mac's [Verse] line is the section name over its first line, not text
+  await expect(page.getByRole('textbox', { name: 'Line 1' })).toHaveValue('the water goes out');
+  await expect(page.locator('.wd-sec')).toHaveText(['Verse']);
+  await page.getByRole('textbox', { name: 'Line 2' }).click();
+  await page.getByRole('group', { name: 'This song' }).getByRole('button', { name: 'Chorus' }).click();
+  await page.getByRole('link', { name: 'Songs' }).click();
+  await expect.poll(() => bridge.up.find(e => e.table === 'songs' && e.id === 'mac-1')?.row, { timeout: 15_000 })
+    .toMatchObject({ lyric: 'the water goes out\nand comes back', sections: [{ line: 0, name: 'Chorus' }], lyricFrom: MAC_AT });
+  const row = bridge.up.find(e => e.table === 'songs' && e.id === 'mac-1')!.row!;
+  expect(row.lyricAt as number).toBeGreaterThan(MAC_AT);
 });

@@ -25,7 +25,7 @@ import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
 import { hueOf } from '../../bridge/colour';
 import { pocketFor } from '../../model/story';
-import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, type SongRow } from '../../model/songs';
+import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, withSections, type SongRow } from '../../model/songs';
 import { moveSong, settleMoves } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
 import { carryNow, pocketVersion } from '../../model/carry';
@@ -161,11 +161,13 @@ export function SongPage({ id }: { id: string }) {
   useEffect(() => () => { void flush(); }, [id]);
 
   const change = (patch: Partial<Song>) => {
-    const { lyric, ...rest } = patch;
+    const { lyric, sections, ...rest } = patch;
     dirty.current = true;
     let next = { ...latest.current!, ...rest };
     // the sections follow the lines as they come and go
     if (lyric !== undefined && lyric !== next.lyric) next = withLyric(next, lyric);
+    // a section named from a chip is a lyric change (a [Name] line on the Mac): lyricAt moves
+    if (sections !== undefined) next = withSections(next, sections);
     latest.current = next;
     setSong(next);
     clearTimeout(timer.current);
