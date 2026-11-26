@@ -1,0 +1,32 @@
+/* iOS's own permission alert, drawn over the real app in the push walkthrough (design/push/src/demo.ts askIOS). It is
+   the system's screen, not FlowState's, so it keeps iOS's own type, colours and sizes rather than the app's tokens: the
+   centred alert, 270 wide, a blurred light panel, the title in semibold 17, the message in 13, two buttons side by side
+   on a hairline, Allow in the system blue. Plain, and the same in every light, as iOS draws it. */
+.ios-scrim {
+  position: fixed; inset: 0; z-index: 99; display: grid; place-items: center;
+  background: rgb(0 0 0 / 0.2); /* design-lint: allow: iOS's own dimming under a system alert, not the app's */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; /* design-lint: allow: iOS's system font, the alert is the system's */
+  animation: ios-in 0.2s ease-out; /* design-lint: allow: iOS's own alert fade, the system's timing */
+}
+.ios-alert {
+  width: 270px; border-radius: 14px; overflow: hidden; text-align: center;
+  background: rgb(242 242 247 / 0.86); /* design-lint: allow: iOS's alert material, the system's colour */
+  backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  color: #000; /* design-lint: allow: iOS's alert text, the system's colour */
+}
+.ios-alert-text { padding: 19px 16px 18px; }
+.ios-alert-text b { display: block; font-size: 17px; font-weight: 600; line-height: 22px; letter-spacing: -0.4px; }
+.ios-alert-text p { margin: 3px 0 0; font-size: 13px; line-height: 17px; letter-spacing: -0.1px; }
+.ios-alert-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.5px;
+  border-top: 0.5px solid rgb(60 60 67 / 0.36); /* design-lint: allow: iOS's hairline, the system's colour */
+  background: rgb(60 60 67 / 0.36); /* design-lint: allow: iOS's hairline between the buttons */
+}
+.ios-alert-buttons button {
+  border: 0; margin: 0; height: 44px; font: inherit; font-size: 17px; letter-spacing: -0.4px; cursor: pointer;
+  background: rgb(242 242 247); /* design-lint: allow: iOS's alert material, the system's colour */
+  color: #007aff; /* design-lint: allow: iOS's system blue */
+}
+.ios-alert-buttons [data-ios-yes] { font-weight: 600; }
+@keyframes ios-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ios-scrim { animation: none; } }
