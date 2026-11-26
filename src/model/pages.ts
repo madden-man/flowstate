@@ -1,7 +1,8 @@
 // Pages and their messages (PLAN.md section 4). Package 0 needs today's entry, a page by id, the
 // questions list and the voices; package 1 grows this into the full Journal (below the line).
 import type { EchoState, Message, Page, Voice } from '../db/schema';
-import { store, type Read } from '../db/fields';
+import { store, type Read, type Reader } from '../db/fields';
+import { stamped } from './story';
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - 1;
@@ -37,7 +38,7 @@ export async function writeToday(current: Today, text: string, now = Date.now())
   if (!current.page || !current.message) {
     const page: Page = current.page ?? {
       id: crypto.randomUUID(), kind: 'entry', createdAt: now, updatedAt: now, state: 'open',
-      tags: [], paradoxIds: [], linkedPageIds: [],
+      tags: [], paradoxIds: [], linkedPageIds: [], ...stamped(),
     };
     const message: Message = { id: crypto.randomUUID(), pageId: page.id, at: now, updatedAt: now, text, kept: false };
     await store.many({ pages: [{ ...page, updatedAt: now }], messages: [message] });
@@ -117,14 +118,16 @@ export function firstLine(page: Pick<Page, 'title'>, messages: { text: string }[
 }
 
 export function newPage(kind: Page['kind'], now = Date.now(), extra: Partial<Page> = {}): Page {
-  return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...extra };
+  // in a novel world a new page takes the year worn (PLAN-WORLDS.md section 4); his own pages take none
+  return { id: crypto.randomUUID(), kind, createdAt: now, updatedAt: now, state: 'open', tags: [], paradoxIds: [], linkedPageIds: [], ...stamped(), ...extra };
 }
 
 /** Today's page carrying a link to what it was written about: page.flow (a flow's Journal helper, F2), page.sit
- *  (the page after a sit, PLAN-MEDITATE.md S2), page.sign (a sign's touch, PLAN-TASKS.md T3) or page.research (a paper
- *  carried from a question, PLAN-RESEARCH.md Q4) or page.checkin (the Sunday question, PLAN-PUSH.md N1). A day with no page yet gets an empty one (nothing written: it stays off
- *  every list until a word is, like any fresh page). Not stored: the caller writes it with the row it links, both ways. */
-export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'sign'> | Pick<Page, 'research'> | Pick<Page, 'checkin'>, now = Date.now()): Promise<Read<Page>> {
+ *  (the page after a sit, PLAN-MEDITATE.md S2), page.research (a paper carried from a question, PLAN-RESEARCH.md
+ *  Q4) or page.checkin (the Sunday question, PLAN-PUSH.md N1). A day with no page yet gets an empty one (nothing
+ *  written: it stays off every list until a word is, like any fresh page). Not stored: the caller writes it with the
+ *  row it links, both ways. */
+export async function todayLinked(link: Pick<Page, 'flow'> | Pick<Page, 'sit'> | Pick<Page, 'research'> | Pick<Page, 'checkin'>, now = Date.now()): Promise<Read<Page>> {
   const t = await today(new Date(now));
   return t.page ? { ...t.page, ...link, updatedAt: now } : newPage('entry', now, link);
 }
@@ -414,4 +417,20 @@ export async function voicesById(): Promise<Map<string, Read<Voice>>> {
 /** The chip row: starred voices first, then the rest, each in its order. */
 export async function chipVoices(): Promise<Read<Voice>[]> {
   return (await voices()).sort((a, b) => Number(b.starred) - Number(a.starred) || a.order - b.order);
+}
+
+/** The last line written in the notebook (PLAN-WORLDS.md section 4, under the shelf): the newest line with words on a
+ *  journal entry, by when it was written, and that page's date. A council's or a question's lines are not the journal's,
+ *  and a paper's title (PLAN-RESEARCH.md Q4) is the paper's, not his. None when nothing is written, or while locked. */
+export async function lastLine(from: Pick<Reader, 'all'> = store): Promise<{ text: string; at: number } | undefined> {
+  // any notebook's, worn or not (the shelf reads each through fields.ts peek, PLAN-WORLDS.md section 4)
+  const [pages, messages] = await Promise.all([from.all('pages'), from.all('messages')]);
+  const byPage = new Map<string, Read<Message>[]>();
+  for (const m of messages) byPage.set(m.pageId, [...(byPage.get(m.pageId) ?? []), m]);
+  let last: Read<Message> | undefined;
+  for (const p of pages) {
+    if (p.kind !== 'entry') continue;
+    for (const m of byPage.get(p.id) ?? []) if (m.text.trim() && !m.paper && (!last || m.at >= last.at)) last = m;
+  }
+  return last ? { text: last.text.trim(), at: last.at } : undefined;
 }

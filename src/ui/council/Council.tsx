@@ -34,6 +34,10 @@ import { hrefOf } from '../journal/href';
 import { MessageSheet } from './MessageSheet';
 import { SpokeFor, SpokeForSheet, valueList, reloadValues, spokeLabel } from '../parts/SpokeFor';
 import { PaperLine } from '../flow/PaperLine';
+import { settings } from '../settings';
+import { wornWorld, wornYear } from '../notebook';
+import { characterOf, lifeOf, pocketFor, readingOf, seatLabel, setPageYear, setReading } from '../../model/story';
+import type { NovelPocket } from '../../bridge/protocol';
 
 const vcOf = (v: Voice): JSX.CSSProperties => ({ '--vc': voiceColour(v.colour, v.shade) } as JSX.CSSProperties);
 const isStill = () => light.value === 'still';
@@ -60,14 +64,20 @@ type Turns = { seats?: string[]; messages: Pick<Message, 'voiceId'>[] };
 
 /** Who sits: every voice in the chip row's order (starred first, deep twins doubled and gone in Still),
  *  toggled on and off, "+ voice" last. */
-function SeatChips({ seats, onToggle }: { seats?: string[]; onToggle: (id: string) => void }) {
+function SeatChips({ seats, onToggle, story }: { seats?: string[]; onToggle: (id: string) => void; story?: Story }) {
   const row = chipVoices(voiceList.value, isStill());
   return (
     <div class="fs-seats" role="group" aria-label="Who sits">
-      {row.map(v => (
-        <Chip key={v.id} label={voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
-          pressed={!!seats?.includes(v.id)} onPress={() => onToggle(v.id)} />
-      ))}
+      {row.map(v => {
+        // in a novel (W4) a character's seat prints their age in the council's year ("Dawn Li, 9"); one not yet born or
+        // already dead is dimmed and can still be seated; set in the whole book, the names stand alone
+        const c = story && characterOf(story.pocket, v.id);
+        const gone = !!c && typeof story!.year === 'number' && ['unborn', 'dead'].includes(lifeOf(c, story!.year));
+        return (
+          <Chip key={v.id} label={c ? seatLabel(v.name, c, story!.year) : voiceLabel(v)} colour={voiceColour(v.colour, v.shade)} deep={v.shade === 'deep'}
+            gone={gone} pressed={!!seats?.includes(v.id)} onPress={() => onToggle(v.id)} />
+        );
+      })}
       <Chip label="+ voice" add onPress={() => { editing.value = null; openSheet.value = 'voice'; tick('sheet'); }} />
     </div>
   );
@@ -143,6 +153,43 @@ export function Composer({ next, chips, onSend, replying, onCancelReply, focus, 
           onKeyDown={(e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); void send(); } }} />
       </div>
     </div>
+  );
+}
+
+/** A council in a novel (W4): the bible's lists and the council's year (null: the whole book). */
+type Story = { pocket: NovelPocket; year: number | null | undefined };
+
+/** "This council is" About the story or In the story, About chosen; "Set in" its year or The whole book, which only a
+ *  council about the story may be (an in-story council always has a year). Changeable later, and the bible follows. */
+export function Reading({ page, onChange }: { page: CouncilData['page']; onChange: () => void }) {
+  const reading = readingOf(page);
+  const year = typeof page.year === 'number' ? page.year : wornYear.value;
+  const set = (r: 'in' | 'about') => { if (r !== reading) void setReading(page.id, r).then(onChange); };
+  const setYear = (y: number | null) => { if (y !== (page.year ?? null)) void setPageYear(page.id, y).then(onChange); };
+  return (
+    <>
+      <p class="fs-quiet">This council is</p>
+      <div class="fs-seats" role="group" aria-label="This council is">
+        <Chip label="About the story" pressed={reading === 'about'} onPress={() => set('about')} />
+        {/* an in-story council always has a year: offered once one is known, never as a chip that does nothing */}
+        {(typeof year === 'number' || reading === 'in') && <Chip label="In the story" pressed={reading === 'in'} onPress={() => set('in')} />}
+      </div>
+      <p class="fs-quiet">Set in</p>
+      <div class="fs-seats" role="group" aria-label="Set in">
+        {typeof year === 'number' && <Chip label={String(year)} ariaLabel={`Year ${year}`} pressed={typeof page.year === 'number'} onPress={() => setYear(year)} />}
+        {reading === 'about' && <Chip label="The whole book" pressed={page.year === null} onPress={() => setYear(null)} />}
+      </div>
+    </>
+  );
+}
+
+/** The top of a novel's council (W4): how it is read and when it is set, a tap on which brings the seat row up, where
+ *  both can be changed. */
+function ReadingLine({ page, onTap }: { page: CouncilData['page']; onTap: () => void }) {
+  const when = typeof page.year === 'number' ? String(page.year) : page.year === null ? 'The whole book' : '';
+  return (
+    <p class="fs-from wd-reading"><small>{readingOf(page) === 'in' ? 'In the story' : 'About the story'}</small>{' '}
+      <a href="#" onClick={e => { e.preventDefault(); onTap(); }}>{when || 'Set in'}</a></p>
   );
 }
 
@@ -373,6 +420,9 @@ function CouncilPage({ id }: { id: string }) {
   const replyLine = replyTo ? msgs.find(x => x.id === replyTo) : undefined;
   const replyVoice = byId(replyLine?.voiceId);
   const heldValues = valueList.value.filter(v => v.status === 'held' && v.word);
+  // a council in a novel world (W4): the bible's lists, the council's year, its reading
+  const pocket = pocketFor(settings.value, wornWorld.value);
+  const story: Story | undefined = pocket && data ? { pocket, year: data.page.year } : undefined;
   // a voice made from "+ voice" here takes a seat at once
   const made = async (vid: string) => { await seat(id, vid); await load(); };
 
@@ -385,7 +435,8 @@ function CouncilPage({ id }: { id: string }) {
           <>
             <div class="fs-sheetof fs-rules">
               <p class="fs-quiet">Who sits?</p>
-              <SeatChips seats={seats} onToggle={vid => void toggle(vid)} />
+              <SeatChips seats={seats} onToggle={vid => void toggle(vid)} story={story} />
+              {story && <Reading page={data.page} onChange={() => void load()} />}
               {!!heldValues.length && (
                 <>
                   <p class="fs-quiet">For what?</p>
@@ -405,6 +456,7 @@ function CouncilPage({ id }: { id: string }) {
         ) : (
           <>
             <div ref={chat} class="fs-chat fs-rules">
+              {data && story && <ReadingLine page={data.page} onTap={() => { notePlace(); setSeating(true); }} />}
               {data && <Links data={data} values />}
               {msgs.map((m, i) => (
                 <Line key={m.id} m={m} voice={byId(m.voiceId)} run={startsRun(msgs, i)} quoted={quoteOf(m.replyTo)} press={press}
@@ -424,7 +476,10 @@ function CouncilPage({ id }: { id: string }) {
                 chips={seating
                   ? (
                     <div class="fs-seatrow">
-                      <SeatChips seats={seats} onToggle={vid => void toggle(vid)} />
+                      <div class="wd-seatcol">
+                        <SeatChips seats={seats} onToggle={vid => void toggle(vid)} story={story} />
+                        {story && data && <Reading page={data.page} onChange={() => void load()} />}
+                      </div>
                       <button type="button" class="fs-word" onClick={() => setSeating(false)}>Done</button>
                     </div>
                   )

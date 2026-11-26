@@ -410,7 +410,7 @@ export function buildScape(a: BaseAudioContext, name: SitSound, dest: AudioNode 
 
 /** navigator.audioSession (Safari 16.4+): 'playback' makes the page's sound media, which the ringer switch does not mute. */
 type AudioSessionNav = Navigator & { audioSession?: { type: string } };
-function sessionType(type: 'playback' | 'auto'): void {
+function sessionType(type: 'playback' | 'auto' | 'play-and-record'): void {
   try {
     const session = typeof navigator === 'undefined' ? undefined : (navigator as AudioSessionNav).audioSession;
     if (session) session.type = type;
@@ -426,8 +426,25 @@ let holding: Sit | null = null;
 /** Once a sit has faded: its context is closed, and the session goes back to 'auto' unless a newer sit holds it. */
 const release = (s: Sit, a?: AudioContext) => () => {
   if (a) { if (sounding === a) sounding = null; try { void a.close?.()?.catch?.(() => undefined); } catch { /* gone */ } }
-  if (holding === s) { holding = null; sessionType('auto'); }
+  if (holding === s) { holding = null; sessionType(resting()); }
 };
+
+// The session a hum needs (W6). Recording on the iPhone wants 'play-and-record' named before the microphone is asked
+// for; a take played back is media ('playback'), so the ringer switch does not mute his own voice. Whichever ends, the
+// session goes to what is still under way: the microphone first, then a take or a sit playing, else 'auto' (so a take
+// played after a hum is not left on the earpiece route 'play-and-record' can choose).
+let micOpen = 0;
+let takeOn = false;
+const resting = (): 'playback' | 'auto' | 'play-and-record' => (micOpen ? 'play-and-record' : holding || takeOn ? 'playback' : 'auto');
+
+/** Names the session for the microphone (ui/songs/hum.ts calls it before getUserMedia); the function it returns gives
+ *  the session back, once, however the hold ended. */
+export function micSession(): () => void {
+  micOpen++;
+  sessionType('play-and-record');
+  let done = false;
+  return () => { if (done) return; done = true; micOpen = Math.max(0, micOpen - 1); sessionType(resting()); };
+}
 
 /**
  * Begins a sit's sound (only from the tap on the circle). Quiet makes no nodes and no AudioContext: the circle breathes
@@ -470,3 +487,126 @@ export function scape(name: SitSound): Scape | null {
     },
   };
 }
+
+// ---- a hum (PLAN-WORLDS.md section 6, W6): the microphone listened to while a take is sung, and a take played back ----
+//
+// listen() is the one place the app hears the microphone: the stream the hold opened (ui/songs/hum.ts) goes through an
+// analyser, nothing goes out to the speaker, and read() hands back the newest samples for the pitch line, drawn as it
+// is sung. play() is a take played back, begun only by a tap on its line; it is his own voice, media like a sit's
+// scape, so it does not follow the Sounds switch (the tap is the invitation).
+
+export type Listening = { rate: number; read: () => Float32Array; close: () => void };
+
+/** Listens to a microphone stream. null where there is no Web Audio. */
+export function listen(stream: MediaStream): Listening | null {
+  const a = make();
+  if (!a) return null;
+  const src = a.createMediaStreamSource(stream);
+  const an = a.createAnalyser();
+  an.fftSize = 4096;
+  src.connect(an);
+  const buf = new Float32Array(an.fftSize);
+  return {
+    rate: a.sampleRate,
+    read: () => { an.getFloatTimeDomainData(buf); return buf; },
+    close: () => { try { src.disconnect(); } catch { /* gone */ } void a.close().catch(() => undefined); },
+  };
+}
+
+/** The recorder's types, in the order asked for: AAC in MP4 first, named so (what Music Companion files as .m4a; Chromium
+ *  records MP4 too since about version 126 and may choose Opus for it unless AAC is named), then any MP4, then WebM. */
+export const RECORD_TYPES = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
+/** A hum's bitrate: 96 kbps, so three minutes is about 2.2 MB, well under the 4 MiB a clip may be (W6, the review of
+ *  PR 112: unpinned, a browser may choose more and a long take would never be carried). */
+export const RECORD_BITS = 96_000;
+
+export function recordType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  return RECORD_TYPES.find(t => { try { return MediaRecorder.isTypeSupported(t); } catch { return false; } });
+}
+
+/** A take being recorded: the analyser for the pitch line (null where there is no Web Audio), and the way to stop,
+ *  which resolves with the bytes as recorded and their type with its parameters dropped, or null when nothing was. */
+export type Recording = { ear: Listening | null; stop: () => Promise<{ audio: ArrayBuffer; type: string } | null> };
+
+/**
+ * The microphone opened for a hum (W6): the only place the app asks for it and records it (DESIGN.md rule 21, lint
+ * DL20). The session is named play-and-record before the microphone is asked for and given back however this ends:
+ * refused, a recorder that cannot start, or stopped. Rejects when the microphone is refused or missing.
+ */
+export async function record(): Promise<Recording> {
+  const release = micSession();
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { release(); throw e; }
+  const type = recordType();
+  let rec: MediaRecorder;
+  try { rec = new MediaRecorder(stream, { ...(type ? { mimeType: type } : {}), audioBitsPerSecond: RECORD_BITS }); }
+  catch (e) { stream.getTracks().forEach(t => t.stop()); release(); throw e; }
+  const chunks: Blob[] = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const ear = listen(stream);
+  rec.start(1000);
+  let stopping: Promise<{ audio: ArrayBuffer; type: string } | null> | null = null;
+  const stop = () => {
+    if (stopping) return stopping;
+    stopping = new Promise(resolve => {
+      const done = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        ear?.close();
+        release();
+        const full = rec.mimeType || type || 'audio/mp4';
+        const blob = new Blob(chunks, { type: full });
+        if (!blob.size) return resolve(null);
+        resolve({ audio: await blob.arrayBuffer(), type: full.split(';')[0].trim() });
+      };
+      if (rec.state === 'inactive') { void done(); return; }
+      rec.onstop = () => void done();
+      try { rec.stop(); } catch { void done(); }
+    });
+    return stopping;
+  };
+  return { ear, stop };
+}
+
+let playingTake: { stop: () => void } | null = null;
+
+/** Plays a take's audio once; one take at a time: a second call (another take, or the same tapped again) stops the
+ *  first, including one still decoding, which then never sounds (the review of PR 112). Resolves true when it played to
+ *  its end or was stopped while sounding; false when it could not be decoded or was stopped before it sounded. */
+export function play(audio: ArrayBuffer): Promise<boolean> {
+  playingTake?.stop();
+  playingTake = null;
+  // media, named before its context is made (as a sit's is), so the ringer switch does not mute it
+  takeOn = true;
+  if (!micOpen) sessionType('playback');
+  const a = make();
+  const off = () => { takeOn = false; sessionType(resting()); };
+  if (!a) { off(); return Promise.resolve(false); }
+  return new Promise(resolve => {
+    let done = false;
+    let src: AudioBufferSourceNode | null = null;
+    const end = (sounded: boolean) => {
+      if (done) return;
+      done = true;
+      if (playingTake === me) { playingTake = null; off(); }
+      void a.close().catch(() => undefined);
+      resolve(sounded);
+    };
+    // held from the first moment, so a tap while it decodes reaches it
+    const me = { stop: () => { if (src) { try { src.stop(); } catch { /* not started */ } } end(!!src); } };
+    playingTake = me;
+    a.decodeAudioData(audio.slice(0)).then(buffer => {
+      if (done) return;
+      src = a.createBufferSource();
+      src.buffer = buffer;
+      src.connect(a.destination);
+      src.onended = () => end(true);
+      src.start();
+    }, () => end(false));
+  });
+}
+
+/** Stops a take playing, if one is. */
+export function stopPlaying(): void { playingTake?.stop(); playingTake = null; }

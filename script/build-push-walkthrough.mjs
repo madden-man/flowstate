@@ -28,7 +28,7 @@ if (fs.existsSync(lint)) run(process.execPath, [lint, path.join(out, 'index.html
 else console.log('artifact-lint not found at ~/.claude/hooks: skipped');
 
 // the page's own links: only the repo's documents on GitHub
-const DOC = /^https:\/\/github\.com\/madden-man\/flowstate\/blob\/push-plan\/(PLAN-PUSH\.md|docs\/PUSH\.md)$/;
+const DOC = /^https:\/\/github\.com\/madden-man\/flowstate\/blob\/main\/(PLAN-PUSH\.md|docs\/PUSH\.md)$/;
 const page = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
 const stray = [...page.matchAll(/https?:\/\/[^\s"'`)<>\\]+/g)].map(m => m[0]).filter(u => !DOC.test(u));
 if (stray.length) { console.error(`FAIL  index.html links outside the repo's docs: ${stray.join(', ')}`); process.exit(1); }

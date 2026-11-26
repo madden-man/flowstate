@@ -18,8 +18,7 @@ import type { Playlist } from '../../db/schema';
 import { isFresh, type ShelfAlbum } from '../../music/covers';
 import { pagesWithAlbum, type AlbumPage } from '../../model/music';
 import { Cover } from './MusicLine';
-import { albumFor, asked, choosing, connected, musicSegment, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf, type MusicSegment } from './state';
-import { Signs } from './Signs';
+import { albumFor, asked, choosing, connected, nearTile, openPlaylist, play, playing, playingFrom, playlists, playNote, reading, readNote, shelfOf, urlOf } from './state';
 import { MusicRows } from './MusicRows';
 import { effect } from '@preact/signals';
 import { deal, dealInto, drop, fly, hush, hushOf, takeDeal, unhush, unlight } from './motion';
@@ -52,29 +51,15 @@ export function MusicSheet() {
     const t = setTimeout(unlight, tokenMs('--t-page'));
     return () => clearTimeout(t);
   }, [open]);
-  // the Signs segment (PLAN-TASKS.md section 4, T5) beside Playlists on the list; choosing a cover is Playlists only
-  const signs = !shown && !choosing.value && musicSegment.value === 'signs';
   return (
-    <Sheet open={open} onClose={close} title={shown ? shown.name : signs ? 'Signs' : 'Playlists'}
+    <Sheet open={open} onClose={close} title={shown ? shown.name : 'Playlists'}
       back={shown ? { label: 'Playlists', onPress: () => { openPlaylist.value = null; } } : undefined}>
-      {!shown && !choosing.value && <Segments here={signs ? 'signs' : 'playlists'} />}
-      {reading.value && !signs && <p class="fs-note">{reading.value}</p>}
+      {reading.value && <p class="fs-note">{reading.value}</p>}
       {playNote.value && <p class="fs-note" role="status">{playNote.value}</p>}
-      {readNote.value && !playNote.value && !signs && <p class="fs-note" role="status">{readNote.value}</p>}
-      {shown ? <Grid key={shown.id} playlist={shown} /> : signs ? <Signs />
+      {readNote.value && !playNote.value && <p class="fs-note" role="status">{readNote.value}</p>}
+      {shown ? <Grid key={shown.id} playlist={shown} />
         : connected.value ? <List list={list} rise={rise.current} /> : <Unconnected />}
     </Sheet>
-  );
-}
-
-/** "Signs | Playlists" over the list: the seven shelves, or his playlists. */
-function Segments({ here }: { here: MusicSegment }) {
-  const to = (s: MusicSegment) => () => { musicSegment.value = s; };
-  return (
-    <nav class="fs-seg fs-music-seg" aria-label="Music">
-      <button type="button" aria-current={here === 'signs' ? 'true' : undefined} onClick={to('signs')}>Signs</button>
-      <button type="button" aria-current={here === 'playlists' ? 'true' : undefined} onClick={to('playlists')}>Playlists</button>
-    </nav>
   );
 }
 

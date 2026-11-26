@@ -7,6 +7,10 @@
 // The landing is Third eye's Ask (model/into.ts askCheckin): today's page with his question written as a line and asked,
 // the page linked to the week (page.checkin), and the answer rule open under it in italic (Turn to answer, rule 17).
 // Nothing is counted and nothing is badged.
+// With worlds (PLAN-WORLDS.md section 3): the question is the personal notebook's. Its settings are on home's row (checkin
+// is not a BOOK_KEYS field), the quiet line waits for his own pages (it is neither shown nor counted as shown while a
+// world is worn), and a landing takes the world off first, as the door does (app.tsx DoorFrame), so the page and the
+// question it writes are his own and never a world's, never in its outbox, never on the bridge.
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
@@ -14,9 +18,10 @@ import { askCheckin } from '../../model/into';
 import { checkinDue, checkinOf, weekKey } from '../../push/due';
 import { settings, saveSettings } from '../settings';
 import { dataVersion } from '../sheets';
-import { pageCarry } from '../flow/chakra/carry';
+import { pageCarry } from './carry';
 import { flushOpenPage } from './PageView';
 import { pushKnock } from '../../push/push';
+import { wear, wornWorld } from '../notebook';
 
 /** The query N3's notification opens the app with: `#/journal?ask=checkin`. public/push-sw.js keeps its value as
  *  CHECKIN_URL ('/' + CHECKIN_HASH); test/push/push-sw.test.ts reads both files to keep them in step. */
@@ -32,6 +37,8 @@ export let checkinLanded = false;
 
 /** Is the question due now? If so it counts as shown this week from this moment (lastShownWeek), so it shows once. */
 export function takeCheckin(now = Date.now()): boolean {
+  // a world worn: the Journal is the world's, and the question waits for his own pages
+  if (wornWorld.peek() !== null) return false;
   const s = settings.peek();
   const c = checkinOf(s);
   if (!checkinDue(c, now, s.seededAt)) return false;
@@ -51,10 +58,11 @@ export function landCheckin(route: (to: string, replace?: boolean) => void, now 
   checkinLanded = true;
   checkinUp.value = false;
   landing = (async () => {
+    // what he was typing on the open page is filed first, in the notebook it belongs to; then the world comes off
+    await flushOpenPage();
+    if (wornWorld.peek() !== null) await wear(null);
     const c = checkinOf(settings.peek());
     const week = weekKey(now, c);
-    // what he was typing on the open page is filed first, so the page written here is the newest copy
-    await flushOpenPage();
     await askCheckin(week, c.line, now);
     if (c.lastShownWeek !== week) await saveSettings({ checkin: { ...c, lastShownWeek: week } });
     route('/journal', true);

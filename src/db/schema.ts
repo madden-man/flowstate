@@ -4,15 +4,24 @@
 // (MOUNTAIN_VERSION) is PLAN-MOUNTAIN.md section 8, the readings and flows.chakra, in the block marked "the mountain"
 // below; version 8 (TASKS_VERSION) is PLAN-TASKS.md section 7, the signs' shelves, the marks and the days, in the block
 // marked "the tasks"; version 9 (RESEARCH_VERSION) is PLAN-RESEARCH.md section 5, the questions asked and the papers, in
-// the block marked "the research"). UI code never imports this file: it reads and writes
+// the block marked "the research"; version 10 (WORLDS_VERSION) is PLAN-WORLDS.md section 9, the outbox, the songs and
+// the takes, in the block marked "the worlds"). UI code never imports this file: it reads and writes
 // through src/db/fields.ts, which owns the encrypt-on-write path (PLAN.md section 7).
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import { POEMS_ID, POEMS_NAME } from '../music/poems';
-import type { ChakraId } from '../model/mountain';
 import type { Inquiry, Paper } from '../research/types';
+import type { Pocket, TravelTable } from '../bridge/protocol';
+import { isWorldDB, outboxMiddleware } from './outbox';
+import { notebookWrites } from './writes';
 import type { Checkin } from '../push/due';
 
 export { POEMS_ID, POEMS_NAME };
+
+/** The seven signs' ids (PLAN-MOUNTAIN.md). The mountain and its signs left the app (PLAN-WORLDS.md section 4.1), but
+ *  flows.chakra, the readings, the signs' shelves and the marks still hold them, unread, in the notebook and its
+ *  backups; removing them is a later, separate choice. */
+export const CHAKRA_IDS = ['crown', 'third-eye', 'throat', 'heart', 'solar-plexus', 'sacral', 'root'] as const;
+export type ChakraId = typeof CHAKRA_IDS[number];
 
 /** The values' schema version (PLAN-VALUES.md section 5): the values table. It reached main first. */
 export const VALUES_VERSION = 6;
@@ -27,8 +36,11 @@ export const TASKS_VERSION = 8;
 /** Research's schema version (PLAN-RESEARCH.md section 5, Q2): the questions asked and the papers. Renumbering is here
  *  and only here, as for MOUNTAIN_VERSION. Once this is on main, never deploy a dist built from an older tree. */
 export const RESEARCH_VERSION = 9;
-/** The newest version: Research's, until a later one comes. */
-export const SCHEMA_VERSION = RESEARCH_VERSION;
+/** The worlds' schema version (PLAN-WORLDS.md section 9, W2): the outbox, the songs and the takes. Renumbering is here
+ *  and only here, as for MOUNTAIN_VERSION. Once this is on main, never deploy a dist built from an older tree. */
+export const WORLDS_VERSION = 10;
+/** The newest version: the worlds', until a later one comes. */
+export const SCHEMA_VERSION = WORLDS_VERSION;
 export const DB_NAME = 'flowstate';
 
 /** Epoch milliseconds. Every date in the database is one of these. */
@@ -39,6 +51,9 @@ export type Sealed = { v: 1; iv: string; ct: string };
 
 export type LightPin = 'sky' | 'day' | 'night';
 export type Place = { lat: number; lon: number; name: string };
+/** A lock as a notebook keeps it: home's is the lock itself; a world's is a copy of the lock its rows are sealed with. */
+export type LockFields = { salt: string; iterations: number; verifier: Sealed; digits?: number };
+export type LockMove = LockFields & { was: LockFields; wrapNew: Sealed; wrapOld: Sealed };
 /** name (package 7) is the account's display name for "Connected as"; it rides in the sealed tokens. */
 export type SpotifyTokens = { accessToken: string; refreshToken: string; expiresAt: number; name?: string };
 
@@ -56,6 +71,9 @@ export type Settings = {
     /** Not in PLAN.md section 4 (package 6): how many digits the PIN has, so the lock screen opens on the
      *  last one instead of asking for a separate "open" tap. It tells a stranger the length, nothing more. */
     digits?: number;
+    /** PLAN-WORLDS.md section 3 (W1): a PIN change still under way across the notebooks (fields.ts setKey). The new
+     *  lock, the old one (was), and each key sealed under the other, so a stop halfway is finished by either PIN. */
+    moving?: LockMove;
   };
   lastBackupAt?: Millis;
   seededAt?: Millis;
@@ -76,6 +94,12 @@ export type Settings = {
    *  whole with the PIN's key (fields.ts), like the Spotify tokens; absent until he pastes one, and Research sends
    *  nothing until then. */
   research?: ResearchKey;
+  /** PLAN-WORLDS.md section 9 (W2), on home's row only: the bridge. token is the bearer pasted in Settings, sealed with
+   *  the PIN's key like the Spotify tokens (fields.ts); upAt is when a batch was last acknowledged ("Carried"), downAt
+   *  when a pocket was last read; pocket is the last pocket fetched, for the world it names, sealed with the token
+   *  (a bible's names and open questions are his book's). Absent until he pastes a token: nothing is sent before. Not a
+   *  book key (BOOK_KEYS), so fields.ts keeps it on home's row whatever is worn. */
+  bridge?: BridgeSettings;
   /** Not in PLAN.md section 4 (package 1): which kept line the echo shows today, and the ones already shown. */
   echo?: EchoState;
   /** Not in PLAN-FLOWS.md section 5 (F1): the seed flows (db/seed-flows.ts) already written once, by id, so each
@@ -98,15 +122,44 @@ export type Settings = {
    *  rest of settings, and optional, so it needs no Dexie version. An absent key, or the whole field absent, is the
    *  default: the three tiers open, Resting and Legacy folded (ui/be/tiers.ts isFolded). */
   beFolded?: Partial<Record<BePlaceKey, boolean>>;
+  /** PLAN-WORLDS.md section 3 (W1), on home's row: the world worn, by id, so the app reopens in it; absent is his own
+   *  pages. Clear, like every id; written by fields.ts wear() even while locked (the door takes the notebook off). */
+  world?: string;
+  /** PLAN-WORLDS.md section 3 (W1), on home's row: the registry of worlds as last fetched (W2's bridge fills it; W1's
+   *  tests put a fixture here). Clear: names and kinds only, nothing he wrote. */
+  worlds?: WorldEntry[];
+  /** PLAN-WORLDS.md section 9 (W1), on each notebook's own row: the year worn (W4 sets it). */
+  year?: number;
+  /** PLAN-WORLDS.md section 9 (W1), on each notebook's own row, his own included: what the cover wears, up to five
+   *  album uris in the order worn, or a drawing he uploaded, sealed with the rest of the row's secrets (fields.ts). */
+  cover?: Cover;
   /** PLAN-PUSH.md section 5 (N1): the Sunday question, its switch, when it asks, his line and the week it was last
    *  shown or answered (push/due.ts). Clear, like the rest of settings, and optional, so it needs no Dexie version and
-   *  a backup carries it whole (backup.ts copies rows as they are). Absent reads as on, Sunday 10:00, the default line. */
+   *  a backup carries it whole (backup.ts copies rows as they are). Absent reads as on, Sunday 10:00, the default line.
+   *  Not a book key (BOOK_KEYS): it lives on home's row whatever world is worn, the question being his own pages'. */
   checkin?: Checkin;
   sealed?: Sealed;
 };
 
+/** One world on the shelf (PLAN-WORLDS.md section 5, bridge_worlds): its id (the database is flowstate-w-<id>), its
+ *  name in the serif, and its kind. hue is the voice hue on its spine; absent, the shelf gives one by its place. */
+export type WorldEntry = { id: string; name: string; kind: 'novel' | 'songs'; hue?: number };
+
+/** What a cover wears (decision 16): albums (at most five uris, first chosen first), or his drawing. Neither is plain paper. */
+export type Cover = { albums: string[] } | { drawing: Blob };
+
+/** The settings fields that are the notebook's own (PLAN-WORLDS.md section 3): each notebook's database keeps these on
+ *  its own row. Every other field is home's, and stays on the personal notebook's row whatever is worn. flowsSeeded is
+ *  the seed passes' memory, so it is the book's too (a world seeds nothing). */
+export const BOOK_KEYS = ['seededAt', 'cleaned', 'deleted', 'echo', 'beFolded', 'lastBackupAt', 'year', 'cover', 'flowsSeeded'] as const;
+export type BookKey = typeof BOOK_KEYS[number];
+
 /** A Be place as settings and the DOM name it (ui/be/tiers.ts placeKey): the three tiers, then the two shelves. */
 export type BePlaceKey = '1' | '2' | '3' | 'resting' | 'legacy';
+
+/** The bridge's own settings (PLAN-WORLDS.md section 5). The pocket is kept with the world and stamp it was read at,
+ *  so a pocket for another world is never taken for this one's. */
+export type BridgeSettings = { token: string; upAt?: Millis; downAt?: Millis; pocket?: { world: string; stamp: string; pocket: Pocket } };
 
 /** Research's keys (PLAN-RESEARCH.md section 4): key is the Anthropic API key; openAlexKey raises OpenAlex's daily budget. */
 export type ResearchKey = { key: string; openAlexKey?: string };
@@ -190,6 +243,13 @@ export type Page = {
   /** PLAN-VALUES.md section 5 (C1): the value a council was called on ("Call a council"). Ids, clear like paradoxIds;
    *  optional and unindexed, so older pages simply have none. A deleted value's id is taken out (model/values.ts). */
   valueIds?: string[];
+  /** PLAN-WORLDS.md section 9 (schema 10, W4 sets them): a council's reading, in the story or about it (absent is about);
+   *  the page's chips (characters, places and its year); the inquiry a question page was researched in; and the year
+   *  worn when the page was made (null is the whole book). All optional and unindexed, ids and numbers, clear. */
+  reading?: 'in' | 'about';
+  chips?: { characterIds: string[]; placeIds: string[]; year?: number | null };
+  asked?: { inquiryId: string };
+  year?: number | null;
 };
 
 export type Message = {
@@ -215,6 +275,9 @@ export type Message = {
    *  The line is the paper's, never his: drawn in its side's voice with the voice rule, its title a link to the paper.
    *  text holds the title as the index gave it (sealed like every line); the ids are clear, like the paper itself. */
   paper?: { paperId: string; side: 'for' | 'against' };
+  /** PLAN-WORLDS.md section 9 (schema 10, W4 sets it): a kept line's own chips in a world, set at keeping, so the line
+   *  is understood alone in the bible (decision 18). Ids, clear like voiceId. */
+  chips?: { characterIds: string[]; placeIds: string[] };
   sealed?: Sealed;
 };
 
@@ -524,13 +587,17 @@ export type Tables = {
   days: Day;
   inquiries: Inquiry;
   papers: Paper;
+  outbox: OutboxRow;
+  songs: Song;
+  takes: Take;
 };
 export type TableName = keyof Tables;
-export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days', 'inquiries', 'papers'];
+export const TABLES: TableName[] = ['settings', 'voices', 'pages', 'messages', 'paradoxes', 'items', 'leans', 'backups', 'albums', 'playlists', 'shelves', 'flows', 'episodes', 'sits', 'fixations', 'values', 'readings', 'signShelves', 'marks', 'days', 'inquiries', 'papers', 'outbox', 'songs', 'takes'];
 
 /** The tables the tasks' version (TASKS_VERSION) and Research's (RESEARCH_VERSION) add after the mountain's, left out of
  *  the older STORES records. */
-type ResearchTables = 'inquiries' | 'papers';
+type WorldsTables = 'outbox' | 'songs' | 'takes';
+type ResearchTables = 'inquiries' | 'papers' | WorldsTables;
 type AfterMountain = 'signShelves' | 'marks' | 'days' | ResearchTables;
 
 /** Version 1 stores. The first key is the primary key; the rest are PLAN.md section 4's indexes. */
@@ -678,16 +745,77 @@ function tasksVersion(db: Dexie) {
 
 /** Research's version adds the questions, by id and by when each was asked (the Asked list, newest first), and the
  *  papers by id: one row a paper however many questions cite it. */
-export const STORES: Record<TableName, string> = {
+export const STORES_V9: Record<Exclude<TableName, WorldsTables>, string> = {
   ...STORES_V8,
   inquiries: 'id, askedAt',
   papers: 'id',
 };
 
 function researchVersion(db: Dexie) {
-  db.version(RESEARCH_VERSION).stores(STORES);
+  db.version(RESEARCH_VERSION).stores(STORES_V9);
 }
 // ---- the research ends ----
+
+// ---- the worlds, version WORLDS_VERSION (PLAN-WORLDS.md section 9, W2): the outbox, the songs and the takes ----
+// Self-contained like the research's block: renumbering is WORLDS_VERSION at the top of this file. openDB calls
+// worldsVersion() after researchVersion(). The upgrade writes nothing: every notebook gets the three tables empty, the
+// personal one included (its outbox is never written: src/db/outbox.ts runs only in a world's notebook).
+
+/** One row waiting to go up (PLAN-WORLDS.md section 5): which row, never the row itself, so many edits before a send
+ *  collapse into one envelope built from the row as it stands then. n is the outbox's own counter; rev is the envelope's,
+ *  growing with every write, so the newest wins in the bible. A row written again replaces its entry with a new n, and
+ *  an acknowledgement takes out only the n it was read at (src/bridge/up.ts). Clear: ids and numbers only. */
+export type OutboxRow = { n?: number; table: TravelTable; id: string; rev: number; at: Millis };
+
+/** A song (PLAN-WORLDS.md section 6, W6 writes them): title and lyric are sealed; sections are where a blank rule
+ *  starts one and its name, by line index. */
+export type Song = {
+  id: string; createdAt: Millis; updatedAt: Millis; title: string; lyric: string;
+  sections: { line: number; name: string }[]; key?: string; bpm?: number; characterIds?: string[];
+  /** W6 (W7's review): when the lyric itself last changed on the phone, epoch ms; absent if he never edited it here. A
+   *  section named, changed or cleared moves it too (model/songs.ts withSections); a rename, the key, the tempo and the
+   *  Character chip never do. Goes up. */
+  lyricAt?: Millis;
+  /** W6: the pocket's lyricAt (the Mac's) that this lyric started from; absent if it started from nothing. Goes up. */
+  lyricFrom?: Millis;
+  /** W6, a song moved out of a novel (model/move.ts): the characters it named there, kept with that world's id so a move
+   *  back restores them. On the phone only (src/bridge/up.ts sends characterIds, never this). Ids, clear. */
+  tucked?: { world: string; characterIds: string[] }[];
+  /** W6: the world this song was moved from, while that world may still hold its old copy (model/move.ts settleMoves
+   *  finishes the move and clears it). On the phone only. */
+  movedFrom?: string;
+  sealed?: Sealed;
+};
+/** A take (PLAN-WORLDS.md section 6, W6 records them): the audio is plain bytes (iOS Safari can lose a Blob kept in
+ *  IndexedDB, as the covers found in V9) and sealed like everything private; the pitch line, key and tempo are clear. */
+export type Take = {
+  id: string; songId?: string; at: Millis; seconds: number; audio: ArrayBuffer; audioType?: string; pitch: number[];
+  key?: string; bpm?: number;
+  /** W6: the lyric line the take is pinned to, as the line's 0-based index in the song's lyric written as a decimal
+   *  string ("0" is the first line); absent on a take loose on its song or a loose hum. lineText is that line's text,
+   *  so the line can be shown without the lyric; the phone moves both when lines above it come or go (model/songs.ts
+   *  follow). Both go up with the take. */
+  lineId?: string; lineText?: string;
+  /** W6: the clip (the audio) acknowledged by the bridge, under which world and when (src/bridge/clips.ts). Absent, the
+   *  audio has not gone up yet. aside: never sent and never tried again, because it is too large to carry ('size') or
+   *  the function refused it for good ('refused'); the take says so under its line. On the phone only. */
+  clip?: { world: string; at: Millis; aside?: 'size' | 'refused' };
+  sealed?: Sealed;
+};
+
+/** The worlds' version adds the outbox (by its own counter, and by row so a write can replace its entry), the songs by
+ *  when they changed, and the takes by song and by when. */
+export const STORES: Record<TableName, string> = {
+  ...STORES_V9,
+  outbox: '++n, [table+id]',
+  songs: 'id, updatedAt',
+  takes: 'id, songId, at',
+};
+
+function worldsVersion(db: Dexie) {
+  db.version(WORLDS_VERSION).stores(STORES);
+}
+// ---- the worlds end ----
 
 /** The Poems playlist, the one version 1 knew, as a playlists row: ticked, never read yet. */
 export const poemsPlaylist = (): Playlist => ({
@@ -723,10 +851,19 @@ export type FlowDB = Dexie & {
   days: EntityTable<Day, 'id'>;
   inquiries: EntityTable<Inquiry, 'id'>;
   papers: EntityTable<Paper, 'id'>;
+  outbox: EntityTable<OutboxRow, 'n'>;
+  songs: EntityTable<Song, 'id'>;
+  takes: EntityTable<Take, 'id'>;
 };
+
+/** A world's database (PLAN-WORLDS.md section 3): the personal notebook's name, then -w- and the world's id, so the
+ *  phone's are flowstate-w-eastwinds and flowstate-w-songbook, and a test's world sits beside its own test database. */
+export const worldDbName = (home: string, worldId: string) => `${home}-w-${worldId}`;
 
 export function openDB(name = DB_NAME): FlowDB {
   const db = new Dexie(name) as FlowDB;
+  // every write to this notebook passes one place (writes.ts), where W2's outbox listens
+  db.use(notebookWrites(name));
   db.version(1).stores(STORES_V1);
   // Version 2: every ordered album becomes a shelf row of the Poems playlist, and the playlist itself is written
   // ticked, so the music line has its shelf before the first read. The albums rows are not touched.
@@ -742,6 +879,10 @@ export function openDB(name = DB_NAME): FlowDB {
   mountainVersion(db);
   tasksVersion(db);
   researchVersion(db);
+  worldsVersion(db);
+  // PLAN-WORLDS.md section 5 (W2): a world's notebook records what travels in its outbox; the personal one never has the
+  // middleware at all, so nothing written there can reach the bridge (the no-leak test, test/bridge/outbox.test.ts).
+  if (isWorldDB(name)) db.use(outboxMiddleware(name));
   return db;
 }
 

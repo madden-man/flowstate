@@ -1,58 +1,14 @@
-// design-lint's DL22 (DESIGN.md rule 34): the seven are named Crown to Root, so a Sanskrit name in any of its common
-// spellings, a lotus, petals, Meru, kundalini or a seed letter's name fails the lint, and the app's own words pass.
+// design-lint's network fence, DL21 (DESIGN.md rule 22). The file once also held DL22 and DL23 (the signs' Sanskrit
+// names and the signs' lines); both lints were retired with the mountain (PLAN-WORLDS.md section 4.1, WF), and their
+// cases went with them. What stays: a fetch is allowed under src/music, src/research, src/push (PLAN-PUSH.md N0) and
+// src/bridge (PLAN-WORLDS.md section 5, W2) only, and fails anywhere else in src. And DL20 (rule 21, W6): the
+// microphone and a recorder belong to parts/Sound alone.
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const lint = (line: string) => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dl22-'));
-  const f = path.join(dir, 'a.ts');
-  writeFileSync(f, `${line}\n`);
-  try { execFileSync(process.execPath, ['script/design-lint.mjs', f], { stdio: 'pipe' }); return ''; } catch (e) { return String((e as { stdout: Buffer }).stdout); }
-};
-
-const BANNED = [
-  'Sahasrara', 'Sahasara', 'Sahasrar', 'Ajna', 'Agya', 'Vishuddha', 'Vishuddhi', 'Visuddha', 'Anahata', 'Manipura', 'Manipuraka', 'Mani-pura',
-  'Svadhisthana', 'Svadhishthana', 'Swadhisthana', 'Swadhishthana', 'Muladhara', 'Mooladhara', 'lotus', 'lotuses', 'petal', 'petals',
-  'Meru', 'kundalini', 'bija',
-];
-const FINE = ['Crown', 'Third eye', 'Throat', 'Heart chakra', 'Solar plexus', 'Sacral', 'Root · feeling safe', 'the narrows', 'manipulate', 'merge', 'adjunct'];
-
-describe('DL22', () => {
-  it.each(BANNED)('fails on %s', w => { expect(lint(`// the ${w} fall`)).toMatch(/DL22/); });
-  it.each(FINE)('passes %s', w => { expect(lint(`// ${w}`)).toBe(''); });
-});
-
-// DL23 (PLAN-SIGN-LINES.md L1): each sign's line in CHAKRAS, the fifth string of its stop(...), is at most 70
-// characters with no em dash; only model/mountain.ts is read for it.
-const lintMountain = (stops: string[], name = 'mountain.ts') => {
-  const dir = path.join(mkdtempSync(path.join(tmpdir(), 'dl23-')), 'src', 'model');
-  mkdirSync(dir, { recursive: true });
-  const f = path.join(dir, name);
-  writeFileSync(f, `const stop = (a: string) => a;\n${stops.join('\n')}\n`);
-  try { execFileSync(process.execPath, ['script/design-lint.mjs', f], { stdio: 'pipe' }); return ''; } catch (e) { return String((e as { stdout: Buffer }).stdout); }
-};
-const at = (line: string) => `  stop('root', 'Root', 'sprout', 25, 'feeling safe', '${line}', ['Safety', 'fear']),`;
-
-describe('DL23', () => {
-  it('passes the real file and a line of 70', () => {
-    expect(lintMountain([at('x'.repeat(70))])).toBe('');
-    expect(execFileSync(process.execPath, ['script/design-lint.mjs', 'src/model/mountain.ts']).toString()).toMatch(/PASS/);
-  });
-  it('fails a line of 71, a line with an em dash, and a stop with no line', () => {
-    expect(lintMountain([at('x'.repeat(71))])).toMatch(/DL23/);
-    expect(lintMountain([at('You want to be safe \u2014 the alarm rings.')])).toMatch(/DL23/);
-    expect(lintMountain(["  stop('root', 'Root', 'sprout', 25, 'feeling safe'),"])).toMatch(/DL23/);
-  });
-  it('reads no other file for it', () => {
-    expect(lintMountain([at('x'.repeat(90))], 'other.ts')).toBe('');
-  });
-});
-
-// DL21 (DESIGN.md rule 22; PLAN-PUSH.md N0): a fetch is allowed under src/music, src/research and src/push only, and
-// fails anywhere else in src.
 const lintAt = (rel: string, line: string) => {
   const root = mkdtempSync(path.join(tmpdir(), 'dl21-'));
   const f = path.join(root, rel);
@@ -63,13 +19,27 @@ const lintAt = (rel: string, line: string) => {
 
 describe('DL21', () => {
   const call = "await fetch('/api/push/subscribe', { method: 'POST' });";
-  it.each(['src/push/push.ts', 'src/music/spotify.ts', 'src/research/client.ts'])('passes a fetch in %s', f => {
+  it.each(['src/push/push.ts', 'src/music/spotify.ts', 'src/research/client.ts', 'src/bridge/net.ts'])('passes a fetch in %s', f => {
     expect(lintAt(f, call)).toBe('');
   });
-  it.each(['src/ui/settings/CheckinRow.tsx', 'src/model/pages.ts', 'src/pwa/install.ts', 'src/pushy/a.ts', 'src/ui/push/a.ts'])('fails a fetch in %s', f => {
+  it.each([
+    'src/ui/settings/CheckinRow.tsx', 'src/model/pages.ts', 'src/pwa/install.ts', 'src/pushy/a.ts', 'src/ui/push/a.ts',
+    'src/bridges/a.ts', 'src/ui/bridge/a.ts', 'src/db/writes.ts', 'src/ui/flow/Shelf.tsx',
+  ])('fails a fetch in %s', f => {
     expect(lintAt(f, call)).toMatch(/DL21/);
   });
-  it('fails a beacon to the same origin outside src/push', () => {
+  it('fails a beacon to the same origin outside src/push and src/bridge', () => {
     expect(lintAt('src/ui/a.ts', 'navigator.sendBeacon("/api/push/x");')).toMatch(/DL21/);
+    expect(lintAt('src/ui/a.ts', 'navigator.sendBeacon("/.netlify/functions/bridge");')).toMatch(/DL21/);
   });
+});
+
+describe('DL20', () => {
+  it.each(['navigator.mediaDevices.getUserMedia({ audio: true });', 'const r = new MediaRecorder(s);', 'MediaRecorder.isTypeSupported("audio/mp4");'])(
+    'fails %s outside parts/Sound, src/push included', line => {
+      expect(lintAt('src/push/push.ts', line)).toMatch(/DL20/);
+      expect(lintAt('src/ui/songs/Hum.tsx', line)).toMatch(/DL20/);
+      expect(lintAt('src/ui/parts/Sound.ts', line)).toBe('');
+    },
+  );
 });

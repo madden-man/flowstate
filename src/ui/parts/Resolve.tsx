@@ -1,8 +1,8 @@
 // Resolve (PLAN-BLOCKERS.md decision 2, section 7; K1): one gesture resolves a question everywhere, a tap on a word.
 // At rest the print word "Resolve", a thumb wide and one rule tall; tapped, the app's drawn check (rule 7) is drawn in
 // ink in its place over --t-draw with the check's tick (rules 19 and 27), and a tap on the check lifts it over --t-ui
-// and the word comes back. It says nothing about what it resolves: the ? tab, a question's page, a sign's three and a
-// journal line all hand it a state and a change. It leaves in Still (fs-notstill), as states do (rule 13).
+// and the word comes back. It says nothing about what it resolves: the ? tab and a question's page each hand it a state
+// and a change. It leaves in Still (fs-notstill), as states do (rule 13).
 import { useState } from 'preact/hooks';
 import { tick } from './Haptic';
 

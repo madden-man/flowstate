@@ -18,7 +18,8 @@ import { notebookDate } from '../date';
 import { tick } from './Haptic';
 import { MusicLine, type MusicPage } from '../music/MusicLine';
 import { useDrawn } from '../turns';
-import { SignBack } from '../flow/chakra/SignBack';
+import { wornName, wornYear } from '../notebook';
+import '../world/world.css';
 
 type Props = {
   /** The page's place in the sequence; hidden in Still (no counts). */
@@ -35,10 +36,9 @@ type Props = {
   /** A second word after the way back (PLAN-RESEARCH.md Q4: Asked, where the Journal has Pages); gone in Still, as
    *  Pages is, since Still has no page list. here marks it current. */
   also?: { word: string; href: string; here?: boolean };
-  /** The view-transition name the header's label travels under (rule 28: Research's word from the sea, Q4). */
+  /** The view-transition name the header's label travels under (rule 28: Research's word from its circle, Q4). */
   travel?: string;
-  /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). A sign's
-   *  page does not: "Solar plexus chakra" is on its header, so there the way back takes Settings' place. */
+  /** Keep Settings beside the way back (F1: a flow page's header has room, as the flows proposal draws it). */
   keepSettings?: boolean;
   /** A count in place of No. ("2 of 3 open" on a question page, V2); hidden in Still like No. */
   count?: string;
@@ -49,13 +49,10 @@ type Props = {
   door?: { ask: (then: 'still' | 'flow') => void };
   /** False while the page is still reading what it draws (M2): a page turn waits for it, a moment at most. */
   drawn?: boolean;
-  /** The sign this page is linked to (page.sign, PLAN-TASKS.md T3): printed over the date, a tap goes back to it. A
-   *  page a sign's touch carried him to prints that sign whether or not it is linked (flow/chakra/SignBack.tsx). */
-  sign?: string;
   children?: ComponentChildren;
 };
 
-export function PageHeader({ no, label, date = new Date(), music, pages, back, also, travel, keepSettings, count, door, sign }: Omit<Props, 'children'>) {
+export function PageHeader({ no, label, date = new Date(), music, pages, back, also, travel, keepSettings, count, door }: Omit<Props, 'children'>) {
   if (door) return (
     <header class="fs-hdr">
       <div class="fs-hdr-l">
@@ -86,14 +83,20 @@ export function PageHeader({ no, label, date = new Date(), music, pages, back, a
         <MusicLine page={music} />
       </div>
       <div class="fs-hdr-r">
-        {/* the top line: the sign carried here stands before whatever the page prints there, so the date's own line is
-            never longer than "Date: 11 / 12 / 26" and fits a 375pt phone beside the header's words */}
+        {/* the top line, so the date's own line is never longer than "Date: 11 / 12 / 26" and fits a 375pt phone */}
         <span class="fs-hdr-top">
-          <SignBack sign={sign} />
           {no !== undefined && <span class="fs-count">No. <b>{no}</b></span>}
           {count && <span class="fs-count">{count}</span>}
           {label && <span class="fs-hdr-label" data-travel={travel}>{label}</span>}
         </span>
+        {/* the world worn, over the date, on every tab (PLAN-WORLDS.md section 4, rule 40): nothing else marks it */}
+        {/* in a novel, its year worn beside it; a tap on the year raises the dial (W4, ui/world/YearSheet.tsx) */}
+        {wornName.value && (
+          <span class="fs-hdr-world"><span class="fs-hdr-wname">{wornName.value}</span>{wornYear.value !== null && (
+            <> · <button type="button" class="fs-hdr-year" aria-label={`Story year ${wornYear.value}`}
+              onClick={() => { openSheet.value = 'year'; tick('sheet'); }}>{wornYear.value}</button></>
+          )}</span>
+        )}
         <span>Date: <b>{notebookDate(date)}</b></span>
       </div>
     </header>

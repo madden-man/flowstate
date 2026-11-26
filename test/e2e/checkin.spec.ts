@@ -7,15 +7,15 @@
 import { test, expect, type Page } from '@playwright/test';
 
 type Row = Record<string, unknown> & { id: string };
-const all = (page: Page, table: string) => page.evaluate(t => new Promise<Row[]>((resolve, reject) => {
-  const open = indexedDB.open('flowstate');
+const all = (page: Page, table: string, name = 'flowstate') => page.evaluate(([t, n]) => new Promise<Row[]>((resolve, reject) => {
+  const open = indexedDB.open(n);
   open.onerror = () => reject(open.error);
   open.onsuccess = () => {
     const r = open.result.transaction(t).objectStore(t).getAll();
     r.onsuccess = () => { open.result.close(); resolve(r.result); };
     r.onerror = () => reject(r.error);
   };
-}), table);
+}), [table, name] as const);
 const put = (page: Page, table: string, row: Row) => page.evaluate(([t, v]) => new Promise<void>((resolve, reject) => {
   const open = indexedDB.open('flowstate');
   open.onerror = () => reject(open.error);
@@ -156,6 +156,45 @@ test('#/journal?ask=checkin lands on today\'s page asked, and the address loses 
   await enter(page, '/#/journal');
   await expect(page.locator('.fs-page').first()).toBeVisible();
   await expect(line(page)).toHaveCount(0);
+});
+
+// With worlds (PLAN-WORLDS.md section 3): the question is his own pages'. With East Winds worn, the quiet line waits, and
+// the notification's address takes the world off before it lands, so the page and the question are written in his own
+// notebook and the world's stays empty.
+test('with a world worn: no quiet line, and #/journal?ask=checkin lands in his own pages, the world taken off', async ({ page, context, baseURL }) => {
+  const outside: string[] = [];
+  context.on('request', r => { if (!r.url().startsWith(baseURL!)) outside.push(r.url()); });
+  await page.clock.install({ time: SAT });
+  await enter(page, '/#/journal');
+  await expect(page.locator('.fs-page').first()).toBeVisible();
+  const old = SAT.getTime() - 30 * 86_400_000;
+  const WORLDS = [{ id: 'eastwinds', name: 'East Winds', kind: 'novel' }];
+  // East Winds worn: the app reopens in the world it was left in
+  await expect.poll(async () => {
+    await put(page, 'settings', { ...(await settingsRow(page)), seededAt: old, worlds: WORLDS, world: 'eastwinds' });
+    await enter(page, '/#/journal');
+    await page.locator('.fs-page').first().waitFor();
+    return (await settingsRow(page)).world;
+  }).toBe('eastwinds');
+  await expect(page.locator('.fs-hdr-wname').first()).toHaveText('East Winds');
+
+  await page.clock.setSystemTime(SUN);
+  await enter(page, '/#/journal');
+  await expect(page.locator('.fs-hdr-wname').first()).toHaveText('East Winds');
+  await expect(line(page)).toHaveCount(0);
+  expect((await settingsRow(page)).checkin).toBeUndefined();
+
+  await enter(page, '/#/journal?ask=checkin');
+  await expect(page).toHaveURL(/#\/journal$/, { timeout: 15_000 });
+  await expect(page.locator('.fs-msg p', { hasText: LINE })).toBeVisible();
+  await expect(page.locator('.fs-msg.fs-wise textarea')).toBeFocused();
+  await expect(page.locator('.fs-hdr-wname')).toHaveCount(0);
+  await expect.poll(async () => (await settingsRow(page)).world).toBeUndefined();
+  await expect.poll(async () => (await all(page, 'pages')).filter(p => p.kind === 'question').length).toBe(1);
+  expect((await all(page, 'pages')).some(p => (p.checkin as { week?: string } | undefined)?.week === '2026-11-22')).toBe(true);
+  expect(await all(page, 'pages', 'flowstate-w-eastwinds')).toEqual([]);
+  expect(await all(page, 'outbox', 'flowstate-w-eastwinds')).toEqual([]);
+  expect(outside).toEqual([]);
 });
 
 const keypad = (p: Page) => p.getByRole('group', { name: 'PIN' });

@@ -1,14 +1,10 @@
-// Into the app (PLAN-TASKS.md T3, sections 2 and 3): what a sign's touch carries into Journal and Council before the
-// page it lands on opens. No UI. Every line here is his: the one he wrote on the plate's rule, carried as he wrote it
-// (Ask, Bring it, Write from it); nothing is carried for Letter, A voice and the rest, and the app writes no words of its
-// own. The journal page a touch lands on is today's (pages.ts todayLinked), linked to the sign by page.sign, so the page
-// prints that sign beside its date and a tap on it goes back. Every read and write goes through store (sealed words).
+// Into the app (PLAN-RESEARCH.md section 2, Q4): what a paper carries into Journal and Council before the page it lands
+// on opens, and the Sunday question's landing (PLAN-PUSH.md N1). No UI. The signs' touches that once carried his lines here (PLAN-TASKS.md T3) left with the mountain
+// (PLAN-WORLDS.md section 4.1). Every read and write goes through store (sealed words).
 import type { Message, Page } from '../db/schema';
-import { store, type Read } from '../db/fields';
-import { askThis, dayKey, keptLines, messagesOf, todayLinked, writeLine, type Kept } from './pages';
-import { councilPages, newCouncil, speak } from './council';
-import { starOfDay, type Star } from './stars';
-import type { ChakraId } from './mountain';
+import { store, worn, type Read } from '../db/fields';
+import { askThis, messagesOf, todayLinked, writeLine } from './pages';
+import { newCouncil, speak } from './council';
 import type { Paper, Side } from '../research/types';
 
 /** One rule holds one line: what he wrote, its breaks and runs of space made one space, trimmed. Empty is nothing. */
@@ -20,92 +16,23 @@ const needLine = (text: string): string => {
   return line;
 };
 
-/** Ask (Third eye): his line written on today's page, linked to the sign, and asked (V2's Ask this, which took Turn to
- *  answer's place): a question titled by the line, linked both ways with today's page. The page opens with the answer
- *  rule under the line (the wiser second person, rule 17); that is the page's, not this. */
-export const askToday = (chakra: ChakraId, text: string, now = Date.now()) => askOnToday({ sign: { chakra } }, text, now);
-
-/** The Sunday question (PLAN-PUSH.md section 4, N1): his question written on today's page and asked, as Ask does, the
- *  page linked to the week it asked (page.checkin). Landed twice the same day (the line, then the notification), the
- *  question already on a page of that week is not written or asked again: the page just opens. */
+/** The Sunday question (PLAN-PUSH.md section 4, N1): his question written on today's page and asked (a question
+ *  titled by the line, linked both ways with today's page, as Ask this does), the page linked to the week it asked
+ *  (page.checkin). Landed twice the same day (the line, then the notification), the question already on a page of that
+ *  week is not written or asked again: the page just opens.
+ *  The question is the personal notebook's whatever world is worn (DESIGN.md rule 22, PLAN-WORLDS.md section 3): a
+ *  world's question page would travel to the bible. So it refuses with a world worn; the landing
+ *  (ui/journal/checkin.tsx) takes the world off first, as the door does. */
 export async function askCheckin(week: string, text: string, now = Date.now()): Promise<{ page: Read<Page>; message?: Read<Message>; question?: Read<Page> }> {
+  if (worn() !== null) throw new Error('The Sunday question is written in his own pages only');
   const line = needLine(text);
   const page = await todayLinked({ checkin: { week } }, now);
   const there = (await messagesOf(page.id)).find(m => oneLine(m.text) === line);
   if (there) { await store.put('pages', page); return { page, message: there }; }
-  return askOnToday({ checkin: { week } }, line, now);
-}
-
-async function askOnToday(link: Pick<Page, 'sign'> | Pick<Page, 'checkin'>, text: string, now: number): Promise<{ page: Read<Page>; message: Read<Message>; question: Read<Page> }> {
-  const line = needLine(text);
-  const r = await writeLine(await todayLinked(link, now), undefined, { text: line }, now);
+  const r = await writeLine(await todayLinked({ checkin: { week } }, now), undefined, { text: line }, now);
   if (!r?.message) throw new Error('Nothing written');
-  const { page, question } = await askThis(r.page, r.message, now);
-  return { page, message: r.message, question };
-}
-
-/** Write from it (Sacral): his word as a line of today's page, the next after what is already there (the first line on
- *  a page not yet written on), the page linked to the sign. */
-export async function writeFromIt(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message> }> {
-  const line = needLine(text);
-  const r = await writeLine(await todayLinked({ sign: { chakra } }, now), undefined, { text: line }, now);
-  if (!r?.message) throw new Error('Nothing written');
-  return { page: r.page, message: r.message };
-}
-
-/** A sign's question (2026-11-17, model/acts.ts asksOf): a tap opens today's page, linked to the sign, with the question
- *  written as its next line, set wise (italic, the wiser second person, DESIGN.md rule 17), so what he writes under it
- *  answers from a step away. A question already a line on today's page (the same words) is not written again: the page
- *  opens on the line that is there. The question is his or the starter he kept, never the app's own. */
-export async function askInJournal(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message> }> {
-  const line = needLine(text);
-  const page = await todayLinked({ sign: { chakra } }, now);
-  const there = (await messagesOf(page.id)).find(m => oneLine(m.text) === line);
-  if (there) {
-    await store.put('pages', page);
-    return { page, message: there };
-  }
-  const r = await writeLine(page, undefined, { text: line, wise: true }, now);
-  if (!r?.message) throw new Error('Nothing written');
-  return { page: r.page, message: r.message };
-}
-
-/** Letter (Heart): today's page, linked to the sign, with nothing written on it here. The page opens on "Dear" on its
- *  next rule, unsaved until he writes, and is never sent anywhere. */
-export async function letterToday(chakra: ChakraId, now = Date.now()): Promise<Read<Page>> {
-  const page = await todayLinked({ sign: { chakra } }, now);
-  await store.put('pages', page);
-  return page;
-}
-
-/** Bring it (Third eye): a new council with his question as its first line, in ink, linked to the sign. */
-export async function bringIt(chakra: ChakraId, text: string, now = Date.now()): Promise<{ page: Read<Page>; message: Read<Message> }> {
-  const line = needLine(text);
-  const c = await newCouncil({ now });
-  const page: Read<Page> = { ...c, sign: { chakra } };
-  await store.put('pages', page);
-  const message = await speak(c.id, line, { now });
-  return { page, message };
-}
-
-/** A voice (Throat): a council with nothing said, its voice chips ready ("Who sits?"). Today's own, if one was opened
- *  today and nothing has been said or asked on it yet; else a new one. Nothing is carried; the sign is linked. */
-export async function voiceCouncil(chakra: ChakraId, now = Date.now()): Promise<Read<Page>> {
-  const day = dayKey(now);
-  const empty = (await councilPages()).find(r =>
-    dayKey(r.page.createdAt) === day && !r.firstLine && !r.page.title && !r.page.valueIds?.length && !r.page.linkedPageIds.length);
-  const page: Read<Page> = { ...(empty?.page ?? await newCouncil({ now })), sign: { chakra } };
-  await store.put('pages', page);
-  return page;
-}
-
-/** Kept line (Crown): the day's star (model/stars.ts) and the kept line it is, with the page it was kept on. None when
- *  nothing is kept yet. */
-export async function keptStar(now = Date.now()): Promise<{ star: Star; kept: Kept } | undefined> {
-  const kept = await keptLines();
-  const star = starOfDay(kept.map(k => ({ id: k.message.id, at: k.message.at })), dayKey(now));
-  const k = star && kept.find(x => x.message.id === star.id);
-  return star && k ? { star, kept: k } : undefined;
+  const { page: asked, question } = await askThis(r.page, r.message, now);
+  return { page: asked, message: r.message, question };
 }
 
 // ---- Research (PLAN-RESEARCH.md section 2, Q4): a paper carried from a question's page ----

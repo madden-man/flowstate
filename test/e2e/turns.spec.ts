@@ -62,16 +62,16 @@ async function walkEveryRoute(page: Page) {
   await expect(page.locator('.fs-be-fold')).toHaveCount(0);
   await bar.getByRole('link', { name: 'Flow' }).click();
   await expect(page).toHaveURL(/#\/flow$/);
-  await page.locator('a.mt-circle[href="#/flow/energize"]').click();
+  await page.locator('a.fl-circle[href="#/flow/energize"]').click();
   await expect(page).toHaveURL(/#\/flow\/energize$/);
   await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
   await page.locator('.fs-hdr').getByRole('link', { name: 'Flow' }).click();
   await expect(page).toHaveURL(/#\/flow$/);
-  await page.locator('.fl-now').click();
+  await page.locator('.fs-flows a.fl-flow[href="#/flow/now"]').click();
   await expect(page).toHaveURL(/#\/flow\/now$/);
   await page.goBack();
   await expect(page).toHaveURL(/#\/flow$/);
-  await expect(page.locator('a.mt-circle[href="#/flow/energize"]')).toBeVisible();
+  await expect(page.locator('a.fl-circle[href="#/flow/energize"]')).toBeVisible();
   await bar.getByRole('link', { name: 'Journal' }).click();
   await expect(page).toHaveURL(/#\/journal$/);
   await page.locator('.fs-hdr').getByRole('link', { name: 'Pages' }).click();
@@ -86,7 +86,7 @@ test.describe('with view transitions', () => {
     await countTurns(page);
     await page.goto('/#/flow');
     await cross(page);
-    await expect(page.locator('a.mt-circle[href="#/flow/energize"]')).toBeVisible();
+    await expect(page.locator('a.fl-circle[href="#/flow/energize"]')).toBeVisible();
     // a deep link and the first load turn nothing; the mark is under Flow, placed
     expect(await turns(page)).toEqual([]);
     await expect.poll(() => markUnder(page)).toMatchObject({ gone: false, below: true });
@@ -110,7 +110,7 @@ test.describe('with view transitions', () => {
 
     // into a flow and back: open and close, the tapped circle named while it travels into the drawing, and nothing after
     await tabs(page).getByRole('link', { name: 'Flow' }).click();
-    const energize = page.locator('a.mt-circle[href="#/flow/energize"]');
+    const energize = page.locator('a.fl-circle[href="#/flow/energize"]');
     await expect(energize).toBeVisible();
     await energize.click();
     await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();

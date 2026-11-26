@@ -157,6 +157,7 @@ describe('scape(): a context of its own, and the ringer', () => {
   // a fresh module each time, so each test meets parts/Sound before its one AudioContext is made
   let scape: typeof import('../../src/ui/parts/Sound').scape;
   let bell: typeof import('../../src/ui/parts/Sound').bell;
+  let snd: typeof import('../../src/ui/parts/Sound');
   let settings: typeof import('../../src/ui/settings').settings;
   type Made = FakeContext & { state: string; resumed: number; closed: number; heard: (() => void)[] };
   beforeEach(async () => {
@@ -169,10 +170,12 @@ describe('scape(): a context of its own, and the ringer', () => {
       close() { this.closed++; this.state = 'closed'; return Promise.resolve(); }
       addEventListener(_: string, fn: () => void) { this.heard.push(fn); }
       removeEventListener(_: string, fn: () => void) { this.heard = this.heard.filter(f => f !== fn); }
+      decodeAudioData() { return Promise.resolve({ duration: 1 }); }
       constructor() { super(); made.push(this); }
     }
     vi.stubGlobal('window', { AudioContext: AC });
-    ({ scape, bell } = await import('../../src/ui/parts/Sound'));
+    snd = await import('../../src/ui/parts/Sound');
+    ({ scape, bell } = snd);
     ({ settings } = await import('../../src/ui/settings'));
   });
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -276,6 +279,54 @@ describe('scape(): a context of its own, and the ringer', () => {
     sit.end(0);
     expect(c.heard).toHaveLength(0);
     vi.advanceTimersByTime(400);
+  });
+
+  it('a hum: the microphone open names the session play-and-record, and closing it gives it back (W6, the iPhone records)', () => {
+    const s = session();
+    const release = snd.micSession();
+    expect(s.type).toBe('play-and-record');
+    release();
+    expect(s.type).toBe('auto');
+    release(); // twice is once
+    expect(s.type).toBe('auto');
+  });
+
+  it('a take played is media (playback) until it ends or is stopped, then auto; a sit holding playback keeps it', async () => {
+    const s = session();
+    const done = snd.play(new ArrayBuffer(8));
+    await vi.waitFor(() => expect(s.type).toBe('playback'));
+    snd.stopPlaying();
+    await done;
+    expect(s.type).toBe('auto');
+    settings.value = { ...defaultSettings(0), sitThroughSilent: true };
+    scape('rain');
+    const release = snd.micSession();
+    expect(s.type).toBe('play-and-record');
+    release();
+    expect(s.type).toBe('playback');
+  });
+
+  it('one take at a time: a second tap while the first is still decoding stops it, and stopping one still decoding keeps it silent', async () => {
+    session();
+    const pending: ((b: unknown) => void)[] = [];
+    for (const AC of [window.AudioContext as unknown as { prototype: { decodeAudioData: unknown } }]) AC.prototype.decodeAudioData = () => new Promise(r => pending.push(r));
+    const a = snd.play(new ArrayBuffer(8));
+    const b = snd.play(new ArrayBuffer(8));
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    pending[0]({ duration: 1 });
+    pending[1]({ duration: 1 });
+    expect(await a).toBe(false);
+    const started = () => made.flatMap(m => m.nodes).filter(n => n.kind === 'buffer' && n.started);
+    await vi.waitFor(() => expect(started()).toHaveLength(1));
+    snd.stopPlaying();
+    expect(await b).toBe(true);
+    // stopped while it decodes: it never sounds
+    const c = snd.play(new ArrayBuffer(8));
+    await vi.waitFor(() => expect(pending).toHaveLength(3));
+    snd.stopPlaying();
+    pending[2]({ duration: 1 });
+    expect(await c).toBe(false);
+    expect(started()).toHaveLength(1);
   });
 
   it('a newer sit keeps the session when the older one finishes fading', () => {

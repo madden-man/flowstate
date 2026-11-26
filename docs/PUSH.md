@@ -92,6 +92,8 @@ The checks, because there are no accounts: the endpoint must be `https` on `*.pu
 
 ## The phone (N3)
 
+**With worlds** (PLAN-WORLDS.md): the Sunday question always belongs to his own pages. Its settings live on the personal notebook's row; with a world worn the quiet line waits, and a tap on the notification takes the world off (as the door does) before landing on today's page. Nothing of it enters a world's database, the outbox or the bridge (`test/push/worlds.test.ts`). The service worker answers neither `/api/push/*` nor `/.netlify/*` with the app's page.
+
 The code: `src/push/push.ts` (the only code allowed to call the routes, same origin only), `src/push/store.ts` (the `fs-push` database), `public/push-sw.js` (the worker's two handlers), `src/ui/settings/PushRows.tsx` (the Settings controls, inside the Sunday question's row). Tests: `test/push/push.test.ts`, `test/push/push-sw.test.ts`, `test/e2e/push.spec.ts`.
 
 **Settings.** With the Sunday question on, under its line and time:

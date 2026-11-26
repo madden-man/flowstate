@@ -11,10 +11,14 @@ import { startUpdates, countLaunch } from './pwa/install';
 import { persistNow } from './pwa/persist';
 import { bootMusic } from './ui/music/state';
 import { startPress } from './ui/parts/Press';
+import { startCarry } from './model/carry';
+import { syncWorn } from './ui/notebook';
 import { startPush } from './push/push';
 
 async function boot() {
+  // init opens the notebook left worn (PLAN-WORLDS.md decision 3), so the first page is drawn from it
   await init();
+  syncWorn();
   const firstRun = await ensureSeeded();
   await loadSettings();
   startLight();
@@ -24,6 +28,8 @@ async function boot() {
   if (firstRun) void persistNow();
   countLaunch();
   startUpdates();
+  // the bridge (PLAN-WORLDS.md section 5, W2) listens before the relock does, so a hide sends what is ready first
+  startCarry();
   // the Sunday question's push (PLAN-PUSH.md N3): nothing is sent unless he switched it on and something moved
   try { startPush(); } catch { /* the journal opens whatever push does */ }
   render(<App />, document.getElementById('app')!);

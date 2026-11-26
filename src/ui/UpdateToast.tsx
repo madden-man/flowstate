@@ -14,6 +14,7 @@ import { light } from './light';
 import { openSheet } from './sheets';
 import { ASK_CHECKIN, checkinUp, landCheckin, takeCheckin } from './journal/checkin';
 import { checkinOf } from '../push/due';
+import { wornWorld } from './notebook';
 
 /** Decided once per launch, the first time the Journal shows: null until then. */
 const nagUp = signal<boolean | null>(null);
@@ -72,8 +73,11 @@ export function QuietLine() {
   if (!path.startsWith('/journal') || openSheet.value) return null;
   // the address is landing on the question already (journal/checkin.tsx CheckinAsk): no line for it
   if (query.ask === ASK_CHECKIN) return null;
-  if (checkinUp.value === null) checkinUp.value = takeCheckin();
-  if (checkinUp.value) {
+  // the question is his own pages' (PLAN-WORLDS.md section 3): with a world worn it is neither shown nor decided, so it
+  // asks once he is back in his own pages
+  const home = wornWorld.value === null;
+  if (home && checkinUp.value === null) checkinUp.value = takeCheckin();
+  if (home && checkinUp.value) {
     // the question wins the day: the export's line, if due, takes its once-a-day today and shows tomorrow
     if (nagUp.value === null) { if (backupDue(settings.value)) takeNagDay(); nagUp.value = false; }
     return <CheckinLine />;

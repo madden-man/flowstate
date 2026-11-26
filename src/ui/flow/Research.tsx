@@ -1,5 +1,5 @@
-// Research (PLAN-RESEARCH.md section 2, Q4): a question, and the papers on both sides. The sea's third circle, a page
-// of its own (not a flow with steps), built as a council between two voices: + speaks in the light blue, − in its deep
+// Research (PLAN-RESEARCH.md section 2, Q4): a question, and the papers on both sides. The third circle under the shelf, a
+// page of its own (not a flow with steps), built as a council between two voices: + speaks in the light blue, − in its deep
 // twin, and every line either speaks is a paper's own title.
 //
 //   #/flow/research               the blank page: the question at the title size, the caret ready, Ask under the thumb
@@ -35,6 +35,7 @@ import { ask, askAgain, liftEarlier, linesOfPicks, live, startRun, stopRun, type
 import type { Inquiry, Paper, RunResult, Side } from '../../research/types';
 import type { ResearchKey } from '../../db/schema';
 import { paperToCouncil, writeAboutPaper } from '../../model/into';
+import { linkAsked, questionTitle } from '../../model/story';
 import './research.css';
 
 /** The app's fixed print on Research (rule 36): the only words here that are not his or a paper's. */
@@ -88,9 +89,17 @@ function header(extra: { here?: 'asked' } = {}) {
 // ---------------------------------------------------------------- the blank page
 
 export function ResearchAsk() {
-  const { route } = useLocation();
+  const { route, query } = useLocation();
   const key = useKey();
   const [text, setText] = useState('');
+  // "Research this" on a question page (PLAN-WORLDS.md W4, #/flow/research?from=<page>): the question comes with it
+  const from = query.from;
+  useEffect(() => {
+    if (!from) return;
+    let on = true;
+    void questionTitle(from).then(t => { if (on && t) setText(t); }).catch(() => undefined);
+    return () => { on = false; };
+  }, [from]);
   const [offline, setOffline] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const still = isStill();
@@ -108,7 +117,8 @@ export function ResearchAsk() {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) { setOffline(true); return; }
     // the soft bell at the run's end rings outside a tap: its context is woken inside this one
     wakeBells();
-    const inquiry = await ask(q);
+    const inquiry = await ask(q, Date.now(), from ? { pageId: from } : undefined);
+    if (from) await linkAsked(from, inquiry.id).catch(() => undefined);
     route(`/flow/research/${inquiry.id}`);
   };
   const noKey = key === undefined;
@@ -289,6 +299,8 @@ export function ResearchInquiry({ id }: { id: string }) {
         data-checking={run?.checking ? '' : undefined}>
         <div ref={chat} class="fs-chat fs-rules">
           {inquiry && <p class="rs-q">{inquiry.question}</p>}
+          {/* researched from a question page (W4): the way back to it */}
+          {inquiry?.pageId && <a class="rs-print rs-from" href={`#/questions/${inquiry.pageId}`}>Its question page</a>}
           {shown && shown.earlier.map((e, i) => (
             <div key={`e${i}`} class="rs-earlier fs-notstill" data-earlier={i}>
               {e.lines.map(l => <PaperRow key={keyOf(l)} id={id} line={l} struck />)}

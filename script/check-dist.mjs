@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// The built app makes no network request after the first load except from src/music, src/research and src/push, each
-// opt-in (DESIGN.md rule 22, PLAN.md section 2). src/push (PLAN-PUSH.md, N0) reaches no other host at all: only this
-// app's own origin, under /api/push/, so it is named below in SAME_ORIGIN, not in INERT.
+// The built app makes no network request after the first load except from src/music, src/research, src/push and
+// src/bridge, each opt-in (DESIGN.md rule 22, PLAN.md section 2). src/push (PLAN-PUSH.md, N0) and src/bridge
+// (PLAN-WORLDS.md section 5) reach no other host at all: only this app's own origin, src/push under /api/push/ and
+// src/bridge at its one function, /.netlify/functions/bridge. So both are named below in SAME_ORIGIN, not in INERT.
 // This scans dist/ for any http(s) URL. A few strings are inert text inside libraries (XML namespaces,
 // links inside error messages that are never fetched); they are listed here by name, with the reason.
 // Anything else fails. The Playwright smoke test proves the runtime half: no request leaves the origin.
@@ -20,7 +21,6 @@ const INERT = [
   [/^https:\/\/accounts\.spotify\.com$/, 'src/music: the PKCE sign-in, opt-in'],
   [/^https:\/\/api\.spotify\.com\/v1$/, 'src/music: the Web API, opt-in'],
   [/^https:\/\/open\.spotify\.com\/playlist\/(\$\{[\w$]+\}|0T6Gzc2hN81u3vGC5IJZ9a)$/, 'src/music: the playlist link, a navigation'],
-  [/^https:\/\/open\.spotify\.com\/album\/\$\{[\w$]+\}$/, 'src/music: an album link from a sign\'s shelf with no account (openAlbum), a navigation'],
   // (a minified build may name the id's variable with a $, as $p: still the same template, not a URL)
   // Research (PLAN-RESEARCH.md sections 3 and 4, Q2): src/research is the second place allowed to reach out, opt-in
   // like Spotify: nothing is sent until a key is pasted in Settings and a question is asked. The API's base URL and the
@@ -46,12 +46,15 @@ const INERT = [
   [/^https:\/\/platform\.claude\.com\/docs\/en\/build-with-claude\/adaptive-thinking$/, '@anthropic-ai/sdk: text of a thinking-config warning'],
   [/^https:\/\/platform\.claude\.com\/docs\/en\/cli-sdks-libraries\/sdks\/typescript#(streaming-responses|long-requests)$/, '@anthropic-ai/sdk: text of a long-request error'],
 ];
-// Same-origin paths under /api/ are a server's: a quoted string beginning /api/ anywhere in the build is checked here,
-// and only those named pass. Anything else under /api/ fails, as an unnamed host does.
+// Same-origin paths under /api/ and /.netlify/ are a server's: a quoted string beginning /api/ or /.netlify/ anywhere
+// in the build is checked here, and only those named pass. Anything else under either fails, as an unnamed host does.
 const SAME_ORIGIN = [
   // The Sunday question's push (PLAN-PUSH.md section 5): GET key, POST subscribe, unsubscribe and test, opt-in, from
   // src/push only (lint DL21). Its paths may be a template on one base ("/api/push/${route}").
   [/^\/api\/push(\/[\w${}./-]*)?$/, 'src/push: the Sunday question\'s Web Push, same origin, opt-in'],
+  // The bridge (PLAN-WORLDS.md section 5, docs/BRIDGE.md): the one function, with or without its ?op= query, opt-in by
+  // a token and a world worn, from src/bridge only (lint DL21; test/bridge/fence.test.ts holds it to this path).
+  [/^\/\.netlify\/functions\/bridge(\?[\w${}.=&-]*)?$/, 'src/bridge: the one function, same origin, opt-in'],
 ];
 const dir = process.argv[2] || 'dist';
 if (!fs.existsSync(dir)) { console.error(`${dir} not found: run npm run build first`); process.exit(2); }
@@ -67,12 +70,12 @@ for (const f of files.filter(f => /\.(html|js|css|json|webmanifest|svg|txt)$/.te
     bad++;
     console.log(`${f}: ${url}`);
   }
-  for (const m of text.matchAll(/["'`](\/api\/[^"'`\s]*)/g)) {
+  for (const m of text.matchAll(/["'`](\/(?:api|\.netlify)\/[^"'`\s]*)/g)) {
     const p = m[1];
     if (SAME_ORIGIN.some(([re]) => re.test(p))) { same++; continue; }
     bad++;
     console.log(`${f}: ${p} (same origin, not named)`);
   }
 }
-console.log(`${bad ? 'FAIL' : 'PASS'}  check-dist: ${files.length} files, ${bad} external URL${bad === 1 ? '' : 's'} or unnamed /api/ path${bad === 1 ? '' : 's'} (${inert} inert library strings allowed by name, ${same} same-origin /api/push/ path${same === 1 ? '' : 's'})`);
+console.log(`${bad ? 'FAIL' : 'PASS'}  check-dist: ${files.length} files, ${bad} external URL${bad === 1 ? '' : 's'} or unnamed same-origin path${bad === 1 ? '' : 's'} (${inert} inert library strings allowed by name, ${same} same-origin /api/push/ or bridge path${same === 1 ? '' : 's'})`);
 process.exit(bad ? 1 : 0);

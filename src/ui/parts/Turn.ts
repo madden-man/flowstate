@@ -13,7 +13,7 @@
 /** The longest a turn waits for the new page before showing whatever is there. */
 export const WAIT_MS = 120;
 
-type VT = { finished: Promise<void>; updateCallbackDone: Promise<void>; skipTransition(): void };
+type VT = { finished: Promise<void>; ready?: Promise<void>; updateCallbackDone: Promise<void>; skipTransition(): void };
 type Doc = Document & { startViewTransition?: (update: () => void | Promise<void>) => VT };
 
 let running = 0;
@@ -56,6 +56,9 @@ export async function turn(kind: string, update: () => void | Promise<void>, opt
       opts.settle?.();
     });
     current = { vt, cut };
+    // ready rejects (AbortError, "Transition was skipped") whenever a newer turn or a touch skips this one; nothing
+    // awaits it, so it is heard here, or the browser reports it as an unhandled rejection
+    vt.ready?.catch(() => undefined);
     await vt.finished;
   } catch {
     // skipped by a newer turn, or the page went away: the change itself has happened

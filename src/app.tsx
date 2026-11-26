@@ -1,6 +1,6 @@
 // Routes and the tab bar (PLAN.md section 5). Four words and the ? mark (V2), always visible; hash routes so
 // deep links and standalone mode both work: #/journal/:id, #/journal/pages, #/questions, #/questions/:id,
-// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/energize/stuck (X4), #/flow/:id/:step, #/flow/c/:chakra (R3: a stop's page; a flow under a sign opens it). The old #/journal/questions goes to #/questions.
+// #/council/:id, #/be/:id, #/flow, #/flow/now, #/flow/meditate, #/flow/research (and /asked, /:id, /:id/:paper; Q4), #/flow/:id, #/flow/songs, #/flow/songs/:id, #/flow/hum (W6, a world's only), #/flow/energize/stuck (X4), #/flow/:id/:step. #/flow is the shelf (PLAN-WORLDS.md section 4); #/flow/c/:chakra, the signs' pages, left with the mountain (section 4.1) and goes back to #/flow. The old #/journal/questions goes to #/questions.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Router, Route, useLocation } from 'preact-iso';
 import { HashLocation, Redirect, readHash, TABS } from './ui/route';
@@ -10,33 +10,37 @@ import { Questions, QuestionPage } from './ui/questions/Questions';
 import { Council } from './ui/council/Council';
 import { Be } from './ui/be/Be';
 import { Flow } from './ui/flow/Flow';
-import { FlowPage } from './ui/flow/FlowPage';
-import { FlowRoute, DoorChakraPage } from './ui/flow/ChakraPage';
+import { FlowPage, FlowRoute } from './ui/flow/FlowPage';
 import { Now } from './ui/flow/Now';
 import { Stuck } from './ui/flow/Stuck';
 import { Meditate, sitting } from './ui/flow/Meditate';
 import { ResearchAsk, ResearchAsked, ResearchInquiry, ResearchPaper } from './ui/flow/Research';
+import { SongsList, SongPage, NewSong, Hums } from './ui/songs/Songs';
 import { afterUnlock } from './ui/flow/door';
 import { doorPasses } from './model/door';
 import { DoorPin } from './ui/lock/DoorPin';
-import { CheckinAsk, checkinLanded } from './ui/journal/checkin';
+import { ASK_CHECKIN, CheckinAsk, checkinLanded } from './ui/journal/checkin';
 import { onOpen } from './model/flows';
 import { FIXATION_FLOW } from './model/fixations';
 import { Voices } from './ui/voices/Voices';
 import { SettingsSheet } from './ui/settings/SettingsSheet';
 import { MusicSheet, AlbumPagesSheet } from './ui/music/MusicSheet';
 import { PlaylistsSheet } from './ui/music/PlaylistsSheet';
+import { WearsSheet } from './ui/flow/WearsSheet';
+import { YearSheet } from './ui/world/YearSheet';
+import { wear, wornWorld } from './ui/notebook';
 import { QuietLine } from './ui/UpdateToast';
 import { openSheet, dataVersion } from './ui/sheets';
 import { earlierOpen } from './ui/parts/Earlier';
-import { cleanSeedPages, moveDoctorLineOnce, seedBlockersOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from './db/seed';
+import { cleanSeedPages, moveDoctorLineOnce, seedFixationsOnce, seedFlowsOnce, seedPicksOnce, valuesFromParadoxesOnce } from './db/seed';
 import { loadSettings, settings } from './ui/settings';
 import { tick } from './ui/parts/Haptic';
 import { Threshold, thresholdWanted } from './ui/parts/Threshold';
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, ComponentType } from 'preact';
 import { LockPad } from './ui/lock/Lock';
 import { gateState } from './ui/lock/pin';
 import { startRelock } from './ui/lock/relock';
+import { carryOnOpen, pocketVersion } from './model/carry';
 
 // the bar's words live with the turns now (ui/turns.ts), which turn by their order
 export { TABS };
@@ -127,8 +131,8 @@ function Frame() {
           <Route path="/be/:id" component={Be} />
           <Route path="/flow" component={Flow} />
           {/* before /flow/:id, so no flow can ever be called "now" or "meditate" */}
-          <Route path="/flow/now" component={Now} />
-          <Route path="/flow/meditate" component={Meditate} />
+          <Route path="/flow/now" component={OwnNow} />
+          <Route path="/flow/meditate" component={OwnMeditate} />
           <Route path="/flow/meditate/:step" component={() => <Redirect to="/flow/meditate" />} />
           {/* Research (PLAN-RESEARCH.md section 5, Q4): the blank page, Asked, a question, a paper's page; before
               /flow/:id and /flow/:id/:step, so no flow is ever called "research" */}
@@ -136,14 +140,18 @@ function Frame() {
           <Route path="/flow/research/asked" component={ResearchAsked} />
           <Route path="/flow/research/:id" component={ResearchInquiry} />
           <Route path="/flow/research/:id/:paper" component={ResearchPaper} />
-          {/* a stop's page (PLAN-MOUNTAIN.md R3), before /flow/:id/:step so "c" is never read as a flow; one component for
-              all three, so a dot moved on a stop's page keeps the page (ui/flow/ChakraPage.tsx FlowRoute) */}
-          <Route path="/flow/c/:chakra" component={FlowRoute} />
-          <Route path="/flow/:id" component={FlowRoute} />
+          {/* Songs (PLAN-WORLDS.md section 6, W6), in a world only; before /flow/:id so no flow is ever called "songs" */}
+          <Route path="/flow/songs" component={WorldSongs} />
+          <Route path="/flow/songs/new" component={WorldNewSong} />
+          <Route path="/flow/songs/:id" component={WorldSong} />
+          <Route path="/flow/hum" component={WorldHums} />
+          {/* where a sign's page was (PLAN-WORLDS.md section 4.1), before /flow/:id/:step so "c" is never read as a flow */}
+          <Route path="/flow/c/*" component={() => <Redirect to="/flow" />} />
+          <Route path="/flow/:id" component={OwnFlow} />
           {/* What stuck (PLAN-ENERGIZE.md X4), before /flow/:id/:step so it is never read as a step; behind the PIN only:
               the door frame has no such route and model/door.ts doorPasses lets no word step through */}
-          <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={Stuck} />
-          <Route path="/flow/:id/:step" component={FlowRoute} />
+          <Route path={`/flow/${FIXATION_FLOW}/stuck`} component={OwnStuck} />
+          <Route path="/flow/:id/:step" component={OwnFlow} />
           <Route path="/voices" component={Voices} />
           <Route default component={() => <Redirect to="/journal" />} />
         </Router>
@@ -151,6 +159,8 @@ function Frame() {
         <MusicSheet />
         <AlbumPagesSheet />
         <PlaylistsSheet />
+        <WearsSheet />
+        <YearSheet />
         <QuietLine />
         {/* PLAN-PUSH.md N1: #/journal?ask=checkin lands on today's page with the Sunday question, once the PIN has opened it */}
         <CheckinAsk />
@@ -159,6 +169,26 @@ function Frame() {
     </div>
   );
 }
+
+/** His own pages only (PLAN-WORLDS.md section 3): Meditate, Energize, Right now and the flows are reached only from My
+ *  own pages, so with a world worn their routes go back to the shelf, where the circles under his cover put it on. */
+function own<P extends object>(C: ComponentType<P>) {
+  return (props: P) => (wornWorld.value !== null ? <Redirect to="/flow" /> : <C {...props} />);
+}
+const OwnNow = own(Now);
+const OwnMeditate = own(Meditate);
+const OwnFlow = own(FlowRoute);
+const OwnStuck = own(Stuck);
+
+/** A world's only (PLAN-WORLDS.md sections 4 and 6, W6): Songs live in a world; with his own pages worn their routes go
+ *  back to the shelf (his notebook has no Songs row). */
+function inWorld<P extends object>(C: ComponentType<P>) {
+  return (props: P) => (wornWorld.value === null ? <Redirect to="/flow" /> : <C {...props} />);
+}
+const WorldSongs = inWorld(SongsList);
+const WorldNewSong = inWorld(NewSong);
+const WorldSong = inWorld(SongPage);
+const WorldHums = inWorld(Hums);
 
 /** The app opens on a live episode once per load, not on every unlock. */
 let openedOnce = false;
@@ -171,14 +201,17 @@ const DoorMeditate = () => <Meditate doorOnly />;
  *  tab bar and no sheet but the PIN's own; Meditate S3 adds #/flow/meditate, whose sit fades the frame as it does
  *  unlocked. Every other hash shows the keypad (the Gate). */
 function DoorFrame() {
+  // the door stays personal (PLAN-WORLDS.md section 3): whatever is worn, it opens his own Right now, so a world worn
+  // is taken off before anything of the door is drawn
+  const inWorld = wornWorld.value !== null;
+  useEffect(() => { if (inWorld) void wear(null); }, [inWorld]);
+  if (inWorld) return null;
   return (
     <div class="fs-app" data-door data-sitting={sitting.value ? 'true' : undefined}>
       <main class="fs-main">
         <Router>
           <Route path="/flow/now" component={DoorNow} />
           <Route path="/flow/meditate" component={DoorMeditate} />
-          {/* a sign's page (PLAN-TASKS.md section 7): the place and the touches that write nothing */}
-          <Route path="/flow/c/:chakra" component={DoorChakraPage} />
           <Route path="/flow/:id/:step" component={DoorFlowPage} />
         </Router>
         <DoorPin />
@@ -197,6 +230,11 @@ function Gate({ children }: { children: ComponentChildren }) {
   const locked = gateState() === 'locked';
   // the locked threshold was the breath: once the PIN opens the app, the page comes straight up
   useEffect(() => { if (locked) setBreath(false); }, [locked]);
+  // once it is open, a world worn is carried (PLAN-WORLDS.md section 5, W2): what waits goes up, the pocket comes down;
+  // with no token, or his own pages worn, nothing is asked for
+  useEffect(() => { if (!locked) void carryOnOpen(); }, [locked]);
+  // a pocket come down: the shelf, the header's year and the chips read the settings row again (W4)
+  useEffect(() => { if (pocketVersion.value) void loadSettings().catch(() => undefined); }, [pocketVersion.value]);
   // once it is open, a journal seeded before V5 loses the seed pages it never wrote on (seed.ts cleanSeedPages)
   useEffect(() => {
     if (locked) return;
@@ -208,8 +246,12 @@ function Gate({ children }: { children: ComponentChildren }) {
   // step's usual span opens its flow page instead of the journal (PLAN-FLOWS.md 3.7); a deep link anywhere else stays.
   // The door (F5): locked with the door on, the live episode opens read-only through the door. Once the PIN opens
   // the journal, the dot put through the door is written first (ui/flow/door.ts), and the page stays where it is.
-  const { route, path } = useLocation();
+  const { route, path, query } = useLocation();
   const doorOn = !!settings.value.flowDoor;
+  // the Sunday question's notification (PLAN-PUSH.md N3) opens his own pages whatever is worn, as the door does: the
+  // world comes off before the keypad, so the lock screen names no world; the landing (journal/checkin.tsx) once open
+  const askingCheckin = query.ask === ASK_CHECKIN;
+  useEffect(() => { if (locked && askingCheckin && wornWorld.peek() !== null) void wear(null); }, [locked, askingCheckin]);
   useEffect(() => {
     if (locked) {
       if (!doorOn || openedOnce) return;
@@ -228,15 +270,13 @@ function Gate({ children }: { children: ComponentChildren }) {
         const written = await seedFlowsOnce();
         // the picks (PLAN-PICKS.md, P0) after the flows, so the four new On rows are there to give theirs
         const picked = await seedPicksOnce();
-        // the blockers (PLAN-BLOCKERS.md section 5, K3): the second listings and the six drafts, once, after the flows
-        const blocked = await seedBlockersOnce();
         // the fixations (PLAN-ENERGIZE.md section 5, X1): the first three and the deck, once, sealed like the flows
         const fixed = await seedFixationsOnce();
         // X5: Energize's doctor line moves from the rest page to The tip, once, after the flows are there
         const doctor = await moveDoctorLineOnce();
         // PLAN-VALUES.md section 5 (C1): each paradox made one value, once, sealed like the fixations
         const valued = await valuesFromParadoxesOnce();
-        if (wrote || written?.length || picked?.length || blocked?.length || fixed?.length || doctor || valued?.length) dataVersion.value++;
+        if (wrote || written?.length || picked?.length || fixed?.length || doctor || valued?.length) dataVersion.value++;
         if (openedOnce) return;
         openedOnce = true;
         const live = await onOpen();
@@ -253,7 +293,12 @@ function Gate({ children }: { children: ComponentChildren }) {
         <>
           <LockPad />
           {/* the door (F5): one word under the keypad, only with the door on in Settings */}
-          {doorOn && <a class="fs-word fl-door" href="#/flow/now">the ring</a>}
+          {doorOn && <a class="fs-word fl-door" href="#/flow/now" onClick={e => {
+            // the door opens his own Right now whatever is worn (PLAN-WORLDS.md section 3): the world comes off first
+            if (wornWorld.peek() === null) return;
+            e.preventDefault();
+            void wear(null).then(() => { location.hash = '#/flow/now'; });
+          }}>the ring</a>}
         </>
       } />
     );

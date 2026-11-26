@@ -22,15 +22,15 @@ describe('layers', () => {
     }
   });
   it('every table holding Tommy\'s own text goes through the sealing spec, page titles included', () => {
-    expect([...SECRET_TABLES].sort()).toEqual(['days', 'episodes', 'fixations', 'flows', 'inquiries', 'items', 'leans', 'marks', 'messages', 'pages', 'paradoxes', 'readings', 'settings', 'signShelves', 'values']);
+    expect([...SECRET_TABLES].sort()).toEqual(['days', 'episodes', 'fixations', 'flows', 'inquiries', 'items', 'leans', 'marks', 'messages', 'pages', 'paradoxes', 'readings', 'settings', 'signShelves', 'songs', 'takes', 'values']);
   });
   it('the Questions list reads titles through the model and store, never the database', () => {
     const journal = fs.readFileSync('src/ui/questions/Questions.tsx', 'utf8');
     expect(journal).toMatch(/questions\(\)/);
     expect(fs.readFileSync('src/model/pages.ts', 'utf8')).toMatch(/export async function questions[\s\S]*?store\.query\('pages'/);
   });
-  it('no file outside src/music, src/research and src/push fetches (DESIGN.md rule 22)', () => {
-    const fenced = (f: string) => f.startsWith(path.join('src', 'music')) || f.startsWith(path.join('src', 'research')) || f.startsWith(path.join('src', 'push'));
+  it('no file outside src/music, src/research, src/push and src/bridge fetches (DESIGN.md rule 22)', () => {
+    const fenced = (f: string) => ['music', 'research', 'push', 'bridge'].some(d => f.startsWith(path.join('src', d)));
     for (const [f, text] of src('src').filter(([f]) => !fenced(f))) expect(text, f).not.toMatch(/\bfetch\s*\(/);
   });
   it('src/push fetches only its own origin\'s /api/push/ (PLAN-PUSH.md section 5)', () => {

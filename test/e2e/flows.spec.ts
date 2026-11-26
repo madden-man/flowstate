@@ -1,11 +1,10 @@
-// The flows (F1, PLAN-FLOWS.md section 6). A flow under a sign has its own page again (PLAN-BLOCKERS.md K3): a deep
-// link reads a step and starts nothing; Right now starts the episode and a step word moves the dot; a reload offline
-// keeps the marks and the app opens on the live episode instead of the journal; the mountain carries the dot; Still
-// shows no digits on the page; back to rest ends it. On a flow under no sign (the flow page, with the drawing;
-// Panic taken off its sign, ./no-sign.ts): dragging the dot to a detent starts an episode, the keys walk the ring, the
-// clock reads in the middle and a thumb held there runs the breath.
+// The flows (F1, PLAN-FLOWS.md section 6). Every flow has its own page: a deep link reads a step and starts nothing;
+// Right now starts the episode and a step word moves the dot; a reload offline keeps the marks and the app opens on the
+// live episode instead of the journal; Still shows no digits on the page; back to rest ends it. On the flow page, with
+// the drawing: dragging the dot to a detent starts an episode, the keys walk the ring, the clock reads in the middle and
+// a thumb held there runs the breath.
 import { test, expect, type Page } from '@playwright/test';
-import { offItsSign } from './no-sign';
+import { whenSeeded } from './seeded';
 
 /** Screen points along the drawing's walk, from the page's own geometry (the ring's circle in its viewBox). */
 const along = (page: Page, from: number, to: number, steps = 12) => page.evaluate(([a, b, k]) => {
@@ -46,16 +45,16 @@ const visibleWords = (page: Page) => page.locator('.fs-flowpage').evaluate(el =>
   return out.join(' ');
 });
 
-test('a flow under a sign has its own page: a deep link reads a step, Right now starts the episode, an offline reload opens on it, Still has no digits, rest ends it', async ({ page }) => {
+test('a flow\'s own page: a deep link reads a step, Right now starts the episode, an offline reload opens on it, Still has no digits, rest ends it', async ({ page }) => {
   await enter(page, '/#/flow/panic/2');
   const t = page.locator('[data-threshold]');
 
-  // the deep link reads step 2 on Panic's own page (PLAN-BLOCKERS.md K3); nothing is started (walk it once)
+  // the deep link reads step 2 on Panic's own page; nothing is started (walk it once)
   const pageBody = page.locator('.fs-flowpage[data-flow="panic"]');
   await expect(pageBody).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(pageBody.locator('.fl-drawing .fs-cycle')).toBeVisible();
-  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Root', exact: true })).toHaveAttribute('href', '#/flow/c/root');
+  // the way back is Flow, where Right now is (PLAN-WORLDS.md section 4)
+  await expect(page.locator('.fs-hdr').getByRole('link', { name: 'Flow', exact: true })).toHaveAttribute('href', '#/flow');
   const dot = page.getByRole('slider', { name: 'Where you are' });
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   const words = pageBody.locator('.fs-cycle-word');
@@ -85,12 +84,6 @@ test('a flow under a sign has its own page: a deep link reads a step, Right now 
   await expect(dot).toHaveAttribute('aria-valuenow', '2');
   await expect.poll(async () => (await episodes(page))[0].marks.map(m => m.stepId)).toEqual(['panic-1', 'panic-2']);
 
-  // the mountain: Panic's sign (the root) carries the dot and its halo while the episode is open
-  await page.goto('/#/flow');
-  await expect(page).toHaveURL(/#\/flow$/);
-  await expect(page.locator('a.mt-stop[data-chakra="root"]')).toHaveAttribute('data-live', 'true');
-  await expect(page.locator('a.mt-stop[data-chakra="root"] .mt-dot')).toHaveCount(1);
-  await expect(page.locator('a.mt-stop[data-live]')).toHaveCount(1);
 
   // offline, a reload on the journal opens on the live episode instead, on the flow's own page
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -104,7 +97,6 @@ test('a flow under a sign has its own page: a deep link reads a step, Right now 
   if (await t.count()) await t.click();
   await expect(page).toHaveURL(/#\/flow\/panic\/2$/);
   await expect(pageBody).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   expect((await episodes(page))[0].marks.map(m => m.stepId)).toEqual(['panic-1', 'panic-2']);
 
   // Still: the step words and the drawing; no said line, and no digit anywhere on the page
@@ -129,15 +121,14 @@ test('a flow under a sign has its own page: a deep link reads a step, Right now 
   await expect(pageBody.locator('.fl-last')).toHaveText(/^Last time · \d+ \/ \d+/);
 });
 
-test('flows under no sign: the drawing, a drag to a detent, the keys, the clock and the held breath, Still\'s words, last time', async ({ page }) => {
+test('a flow page\'s drawing: a drag to a detent, the keys, the clock and the held breath, Still\'s words, last time', async ({ page }) => {
   await enter(page, '/#/flow');
-  await offItsSign(page, 'panic');
+  await whenSeeded(page, 'panic');
   await page.goto('/#/flow/panic/2');
 
-  // off its sign Panic is the flow page: the deep link reads step 2 with his line, the said paragraph and "Usually"
+  // Panic's flow page: the deep link reads step 2 with his line, the said paragraph and "Usually"
   const pageBody = page.locator('.fs-flowpage');
   await expect(pageBody).toHaveAttribute('data-showing', '2');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   await expect(pageBody.locator('.fs-cycle')).toHaveCount(1);
   await expect(pageBody.locator('.fl-step-page > .fl-line')).toHaveText('The wave. Loud, fast, certain.');
   await expect(pageBody.locator('.fl-step-page > .fl-said')).toContainText("it's already on its way out");
@@ -221,7 +212,7 @@ const episode = async (page: Page) => (await page.evaluate(() => new Promise<{ d
   };
 })))[0];
 
-test('what to do (F2) on a flow under a sign: a tick persists offline, the Still row settles, the journal links both ways, the step sheet strikes', async ({ page }) => {
+test('what to do (F2) on a flow: a tick persists offline, the Still row settles, the journal links both ways, the step sheet strikes', async ({ page }) => {
   await enter(page, '/#/flow/panic/1');
   const t = page.locator('[data-threshold]');
   const body = page.locator('.fs-flowpage[data-flow="panic"]');
@@ -306,12 +297,11 @@ test('what to do (F2) on a flow under a sign: a tick persists offline, the Still
   await expect(sheet.locator('[aria-label="Earlier"] [data-struck]')).toContainText(['Cold water on your wrists and face']);
 });
 
-test('the ring by keys (F4), on a flow under no sign: right walks the steps, and right from Under the skin wraps to rest and ends it', async ({ page }) => {
+test('the ring by keys (F4): right walks the steps, and right from Under the skin wraps to rest and ends it', async ({ page }) => {
   await enter(page, '/#/flow');
-  await offItsSign(page, 'panic');
+  await whenSeeded(page, 'panic');
   await page.goto('/#/flow/panic');
   const body = page.locator('.fs-flowpage');
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   const dot = page.getByRole('slider', { name: 'Where you are' });
   await expect(dot).toHaveAttribute('aria-valuenow', '0');
   for (const [k, name] of [[1, 'Overstimulated'], [2, 'The wave'], [3, 'Settling'], [4, 'Under the skin']] as const) {

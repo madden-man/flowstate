@@ -3,7 +3,7 @@
 // the steps the keypad drives: choose, check, change, turn off, and the wrong-try pause.
 import { signal } from '@preact/signals';
 import { deriveKey, randomSalt, checkVerifier, PBKDF2_ITERATIONS } from '../../db/crypto';
-import { setKey, removeKey, unlock, lock, keyState, type KeyState } from '../../db/fields';
+import { setKey, removeKey, unlock, lock, keyState, lockSalts, type KeyState } from '../../db/fields';
 import { settings, loadSettings } from '../settings';
 import { openSheet } from '../sheets';
 
@@ -58,8 +58,10 @@ export type TryResult = { ok: true } | { ok: false; waitMs: number };
 
 /** The lock screen: the right PIN opens the journal; a wrong one counts towards the pause. */
 export async function tryPin(pin: string): Promise<TryResult> {
-  const k = await keyFor(pin);
-  if (k && (await unlock(k))) {
+  // the lock's own salt first; while a PIN change was stopped halfway, the move's two as well (fields.ts setKey)
+  for (const { salt, iterations } of lockSalts(settings.value.lock)) {
+    const k = await deriveKey(pin, salt, iterations ?? PBKDF2_ITERATIONS);
+    if (!(await unlock(k))) continue;
     wrong = 0;
     await loadSettings(); // the sealed parts of settings (the Spotify tokens) open now
     sync();

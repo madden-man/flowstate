@@ -51,6 +51,10 @@ export default defineConfig({
         // Every built file is precached: the app must open in airplane mode (PLAN.md section 2).
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,ico,txt}'],
         navigateFallback: '/index.html',
+        // PLAN-WORLDS.md section 5 (W2): the bridge function is never answered from the cache or with the app's page;
+        // nothing under /.netlify/ is precached (globPatterns reads dist, where it never is) and no runtime route is set.
+        // The same for the Sunday question's /api/push/* (PLAN-PUSH.md section 5), the push function's own path.
+        navigateFallbackDenylist: [/^\/\.netlify\//, /^\/api\//],
         cleanupOutdatedCaches: true,
         // The Sunday question's push and notificationclick handlers (PLAN-PUSH.md section 5, N3): public/push-sw.js,
         // copied to the root of dist and precached with the rest, pulled into the generated worker by name.

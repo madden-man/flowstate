@@ -32,17 +32,12 @@ async function enter(page: Page, url: string) {
   await expect(t).toHaveCount(0);
 }
 
-// R3: a flow under no sign keeps the old flow page, and with it the note to the next one of you (PLAN-MOUNTAIN.md
-// section 6 takes the note off a sign's page only). Panic is taken off its sign here, so it is such a flow.
-test('a flow under no sign: the note asked once and shown at its step offline, gone in Still with its date', async ({ page }) => {
+// A flow's page, and with it the note to the next one of you.
+test('a flow\'s page: the note asked once and shown at its step offline, gone in Still with its date', async ({ page }) => {
   await enter(page, '/#/flow');
-  const panic = (await all(page, 'flows')).find(f => f.id === 'panic')!;
-  delete panic.chakra;
-  await put(page, 'flows', panic);
+  await expect.poll(async () => (await all(page, 'flows')).some(f => f.id === 'panic')).toBe(true);
   await page.goto('/#/flow/panic');
-  await page.reload();
   await expect(page.locator('.fs-flowpage')).toBeVisible();
-  await expect(page.locator('.ck-page')).toHaveCount(0);
   const dot = page.getByRole('slider', { name: 'Where you are' });
   await expect(page.locator('.fl-ghosts')).toHaveCount(0);
 
@@ -101,12 +96,11 @@ test('a flow under no sign: the note asked once and shown at its step offline, g
   await page.getByRole('button', { name: 'Leave Still' }).click();
 });
 
-test('carried forward on a flow under a sign: its own page again, the person row', async ({ page }) => {
-  // Panic has its own page again (PLAN-BLOCKERS.md K3), its drawing on it; the Root's page carries none of it
+test('carried forward on a flow\'s own page: the person row', async ({ page }) => {
+  // Panic's own page, its drawing on it
   await enter(page, '/#/flow/panic/3');
   await expect(page.locator('.fs-flowpage[data-flow="panic"]')).toHaveAttribute('data-showing', '3');
   await expect(page.locator('.fs-flowpage .fl-drawing .fs-cycle')).toBeVisible();
-  await expect(page.locator('.ck-page')).toHaveCount(0);
 
   // the person row at Settling: no name yet, so it opens its sheet; filled, it is a link to Messages
   const empty = page.locator('[data-tip="panic-3-person"] .fl-person-empty');
@@ -146,7 +140,6 @@ test('your own stamps: the morning after a prediction, one tap, and the outcome 
   await page.reload();
   await expect(page.locator('.fl-stampask')).toHaveCount(0);
   await page.goto(`/#/flow/${flowId}`);
-  // the flow's own page (PLAN-BLOCKERS.md K3): its drawing, with the kept outcome as his stamp
+  // the flow's own page: its drawing, with the kept outcome as his stamp
   await expect(page.locator(`.fs-flowpage[data-flow="${flowId}"] .fl-drawing .fs-cycle`)).toBeVisible();
-  await expect(page.locator('.ck-page')).toHaveCount(0);
 });

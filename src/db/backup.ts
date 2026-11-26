@@ -4,11 +4,22 @@
 // Import opens a sealed file with that file's own PIN, then stores every row the way this journal
 // stores rows now: sealed with the current key, or plain when the lock is off.
 // A merge import honours this phone's deleted list (settings.deleted, PLAN-VALUES.md C0): what was deleted stays deleted.
-import { db as defaultDb, type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
+// The outbox (PLAN-WORLDS.md section 9, W2) is never in a file and an import never touches it: its rows are sends this
+// phone still owes the bridge, and restored on another phone they would be sends that phone never made. What comes in
+// from a file is not sent up either (src/db/outbox.ts acts only in a transaction holding the outbox, and import's does
+// not); a row goes up when it is next written on this phone.
+// Per notebook (PLAN-WORLDS.md section 3, W1): export and import act on the notebook worn (fields.ts book), the file
+// says which notebook it is (notebook, absent for his own pages) and its name says so too, and a file is only ever
+// imported into its own notebook, so his own pages can never be carried into a world, nor a world's into his.
+import { type FlowDB, SCHEMA_VERSION, TABLES, type TableName, type Tables, type Sealed, type Settings, POEMS_ID, poemsPlaylist, shelvesFromV1, coverBytes, valueFromParadox, withSeedChakra, MOUNTAIN_VERSION, VALUES_VERSION } from './schema';
 import { isSealed, toB64, fromB64, checkVerifier } from './crypto';
-import { keyState, LockedError, openRow, storedForm } from './fields';
+import { book, keyState, LockedError, notebookOf, openRow, storedForm } from './fields';
 
 export const BACKUP_APP = 'flowstate';
+
+/** Every table a file carries: all but the outbox. */
+export type FileTable = Exclude<TableName, 'outbox'>;
+export const FILE_TABLES = TABLES.filter((t): t is FileTable => t !== 'outbox');
 
 export type BackupFile = {
   app: typeof BACKUP_APP;
@@ -20,7 +31,9 @@ export type BackupFile = {
   iterations?: number;
   verifier?: Sealed;
   digits?: number;
-  tables: { [K in TableName]: unknown[] };
+  /** PLAN-WORLDS.md section 3 (W1): the world this file is the notebook of, by id; absent for his own pages. */
+  notebook?: string;
+  tables: { [K in FileTable]: unknown[] };
   /** Set by parseBackup on a file older than this version: the version it was made at, so importData can give it what
    *  only an open journal can (a version 5 file's paradoxes as values, PLAN-VALUES.md section 5). Never exported. */
   madeAt?: number;
@@ -39,7 +52,7 @@ export class NeedsPinError extends BackupError {
 }
 
 /** A row's key as one string: albums by uri, a shelf row by its playlist and album (V7), the rest by id. */
-const pk = (t: TableName, row: Record<string, unknown>) => {
+const pk = (t: FileTable, row: Record<string, unknown>) => {
   if (t === 'albums') return String(row.albumUri);
   if (t === 'shelves') return row.playlistId === undefined || row.albumUri === undefined ? 'undefined' : `${row.playlistId} ${row.albumUri}`;
   return String(row.id);
@@ -52,7 +65,7 @@ const pk = (t: TableName, row: Record<string, unknown>) => {
  * the key named, the whole field dropped when that id is deleted (a line's `for`, whose valueId names a value). All
  * are clear fields of the stored form. A row whose own key is deleted never comes back whatever its table.
  */
-export const LINKS: { [K in TableName]?: { owner?: string[]; link?: string[]; links?: string[]; inner?: Record<string, string> } } = {
+export const LINKS: { [K in FileTable]?: { owner?: string[]; link?: string[]; links?: string[]; inner?: Record<string, string> } } = {
   items: { owner: ['paradoxId'], link: ['pairId', 'nextTo'] },
   leans: { owner: ['paradoxId'] },
   pages: { links: ['paradoxIds', 'valueIds'] },
@@ -66,25 +79,28 @@ async function coverOut(c: Blob | ArrayBuffer, type?: string): Promise<CoverJSON
 }
 const coverIn = (c: CoverJSON) => { const b = fromB64(c.b64); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer; };
 
-export async function exportData(database: FlowDB = defaultDb, now = Date.now()): Promise<BackupFile> {
+export async function exportData(database: FlowDB = book(), now = Date.now()): Promise<BackupFile> {
   const tables = {} as BackupFile['tables'];
-  await database.transaction('r', TABLES.map(t => database.table(t)), async () => {
-    for (const t of TABLES) tables[t] = await database.table(t).toArray();
+  await database.transaction('r', FILE_TABLES.map(t => database.table(t)), async () => {
+    for (const t of FILE_TABLES) tables[t] = await database.table(t).toArray();
   });
   tables.albums = await Promise.all(
     (tables.albums as Tables['albums'][]).map(async a => (a.cover ? { ...a, cover: await coverOut(a.cover, a.coverType), coverType: undefined } : a)),
   );
+  // a take's audio is bytes too (W2); sealed, it is already text inside the envelope and its clear copy holds none
+  tables.takes = (tables.takes as Tables['takes'][]).map(t => (t.audio instanceof ArrayBuffer && t.audio.byteLength ? { ...t, audio: { type: t.audioType ?? '', b64: toB64(new Uint8Array(t.audio)) } } : t));
   const lock = (tables.settings as Settings[]).find(r => r.id === 'app')?.lock;
-  const sealedRows = TABLES.some(t => (tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
+  const sealedRows = FILE_TABLES.some(t => (tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
   const header = lock?.enabled && lock.salt && lock.verifier && sealedRows
     ? { encrypted: true as const, salt: lock.salt, iterations: lock.iterations ?? 0, verifier: lock.verifier, ...(lock.digits ? { digits: lock.digits } : {}) }
     : {};
-  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, ...header, tables };
+  const notebook = notebookOf(database);
+  return { app: BACKUP_APP, schemaVersion: SCHEMA_VERSION, exportedAt: now, ...header, ...(notebook ? { notebook } : {}), tables };
 }
 
 /** The file's lock when any of its rows are sealed; null for a plain file. A sealed file with no usable header is damaged. */
 export function fileLock(file: BackupFile): FileLock | null {
-  const hasSealed = TABLES.some(t => (file.tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
+  const hasSealed = FILE_TABLES.some(t => (file.tables[t] as Record<string, unknown>[]).some(r => isSealed(r.sealed)));
   if (!hasSealed) return null;
   if (typeof file.salt !== 'string' || typeof file.iterations !== 'number' || file.iterations < 1 || !isSealed(file.verifier))
     throw new BackupError('This file is locked, and its lock is damaged');
@@ -97,8 +113,9 @@ export async function fileKeyFits(file: BackupFile, fileKey: CryptoKey): Promise
   return !!fl && checkVerifier(fileKey, fl.verifier);
 }
 
-export const fileName = (now = new Date()) =>
-  `flowstate-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`;
+/** The file's name: flowstate-2026-11-25.json for his own pages, flowstate-eastwinds-2026-11-25.json for a world's. */
+export const fileName = (now = new Date(), notebook?: string | null) =>
+  `flowstate-${notebook ? `${notebook}-` : ''}${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`;
 
 /** Validates the shape and the version. Throws BackupError with a plain reason. */
 export function parseBackup(text: string): BackupFile {
@@ -108,7 +125,10 @@ export function parseBackup(text: string): BackupFile {
   if (!f || f.app !== BACKUP_APP || typeof f.tables !== 'object' || !f.tables) throw new BackupError('Not a FlowState file');
   if (typeof f.schemaVersion !== 'number' || !Number.isInteger(f.schemaVersion) || f.schemaVersion < 1) throw new BackupError('No schema version');
   if (f.schemaVersion > SCHEMA_VERSION) throw new BackupError('Made by a newer FlowState');
-  for (const t of TABLES) {
+  if (f.notebook !== undefined && typeof f.notebook !== 'string') throw new BackupError('Not a FlowState file');
+  // a file never carries the outbox; one that somehow does has it dropped here, unread
+  delete (f.tables as Record<string, unknown>).outbox;
+  for (const t of FILE_TABLES) {
     const rows = (f.tables as Record<string, unknown>)[t];
     if (rows === undefined) (f.tables as Record<string, unknown[]>)[t] = [];
     else if (!Array.isArray(rows) || rows.some(r => !r || typeof r !== 'object' || !pk(t, r as Record<string, unknown>) || pk(t, r as Record<string, unknown>) === 'undefined'))
@@ -176,9 +196,11 @@ export type ImportResult = { added: number; updated: number; kept: number };
  * not merged: merge never deletes this phone's rows, so the list only guards against older files. Replace takes the
  * file's list with the rest of its settings row, and a file with no settings row clears it: the file's rows come back.
  */
-export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = defaultDb, fileKey?: CryptoKey): Promise<ImportResult> {
+export async function importData(file: BackupFile, mode: ImportMode, database: FlowDB = book(), fileKey?: CryptoKey): Promise<ImportResult> {
   // Locked, there is no key to store the rows with; the gate keeps the UI from ever getting here.
   if (keyState() === 'locked') throw new LockedError();
+  // a file goes back only into its own notebook (PLAN-WORLDS.md section 3): never his pages into a world, nor back
+  if ((file.notebook ?? null) !== notebookOf(database)) throw new BackupError('This file is from another notebook');
   const fl = fileLock(file);
   if (fl) {
     if (!fileKey) throw new NeedsPinError();
@@ -188,24 +210,34 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
   const mine = await database.settings.get('app');
   const myLock = mine?.lock;
   const gone = new Set(mode === 'merge' ? mine?.deleted ?? [] : []);
-  const incoming = {} as { [K in TableName]: Record<string, unknown>[] };
+  const incoming = {} as { [K in FileTable]: Record<string, unknown>[] };
   const openedParadoxes: (Tables['paradoxes'] & { locked?: true })[] = [];
-  for (const t of TABLES) {
+  for (const t of FILE_TABLES) {
     const rows: Record<string, unknown>[] = [];
     for (const r of file.tables[t] as Record<string, unknown>[]) {
       let row = t === 'albums' && r.cover && typeof r.cover === 'object' && 'b64' in (r.cover as object) ? { ...r, cover: coverIn(r.cover as CoverJSON), coverType: (r.cover as CoverJSON).type || undefined } : r;
+      if (t === 'takes' && r.audio && typeof r.audio === 'object' && !(r.audio instanceof ArrayBuffer)) row = { ...r, audio: 'b64' in (r.audio as object) ? coverIn(r.audio as CoverJSON) : new ArrayBuffer(0) };
       // open with the file's key (a wrong one throws before anything is written), then store as this journal stores rows
       let opened = (await openRow(t, row as never, fileKey ?? null)) as Record<string, unknown>;
       if (t === 'paradoxes') openedParadoxes.push(opened as Tables['paradoxes']);
       if (t === 'settings') {
         opened = { ...opened, lock: myLock ?? { enabled: false, relockAfterMin: (opened.lock as Settings['lock'] | undefined)?.relockAfterMin ?? 5 } };
-        // Push is this phone's subscription (PLAN-PUSH.md N3): a file never switches it on or off here.
-        const theirs = opened.checkin as Settings['checkin'];
-        const ours = mine?.checkin;
-        if (theirs) {
-          const { push: _theirPush, ...rest } = theirs;
-          opened = { ...opened, checkin: ours?.push ? { ...rest, push: true } : rest };
-        } else if (ours?.push) opened = { ...opened, checkin: ours };
+        // the notebook worn and the registry are this phone's now, whatever the file was made with (PLAN-WORLDS.md)
+        delete opened.world; delete opened.worlds;
+        if (mine?.world) opened.world = mine.world;
+        if (mine?.worlds) opened.worlds = mine.worlds;
+        if (notebookOf(database) !== null) {
+          // the Sunday question is his own pages' (PLAN-PUSH.md, PLAN-WORLDS.md section 3): a world's row never holds it
+          delete opened.checkin;
+        } else {
+          // Push is this phone's subscription (PLAN-PUSH.md N3): a file never switches it on or off here.
+          const theirs = opened.checkin as Settings['checkin'];
+          const ours = mine?.checkin;
+          if (theirs) {
+            const { push: _theirPush, ...rest } = theirs;
+            opened = { ...opened, checkin: ours?.push ? { ...rest, push: true } : rest };
+          } else if (ours?.push) opened = { ...opened, checkin: ours };
+        }
       }
       row = (await storedForm(t, opened as never)) as Record<string, unknown>;
       rows.push(row);
@@ -223,8 +255,9 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
     }
   }
   const result: ImportResult = { added: 0, updated: 0, kept: 0 };
-  await database.transaction('rw', TABLES.map(t => database.table(t)), async () => {
-    for (const t of TABLES) {
+  // over the file's tables only, never the outbox: nothing imported is sent up as if it were written here
+  await database.transaction('rw', FILE_TABLES.map(t => database.table(t)), async () => {
+    for (const t of FILE_TABLES) {
       const tb = database.table(t);
       if (mode === 'replace') {
         // A file without a settings row keeps this phone's, so the seed never runs again over imported pages.
@@ -250,7 +283,7 @@ export async function importData(file: BackupFile, mode: ImportMode, database: F
 }
 
 /** The file's rows less what this phone deleted (merge only): a deleted row, the rows it owns, and the links to it. */
-function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
+function revived(t: FileTable, rows: Record<string, unknown>[], gone: Set<string>): Record<string, unknown>[] {
   const out = (id: unknown) => typeof id === 'string' && gone.has(id);
   const { owner = [], link = [], links = [], inner = {} } = LINKS[t] ?? {};
   return rows.filter(r => !out(pk(t, r)) && !owner.some(f => out(r[f]))).map(r => {
@@ -267,7 +300,7 @@ function revived(t: TableName, rows: Record<string, unknown>[], gone: Set<string
 /** Hands the file to the share sheet (Files, iCloud Drive, AirDrop); falls back to a download. */
 export async function shareOrDownload(data: BackupFile, now = new Date()): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const json = JSON.stringify(data);
-  const name = fileName(now);
+  const name = fileName(now, data.notebook);
   const file = new File([json], name, { type: 'application/json' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
@@ -290,7 +323,7 @@ export async function shareOrDownload(data: BackupFile, now = new Date()): Promi
 }
 
 /** Export, share, and on success log it (backups table, settings.lastBackupAt). */
-export async function backupNow(database: FlowDB = defaultDb): Promise<'shared' | 'downloaded' | 'cancelled'> {
+export async function backupNow(database: FlowDB = book()): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const now = Date.now();
   const data = await exportData(database, now);
   const outcome = await shareOrDownload(data, new Date(now));

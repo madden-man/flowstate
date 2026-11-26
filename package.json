@@ -22,13 +22,10 @@
     "walkthrough:motion": "node script/build-motion-walkthrough.mjs",
     "walkthrough:picks": "node script/build-picks-walkthrough.mjs",
     "walkthrough:energize": "node script/build-energize-walkthrough.mjs",
-    "walkthrough:mountain": "node script/build-mountain-walkthrough.mjs",
     "walkthrough:values": "node script/build-values-walkthrough.mjs",
     "walkthrough:tiers": "node script/build-tiers-walkthrough.mjs",
     "walkthrough:folds": "node script/build-folds-walkthrough.mjs",
-    "walkthrough:tasks": "node script/build-tasks-walkthrough.mjs",
     "walkthrough:research": "node script/build-research-walkthrough.mjs",
-    "walkthrough:blockers": "node script/build-blockers-walkthrough.mjs",
     "walkthrough:push": "node script/build-push-walkthrough.mjs"
   },
   "engines": {
@@ -39,6 +36,7 @@
     "@netlify/blobs": "^11.1.11",
     "@preact/signals": "^2.11.4",
     "dexie": "^4.4.7",
+    "mongodb": "^6.22.0",
     "preact": "^10.29.8",
     "preact-iso": "^2.12.2",
     "web-push": "^4.0.0"

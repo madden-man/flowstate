@@ -1,6 +1,6 @@
 // Sunrise and sunset, offline, with no library (PLAN.md section 8): the sunrise equation, Meeus-style approximations,
-// good to a minute or two. Pure. Moved here from ui/light.ts in T0 (PLAN-TASKS.md section 7) so a model can turn its
-// day at sunrise (model/acts.ts, Root's basics); ui/light.ts re-exports it unchanged.
+// good to a minute or two. Pure. Moved here from ui/light.ts in T0 (PLAN-TASKS.md section 7) so a model could turn
+// its day at sunrise; ui/light.ts re-exports it unchanged.
 import type { Place } from '../db/schema';
 
 const DAY_MS = 86_400_000;
