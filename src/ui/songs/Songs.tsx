@@ -25,7 +25,7 @@ import { notebookDate } from '../date';
 import { voiceColour } from '../voice';
 import { hueOf } from '../../bridge/colour';
 import { pocketFor } from '../../model/story';
-import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionStarts, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, withSections, type SongRow } from '../../model/songs';
+import { SECTION_NAMES, blankSong, linesOf, looseHums, nameSection, newId, saveSong, saveTake, sectionTarget, songFromHum, songFromPocket, songList, songOf, takesOf, withLyric, withSections, type SongRow } from '../../model/songs';
 import { moveSong, settleMoves } from '../../model/move';
 import { bpmOf } from '../../model/tempo';
 import { carryNow, pocketVersion } from '../../model/carry';
@@ -175,8 +175,8 @@ export function SongPage({ id }: { id: string }) {
   };
 
   const lines = useMemo(() => (song ? linesOf(song.lyric) : ['']), [song?.lyric]);
-  const starts = useMemo(() => sectionStarts(lines), [lines]);
-  const nameAt = (i: number) => song?.sections.find(s => s.line === i)?.name;
+  // the chip pressed is the chip's name on the line a chip acts on; a Mac name ([Hook]) there presses none
+  const named = (i: number, n: string) => !!song?.sections.some(s => s.line === i && s.name === n);
   const setLine = (i: number, text: string) => { const ls = [...lines]; ls[i] = text; change({ lyric: ls.join('\n') }); };
 
   // after a split or a join, the caret goes where the pen would be, before the next paint
@@ -229,7 +229,7 @@ export function SongPage({ id }: { id: string }) {
   };
 
   const sectionLine = caret ?? (lines.length ? 0 : null);
-  const sectionHere = sectionLine === null ? undefined : [...starts].reverse().find(s => s <= sectionLine);
+  const sectionHere = sectionLine === null || !song ? undefined : sectionTarget(song, sectionLine);
   const pinned = (i: number) => takes.filter(t => t.lineId === String(i));
   const loose = takes.filter(t => t.lineId === undefined || Number(t.lineId) >= lines.length);
   const others = (settings.value.worlds ?? []).filter(w => w.id !== wornWorld.value);
@@ -269,8 +269,8 @@ export function SongPage({ id }: { id: string }) {
       <div class="fs-composer-wrap">
         <div class="fs-chips sg-chips fs-notstill" role="group" aria-label="This song">
           {sectionHere !== undefined && SECTION_NAMES.map(n => (
-            <Chip key={n} label={n} pressed={nameAt(sectionHere) === n}
-              onPress={() => change({ sections: nameSection(song, sectionHere, n) })} />
+            <Chip key={n} label={n} pressed={named(sectionHere, n)}
+              onPress={() => change({ sections: nameSection(song, sectionLine!, n) })} />
           ))}
           {pocket && <CharacterChips pocket={pocket} song={song} />}
           <Chip label={song.bpm ? `${song.bpm} BPM` : 'Tap tempo'} ariaLabel="Tap tempo" add={!song.bpm} pressed={!!song.bpm} onPress={tap} />

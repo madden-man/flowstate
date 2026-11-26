@@ -58,7 +58,21 @@ describe('the lyric: lines, sections and their names', () => {
     const was = { lyric: 'a\nb\n\nc\nd', sections: [{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }] };
     expect(reSection(was, 'new\na\nb\n\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 4, name: 'Chorus' }]);
     expect(reSection(was, 'A\nb\n\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }]);
-    expect(reSection(was, 'a\nb\nc\nd')).toEqual([{ line: 0, name: 'Verse' }]);
+    // a blank rule taken out joins the sections: the second name is never dropped, it stands over its line mid-section
+    // (it is a [Chorus] line on the Mac, and the phone never deletes one it was not asked to)
+    expect(reSection(was, 'a\nb\nc\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 2, name: 'Chorus' }]);
+    // a section's first line taken out: its name goes to the line that now starts it
+    expect(reSection(was, 'a\nb\n\nd')).toEqual([{ line: 0, name: 'Verse' }, { line: 3, name: 'Chorus' }]);
+  });
+  it('a chip names the section, beside a name from the Mac it never takes away; on a line holding a chip name it acts there', () => {
+    const s = { lyric: 'a\n\nb\nc', sections: [{ line: 2, name: 'From the phone' }, { line: 2, name: 'Verse' }] };
+    expect(nameSection(s, 3, 'Chorus')).toEqual([{ line: 2, name: 'From the phone' }, { line: 2, name: 'Chorus' }]);
+    expect(nameSection(s, 3, 'Verse')).toEqual([{ line: 2, name: 'From the phone' }]);
+    const onlyMac = { ...s, sections: [{ line: 2, name: 'From the phone' }] };
+    expect(nameSection(onlyMac, 2, 'Bridge')).toEqual([{ line: 2, name: 'From the phone' }, { line: 2, name: 'Bridge' }]);
+    // a Chorus left mid-section by a join is cleared with the caret on its own line
+    const joined = { lyric: 'a\nb\nc', sections: [{ line: 0, name: 'Verse' }, { line: 2, name: 'Chorus' }] };
+    expect(nameSection(joined, 2, 'Chorus')).toEqual([{ line: 0, name: 'Verse' }]);
   });
 });
 
@@ -323,9 +337,49 @@ describe('the Mac\'s [Name] lines round-trip (W7: Music Companion writes section
     await applyPocket(handed(book()), { kind: 'songs', songs: [{ id: 'mac-tide', title: 'Low tide', lyric: MAC, lyricAt: 2 }] });
     const now = (await store.get('songs', 'mac-tide'))!;
     expect(toMacLyric(now)).toBe(MAC);
+    // a first line typed into the verse: the Mac text comes back with that line alone added, every [Name] line kept
     const edited = withLyric(now, `added first\n${now.lyric}`);
-    expect(edited.sections.find(x => x.name === 'Hook')).toMatchObject({ line: linesOf(edited.lyric).indexOf('nobody waving') });
-    expect(edited.sections.map(x => x.name)).toEqual(expect.arrayContaining(['Pre-chorus', 'Hook', 'From the phone', 'Outro']));
+    expect(toMacLyric(edited)).toBe(MAC.replace('[Verse]\n', '[Verse]\nadded first\n'));
+  });
+  it('any Mac lyric, opened, one written line edited, sent: the Mac text is the same but for that line, every [Name] line still there in order', () => {
+    const heads = ['[Verse]', '[Chorus]', '[Bridge]', '[From the phone]', '[Pre-chorus]', '[Hook]', '[Outro]'];
+    const words = ['low tide', 'the water goes out', 'and comes back', 'nobody waving', 'slow train', 'low tide'];
+    let seed = 7;
+    const rnd = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+    const lyrics: string[] = [MAC, '[Chorus]\n[Bridge]\nline one\nline two', '[From the phone]\n[Verse]\nfrom the phone\n\n[Verse]\nmac', 'a\n[Hook]\n[Hook]\nb\n[Outro]\n[Outro]'];
+    for (let n = 0; n < 200; n++) {
+      const ls: string[] = [];
+      const len = 1 + rnd(12);
+      for (let i = 0; i < len; i++) { const r = rnd(10); ls.push(r < 3 ? heads[rnd(heads.length)] : r < 4 ? '' : words[rnd(words.length)]); }
+      lyrics.push(ls.join('\n'));
+    }
+    let checked = 0;
+    for (const mac of lyrics) {
+      const opened = songFromPocket({ id: 'p', title: 'P', lyric: mac, lyricAt: 1 });
+      expect(toMacLyric(opened), mac).toBe(mac);
+      const macLines = mac.split('\n');
+      const ls = linesOf(opened.lyric);
+      ls.forEach((l, j) => {
+        if (!l.trim()) return;
+        const edited = withLyric(opened, ls.map((x, i) => (i === j ? `${x} (edited)` : x)).join('\n'));
+        // the same Mac line, found by its place among the lines that are not [Name] lines, carries the edit
+        const head = (x: string) => { const m = /^\[([^\[\]\n]+)\]$/.exec(x); return !!m && m[1] === m[1].trim(); };
+        const allHeads = macLines.every(head);
+        let k = -1, seen = -1;
+        for (let i = 0; i < macLines.length; i++) { if (!allHeads && head(macLines[i])) continue; if (++seen === j) { k = i; break; } }
+        const want = macLines.map((x, i) => (i === k ? `${x} (edited)` : x)).join('\n');
+        expect(toMacLyric(edited), `${JSON.stringify(mac)} line ${j}`).toBe(want);
+        checked++;
+      });
+    }
+    expect(checked).toBeGreaterThan(300);
+  });
+  it('a lyric of section lines only comes back exactly: what the phone cannot hold as a name stays as its text', () => {
+    for (const mac of ['[Verse]', '[Verse]\n[Chorus]', '[Verse]\n', '']) {
+      const opened = fromMacLyric(mac);
+      expect(toMacLyric(opened), JSON.stringify(mac)).toBe(mac);
+    }
+    expect(fromMacLyric('[Verse]')).toEqual({ lyric: '[Verse]', sections: [] });
   });
 });
 
