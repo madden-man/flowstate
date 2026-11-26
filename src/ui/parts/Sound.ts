@@ -410,7 +410,7 @@ export function buildScape(a: BaseAudioContext, name: SitSound, dest: AudioNode 
 
 /** navigator.audioSession (Safari 16.4+): 'playback' makes the page's sound media, which the ringer switch does not mute. */
 type AudioSessionNav = Navigator & { audioSession?: { type: string } };
-function sessionType(type: 'playback' | 'auto'): void {
+function sessionType(type: 'playback' | 'auto' | 'play-and-record'): void {
   try {
     const session = typeof navigator === 'undefined' ? undefined : (navigator as AudioSessionNav).audioSession;
     if (session) session.type = type;
@@ -426,8 +426,25 @@ let holding: Sit | null = null;
 /** Once a sit has faded: its context is closed, and the session goes back to 'auto' unless a newer sit holds it. */
 const release = (s: Sit, a?: AudioContext) => () => {
   if (a) { if (sounding === a) sounding = null; try { void a.close?.()?.catch?.(() => undefined); } catch { /* gone */ } }
-  if (holding === s) { holding = null; sessionType('auto'); }
+  if (holding === s) { holding = null; sessionType(resting()); }
 };
+
+// The session a hum needs (W6). Recording on the iPhone wants 'play-and-record' named before the microphone is asked
+// for; a take played back is media ('playback'), so the ringer switch does not mute his own voice. Whichever ends, the
+// session goes to what is still under way: the microphone first, then a take or a sit playing, else 'auto' (so a take
+// played after a hum is not left on the earpiece route 'play-and-record' can choose).
+let micOpen = 0;
+let takeOn = false;
+const resting = (): 'playback' | 'auto' | 'play-and-record' => (micOpen ? 'play-and-record' : holding || takeOn ? 'playback' : 'auto');
+
+/** Names the session for the microphone (ui/songs/hum.ts calls it before getUserMedia); the function it returns gives
+ *  the session back, once, however the hold ended. */
+export function micSession(): () => void {
+  micOpen++;
+  sessionType('play-and-record');
+  let done = false;
+  return () => { if (done) return; done = true; micOpen = Math.max(0, micOpen - 1); sessionType(resting()); };
+}
 
 /**
  * Begins a sit's sound (only from the tap on the circle). Quiet makes no nodes and no AudioContext: the circle breathes
@@ -503,16 +520,20 @@ let playingTake: { stop: () => void } | null = null;
 export async function play(audio: ArrayBuffer): Promise<boolean> {
   playingTake?.stop();
   playingTake = null;
+  // media, named before its context is made (as a sit's is), so the ringer switch does not mute it
+  takeOn = true;
+  if (!micOpen) sessionType('playback');
   const a = make();
-  if (!a) return false;
+  const off = () => { takeOn = false; sessionType(resting()); };
+  if (!a) { off(); return false; }
   let buffer: AudioBuffer;
-  try { buffer = await a.decodeAudioData(audio.slice(0)); } catch { void a.close().catch(() => undefined); return false; }
+  try { buffer = await a.decodeAudioData(audio.slice(0)); } catch { void a.close().catch(() => undefined); off(); return false; }
   const src = a.createBufferSource();
   src.buffer = buffer;
   src.connect(a.destination);
   return new Promise(resolve => {
     let done = false;
-    const end = () => { if (done) return; done = true; if (playingTake === me) playingTake = null; void a.close().catch(() => undefined); resolve(true); };
+    const end = () => { if (done) return; done = true; if (playingTake === me) { playingTake = null; off(); } void a.close().catch(() => undefined); resolve(true); };
     const me = { stop: () => { try { src.stop(); } catch { /* not started */ } end(); } };
     src.onended = end;
     playingTake = me;

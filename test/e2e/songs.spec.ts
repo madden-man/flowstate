@@ -392,3 +392,28 @@ test('opening a song and leaving it untouched writes nothing and sends nothing; 
   await page.waitForTimeout(3000);
   expect(bridge.up.filter(e => e.table === 'songs')).toHaveLength(1);
 });
+
+test('the microphone refused: the page says so in print and keeps nothing; allowed again, the hum works and the line goes', async ({ page, context }) => {
+  await page.addInitScript(fakeMic);
+  await page.addInitScript(() => {
+    const real = navigator.mediaDevices.getUserMedia;
+    let refuse = true;
+    (window as unknown as { allowMic: () => void }).allowMic = () => { refuse = false; };
+    navigator.mediaDevices.getUserMedia = async (c?: MediaStreamConstraints) => { if (refuse) throw new DOMException('Permission denied', 'NotAllowedError'); return real.call(navigator.mediaDevices, c); };
+  });
+  await stubBridge(context);
+  await setUp(page, 'songbook');
+  await page.goto('/#/flow/hum');
+  const f = await finger(page, context);
+  await f.down(HUM);
+  await expect(page.locator('.sg-said')).toHaveText('The microphone is off for FlowState.');
+  await f.up();
+  await expect(page.locator(HUM)).toHaveText('Hold to hum');
+  await expect(page.locator('.sg-hum-row')).toHaveCount(0);
+  await page.evaluate(() => (window as unknown as { allowMic: () => void }).allowMic());
+  await f.down(HUM);
+  await page.waitForTimeout(1500);
+  await f.up();
+  await expect(page.locator('.sg-hum-row')).toHaveCount(1, { timeout: 10_000 });
+  await expect(page.locator('.sg-said')).toHaveCount(0);
+});

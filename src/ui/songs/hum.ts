@@ -6,7 +6,7 @@
 // The audio is kept as the recorder made it: AAC in MP4 where the browser records it (Safari on the iPhone; Chromium 126
 // and later), else WebM with Opus. Its type, parameters dropped, travels with the take (audioType) and is the clip's
 // content type: audio/mp4 or audio/webm.
-import { listen, type Listening } from '../parts/Sound';
+import { listen, micSession, type Listening } from '../parts/Sound';
 import { FRAME_S, TAKE_MAX_S, frameLength, frameOf, keyOfLine, yin } from '../../model/pitch';
 
 /** The recorder's types, in the order asked for: AAC in MP4 first, named so (what Music Companion files as .m4a; Chromium
@@ -31,9 +31,16 @@ type Opts = { onFrame: (pitch: readonly number[]) => void; onCap?: () => void };
 
 /** Asks for the microphone and starts a take. Rejects when the microphone is refused or missing. */
 export async function startHum({ onFrame, onCap }: Opts): Promise<Humming> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  // the iPhone records under 'play-and-record', named before the microphone is asked for; given back however it ends
+  const release = micSession();
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { release(); throw e; }
   const type = chooseType();
-  const rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  let rec: MediaRecorder;
+  try { rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined); }
+  catch (e) { stream.getTracks().forEach(t => t.stop()); release(); throw e; }
   const chunks: Blob[] = [];
   rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   const ear: Listening | null = listen(stream);
@@ -60,6 +67,7 @@ export async function startHum({ onFrame, onCap }: Opts): Promise<Humming> {
       const done = async () => {
         stream.getTracks().forEach(t => t.stop());
         ear?.close();
+        release();
         const blob = new Blob(chunks, { type: rec.mimeType || type || 'audio/mp4' });
         if (!blob.size) return resolve(null);
         const audio = await blob.arrayBuffer();

@@ -215,6 +215,7 @@ export function SongPage({ id }: { id: string }) {
     if (!exists.current) { await saveSong(s); exists.current = true; }
     await saveTake(takeFrom(h, id, line, s.bpm));
     setLive(null);
+    setSaid(null);
     setTakes(await takesOf(id));
   };
 
@@ -376,7 +377,7 @@ export function Hums() {
         <MicLine said={said} />
       </div>
       <div class="fs-composer-wrap">
-        <HumButton onFrame={p => setLive(p)} onTake={h => { setLive(null); void saveTake(takeFrom(h)).then(read); }}
+        <HumButton onFrame={p => setLive(p)} onTake={h => { setLive(null); setSaid(null); void saveTake(takeFrom(h)).then(read); }}
           onRefused={() => setSaid('refused')} onCap={() => setSaid('cap')} />
       </div>
     </Page>
