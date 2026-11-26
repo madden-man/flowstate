@@ -13,9 +13,9 @@ Tommy released W5 and W6 on 2026-11-25 ("ok start w5 and w6"). W7 and W8 wait fo
 | W0 spike | flowstate | draft PR #106, `worlds-w0-spike` | Never merges. Its phone findings (plan section 13) are unanswered. |
 | WF, W1, W2, W4 | flowstate | merged into `worlds-plan` (draft PR #103), head 9be7b95 | Built. W4 was reviewed by a fresh reviewer and its seven findings fixed. W1 was merged unaudited. |
 | W3 | NovelCompanion | draft PR #1, `worlds-w3`, head 8bd74b8 | Built as A55, migration 015. Reviewed, seven findings fixed. The fixes have not had a second review. |
-| W5 | NovelCompanion | not started | Stack on `worlds-w3`. It is A56. |
-| W6 | flowstate | not started | Branch from `worlds-plan`. |
-| W7 | MusicCompanion | not started | `~/dev/MusicCompanion` has an uncommitted `package-lock.json` change that is not ours; leave it. |
+| W5 | NovelCompanion | draft PR #2, stacked on `worlds-w3` | Built as A56, reviewed, the review's fixes in. Not merged. |
+| W6 | flowstate | draft PR #112, `worlds-w6`, base `worlds-plan` | Songs built: the song page, sections (any Mac `[Name]` round-trips), hold to hum, the pitch line, the key guess, tap tempo, loose hums, the Character chip, Songbook, clips, the move between worlds, lyrics both ways. Taken over mid-stride, audited, fixes in (see the PR). Needs its fresh reviewer. Not merged. |
+| W7 | MusicCompanion | draft PR #1, `worlds-w7` | Built, reviewed, the review's fixes in (head 95ab373). Not merged. `~/dev/MusicCompanion` has an uncommitted `package-lock.json` change that is not ours; leave it. |
 | W8 | flowstate | not started | See "Walkthroughs" below. |
 
 Worktrees on this Mac: `~/dev/flowstate-worlds` (`worlds-plan`), `~/dev/nc-worlds-w3` (`worlds-w3`). The `flowstate-w0` to `flowstate-w4` and `flowstate-wf` worktrees are merged and can go.
@@ -24,6 +24,13 @@ Checks as last run:
 
 - flowstate `worlds-plan` at 9be7b95: `npm test` PASS (1046 unit tests, lints, typecheck). E2E: see the line at the foot of this file.
 - NovelCompanion `worlds-w3` at 8bd74b8: lint and typecheck clean, unit 848, integration 343, e2e 298 passed, 2 failed, 38 not run. The two failures (`backstory.spec.ts` SM-9 "a click on an empty spot", `tree.spec.ts` SM-1 "the character page") fail the same way on `main` at db286e5, by the builder's run; the 38 are the rest of those two serial files. The reviewer did not re-check that.
+
+Decided since the plan (Tommy, 2026-11-25), and written into `docs/BRIDGE.md`:
+
+- **One shared database**, `flowstate_bridge`, holds `bridge_worlds`, `bridge_down`, `bridge_up` and `bridge_clips`; the function reaches nothing else. Novel Companion reads its own worlds' pages, messages, inquiries and songs; Music Companion reads songs and takes from every world, and every clip.
+- **A song moves between worlds** from the song page (never a loose hum, never to or from his own pages): same ids for life; the destination written whole and checked before the source is deleted; the new world's revs newer than the old world's deletes; a clip already delivered never sent again; a novel's characters tucked on the phone and restored on moving back, for those that bible still has; the old world's outbox drains when it is not worn.
+- **Lyrics both ways**: Songbook's pocket carries `lyric` and `lyricAt` a song; a song row carries `lyricAt` (the lyric's own last change on the phone) and `lyricFrom` (exactly the pocket `lyricAt` it started from). A newer pocket never overwrites an unsent edit, and is read again once the edit has gone up. The Mac's `[Name]` section lines round-trip to the identical text.
+- **A take** carries `lineText` beside `lineId`; ids are UUIDs; the pitch line is MIDI note numbers, 0 for no pitch.
 
 ## Rules that are easy to get wrong
 
@@ -60,7 +67,7 @@ Checks as last run:
 
 - The four W5 readings above (provenance, briefs, Voice; File it is decided).
 - W4's choices: Research this shows only in a world, at the foot beside Previous and Next; the chips under a journal page appear once it has a word; a council's year is the year worn or The whole book; "In the story" is not offered until a year is worn; seats print full names, conversation chips first names; no haptic tick on the dial.
-- From W1 and W2, still open: "+ flow" went with the mountain, so there is no way to make a flow; the Settings World row has Replace and Remove beside Carry now; the outbox drains only for the world worn.
+- From W1 and W2, still open: "+ flow" went with the mountain, so there is no way to make a flow; the Settings World row has Replace and Remove beside Carry now. (The outbox draining only for the world worn is closed by W6: every carry drains every registered world's outbox, worn or not, while some world is worn.)
 - Plan section 12's seven questions and section 13's phone checks (W0).
 - Not verified anywhere: a real round trip through the deployed function and a real MongoDB; the Atlas custom role; whether the desktop apps' own Atlas users have been given `flowstate_bridge` (the one shared database since 2026-11-25; docs/BRIDGE.md); the dial and the header's year under a real thumb.
 
