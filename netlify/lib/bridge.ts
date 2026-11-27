@@ -4,7 +4,8 @@
 // What it may touch, and nothing else: the four `bridge_` collections of the one shared database, `flowstate_bridge`
 // (BRIDGE_DB), through coll() below, which refuses any other database and any other name. Novel Companion's and Music
 // Companion's own databases are not reachable from here at all. Every stored envelope carries its world and table, and
-// the desktop apps read by those: Novel Companion its own worlds' rows, Music Companion every world's songs and takes.
+// the desktop apps read by those: Novel Companion its own worlds' rows, Music Companion every world's songs and takes
+// and its phone app's companion rows (a table, opaque here, in bridge_up; UP_TABLES in the protocol).
 //
 // The protocol is src/bridge/protocol.ts, shared with the phone.
 import { createHash, timingSafeEqual } from 'node:crypto';

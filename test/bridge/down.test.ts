@@ -142,3 +142,64 @@ describe('a bible decision taken back on the phone (review of W4, finding 1)', (
     expect((await db.outbox.toArray()).some(o => o.id === 'd:q1')).toBe(false);
   });
 });
+
+describe('Songbook\'s pocket is read loosely (Music Companion phone plan, B1): a fuller pocket changes nothing here', () => {
+  // What Music Companion's fuller pocket (its phone app's plan, section 3c) adds: per song the work date, key, tempo,
+  // time signature, progressions, notes, modifiedAt, the recording's metadata and a sketch list, and at the top the ids
+  // trashed on the Mac. FlowState takes only id, title, lyric and lyricAt; everything else is ignored.
+  const LEAN = [
+    { id: 'mac-tide', title: '2026-11-19 Low tide', lyric: '[Verse]\nthe Mac moved this line\nand comes back', lyricAt: 1_800_000_009_000 },
+    { id: 'mac-coat', title: '2026-11-20 The grey coat', lyric: 'the Mac wrote over it', lyricAt: 1_800_000_009_000 },
+    { id: 'mac-new', title: '2026-11-21 Not on the phone', lyric: 'only on the Mac', lyricAt: 1_800_000_008_000 },
+  ];
+  const extras = (i: number) => ({
+    workDate: `2026-11-${19 + i}`, key: 'G minor', bpm: 84 + i, timeSignature: '6/8',
+    progressions: [{ id: `p${i}`, name: 'Chorus', chords: ['Gm', 'Eb', 'Bb', 'F'] }], notes: 'slower live', modifiedAt: 1_800_000_009_500,
+    recording: { name: 'low tide mix 3.m4a', seconds: 212.4, key: 'G minor', attachedAt: 1_800_000_007_000, bytes: 41_000_000 },
+    sketches: [{ id: `k${i}`, seconds: 14.2, key: 'G minor', lineText: 'and comes back', at: 1_800_000_006_000 }],
+  });
+  const FULL = { kind: 'songs' as const, songs: LEAN.map((s, i) => ({ ...s, ...extras(i) })), trashed: ['mac-gone', 'mac-older'] };
+
+  /** A Songbook notebook holding two Mac songs (one with an unsent lyric edit) and a pinned take; the pocket applied;
+   *  then everything the notebook holds, what applyPocket said, the song list and a pocket song opened. */
+  async function after(pocket: unknown) {
+    const { db, h } = await worldDB('songbook');
+    const { saveTake, songList, songFromPocket } = await import('../../src/model/songs');
+    const base = { createdAt: 1_800_000_000_000, updatedAt: 1_800_000_000_000, sections: [] };
+    await store.put('songs', { ...base, id: 'mac-tide', title: 'Low tide', lyric: 'the water goes out\nand comes back', lyricFrom: 1_800_000_000_000 });
+    await store.put('songs', { ...base, id: 'mac-coat', title: 'The grey coat', lyric: 'I typed this', lyricFrom: 1_800_000_000_000, lyricAt: 1_800_000_000_500 });
+    await saveTake({ id: 't-1', songId: 'mac-tide', at: 1_800_000_000_100, seconds: 9, audio: new Uint8Array([1, 2]).buffer, audioType: 'audio/mp4', pitch: [55], lineId: '1', lineText: 'and comes back' });
+    await settled();
+    const whole = await applyPocket(h, pocket as never, 1_800_000_010_000);
+    await settled();
+    const settings = { bridge: { pocket: { world: 'songbook', stamp: 's', pocket } } } as never;
+    return {
+      whole,
+      songs: await db.songs.toArray(),
+      takes: await db.takes.toArray(),
+      outbox: (await db.outbox.toArray()).map(o => `${o.table} ${o.id}`),
+      list: (await songList(settings)).map(r => ({ ...r, updatedAt: undefined })),
+      opened: songFromPocket((pocket as { songs: never[] }).songs[2], 1),
+      voices: await db.voices.count(), pages: await db.pages.count(),
+    };
+  }
+
+  it('the same notebook, the same answer, the same song list and the same song opened as from the lean pocket', async () => {
+    const lean = await after({ kind: 'songs', songs: LEAN });
+    const full = await after(FULL);
+    expect(full).toEqual(lean);
+    // and the lean result is the one the bridge has always given: the Mac's newer lyric taken where nothing waits,
+    // passed over (so the stamp is kept) where his edit is unsent, nothing else from the pocket stored on a song
+    expect(lean.whole).toBe(false);
+    const tide = lean.songs.find(s => s.id === 'mac-tide')!;
+    expect(tide).toMatchObject({ lyric: 'the Mac moved this line\nand comes back', sections: [{ line: 0, name: 'Verse' }], lyricFrom: 1_800_000_009_000 });
+    expect(Object.keys(tide).sort()).toEqual(['createdAt', 'id', 'lyric', 'lyricFrom', 'sections', 'title', 'updatedAt']);
+    expect(lean.songs.find(s => s.id === 'mac-coat')).toMatchObject({ lyric: 'I typed this', lyricAt: 1_800_000_000_500 });
+    expect(lean.takes[0]).toMatchObject({ songId: 'mac-tide', lineId: '1', lineText: 'and comes back' });
+    expect(lean.list.map(r => r.id).sort()).toEqual(['mac-coat', 'mac-new', 'mac-tide']);
+    expect(lean.list.at(-1)).toEqual({ id: 'mac-new', title: 'Not on the phone', fromMac: true, updatedAt: undefined });
+    expect(lean.opened).toMatchObject({ id: 'mac-new', title: 'Not on the phone', lyric: 'only on the Mac', lyricFrom: 1_800_000_008_000 });
+    expect(Object.keys(lean.opened).sort()).toEqual(['createdAt', 'id', 'lyric', 'lyricFrom', 'sections', 'title', 'updatedAt']);
+    expect(lean.voices + lean.pages).toBe(0);
+  });
+});

@@ -3,7 +3,7 @@
 // checked.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handle, coll, authorised, Confined } from '../../netlify/lib/bridge';
-import { BRIDGE_DB, BRIDGE_PATH, BATCH_MAX, CLIP_MAX_BYTES, ENVELOPE_MAX_BYTES, type Envelope } from '../../src/bridge/protocol';
+import { BRIDGE_DB, BRIDGE_PATH, BATCH_MAX, CLIP_MAX_BYTES, COLLECTIONS, ENVELOPE_MAX_BYTES, TRAVELS, UP_TABLES, type Envelope } from '../../src/bridge/protocol';
 import { FakeMongo } from './fake-mongo';
 
 const TOKEN = 'a-long-random-token';
@@ -223,5 +223,94 @@ describe('everything else', () => {
     expect((await handle(new Request(`${BASE}?op=up`, { method: 'DELETE', headers: { authorization: `Bearer ${TOKEN}` } }), deps())).status).toBe(405);
     expect((await handle(get('op=worlds'), deps({ BRIDGE_TOKEN: TOKEN }))).status).toBe(503);
     expect(connects).toBe(0);
+  });
+});
+
+describe('the companion table (Music Companion\'s phone app, a second phone client)', () => {
+  const companion = (o: Partial<Envelope> = {}): Envelope => ({
+    world: 'songbook', table: 'companion', id: 'mac-tide', rev: 1_800_000_000_100,
+    row: {
+      id: 'mac-tide', title: 'Low tide', workDate: '2026-11-19', key: 'G minor', bpm: 84, timeSignature: '6/8',
+      progressions: [{ id: 'p1', chords: ['Gm', 'Eb', 'Bb', 'F'] }], lyrics: 'the water goes out\nand comes back', notes: 'slower live',
+      trashed: false, lyricAt: 1_800_000_000_050, lyricFrom: 1_800_000_000_000, changedAt: { bpm: 1_800_000_000_090 },
+    },
+    ...o,
+  } as Envelope);
+  const up = async (envelopes: unknown[], world = 'songbook') => read(await handle(post('op=up', { world, envelopes }), deps()));
+
+  it('the allow-list gains exactly companion; FlowState\'s own TRAVELS do not', () => {
+    expect(TRAVELS).toEqual(['pages', 'messages', 'inquiries', 'songs', 'takes']);
+    expect(UP_TABLES).toEqual([...TRAVELS, 'companion']);
+    expect(COLLECTIONS).toEqual(['bridge_worlds', 'bridge_down', 'bridge_up', 'bridge_clips']);
+  });
+  it('a companion row is stored opaque in bridge_up, beside (never over) a FlowState song of the same id', async () => {
+    const song = env({ world: 'songbook', table: 'songs', id: 'mac-tide', rev: 1_800_000_000_200, row: { id: 'mac-tide', title: 'Low tide', lyric: 'typed in FlowState' } });
+    const a = await up([companion()]);
+    expect(a.body.acks).toEqual([{ table: 'companion', id: 'mac-tide', rev: 1_800_000_000_100, result: 'stored' }]);
+    // FlowState writes the same song later, under its own table: the phone app's fuller row is untouched
+    expect((await up([song])).body.acks[0].result).toBe('stored');
+    const rows = mongo.rows(BRIDGE_DB, 'bridge_up');
+    expect([...rows.keys()]).toEqual(['songbook:companion:mac-tide', 'songbook:songs:mac-tide']);
+    expect(rows.get('songbook:companion:mac-tide')).toEqual({
+      _id: 'songbook:companion:mac-tide', world: 'songbook', table: 'companion', id: 'mac-tide', rev: 1_800_000_000_100,
+      deleted: false, row: companion().row, at: 1_700_000_000_000,
+    });
+    // what the Mac reads: every companion row beside songs and takes, by table
+    const mac = [...rows.values()].filter(d => ['songs', 'takes', 'companion'].includes(d.table as string)).map(d => d._id);
+    expect(mac).toEqual(['songbook:companion:mac-tide', 'songbook:songs:mac-tide']);
+  });
+  it('the envelope rules hold for it as for every table: newest rev, same, delete, row id, size, extra field', async () => {
+    await up([companion()]);
+    expect((await up([companion()])).body.acks[0].result).toBe('same');
+    expect((await up([companion({ rev: 5 })])).body.acks[0].result).toBe('older');
+    const r = await up([
+      companion({ id: 'a', row: { id: 'b' } }),
+      companion({ id: 'big', row: { id: 'big', lyrics: 'x'.repeat(ENVELOPE_MAX_BYTES) } }),
+      { ...companion({ id: 'x' }), extra: 1 },
+      companion({ world: 'eastwinds' }),
+      { world: 'songbook', table: 'companion', id: 'mac-tide', rev: 1_800_000_000_300, deleted: true },
+    ]);
+    expect(r.body.acks.map((a: { result: string; reason?: string }) => [a.result, a.reason])).toEqual([
+      ['refused', 'row id'], ['refused', 'size'], ['refused', 'field'], ['refused', 'world'], ['stored', undefined],
+    ]);
+    expect(mongo.rows(BRIDGE_DB, 'bridge_up').get('songbook:companion:mac-tide')).toMatchObject({ deleted: true, row: null });
+    // and without the token, nothing
+    expect((await handle(post('op=up', { world: 'songbook', envelopes: [companion()] }, undefined, null), deps())).status).toBe(401);
+  });
+  it('an unknown table is still refused, near names included, and nothing is written', async () => {
+    const r = await up(['companions', 'Companion', 'companion ', 'bridge_up', 'music_companion', 'settings', 'metronome', ''].map((table, i) =>
+      companion({ table: table as never, id: `u${i}`, row: { id: `u${i}` } })));
+    expect(r.body.acks.every((a: { result: string; reason?: string }) => a.result === 'refused' && a.reason === 'table')).toBe(true);
+    expect(mongo.rows(BRIDGE_DB, 'bridge_up').size).toBe(0);
+  });
+  it('coll() is unchanged: companion is a table inside bridge_up, never a collection or a database', async () => {
+    expect(() => coll(mongo, BRIDGE_DB, 'companion' as never)).toThrow(Confined);
+    expect(() => coll(mongo, BRIDGE_DB, 'bridge_companion' as never)).toThrow(Confined);
+    expect(() => coll(mongo, 'music_companion', 'bridge_up')).toThrow(Confined);
+    await up([companion()]);
+    await handle(get('op=pocket&world=songbook'), deps());
+    for (const t of mongo.touched) {
+      expect(t.db).toBe(BRIDGE_DB);
+      expect(['bridge_worlds', 'bridge_up', 'bridge_down']).toContain(t.coll);
+    }
+    expect([...mongo.data.keys()].every(k => k.startsWith(`${BRIDGE_DB}.`))).toBe(true);
+  });
+});
+
+describe('a phone client on another site, through a Netlify rewrite to the function', () => {
+  // The handler reads only the bearer, the method, the query string and the body: never the host, the path, Origin,
+  // Referer or any forwarded header. So a request proxied from another site is answered exactly as a same-origin one.
+  const proxied = (q: string, init: RequestInit = {}) => new Request(`https://music-companion.example/bridge?${q}`, {
+    ...init, headers: { authorization: `Bearer ${TOKEN}`, origin: 'https://music-companion.example', 'x-forwarded-host': 'music-companion.example', ...(init.headers as Record<string, string> ?? {}) },
+  });
+  it('reads Songbook\'s pocket and sends a companion row, whatever the host, path and origin', async () => {
+    mongo.seed(BRIDGE_DB, 'bridge_down', [{ _id: 'songbook', stamp: 'mc-7', pocket: { kind: 'songs', songs: [{ id: 'mac-tide', title: '2026-11-19 Low tide' }] } }]);
+    const p = await read(await handle(proxied('op=pocket&world=songbook&stamp=mc-6'), deps()));
+    expect(p).toMatchObject({ status: 200, cache: 'no-store', body: { world: 'songbook', stamp: 'mc-7', pocket: { kind: 'songs' } } });
+    const body = JSON.stringify({ world: 'songbook', envelopes: [{ world: 'songbook', table: 'companion', id: 'mac-tide', rev: 2, row: { id: 'mac-tide', title: 'Low tide' } }] });
+    const u = await read(await handle(proxied('op=up', { method: 'POST', body, headers: { 'content-type': 'application/json' } }), deps()));
+    expect(u.body.acks).toEqual([{ table: 'companion', id: 'mac-tide', rev: 2, result: 'stored' }]);
+    // a rewrite that dropped the bearer would be a plain 401
+    expect((await handle(new Request('https://music-companion.example/bridge?op=worlds'), deps())).status).toBe(401);
   });
 });

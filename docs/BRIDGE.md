@@ -13,7 +13,7 @@ One database, `flowstate_bridge` (`BRIDGE_DB` in `src/bridge/protocol.ts`; Tommy
 |---|---|---|---|
 | `bridge_worlds` | the desktop apps: Novel Companion a row a bible, Music Companion Songbook's | reads (the registry) | the function |
 | `bridge_down` | the desktop apps, each its own worlds' pockets | reads (a world's pocket) | the function |
-| `bridge_up` | the function | reads and writes (envelopes) | Novel Companion: its own worlds' `pages`, `messages`, `inquiries` and `songs` (a stub on each character a song names). Music Companion: `songs` and `takes` from every world. |
+| `bridge_up` | the function | reads and writes (envelopes) | Novel Companion: its own worlds' `pages`, `messages`, `inquiries` and `songs` (a stub on each character a song names). Music Companion: `songs` and `takes` from every world, and `companion` (its phone app's songs). |
 | `bridge_clips` | the function | reads and writes (a take's audio, W6) | Music Companion, every clip, any world; it removes a clip once pulled |
 
 `coll()` in the handler refuses any other database (Novel Companion's `novel_companion` and Music Companion's `music_companion` included: neither is reachable through the function) and any other collection name. A world is a `bridge_worlds` row with a kind it knows (`novel` or `songs`); its kind says which app writes its pocket and no longer picks a database. An unknown world is refused (`404`), and nothing is read or written for it. Every stored envelope carries its `world` and `table`, which is how each app finds its own: a song written in East Winds is one row in `bridge_up`, read by Music Companion whole and by Novel Companion for its stub.
@@ -29,7 +29,7 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 | `POST ?op=up`, body `{ world, envelopes }` | `{ acks }`, one an envelope, in order |
 | `POST ?op=clip&world=<id>&take=<id>&rev=<n>`, body the audio, `content-type: audio/*` | `{ take, result }`; stored in `bridge_clips` as `{ _id: "<world>:<take>", world, take, rev, type, bytes, audio, at }` |
 
-**Envelope:** `{ world, table, id, rev, deleted?, row? }`. `table` is one of `pages`, `messages`, `inquiries`, `songs`, `takes`; `id` matches `[A-Za-z0-9._:-]{1,120}`; `rev` a positive whole number; `row.id` equals `id`; a delete carries no row. Stored in `bridge_up` as `{ _id: "<world>:<table>:<id>", world, table, id, rev, deleted, row, at }`.
+**Envelope:** `{ world, table, id, rev, deleted?, row? }`. `table` is one of `pages`, `messages`, `inquiries`, `songs`, `takes` (FlowState's, `TRAVELS`) or `companion` (Music Companion's phone app only, below; `UP_TABLES` is the function's list); `id` matches `[A-Za-z0-9._:-]{1,120}`; `rev` a positive whole number; `row.id` equals `id`; a delete carries no row. Stored in `bridge_up` as `{ _id: "<world>:<table>:<id>", world, table, id, rev, deleted, row, at }`.
 
 **Ack:** `{ table, id, rev, result, reason? }`. `stored`: written. `same`: that rev was already there (a resend after a lost answer); nothing rewritten. `older`: a newer rev is there; this one dropped. `refused`: a check failed (`reason` names it); nothing written. The first three let the phone clear its outbox entry; a refused one waits.
 
@@ -84,6 +84,26 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 - **iPhone (Safari, the installed app): `audio/mp4`, AAC.** File it as `.m4a`. Not yet confirmed on Tommy's phone (W0's findings are unanswered); Safari 14.1 and later record AAC in MP4.
 - **Chromium: `audio/mp4`** as well, seen in the e2e on HeadlessChrome 158 (it reports `audio/mp4`, `audio/mp4;codecs=mp4a.40.2` and `audio/webm;codecs=opus` all supported, so the phone's first choice, AAC, is what it records). An older Chromium (before about 126) records no MP4 and sends `audio/webm` (Opus): file that as `.webm`.
 - Anything else `audio/*` is possible from another browser; take the extension from `type`, never assume `.m4a`.
+
+## The companion table (Music Companion's phone app)
+
+A second phone client, Music Companion on the phone (Music Companion's `docs/PLAN-PWA.md`, section 3), uses the same function with the same token. It reads Songbook's pocket exactly as FlowState does and writes its songs up under its own table.
+
+| | |
+|---|---|
+| Table | `companion` (`OTHER_CLIENTS` in `src/bridge/protocol.ts`), in world `songbook` |
+| Written by | Music Companion's phone app only. FlowState never writes or reads it: its outbox goes by `TRAVELS`, which does not hold it (`test/bridge/fence.test.ts`) |
+| Read by | The Mac (Music Companion), from `bridge_up`, beside `songs` and `takes` |
+| The row | Opaque to the function: only the envelope rules (id, `row.id` equals `id`, world, rev, 64 KiB, the token). Its shape is Music Companion's (`src/shared/domain/`): the whole song as the phone holds it |
+| Stored | `bridge_up` as `{ _id: "songbook:companion:<id>", world, table: "companion", id, rev, deleted, row, at }` |
+
+**Why not `songs`.** `bridge_up` keeps one envelope per world, table and id, newest rev wins. Were the phone app to write `songs`, a FlowState edit to the same song would overwrite the phone app's fuller row (progressions, notes, time signature) before the Mac had read it, and with the Mac closed for a day that row would be gone. Under its own table both rows wait side by side and the Mac merges each as it arrives. Ids follow the rule above: the Mac's id for a song that came from the pocket, a UUID for one born on the phone, for life.
+
+Nothing else changed for it: `coll()`, its database and its four collections are untouched, and `companion` is a table inside `bridge_up`, never a collection.
+
+**The pocket read loosely.** FlowState takes from a Songbook pocket song only `id`, `title`, `lyric` and `lyricAt`. A fuller pocket (each song with `workDate, key, bpm, timeSignature, progressions, notes, modifiedAt`, its recording's metadata and a sketch list; the pocket with a top-level list of ids trashed on the Mac) is taken exactly as the lean one: `test/bridge/down.test.ts` applies both and compares the whole notebook.
+
+**From another site.** The phone app lives on its own Netlify site and rewrites its same-origin `/bridge` to `https://flowstate-journal.netlify.app/.netlify/functions/bridge` (a proxy, status 200). The function reads only the bearer, the method, the query string and the body; it never reads the host, the path, `Origin`, `Referer` or a forwarded header, so a proxied call is answered as a same-origin one (`test/bridge/function.test.ts`). It sends no CORS headers, and needs none behind the rewrite.
 
 ## Setting it up (not run; Tommy's to do on the site and in Atlas)
 

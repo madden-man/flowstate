@@ -71,3 +71,14 @@ describe('src/bridge is never handed the personal notebook', () => {
     }
   });
 });
+
+describe('FlowState never writes or reads the companion table (Music Companion\'s phone app writes it)', () => {
+  it('the journal\'s outbox goes by TRAVELS, which does not hold it; no code in src names it but the protocol', async () => {
+    const { TRAVELS, UP_TABLES } = await import('../../src/bridge/protocol');
+    expect((TRAVELS as readonly string[]).includes('companion')).toBe(false);
+    expect(UP_TABLES.filter(t => !(TRAVELS as readonly string[]).includes(t))).toEqual(['companion']);
+    const src = files('src').filter(f => /\.(ts|tsx)$/.test(f) && f !== path.join('src', 'bridge', 'protocol.ts'));
+    expect(src.length).toBeGreaterThan(20);
+    for (const f of src) expect(code(fs.readFileSync(f, 'utf8')), f).not.toMatch(/companion|OTHER_CLIENTS|UP_TABLES/i);
+  });
+});
