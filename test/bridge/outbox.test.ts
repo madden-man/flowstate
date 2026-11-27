@@ -299,3 +299,27 @@ describe('what comes down never goes back up', () => {
     expect(await db.pages.count()).toBe(1);
   });
 });
+
+describe('FlowState never sends another client\'s table (review of #116, finding 2)', () => {
+  it('its own pre-send check is the five TRAVELS: a companion envelope is refused there', async () => {
+    const { envelopeProblem, UP_TABLES } = await import('../../src/bridge/protocol');
+    const e = { world: 'songbook', table: 'companion', id: 'mac-tide', rev: 5, deleted: true };
+    expect(envelopeProblem(e, 'songbook')).toBe('table');
+    // only the function, which passes UP_TABLES and the world's kind, accepts it
+    expect(envelopeProblem(e, 'songbook', UP_TABLES, 'songs')).toBeNull();
+  });
+  it('a stray outbox row of a table it does not send leaves unsent, never as a take\'s delete under that table', async () => {
+    const { worldDB: w } = await import('./helpers');
+    const { db: sdb, h: sh } = await w('songbook');
+    await sdb.outbox.add({ table: 'companion' as never, id: 'mac-tide', rev: 5, at: 5 });
+    await sdb.outbox.add({ table: 'notes' as never, id: 'n1', rev: 6, at: 6 });
+    const b = (await readBatch(sh, 'songbook'))!;
+    expect(b.envelopes).toEqual([]);
+    expect(JSON.parse(b.body).envelopes).toEqual([]);
+    expect(b.drops).toHaveLength(2);
+    const f = fakeBridge();
+    await drain(sh, 'songbook', 'tok', f.fetcher);
+    expect(f.calls).toHaveLength(0);
+    expect(await sdb.outbox.count()).toBe(0);
+  });
+});

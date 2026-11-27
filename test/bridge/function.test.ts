@@ -255,9 +255,9 @@ describe('the companion table (Music Companion\'s phone app, a second phone clie
       _id: 'songbook:companion:mac-tide', world: 'songbook', table: 'companion', id: 'mac-tide', rev: 1_800_000_000_100,
       deleted: false, row: companion().row, at: 1_700_000_000_000,
     });
-    // what the Mac reads: every companion row beside songs and takes, by table
-    const mac = [...rows.values()].filter(d => ['songs', 'takes', 'companion'].includes(d.table as string)).map(d => d._id);
-    expect(mac).toEqual(['songbook:companion:mac-tide', 'songbook:songs:mac-tide']);
+    // both rows are in bridge_up, each whole: FlowState's song row did not touch the phone app's
+    expect(rows.get('songbook:songs:mac-tide')).toMatchObject({ table: 'songs', rev: 1_800_000_000_200, row: { lyric: 'typed in FlowState' } });
+    expect(rows.get('songbook:companion:mac-tide')!.row).toEqual(companion().row);
   });
   it('the envelope rules hold for it as for every table: newest rev, same, delete, row id, size, extra field', async () => {
     await up([companion()]);
@@ -276,6 +276,23 @@ describe('the companion table (Music Companion\'s phone app, a second phone clie
     expect(mongo.rows(BRIDGE_DB, 'bridge_up').get('songbook:companion:mac-tide')).toMatchObject({ deleted: true, row: null });
     // and without the token, nothing
     expect((await handle(post('op=up', { world: 'songbook', envelopes: [companion()] }, undefined, null), deps())).status).toBe(401);
+  });
+  it('only in a songs world: a companion row in a novel world\'s own batch is refused as table, and nothing is written', async () => {
+    mongo.seed(BRIDGE_DB, 'bridge_worlds', [{ _id: 'ballads', name: 'Ballads', kind: 'songs' }]);
+    const r = await up([
+      companion({ world: 'eastwinds' }),
+      companion({ world: 'eastwinds', id: 'gone', rev: 3, row: undefined, deleted: true }),
+      env({ id: 'm9', row: { id: 'm9', text: 'still goes' } }),
+    ], 'eastwinds');
+    expect(r.status).toBe(200);
+    expect(r.body.acks).toEqual([
+      { table: 'companion', id: 'mac-tide', rev: 1_800_000_000_100, result: 'refused', reason: 'table' },
+      { table: 'companion', id: 'gone', rev: 3, result: 'refused', reason: 'table' },
+      { table: 'messages', id: 'm9', rev: 10, result: 'stored' },
+    ]);
+    expect([...mongo.rows(BRIDGE_DB, 'bridge_up').keys()]).toEqual(['eastwinds:messages:m9']);
+    // any world of kind songs takes it, not only the one named songbook
+    expect((await up([companion({ world: 'ballads' })], 'ballads')).body.acks[0].result).toBe('stored');
   });
   it('an unknown table is still refused, near names included, and nothing is written', async () => {
     const r = await up(['companions', 'Companion', 'companion ', 'bridge_up', 'music_companion', 'settings', 'metronome', ''].map((table, i) =>

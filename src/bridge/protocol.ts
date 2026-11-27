@@ -39,6 +39,8 @@ export const OTHER_CLIENTS = ['companion'] as const;
 /** Every table the function accepts in an up envelope. */
 export const UP_TABLES = [...TRAVELS, ...OTHER_CLIENTS] as const;
 export type UpTable = typeof UP_TABLES[number];
+/** A table accepted only in a world of one kind: `companion` only in a `songs` world (Songbook). */
+export const ONLY_IN_KIND: Partial<Record<UpTable, WorldKind>> = { companion: 'songs' };
 
 export const WORLD_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 export const ROW_ID = /^[A-Za-z0-9._:-]{1,120}$/;
@@ -109,11 +111,15 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const bytesOf = (s: string) => new TextEncoder().encode(s).length;
 
 /** Checks one envelope against the allow-lists and the size limit, for the world the batch is for. Returns the reason
- *  it is refused, or null. Used by the function on every envelope, and by the phone before it sends one. */
-export function envelopeProblem(e: unknown, world: string): string | null {
+ *  it is refused, or null. Used by the function on every envelope (tables UP_TABLES, and the world's kind from the
+ *  registry), and by FlowState before it sends one (the default, TRAVELS: FlowState never sends another client's
+ *  table). A table in ONLY_IN_KIND is refused, as `table`, in a world of any other kind. */
+export function envelopeProblem(e: unknown, world: string, tables: readonly string[] = TRAVELS, kind?: WorldKind): string | null {
   if (!isObj(e)) return 'not an object';
   if (e.world !== world) return 'world';
-  if (typeof e.table !== 'string' || !(UP_TABLES as readonly string[]).includes(e.table)) return 'table';
+  if (typeof e.table !== 'string' || !tables.includes(e.table)) return 'table';
+  const only = ONLY_IN_KIND[e.table as UpTable];
+  if (only && kind !== only) return 'table';
   if (typeof e.id !== 'string' || !ROW_ID.test(e.id)) return 'id';
   if (typeof e.rev !== 'number' || !Number.isSafeInteger(e.rev) || e.rev < 1) return 'rev';
   const allowed = new Set(['world', 'table', 'id', 'rev', 'deleted', 'row']);

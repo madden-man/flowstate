@@ -10,7 +10,7 @@
 // The protocol is src/bridge/protocol.ts, shared with the phone.
 import { createHash, timingSafeEqual } from 'node:crypto';
 import {
-  BODY_MAX_BYTES, BATCH_MAX, BRIDGE_DB, CLIP_MAX_BYTES, COLLECTIONS, PREFIX, ROW_ID, STAMP, WORLD_ID,
+  BODY_MAX_BYTES, BATCH_MAX, BRIDGE_DB, CLIP_MAX_BYTES, COLLECTIONS, PREFIX, ROW_ID, STAMP, UP_TABLES, WORLD_ID,
   envelopeProblem, type Ack, type AckResult, type CollectionName, type Envelope, type WorldKind, type WorldRow,
 } from '../../src/bridge/protocol.ts';
 
@@ -60,11 +60,13 @@ async function worlds(client: ClientLike): Promise<WorldRow[]> {
   return out;
 }
 
-/** A world the registry holds with a kind it knows. Nothing is read or written for any other. */
-async function known(client: ClientLike, world: string): Promise<boolean> {
+/** A world's kind, if the registry holds it with a kind it knows; null for any other world. */
+async function kindOf(client: ClientLike, world: string): Promise<WorldKind | null> {
   const r = await bridge(client, 'bridge_worlds').findOne({ _id: world });
-  return !!r && isKind(r.kind);
+  return r && isKind(r.kind) ? r.kind : null;
 }
+/** A world the registry holds with a kind it knows. Nothing is read or written for any other. */
+const known = async (client: ClientLike, world: string) => (await kindOf(client, world)) !== null;
 
 /** Newest rev wins: write only over an older rev, insert when there is none; a duplicate key means one is there. */
 async function newest(c: CollLike, _id: string, rev: number, doc: Doc): Promise<AckResult> {
@@ -119,11 +121,12 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     if (!b || typeof b.world !== 'string' || !WORLD_ID.test(b.world)) return json(400, { error: 'world' });
     if (!Array.isArray(b.envelopes) || b.envelopes.length > BATCH_MAX) return json(400, { error: 'envelopes' });
     const client = await deps.client();
-    if (!(await known(client, b.world))) return json(404, { error: 'no world' });
+    const kind = await kindOf(client, b.world);
+    if (!kind) return json(404, { error: 'no world' });
     const up = bridge(client, 'bridge_up');
     const acks: Ack[] = [];
     for (const e of b.envelopes as unknown[]) {
-      const problem = envelopeProblem(e, b.world);
+      const problem = envelopeProblem(e, b.world, UP_TABLES, kind);
       const env = e as Envelope;
       const ref = { table: typeof env?.table === 'string' ? env.table : '', id: typeof env?.id === 'string' ? env.id : '', rev: typeof env?.rev === 'number' ? env.rev : 0 };
       if (problem) { acks.push({ ...ref, result: 'refused', reason: problem }); continue; }

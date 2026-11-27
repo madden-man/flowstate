@@ -29,7 +29,7 @@ Every request: `Authorization: Bearer <BRIDGE_TOKEN>`. A missing or wrong token,
 | `POST ?op=up`, body `{ world, envelopes }` | `{ acks }`, one an envelope, in order |
 | `POST ?op=clip&world=<id>&take=<id>&rev=<n>`, body the audio, `content-type: audio/*` | `{ take, result }`; stored in `bridge_clips` as `{ _id: "<world>:<take>", world, take, rev, type, bytes, audio, at }` |
 
-**Envelope:** `{ world, table, id, rev, deleted?, row? }`. `table` is one of `pages`, `messages`, `inquiries`, `songs`, `takes` (FlowState's, `TRAVELS`) or `companion` (Music Companion's phone app only, below; `UP_TABLES` is the function's list); `id` matches `[A-Za-z0-9._:-]{1,120}`; `rev` a positive whole number; `row.id` equals `id`; a delete carries no row. Stored in `bridge_up` as `{ _id: "<world>:<table>:<id>", world, table, id, rev, deleted, row, at }`.
+**Envelope:** `{ world, table, id, rev, deleted?, row? }`. `table` is one of `pages`, `messages`, `inquiries`, `songs`, `takes` (FlowState's, `TRAVELS`) or `companion` (Music Companion's phone app only, in a `songs` world, below; `UP_TABLES` is the function's list); `id` matches `[A-Za-z0-9._:-]{1,120}`; `rev` a positive whole number; `row.id` equals `id`; a delete carries no row. Stored in `bridge_up` as `{ _id: "<world>:<table>:<id>", world, table, id, rev, deleted, row, at }`.
 
 **Ack:** `{ table, id, rev, result, reason? }`. `stored`: written. `same`: that rev was already there (a resend after a lost answer); nothing rewritten. `older`: a newer rev is there; this one dropped. `refused`: a check failed (`reason` names it); nothing written. The first three let the phone clear its outbox entry; a refused one waits.
 
@@ -91,8 +91,8 @@ A second phone client, Music Companion on the phone (Music Companion's `docs/PLA
 
 | | |
 |---|---|
-| Table | `companion` (`OTHER_CLIENTS` in `src/bridge/protocol.ts`), in world `songbook` |
-| Written by | Music Companion's phone app only. FlowState never writes or reads it: its outbox goes by `TRAVELS`, which does not hold it (`test/bridge/fence.test.ts`) |
+| Table | `companion` (`OTHER_CLIENTS` in `src/bridge/protocol.ts`), in world `songbook`. The function accepts it only in a world of kind `songs` (`ONLY_IN_KIND`): in any other world it is acked `{ table: "companion", id, rev, result: "refused", reason: "table" }` and nothing is written |
+| Written by | Music Companion's phone app only. FlowState never writes or reads it: its outbox goes by `TRAVELS`, its own pre-send check is `TRAVELS` (the function alone passes `UP_TABLES`), and a stray outbox row of any table it does not send leaves the outbox unsent (`test/bridge/outbox.test.ts`) |
 | Read by | The Mac (Music Companion), from `bridge_up`, beside `songs` and `takes` |
 | The row | Opaque to the function: only the envelope rules (id, `row.id` equals `id`, world, rev, 64 KiB, the token). Its shape is Music Companion's (`src/shared/domain/`): the whole song as the phone holds it |
 | Stored | `bridge_up` as `{ _id: "songbook:companion:<id>", world, table: "companion", id, rev, deleted, row, at }` |
@@ -100,6 +100,8 @@ A second phone client, Music Companion on the phone (Music Companion's `docs/PLA
 **Why not `songs`.** `bridge_up` keeps one envelope per world, table and id, newest rev wins. Were the phone app to write `songs`, a FlowState edit to the same song would overwrite the phone app's fuller row (progressions, notes, time signature) before the Mac had read it, and with the Mac closed for a day that row would be gone. Under its own table both rows wait side by side and the Mac merges each as it arrives. Ids follow the rule above: the Mac's id for a song that came from the pocket, a UUID for one born on the phone, for life.
 
 Nothing else changed for it: `coll()`, its database and its four collections are untouched, and `companion` is a table inside `bridge_up`, never a collection.
+
+**One token for both clients.** The phone app holds the same `BRIDGE_TOKEN`, which can write every table in every world, East Winds' pages and lines included. The function does not confine the second client to `companion`; a leak on its site exposes the whole bridge. A token per client, the phone app's allowed only `companion` in a `songs` world, is a later package (review of #116, note 4).
 
 **The pocket read loosely.** FlowState takes from a Songbook pocket song only `id`, `title`, `lyric` and `lyricAt`. A fuller pocket (each song with `workDate, key, bpm, timeSignature, progressions, notes, modifiedAt`, its recording's metadata and a sketch list; the pocket with a top-level list of ids trashed on the Mac) is taken exactly as the lean one: `test/bridge/down.test.ts` applies both and compares the whole notebook.
 
