@@ -83,6 +83,9 @@ async function build(h: Handed, world: string, o: OutboxRow): Promise<Built> {
     if (s.locked) return { wait: true };
     return { envelope: { ...base, row: pick(s, SONG) } };
   }
+  // anything but a take (a stray outbox row of a table FlowState does not send) leaves the outbox unsent, never as a
+  // take's delete under that table
+  if (o.table !== 'takes') return { drop: true };
   const t = await h.get('takes', o.id);
   if (!t) return gone();
   if (t.locked) return { wait: true };
